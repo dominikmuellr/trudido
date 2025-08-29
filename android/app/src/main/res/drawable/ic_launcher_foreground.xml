@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Simple circular plate with letter T -->
+    <group android:scaleX="0.6" android:scaleY="0.6" android:translateX="21.6" android:translateY="21.6">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,4A50,50 0 1 1 4,54 50,50 0 0 1 54,4Z"/>
+        <path
+            android:fillColor="#2D2F39"
+            android:pathData="M34,30h40v10h-15v34h-10v-34h-15z"/>
+    </group>
+</vector>
