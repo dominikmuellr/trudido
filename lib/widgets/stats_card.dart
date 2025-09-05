@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../models/statistics.dart';
+import '../controllers/task_controller.dart';
 
 class StatsCard extends StatelessWidget {
-  final TodoStatistics statistics;
+  final TaskStatistics statistics;
 
   const StatsCard({
     super.key,
@@ -66,7 +66,7 @@ class StatsCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${statistics.completedTasks}',
+                      '${statistics.completed}',
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: theme.colorScheme.primary,
@@ -87,29 +87,29 @@ class StatsCard extends StatelessWidget {
                   context,
                   icon: PhosphorIcons.listChecks(),
                   label: 'Total',
-                  value: '${statistics.totalTasks}',
+                  value: '${statistics.total}',
                 ),
                 _buildStatItem(
                   context,
                   icon: PhosphorIcons.clock(),
                   label: 'Pending',
-                  value: '${statistics.pendingTasks}',
+                  value: '${statistics.pending}',
                   color: Colors.orange,
                 ),
-                if (statistics.overdueTasks > 0)
+                if (statistics.overdue > 0)
                   _buildStatItem(
                     context,
                     icon: PhosphorIcons.warning(),
                     label: 'Overdue',
-                    value: '${statistics.overdueTasks}',
+                    value: '${statistics.overdue}',
                     color: Colors.red,
                   ),
-                if (statistics.dueTodayTasks > 0)
+                if (statistics.dueToday > 0)
                   _buildStatItem(
                     context,
                     icon: PhosphorIcons.calendar(),
                     label: 'Due Today',
-                    value: '${statistics.dueTodayTasks}',
+                    value: '${statistics.dueToday}',
                     color: Colors.orange,
                   ),
               ],

@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../services/folder_provider.dart';
+import '../services/template_provider.dart';
+import '../providers/app_providers.dart';
 import '../use_cases/folder_use_cases.dart';
+import '../widgets/template_selection_dialog.dart';
 
 class CreateFolderDialog extends ConsumerStatefulWidget {
   const CreateFolderDialog({super.key});
@@ -17,7 +20,7 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
   final _descriptionController = TextEditingController();
   
   String _selectedIcon = 'folder';
-  int _selectedColor = 0xFF2196F3; // Default blue
+  int? _selectedColor; // Will initialize from theme primary on first build
   bool _isLoading = false;
 
   final List<Map<String, dynamic>> _availableIcons = [
@@ -58,7 +61,9 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  final theme = Theme.of(context);
+  // Use toARGB32() instead of deprecated .value access for color raw int.
+  _selectedColor ??= theme.colorScheme.primary.toARGB32();
 
     return AlertDialog(
       title: const Text('Create Folder'),
@@ -141,12 +146,12 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
                         borderRadius: BorderRadius.circular(8),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: isSelected
-                                ? Color(_selectedColor).withAlpha(51)
+              color: isSelected
+                ? Color(_selectedColor!).withAlpha(51)
                                 : theme.colorScheme.surface,
                             border: Border.all(
-                              color: isSelected
-                                  ? Color(_selectedColor)
+                color: isSelected
+                  ? Color(_selectedColor!)
                                   : theme.colorScheme.outline.withAlpha(77),
                               width: isSelected ? 2 : 1,
                             ),
@@ -154,8 +159,8 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
                           ),
                           child: Icon(
                             iconData['icon'],
-                            color: isSelected
-                                ? Color(_selectedColor)
+              color: isSelected
+                ? Color(_selectedColor!)
                                 : theme.colorScheme.onSurface.withAlpha(179),
                           ),
                         ),
@@ -253,38 +258,136 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
     });
 
     try {
-      final result = await ref.read(folderNotifierProvider.notifier).createFolder(
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty
-            ? null
-            : _descriptionController.text.trim(),
-        color: _selectedColor,
-        icon: _selectedIcon,
-      );
-
-      if (mounted) {
-        if (result is FolderCreationSuccess) {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Folder "${result.folder.name}" created successfully'),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-            ),
-          );
-        } else if (result is FolderCreationFailure) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result.message),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-        }
-      }
+      // First check for template suggestions
+      final folderName = _nameController.text.trim();
+      await _checkForTemplatesSuggestions(folderName);
     } finally {
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  Future<void> _checkForTemplatesSuggestions(String folderName) async {
+    try {
+      // Get template suggestions based on folder name
+      final suggestUseCase = ref.read(suggestTemplatesUseCaseProvider);
+      final suggestions = await suggestUseCase(folderName);
+
+      if (mounted && suggestions.isNotEmpty) {
+        // Show template suggestion dialog
+        await _showTemplateSuggestion(folderName, suggestions);
+      } else {
+        // No suggestions, create folder normally
+        await _createFolderDirectly(folderName);
+      }
+    } catch (e) {
+      // If template suggestion fails, just create folder normally
+      await _createFolderDirectly(folderName);
+    }
+  }
+
+  Future<void> _showTemplateSuggestion(String folderName, List suggestions) async {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => TemplateSelectionDialog(
+        suggestedTemplates: suggestions.cast(),
+        folderName: folderName,
+        onSkip: () {
+          Navigator.of(context).pop();
+          _createFolderDirectly(folderName);
+        },
+        onSelectTemplate: (template) async {
+          Navigator.of(context).pop();
+          await _createFolderWithTemplate(folderName, template);
+        },
+      ),
+    );
+  }
+
+  Future<void> _createFolderDirectly(String folderName) async {
+    final result = await ref.read(folderNotifierProvider.notifier).createFolder(
+      name: folderName,
+      description: _descriptionController.text.trim().isEmpty
+          ? null
+          : _descriptionController.text.trim(),
+      color: _selectedColor!,
+      icon: _selectedIcon,
+    );
+
+    if (mounted) {
+      if (result is FolderCreationSuccess) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Folder "$folderName" created successfully'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      } else if (result is FolderCreationFailure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _createFolderWithTemplate(String folderName, template) async {
+    // Create folder first
+    final result = await ref.read(folderNotifierProvider.notifier).createFolder(
+      name: folderName,
+      description: _descriptionController.text.trim().isEmpty
+          ? null
+          : _descriptionController.text.trim(),
+      color: _selectedColor!,
+      icon: _selectedIcon,
+    );
+
+    if (result is FolderCreationSuccess) {
+      // Apply template to create tasks
+      try {
+        final applyUseCase = ref.read(applyTemplateUseCaseProvider);
+        final createdTodos = await applyUseCase(template, result.folder.id);
+        
+        // Refresh the tasks provider to show new todos
+        await ref.read(tasksProvider.notifier).refresh();
+        
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Folder "$folderName" created with ${createdTodos.length} tasks from "${template.name}" template'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      } catch (e) {
+        // Template application failed, but folder was created
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Folder "$folderName" created, but template application failed'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } else if (result is FolderCreationFailure) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
       }
     }
   }

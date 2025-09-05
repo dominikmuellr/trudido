@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../services/folder_provider.dart';
 import '../screens/folder_selection_screen.dart';
+import '../services/theme_service.dart';
 
 class FolderSelector extends ConsumerStatefulWidget {
   const FolderSelector({super.key});
@@ -32,6 +33,15 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
     final foldersAsync = ref.watch(folderNotifierProvider);
     final selectedFolderId = ref.watch(selectedFolderProvider);
     final theme = Theme.of(context);
+  final appOpts = theme.extension<AppOptions>() ?? const AppOptions(compact: false, highContrast: false);
+  final cardHeight = appOpts.compact ? 64.0 : 80.0;
+  final iconBox = appOpts.compact ? 40.0 : 48.0;
+  final outerMarginV = appOpts.compact ? 4.0 : 8.0;
+  final outerMarginH = 16.0;
+  final horizPad = appOpts.compact ? 12.0 : 16.0;
+  final vertPad = appOpts.compact ? 8.0 : 12.0;
+  final titleSize = appOpts.compact ? 15.0 : 16.0;
+  final descSize = appOpts.compact ? 11.0 : 12.0;
 
     return foldersAsync.when(
       data: (folders) {
@@ -67,16 +77,16 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
             );
           },
           child: Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            margin: EdgeInsets.symmetric(horizontal: outerMarginH, vertical: outerMarginV),
             child: Container(
-              height: 80,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              height: cardHeight,
+              padding: EdgeInsets.symmetric(horizontal: horizPad, vertical: vertPad),
               child: allOptions.isEmpty
                   ? Row(
                       children: [
                         Container(
-                          width: 48,
-                          height: 48,
+                          width: iconBox,
+                          height: iconBox,
                           decoration: BoxDecoration(
                             color: theme.colorScheme.primary.withAlpha(51),
                             borderRadius: BorderRadius.circular(12),
@@ -87,7 +97,7 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                             size: 24,
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        SizedBox(width: appOpts.compact ? 12 : 16),
                         const Expanded(
                           child: Text(
                             'No folders available',
@@ -128,8 +138,8 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                                 children: [
                                   // Folder icon
                                   Container(
-                                    width: 48,
-                                    height: 48,
+                                    width: iconBox,
+                                    height: iconBox,
                                     decoration: BoxDecoration(
                                       color: isAllFolders
                                           ? theme.colorScheme.primary.withAlpha(51)
@@ -147,7 +157,7 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                                     ),
                                   ),
                                   
-                                  const SizedBox(width: 16),
+                                  SizedBox(width: appOpts.compact ? 12 : 16),
                                   
                                   // Folder info
                                   Expanded(
@@ -157,13 +167,13 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                                       children: [
                                         Text(
                                           isAllFolders ? 'All Folders' : folder.name,
-                                          style: const TextStyle(
-                                            fontSize: 16,
+                                          style: TextStyle(
+                                            fontSize: titleSize,
                                             fontWeight: FontWeight.w600,
                                           ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
-                                        const SizedBox(height: 2),
+                                        SizedBox(height: appOpts.compact ? 1 : 2),
                                         Text(
                                           isAllFolders 
                                               ? 'View all your todos'
@@ -171,7 +181,7 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                                                   ? folder.description!
                                                   : 'Folder todos'),
                                           style: TextStyle(
-                                            fontSize: 12,
+                                            fontSize: descSize,
                                             color: theme.colorScheme.onSurface.withAlpha(153),
                                           ),
                                           overflow: TextOverflow.ellipsis,
@@ -187,7 +197,7 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                         ),
                         
                         // Navigation indicator and tap hint
-                        Column(
+        Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             if (allOptions.length > 1) ...[
@@ -209,7 +219,7 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 4),
+          SizedBox(height: appOpts.compact ? 2 : 4),
                             ],
                             
                             // Tap to select icon
@@ -227,15 +237,15 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
         );
       },
       loading: () => Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    margin: EdgeInsets.symmetric(horizontal: outerMarginH, vertical: outerMarginV),
         child: Container(
-          height: 80,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      height: cardHeight,
+      padding: EdgeInsets.symmetric(horizontal: horizPad, vertical: vertPad),
           child: Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+        width: iconBox,
+        height: iconBox,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary.withAlpha(51),
                   borderRadius: BorderRadius.circular(12),
@@ -248,7 +258,7 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: appOpts.compact ? 12 : 16),
               const Text(
                 'Loading folders...',
                 style: TextStyle(fontSize: 16),
@@ -258,10 +268,10 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
         ),
       ),
       error: (error, stack) => Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: EdgeInsets.symmetric(horizontal: outerMarginH, vertical: outerMarginV),
         child: Container(
-          height: 80,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          height: cardHeight,
+          padding: EdgeInsets.symmetric(horizontal: horizPad, vertical: vertPad),
           child: Row(
             children: [
               Icon(
@@ -269,7 +279,7 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                 color: theme.colorScheme.error,
                 size: 24,
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: appOpts.compact ? 12 : 16),
               const Expanded(
                 child: Text(
                   'Error loading folders',

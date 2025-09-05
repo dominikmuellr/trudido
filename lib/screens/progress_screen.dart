@@ -1,23 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/todo_provider.dart';
+// TODO: integrate category/priority stats after migration
+import '../controllers/task_controller.dart';
+import '../services/theme_service.dart'; // AppOptions extension
 
 class ProgressScreen extends ConsumerWidget {
   const ProgressScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final statistics = ref.watch(statisticsProvider);
+    final taskStats = ref.watch(taskStatisticsProvider);
+  final statistics = taskStats;
+    final appOptions = Theme.of(context).extension<AppOptions>() ?? const AppOptions(compact: false, highContrast: false);
+    final compact = appOptions.compact;
+
+    // Tokens
+    final outerPadding = EdgeInsets.all(compact ? 12 : 16);
+    final cardPadding = EdgeInsets.all(compact ? 14 : 20);
+    final gapSection = SizedBox(height: compact ? 16 : 20);
+    final gapTitleToContent = SizedBox(height: compact ? 12 : 16);
+    final gapSmall = SizedBox(height: compact ? 6 : 8);
+    final statsIconSize = compact ? 26.0 : 32.0;
+    final statGap = SizedBox(height: compact ? 6 : 8);
+    final completionPad = EdgeInsets.all(compact ? 18 : 24);
+    final completionRadius = BorderRadius.circular(compact ? 12 : 16);
+    final completionGap = SizedBox(height: compact ? 2 : 4);
+    final statLabelStyle = Theme.of(context).textTheme.bodySmall;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: outerPadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Overall Progress Card
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: cardPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -27,15 +45,14 @@ class ProgressScreen extends ConsumerWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  
+                  gapTitleToContent,
                   // Completion Rate Display
                   Center(
                     child: Container(
-                      padding: const EdgeInsets.all(24),
+                      padding: completionPad,
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: completionRadius,
                         border: Border.all(
                           color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
                           width: 2,
@@ -51,7 +68,7 @@ class ProgressScreen extends ConsumerWidget {
                               color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          completionGap,
                           Text(
                             'Complete',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -62,9 +79,7 @@ class ProgressScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  
-                  const SizedBox(height: 20),
-                  
+                  gapSection,
                   // Stats Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -72,23 +87,32 @@ class ProgressScreen extends ConsumerWidget {
                       _buildStatItem(
                         context,
                         'Total',
-                        statistics.totalTasks.toString(),
+                        statistics.total.toString(),
                         Icons.assignment,
                         Colors.blue,
+                        statsIconSize: statsIconSize,
+                        gap: statGap,
+                        labelStyle: statLabelStyle,
                       ),
                       _buildStatItem(
                         context,
                         'Done',
-                        statistics.completedTasks.toString(),
+                        statistics.completed.toString(),
                         Icons.check_circle,
                         Colors.green,
+                        statsIconSize: statsIconSize,
+                        gap: statGap,
+                        labelStyle: statLabelStyle,
                       ),
                       _buildStatItem(
                         context,
                         'Pending',
-                        statistics.pendingTasks.toString(),
+                        statistics.pending.toString(),
                         Icons.pending,
                         Colors.orange,
+                        statsIconSize: statsIconSize,
+                        gap: statGap,
+                        labelStyle: statLabelStyle,
                       ),
                     ],
                   ),
@@ -96,13 +120,11 @@ class ProgressScreen extends ConsumerWidget {
               ),
             ),
           ),
-          
-          const SizedBox(height: 20),
-          
+          gapSection,
           // Priority Breakdown
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: cardPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -112,24 +134,21 @@ class ProgressScreen extends ConsumerWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  
-                  _buildPriorityBar(context, 'High', statistics.tasksByPriority['high'] ?? 0, Colors.red),
-                  const SizedBox(height: 8),
-                  _buildPriorityBar(context, 'Medium', statistics.tasksByPriority['medium'] ?? 0, Colors.orange),
-                  const SizedBox(height: 8),
-                  _buildPriorityBar(context, 'Low', statistics.tasksByPriority['low'] ?? 0, Colors.green),
+                  gapTitleToContent,
+                  _buildPriorityBar(context, 'High', statistics.byPriority['high'] ?? 0, Colors.red, compact: compact),
+                  gapSmall,
+                  _buildPriorityBar(context, 'Medium', statistics.byPriority['medium'] ?? 0, Colors.orange, compact: compact),
+                  gapSmall,
+                  _buildPriorityBar(context, 'Low', statistics.byPriority['low'] ?? 0, Colors.green, compact: compact),
                 ],
               ),
             ),
           ),
-          
-          const SizedBox(height: 20),
-          
+          gapSection,
           // Category Breakdown
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: cardPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -139,25 +158,20 @@ class ProgressScreen extends ConsumerWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  
-                  ...statistics.tasksByCategory.entries.map((entry) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _buildCategoryBar(context, entry.key, entry.value),
-                    );
-                  }),
+                  gapTitleToContent,
+                  ...statistics.byCategory.entries.map((entry) => Padding(
+                    padding: EdgeInsets.only(bottom: compact ? 6 : 8),
+                    child: _buildCategoryEntry(context, entry.key, entry.value, compact: compact),
+                  )),
                 ],
               ),
             ),
           ),
-          
-          const SizedBox(height: 20),
-          
+          gapSection,
           // Additional Stats
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: cardPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -167,12 +181,11 @@ class ProgressScreen extends ConsumerWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  
-                  _buildInsightRow(context, 'Overdue Tasks', statistics.overdueTasks.toString(), Icons.warning, Colors.red),
-                  _buildInsightRow(context, 'Due Today', statistics.dueTodayTasks.toString(), Icons.today, Colors.orange),
-                  _buildInsightRow(context, 'Due Soon', statistics.dueSoonTasks.toString(), Icons.schedule, Colors.blue),
-                  _buildInsightRow(context, 'Streak Days', statistics.streakDays.toString(), Icons.local_fire_department, Colors.green),
+                  gapTitleToContent,
+                  _buildInsightRow(context, 'Overdue Tasks', statistics.overdue.toString(), Icons.warning, Colors.red, compact: compact),
+                  _buildInsightRow(context, 'Due Today', statistics.dueToday.toString(), Icons.today, Colors.orange, compact: compact),
+                  _buildInsightRow(context, 'Due Soon', statistics.dueSoon.toString(), Icons.schedule, Colors.blue, compact: compact),
+                  _buildInsightRow(context, 'Streak Days', statistics.streakDays.toString(), Icons.local_fire_department, Colors.green, compact: compact),
                 ],
               ),
             ),
@@ -182,11 +195,13 @@ class ProgressScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatItem(BuildContext context, String label, String value, IconData icon, Color color) {
+  Widget _buildStatItem(BuildContext context, String label, String value, IconData icon, Color color, {double statsIconSize = 32, Widget? gap, TextStyle? labelStyle}) {
+    gap ??= const SizedBox(height: 8);
+    labelStyle ??= Theme.of(context).textTheme.bodySmall;
     return Column(
       children: [
-        Icon(icon, color: color, size: 32),
-        const SizedBox(height: 8),
+        Icon(icon, color: color, size: statsIconSize),
+        gap,
         Text(
           value,
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -196,17 +211,19 @@ class ProgressScreen extends ConsumerWidget {
         ),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall,
+          style: labelStyle,
         ),
       ],
     );
   }
 
-  Widget _buildPriorityBar(BuildContext context, String priority, int count, Color color) {
+  Widget _buildPriorityBar(BuildContext context, String priority, int count, Color color, {bool compact = false}) {
+    final labelWidth = compact ? 72.0 : 80.0;
+    final barHeight = compact ? 6.0 : 8.0;
     return Row(
       children: [
         SizedBox(
-          width: 80,
+          width: labelWidth,
           child: Text(
             priority,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -215,47 +232,19 @@ class ProgressScreen extends ConsumerWidget {
           ),
         ),
         Expanded(
-          child: LinearProgressIndicator(
-            value: count > 0 ? count / 10 : 0, // Normalize to max 10 for demo
-            backgroundColor: color.withValues(alpha: 0.2),
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          count.toString(),
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryBar(BuildContext context, String category, int count) {
-    final colors = [Colors.blue, Colors.purple, Colors.teal, Colors.pink, Colors.indigo];
-    final color = colors[category.hashCode % colors.length];
-    
-    return Row(
-      children: [
-        SizedBox(
-          width: 100,
-          child: Text(
-            _capitalizeFirst(category),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
+          child: SizedBox(
+            height: barHeight,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(barHeight / 2),
+              child: LinearProgressIndicator(
+                value: count > 0 ? count / 10 : 0, // Normalize to max 10 for demo
+                backgroundColor: color.withValues(alpha: 0.2),
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+              ),
             ),
           ),
         ),
-        Expanded(
-          child: LinearProgressIndicator(
-            value: count > 0 ? count / 20 : 0, // Normalize to max 20 for demo
-            backgroundColor: color.withValues(alpha: 0.2),
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-          ),
-        ),
-        const SizedBox(width: 8),
+        SizedBox(width: compact ? 6 : 8),
         Text(
           count.toString(),
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -267,13 +256,13 @@ class ProgressScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildInsightRow(BuildContext context, String label, String value, IconData icon, Color color) {
+  Widget _buildInsightRow(BuildContext context, String label, String value, IconData icon, Color color, {bool compact = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: compact ? 6 : 8),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(width: 12),
+          Icon(icon, color: color, size: compact ? 22 : 24),
+          SizedBox(width: compact ? 10 : 12),
           Expanded(
             child: Text(
               label,
@@ -292,8 +281,39 @@ class ProgressScreen extends ConsumerWidget {
     );
   }
 
-  String _capitalizeFirst(String text) {
-    if (text.isEmpty) return text;
-    return text[0].toUpperCase() + text.substring(1);
+  Widget _buildCategoryEntry(BuildContext context, String category, int count, {bool compact = false}) {
+    final colors = [Colors.blue, Colors.purple, Colors.teal, Colors.pink, Colors.indigo];
+    final color = colors[category.hashCode % colors.length];
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            category,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+          ),
+        ),
+        Container(
+          height: compact ? 6 : 8,
+          width: 120,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            color: color.withValues(alpha: 0.2),
+          ),
+          alignment: Alignment.centerLeft,
+          child: FractionallySizedBox(
+            widthFactor: count == 0 ? 0 : 1,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                color: color,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: compact ? 6 : 8),
+        Text(count.toString(), style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, color: color)),
+      ],
+    );
   }
+
 }

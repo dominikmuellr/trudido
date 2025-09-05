@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:math';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../services/theme_service.dart';
+import '../providers/app_providers.dart';
 import '../services/storage_service.dart';
 
 // Provider for user's name
@@ -12,6 +14,10 @@ final greetingLanguageProvider = StateProvider<int>((ref) {
   // Generate a random greeting when the app starts
   return Random().nextInt(12);
 });
+
+// Provider for hide greeting preference
+// hideGreeting now sourced from unified preferences state; mutation via controller.
+final hideGreetingProvider = Provider<bool>((ref) => ref.watch(preferencesStateProvider).hideGreeting);
 
 class GreetingHeader extends ConsumerStatefulWidget {
   const GreetingHeader({super.key});
@@ -74,9 +80,25 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader>
     final greetingIndex = ref.watch(greetingLanguageProvider);
     final greeting = _greetings[greetingIndex];
     final theme = Theme.of(context);
+    final appOpts = theme.extension<AppOptions>() ?? const AppOptions(compact: false, highContrast: false);
+    final pad = EdgeInsets.all(appOpts.compact ? 12 : 20);
+    final gap = appOpts.compact ? 8.0 : 12.0;
+    final headlineStyle = theme.textTheme.headlineSmall?.copyWith(
+      fontWeight: FontWeight.bold,
+      fontSize: appOpts.compact ? 20 : null,
+      color: theme.colorScheme.onSurface,
+    );
+    final langStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+      fontSize: appOpts.compact ? 10 : null,
+    );
+    final messageStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+      fontSize: appOpts.compact ? 12 : null,
+    );
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: pad,
       // Method 1: No decoration property = transparent background
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,18 +117,10 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader>
                         children: [
                           Text(
                             '${greeting['text']}${userName.isNotEmpty ? ', $userName!' : '!'}',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onSurface,
-                            ),
+                            style: headlineStyle,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          Text(
-                            greeting['lang']!,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                            ),
-                          ),
+                          Text(greeting['lang']!, style: langStyle),
                         ],
                       ),
                     );
@@ -134,13 +148,8 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader>
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            _getTimeBasedMessage(),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-            ),
-          ),
+          SizedBox(height: gap),
+          Text(_getTimeBasedMessage(), style: messageStyle),
         ],
       ),
     );

@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/permissions_channel.dart';
 import '../providers/alarm_settings_providers.dart';
 import '../services/system_settings_service.dart';
+import '../services/files_channel.dart';
+
+import '../providers/app_providers.dart';
+import '../controllers/category_controller.dart';
 
 /// Single consolidated settings page using AlarmSettingsWatcher (Riverpod) and unified dialogs.
 class UnifiedSettingsPage extends ConsumerStatefulWidget {
@@ -17,7 +21,89 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage> with 
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Ensure native files channel is ready
+    // ignore: discarded_futures
+    FilesChannel.instance.ensureInitialized();
+    
+    // Set up import callbacks for refreshing UI
+    FilesChannel.instance.setImportCallbacks(
+      onComplete: (message) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      },
+      onRefreshNeeded: () {
+        if (mounted) {
+          _refreshAllProviders();
+        }
+      },
+    );
   }
+
+  Future<void> _refreshAllProviders() async {
+    try {
+      debugPrint('[Settings] Starting provider refresh after import...');
+      
+      // Refresh tasks
+      final tasksNotifier = ref.read(tasksProvider.notifier);
+      await tasksNotifier.refresh();
+      
+      // Refresh categories  
+      final categoriesNotifier = ref.read(categoriesProvider.notifier);
+      await categoriesNotifier.refresh();
+      
+      // Refresh preferences state
+      ref.invalidate(preferencesStateProvider);
+      
+      debugPrint('[Settings] All providers refreshed successfully');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data refreshed - your imported tasks should now be visible!'),
+            backgroundColor: Colors.blue,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('[Settings] Error refreshing providers: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Refresh failed: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
+
+  
+
+  
+
+  
+
+  
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -59,7 +145,9 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage> with 
                 // Always show explicit popup when not granted.
                 final enabledNow = await perms.areNotificationsEnabled();
                 if (enabledNow) return; // should be disabled tile already
-                final proceed = await _showRationale(context,
+                final localCtx = context;
+                // ignore: use_build_context_synchronously (localCtx captured for immediate dialog display only)
+                final proceed = await _showRationale(localCtx,
                   title: 'Enable Notifications',
                   body: 'We use notifications to remind you of upcoming tasks and snoozed reminders.'
                       '\n\nOn Android 13+ you\'ll see a system permission prompt next.',
@@ -94,10 +182,12 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage> with 
               status: watcher.canExact,
               description: loaded ? 'Allow precise delivery even in Doze / idle.' : 'Checking…',
               loading: !loaded,
-              onTap: () async {
+        onTap: () async {
                 if (!loaded) { await watcher.refresh(); return; }
                 if (!watcher.canExact) {
-                  final proceed = await _showRationale(context,
+          final localCtx = context;
+                  // ignore: use_build_context_synchronously (localCtx captured for immediate dialog display only)
+                  final proceed = await _showRationale(localCtx,
                       title: 'Allow Exact Alarms',
                       body: 'Exact alarms let reminders fire exactly on time even in Doze or standby.'
                           '\n\nAndroid shows no popup. We\'ll open the system settings screen; toggle the permission then return.',
@@ -109,7 +199,8 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage> with 
                   await Future.delayed(const Duration(milliseconds: 350));
                   await watcher.refresh();
                   if (!watcher.canExact && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Exact alarms still disabled.')));
+                    final messenger = ScaffoldMessenger.maybeOf(context);
+                    messenger?.showSnackBar(const SnackBar(content: Text('Exact alarms still disabled.')));
                   }
                 }
               },
@@ -119,10 +210,12 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage> with 
               status: watcher.ignoringBattery,
               description: loaded ? 'Disable optimization for reliable background scheduling.' : 'Checking…',
               loading: !loaded,
-              onTap: () async {
+        onTap: () async {
                 if (!loaded) { await watcher.refresh(); return; }
                 if (!watcher.ignoringBattery) {
-                  final proceed = await _showRationale(context,
+          final localCtx = context;
+                  // ignore: use_build_context_synchronously (localCtx captured for immediate dialog display only)
+                  final proceed = await _showRationale(localCtx,
                       title: 'Disable Battery Optimization',
                       body: 'Exclude the app from battery optimization so reminders aren\'t delayed or cancelled.'
                           '\n\nWe\'ll open the system screen; confirm the prompt or add the app to the allowlist.',
@@ -133,7 +226,8 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage> with 
                   await Future.delayed(const Duration(milliseconds: 350));
                   await watcher.refresh();
                   if (!watcher.ignoringBattery && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Battery optimization still enabled.')));
+                    final messenger = ScaffoldMessenger.maybeOf(context);
+                    messenger?.showSnackBar(const SnackBar(content: Text('Battery optimization still enabled.')));
                   }
                 }
               },
@@ -151,7 +245,8 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage> with 
                 onPressed: () async {
                   final ok = await SystemSettingsService.instance.scheduleDebugExactAlarm();
                   if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  final messenger = ScaffoldMessenger.maybeOf(context);
+                  messenger?.showSnackBar(
                     SnackBar(content: Text(ok ? 'Debug exact alarm set for ~2 min' : 'Failed to schedule debug alarm')),
                   );
                 },

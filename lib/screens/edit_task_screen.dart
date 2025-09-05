@@ -1,8 +1,9 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/todo.dart';
-import '../services/todo_provider.dart';
+import '../controllers/task_controller.dart';
 import '../widgets/reminder_components.dart';
 import '../widgets/add_reminder_dialog.dart';
 
@@ -25,6 +26,8 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
   late String _selectedCategory;
   String? _selectedFolderId;
   DateTime? _selectedDueDate;
+  DateTime? _selectedStartDate; // new for multi-day
+  bool _multiDay = false;
   List<int> _reminderOffsetsMinutes = []; // Updated for multiple reminders
   List<String> _tags = [];
   bool _isLoading = false;
@@ -50,7 +53,9 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
       
       _selectedCategory = widget.task!.category;
       _selectedFolderId = widget.task!.folderId;
-      _selectedDueDate = widget.task!.dueDate;
+  _selectedDueDate = widget.task!.dueDate;
+  _selectedStartDate = widget.task!.startDate;
+  _multiDay = widget.task!.startDate != null && widget.task!.dueDate != null && !widget.task!.dueDate!.isBefore(widget.task!.startDate!);
   _reminderOffsetsMinutes = List<int>.from(widget.task?.reminderOffsetsMinutes ?? []); // Updated
   _tags = List<String>.from(widget.task?.tags ?? []);
     } else {
@@ -75,14 +80,10 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    final navigator = Navigator.of(context);
+  setState(() { _isLoading = true; });
 
     try {
-      if (widget.task != null) {
+  if (widget.task != null) {
         // Update existing task
         debugPrint('EditTaskScreen: Updating existing task with reminders: $_reminderOffsetsMinutes');
         final updatedTask = widget.task!.copyWith(
@@ -92,11 +93,12 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
           category: _selectedCategory,
           folderId: _selectedFolderId,
           dueDate: _selectedDueDate,
+          startDate: _multiDay ? _selectedStartDate : null,
           reminderOffsetsMinutes: _reminderOffsetsMinutes, // Updated
           tags: _tags,
         );
 
-        await ref.read(todosProvider.notifier).updateTodo(updatedTask);
+  await ref.read(taskControllerProvider.notifier).update(updatedTask);
       } else {
         // Create new task
         debugPrint('EditTaskScreen: Creating new task with reminders: $_reminderOffsetsMinutes');
@@ -107,24 +109,23 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
           category: _selectedCategory,
           folderId: _selectedFolderId,
           dueDate: _selectedDueDate,
+          startDate: _multiDay ? _selectedStartDate : null,
           reminderOffsetsMinutes: _reminderOffsetsMinutes, // Updated
           tags: _tags,
         );
 
-        await ref.read(todosProvider.notifier).addTodo(newTask);
+  await ref.read(taskControllerProvider.notifier).add(newTask);
       }
 
-      if (!mounted) return;
-      // Return result to caller instead of showing SnackBar here
-      navigator.pop({
+  if (!mounted) return;
+  Navigator.of(context).pop({
         'success': true,
         'action': widget.task != null ? 'updated' : 'created',
         'message': widget.task != null ? 'Task updated successfully' : 'Task created successfully'
       });
     } catch (e) {
-      if (!mounted) return;
-      // Return error result to caller
-      navigator.pop({
+  if (!mounted) return;
+  Navigator.of(context).pop({
         'success': false,
         'error': e.toString(),
         'message': 'Error saving task: $e'
@@ -141,46 +142,62 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
 
   Future<void> _selectDueDate() async {
     debugPrint('EditTaskScreen: _selectDueDate() called');
-    final DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: _selectedDueDate ?? DateTime.now(),
+    final localContext = context; // capture for immediate use only
+    final initialDate = _selectedDueDate ?? DateTime.now();
+  final DateTime? pickedDate = await showDatePicker(
+      context: localContext,
+      initialDate: initialDate,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
     );
-
+    if (!mounted) return; // do not use context unless still mounted
     debugPrint('EditTaskScreen: Date picker result: $pickedDate');
-    if (pickedDate != null) {
-      final TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: _selectedDueDate != null 
-            ? TimeOfDay.fromDateTime(_selectedDueDate!)
-            : TimeOfDay.now(),
-      );
-
-      debugPrint('EditTaskScreen: Time picker result: $pickedTime');
-      if (pickedTime != null) {
-        setState(() {
-          _selectedDueDate = DateTime(
-            pickedDate.year,
-            pickedDate.month,
-            pickedDate.day,
-            pickedTime.hour,
-            pickedTime.minute,
-          );
-          
-          debugPrint('EditTaskScreen: Combined date/time: $_selectedDueDate');
-          debugPrint('EditTaskScreen: Current reminders before check: $_reminderOffsetsMinutes');
-          
-          // Automatically add a default reminder at due time if no reminders are set yet
-          // This applies to both new tasks and existing tasks without reminders
-          if (_reminderOffsetsMinutes.isEmpty) {
-            debugPrint('EditTaskScreen: Adding default reminder at due time');
-            _reminderOffsetsMinutes.add(0); // At the exact due time
-          }
-          debugPrint('EditTaskScreen: Due date set, final reminders: $_reminderOffsetsMinutes');
-        });
+    if (pickedDate == null) return;
+  final TimeOfDay? pickedTime = await showTimePicker(
+      context: localContext,
+      initialTime: _selectedDueDate != null
+          ? TimeOfDay.fromDateTime(_selectedDueDate!)
+          : TimeOfDay.now(),
+    );
+    if (!mounted) return;
+    debugPrint('EditTaskScreen: Time picker result: $pickedTime');
+    if (pickedTime == null) return;
+    final combined = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+    setState(() {
+      _selectedDueDate = combined;
+      if (_reminderOffsetsMinutes.isEmpty) {
+        _reminderOffsetsMinutes.add(0); // default at due time
       }
-    }
+    });
+    debugPrint('EditTaskScreen: Combined date/time: $_selectedDueDate');
+    debugPrint('EditTaskScreen: Reminders: $_reminderOffsetsMinutes');
+  }
+
+  Future<void> _selectRange() async {
+    final now = DateTime.now();
+    final initialStart = _selectedStartDate ?? _selectedDueDate ?? now;
+    final initialEnd = _selectedDueDate ?? initialStart;
+    final range = await showDateRangePicker(
+      context: context,
+      firstDate: now.subtract(const Duration(days: 365)),
+      lastDate: now.add(const Duration(days: 365 * 2)),
+      initialDateRange: DateTimeRange(start: initialStart, end: initialEnd.isBefore(initialStart) ? initialStart : initialEnd),
+    );
+    if (!mounted || range == null) return;
+    setState(() {
+      _selectedStartDate = DateTime(range.start.year, range.start.month, range.start.day);
+      _selectedDueDate = DateTime(range.end.year, range.end.month, range.end.day, _selectedDueDate?.hour ?? 23, _selectedDueDate?.minute ?? 59);
+      _multiDay = true;
+      if (_reminderOffsetsMinutes.isEmpty) {
+        _reminderOffsetsMinutes.add(0);
+      }
+    });
   }
 
   // --- New Methods for Multiple Reminders ---
@@ -255,23 +272,116 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              // Due Date ListTile
-              ListTile(
-                leading: const Icon(Icons.calendar_today_outlined),
-                title: const Text('Due Date'),
-                subtitle: Text(
-                  _selectedDueDate == null
-                      ? 'Not set'
-                      : DateFormat.yMMMd().add_jm().format(_selectedDueDate!),
+              // --- Schedule Section (polished) ---
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Theme.of(context).colorScheme.outline.withAlpha(77)),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                onTap: _selectDueDate,
-                trailing: _selectedDueDate != null
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () => setState(() => _selectedDueDate = null),
-                      )
-                    : null,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                      child: Row(
+                        children: [
+                          Icon(Icons.calendar_today_outlined, color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(width: 12),
+                          Text('Schedule', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                          const Spacer(),
+                          if (_selectedDueDate != null || _selectedStartDate != null)
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              tooltip: 'Clear',
+                              onPressed: () => setState(() {
+                                _selectedDueDate = null; _selectedStartDate = null; _multiDay = false;
+                              }),
+                            )
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: SegmentedButton<bool>(
+                        segments: const [
+                          ButtonSegment(value: false, label: Text('Single Day')),
+                          ButtonSegment(value: true, label: Text('Multi-Day')),
+                        ],
+                        selected: {_multiDay},
+                        onSelectionChanged: (s) {
+                          final v = s.first;
+                          setState(() {
+                            _multiDay = v;
+                            if (v) {
+                              _selectedStartDate ??= _selectedDueDate ?? DateTime.now();
+                            } else {
+                              _selectedStartDate = null;
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () async {
+                        if (_multiDay) {
+                          await _selectRange();
+                        } else {
+                          await _selectDueDate();
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _multiDay
+                                        ? (_selectedStartDate == null || _selectedDueDate == null
+                                            ? 'Select date range'
+                                            : '${DateFormat('MMM d, yyyy').format(_selectedStartDate!)} → ${DateFormat('MMM d, yyyy').format(_selectedDueDate!)}')
+                                        : (_selectedDueDate == null
+                                            ? 'Set due date (optional)'
+                                            : DateFormat('EEE, MMM d, yyyy • HH:mm').format(_selectedDueDate!)),
+                                    style: Theme.of(context).textTheme.bodyLarge,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _multiDay && _selectedStartDate != null && _selectedDueDate != null
+                                        ? '${_selectedDueDate!.difference(_selectedStartDate!).inDays + 1} day span'
+                                        : (_selectedDueDate == null ? 'No schedule' : 'Tap to change'),
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(_multiDay ? Icons.date_range : Icons.event, color: Theme.of(context).colorScheme.primary),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (!_multiDay && _selectedDueDate != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: Row(
+                          children: [
+                            OutlinedButton.icon(
+                              icon: const Icon(Icons.access_time),
+                              label: const Text('Adjust time'),
+                              onPressed: _selectDueDate,
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
               ),
+              const SizedBox(height: 16),
+              // --- End Schedule Section ---
 
               // --- New Reminder UI Section ---
               if (_selectedDueDate != null) ...[

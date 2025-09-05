@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../services/todo_provider.dart';
+import '../providers/filter_providers.dart';
+import '../controllers/task_controller.dart';
+import '../providers/app_providers.dart';
 import '../widgets/add_todo_dialog.dart';
 import '../widgets/todo_list_tab.dart';
 import 'calendar_screen.dart';
@@ -32,12 +34,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentTab = ref.watch(currentTabProvider);
-    final isSearchMode = ref.watch(searchModeProvider);
-  // Simple heuristic: if todos empty and categories empty very early, show lightweight loading
-  final todos = ref.watch(todosProvider);
-  final categories = ref.watch(categoriesProvider);
-  final showLoading = todos.isEmpty && categories.isEmpty;
+  final currentTab = ref.watch(currentTabProvider);
+  final isSearchMode = ref.watch(searchModeProvider);
+  // Removed ambiguous loading heuristic that prevented legitimate empty state UI.
     
     // Define tabs
     final tabs = [
@@ -46,14 +45,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       const ProgressScreen(),
     ];
 
-    return Scaffold(
+  final fabPosition = ref.watch(fabPositionProvider);
+  final fabLocation = fabPosition == 'center'
+    ? FloatingActionButtonLocation.centerFloat
+    : fabPosition == 'left'
+      ? FloatingActionButtonLocation.startFloat
+      : FloatingActionButtonLocation.endFloat;
+  return Scaffold(
       appBar: _buildAppBar(context),
-      body: showLoading
-          ? const Center(child: SizedBox(width: 32, height: 32, child: CircularProgressIndicator(strokeWidth: 3)))
-          : IndexedStack(
-              index: currentTab,
-              children: tabs,
-            ),
+      body: IndexedStack(
+        index: currentTab,
+        children: tabs,
+      ),
       bottomNavigationBar: NavigationBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         selectedIndex: currentTab,
@@ -84,6 +87,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
+      floatingActionButtonLocation: fabLocation,
       floatingActionButton: currentTab == 0 ? FloatingActionButton(
         onPressed: () => _showAddDialog(context),
         child: Icon(PhosphorIcons.plus()),
@@ -132,23 +136,80 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
     }
 
+    final multiMode = ref.watch(multiSelectModeProvider);
+    final selectedIds = ref.watch(selectedTodoIdsProvider);
     return AppBar(
-      title: Text(tabTitles[currentTab]),
+      leading: multiMode
+          ? IconButton(
+              icon: Icon(PhosphorIcons.x()),
+              onPressed: () {
+                ref.read(multiSelectModeProvider.notifier).state = false;
+                ref.read(selectedTodoIdsProvider.notifier).clear();
+              },
+            )
+          : null,
+      title: multiMode && currentTab == 0
+          ? Text('${selectedIds.length} selected')
+          : Text(tabTitles[currentTab]),
       actions: [
-        if (currentTab == 0) // Only show search on Tasks tab
+        if (currentTab == 0 && !multiMode)
           IconButton(
             icon: Icon(PhosphorIcons.magnifyingGlass()),
             onPressed: () {
               ref.read(searchModeProvider.notifier).state = true;
             },
           ),
+        if (currentTab == 0 && multiMode) ...[
+          IconButton(
+            icon: Icon(PhosphorIcons.checkCircle()),
+            tooltip: 'Mark complete',
+            onPressed: selectedIds.isEmpty
+                ? null
+                : () async {
+                    final controller = ref.read(taskControllerProvider.notifier);
+                    final current = ref.read(tasksProvider);
+                    for (final id in selectedIds) {
+                      final t = current.firstWhere((e) => e.id == id);
+                      if (!t.isCompleted) await controller.toggleComplete(id);
+                    }
+                    ref.read(selectedTodoIdsProvider.notifier).clear();
+                  },
+          ),
+          IconButton(
+            icon: Icon(PhosphorIcons.circleDashed()),
+            tooltip: 'Mark incomplete',
+            onPressed: selectedIds.isEmpty
+                ? null
+                : () async {
+                    final controller = ref.read(taskControllerProvider.notifier);
+                    final current = ref.read(tasksProvider);
+                    for (final id in selectedIds) {
+                      final t = current.firstWhere((e) => e.id == id);
+                      if (t.isCompleted) await controller.toggleComplete(id);
+                    }
+                    ref.read(selectedTodoIdsProvider.notifier).clear();
+                  },
+          ),
+          IconButton(
+            icon: Icon(PhosphorIcons.trash()),
+            tooltip: 'Delete',
+            onPressed: selectedIds.isEmpty
+                ? null
+                : () async {
+                    final controller = ref.read(taskControllerProvider.notifier);
+                    await controller.bulkDelete(selectedIds);
+                    ref.read(selectedTodoIdsProvider.notifier).clear();
+                    ref.read(multiSelectModeProvider.notifier).state = false;
+                  },
+          ),
+        ],
         PopupMenuButton<String>(
           icon: Icon(PhosphorIcons.dotsThreeVertical()),
           onSelected: (value) {
             switch (value) {
               case 'clear_completed':
                 if (currentTab == 0) {
-                  ref.read(todosProvider.notifier).deleteCompleted();
+                  ref.read(taskControllerProvider.notifier).clearCompleted();
                 }
                 break;
               case 'settings':
@@ -196,9 +257,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       context: context,
       builder: (context) => AddTodoDialog(
         onAdd: (todo) {
-          ref.read(todosProvider.notifier).addTodo(todo);
+          ref.read(taskControllerProvider.notifier).add(todo);
         },
       ),
     );
   }
 }
+
+// Multi-select providers
+final multiSelectModeProvider = StateProvider<bool>((ref) => false);
+final selectedTodoIdsProvider = StateNotifierProvider<SelectedTodoIdsNotifier, Set<String>>((ref) => SelectedTodoIdsNotifier());
+
+class SelectedTodoIdsNotifier extends StateNotifier<Set<String>> {
+  SelectedTodoIdsNotifier() : super(<String>{});
+  void toggle(String id) {
+    if (state.contains(id)) {
+      state = {...state}..remove(id);
+    } else {
+      state = {...state, id};
+    }
+  }
+  void clear() => state = <String>{};
+}
+
+// Provider & notifier for FAB position
+// FAB position now from unified preferences.
+final fabPositionProvider = Provider<String>((ref) => ref.watch(preferencesStateProvider).fabPosition);

@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/todo_provider.dart';
+import '../providers/filter_providers.dart';
+import '../controllers/category_controller.dart';
 
 class FilterChips extends ConsumerWidget {
   const FilterChips({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedCategory = ref.watch(selectedCategoryProvider);
-    final selectedPriority = ref.watch(selectedPriorityProvider);
-    final showCompleted = ref.watch(showCompletedProvider);
-    final sortBy = ref.watch(sortByProvider);
-    final categories = ref.watch(categoriesProvider);
+  final selectedCategory = ref.watch(selectedCategoryProvider);
+  final selectedPriority = ref.watch(selectedPriorityProvider);
+  final showCompleted = ref.watch(showCompletedProvider);
+  final sortBy = ref.watch(sortByProvider);
+  final categories = ref.watch(categoriesProvider);
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,

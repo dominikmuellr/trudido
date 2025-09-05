@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../services/theme_service.dart';
-import '../services/todo_provider.dart';
-import 'notification_settings_screen.dart';
+import '../providers/app_providers.dart';
+import '../controllers/task_controller.dart';
 import '../services/notification_service.dart';
-import 'unified_settings_page.dart';
+import 'backup_settings_page.dart';
+import 'display_theme_settings_page.dart';
+import 'comprehensive_notification_settings.dart';
+import 'template_management_screen.dart';
+// removed unused imports (home_screen, greeting_header)
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -13,31 +16,57 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final isDarkMode = ref.watch(themeNotifierProvider) == ThemeMode.dark;
-    final statistics = ref.watch(statisticsProvider);
-
+    // Lazy ensure preferences initialized if user navigates directly before main init completes.
+    final svc = ref.read(preferencesServiceProvider);
+    if (!svc.isReady) {
+      svc.ensureInitialized().then((_) {
+        // Only update if still on settings screen.
+        if (context.mounted) {
+          ref.read(preferencesStateProvider.notifier).state = svc.snapshot;
+        }
+      });
+    }
+    final taskStats = ref.watch(taskStatisticsProvider);
+    final statistics = taskStats; // adapt naming for existing UI
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        leading: IconButton(
-          icon: Icon(PhosphorIcons.arrowLeft()),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
       ),
       body: ListView(
         children: [
-          // Appearance Section
-          _buildSectionHeader(context, 'Appearance'),
+          // Display & Theme Section
+          _buildSectionHeader(context, 'Display & Theme'),
           ListTile(
             leading: Icon(PhosphorIcons.palette()),
-            title: const Text('Dark Mode'),
-            subtitle: const Text('Toggle between light and dark theme'),
-            trailing: Switch(
-              value: isDarkMode,
-              onChanged: (value) {
-                ref.read(themeNotifierProvider.notifier).toggleTheme();
-              },
-            ),
+            title: const Text('Display & Theme'),
+            subtitle: const Text('Colors, layout, and visual preferences'),
+            trailing: Icon(PhosphorIcons.caretRight()),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const DisplayThemeSettingsPage(),
+                ),
+              );
+            },
+          ),
+          
+          const Divider(),
+          
+          // Templates & Workflows Section
+          _buildSectionHeader(context, 'Templates & Workflows'),
+          ListTile(
+            leading: Icon(PhosphorIcons.squaresFour()),
+            title: const Text('Folder Templates'),
+            subtitle: const Text('Manage templates for smart folder creation'),
+            trailing: Icon(PhosphorIcons.caretRight()),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const TemplateManagementScreen(),
+                ),
+              );
+            },
           ),
           
           const Divider(),
@@ -46,26 +75,13 @@ class SettingsScreen extends ConsumerWidget {
           _buildSectionHeader(context, 'Notifications'),
           ListTile(
             leading: Icon(PhosphorIcons.bell()),
-            title: const Text('Notification Settings'),
-            subtitle: const Text('Manage task reminders and alerts'),
+            title: const Text('Notifications'),
+            subtitle: const Text('Permissions, settings, and reliability'),
             trailing: Icon(PhosphorIcons.caretRight()),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => const NotificationSettingsScreen(),
-                ),
-              );
-            },
-          ),
-          ListTile(
-            leading: Icon(PhosphorIcons.timer()),
-            title: const Text('Reminder Reliability'),
-            subtitle: const Text('Exact alarms & battery optimization'),
-            trailing: Icon(PhosphorIcons.caretRight()),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const UnifiedSettingsPage(),
+                  builder: (context) => const ComprehensiveNotificationSettings(),
                 ),
               );
             },
@@ -73,51 +89,20 @@ class SettingsScreen extends ConsumerWidget {
           
           const Divider(),
           
-          // Statistics Section
-          _buildSectionHeader(context, 'Statistics'),
+          // Data & Storage Section
+          _buildSectionHeader(context, 'Data & Storage'),
           ListTile(
-            leading: Icon(PhosphorIcons.chartBar()),
-            title: const Text('Total Tasks'),
-            trailing: Text(
-              '${statistics.totalTasks}',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          ListTile(
-            leading: Icon(PhosphorIcons.checkCircle()),
-            title: const Text('Completed Tasks'),
-            trailing: Text(
-              '${statistics.completedTasks}',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-          ),
-          ListTile(
-            leading: Icon(PhosphorIcons.clock()),
-            title: const Text('Pending Tasks'),
-            trailing: Text(
-              '${statistics.pendingTasks}',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          ListTile(
-            leading: Icon(PhosphorIcons.percent()),
-            title: const Text('Completion Rate'),
-            trailing: Text(
-              '${(statistics.completionRate * 100).toInt()}%',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: statistics.completionRate > 0.7 
-                    ? theme.colorScheme.primary 
-                    : theme.colorScheme.onSurface,
-              ),
-            ),
+            leading: Icon(PhosphorIcons.downloadSimple()),
+            title: const Text('Backup & Data'),
+            subtitle: const Text('Export, import and automatic backups'),
+            trailing: Icon(PhosphorIcons.caretRight()),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const BackupSettingsPage(),
+                ),
+              );
+            },
           ),
           
           const Divider(),
@@ -173,7 +158,7 @@ class SettingsScreen extends ConsumerWidget {
               'Clear Completed Tasks',
               style: TextStyle(color: theme.colorScheme.error),
             ),
-            subtitle: Text('Remove all completed tasks (${statistics.completedTasks} tasks)'),
+            subtitle: Text('Remove all completed tasks (${statistics.completed} tasks)'),
             onTap: () => _showClearCompletedDialog(context, ref),
           ),
           ListTile(
@@ -219,7 +204,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () {
-              ref.read(todosProvider.notifier).deleteCompleted();
+              ref.read(taskControllerProvider.notifier).clearCompleted();
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -252,7 +237,8 @@ class SettingsScreen extends ConsumerWidget {
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
             onPressed: () {
-              ref.read(todosProvider.notifier).clearAllData();
+              // Bulk delete all tasks (categories handled later)
+              ref.read(taskControllerProvider.notifier).clearAll();
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(

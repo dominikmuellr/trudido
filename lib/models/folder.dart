@@ -83,6 +83,38 @@ class Folder extends HiveObject {
         'sortOrder: $sortOrder, isDefault: $isDefault, parentId: $parentId)';
   }
 
+  /// Convert to JSON for export
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'color': color,
+      'icon': icon,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'sortOrder': sortOrder,
+      'isDefault': isDefault,
+      'parentId': parentId,
+    };
+  }
+
+  /// Create from JSON for import
+  static Folder fromJson(Map<String, dynamic> json) {
+    return Folder(
+      id: json['id'],
+      name: json['name'],
+      description: json['description'],
+      color: json['color'],
+      icon: json['icon'],
+      createdAt: DateTime.parse(json['createdAt']),
+      updatedAt: DateTime.parse(json['updatedAt']),
+      sortOrder: json['sortOrder'] ?? 0,
+      isDefault: json['isDefault'] ?? false,
+      parentId: json['parentId'],
+    );
+  }
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;

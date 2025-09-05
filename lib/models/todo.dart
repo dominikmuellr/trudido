@@ -41,12 +41,16 @@ class Todo extends HiveObject {
   @HiveField(11)
   List<int> reminderOffsetsMinutes; // A list of offsets in minutes
 
+  @HiveField(12)
+  DateTime? startDate; // Optional start for multi-day span (end = dueDate)
+
   Todo({
     String? id,
     required this.text,
     this.isCompleted = false,
     DateTime? createdAt,
     this.dueDate,
+  this.startDate,
     this.priority = 'medium',
     this.category = 'personal',
     List<String>? tags,
@@ -66,6 +70,7 @@ class Todo extends HiveObject {
     bool? isCompleted,
     DateTime? createdAt,
     DateTime? dueDate,
+    DateTime? startDate,
     String? priority,
     String? category,
     List<String>? tags,
@@ -80,6 +85,7 @@ class Todo extends HiveObject {
       isCompleted: isCompleted ?? this.isCompleted,
       createdAt: createdAt ?? this.createdAt,
       dueDate: dueDate ?? this.dueDate,
+      startDate: startDate ?? this.startDate,
       priority: priority ?? this.priority,
       category: category ?? this.category,
       tags: tags ?? this.tags,
@@ -98,6 +104,7 @@ class Todo extends HiveObject {
       'isCompleted': isCompleted,
       'createdAt': createdAt.toIso8601String(),
       'dueDate': dueDate?.toIso8601String(),
+  'startDate': startDate?.toIso8601String(),
       'priority': priority,
       'category': category,
       'tags': tags,
@@ -115,6 +122,7 @@ class Todo extends HiveObject {
       isCompleted: json['isCompleted'] ?? false,
       createdAt: DateTime.parse(json['createdAt']),
       dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
+  startDate: json['startDate'] != null ? DateTime.parse(json['startDate']) : null,
       priority: json['priority'] ?? 'medium',
       category: json['category'] ?? 'personal',
       tags: List<String>.from(json['tags'] ?? []),
@@ -129,6 +137,22 @@ class Todo extends HiveObject {
   bool get isOverdue {
     if (dueDate == null || isCompleted) return false;
     return DateTime.now().isAfter(dueDate!);
+  }
+
+  bool get isSpan => startDate != null && dueDate != null && !dueDate!.isBefore(startDate!);
+
+  bool activeOn(DateTime day) {
+    if (!isSpan) return isDueOn(day);
+    final s = DateTime(startDate!.year, startDate!.month, startDate!.day);
+    final e = DateTime(dueDate!.year, dueDate!.month, dueDate!.day);
+    final d = DateTime(day.year, day.month, day.day);
+    return (d.isAtSameMomentAs(s) || d.isAfter(s)) && (d.isAtSameMomentAs(e) || d.isBefore(e));
+  }
+
+  bool isDueOn(DateTime day) {
+    if (dueDate == null) return false;
+    final d = dueDate!;
+    return d.year == day.year && d.month == day.month && d.day == day.day;
   }
 
   bool get isDueToday {

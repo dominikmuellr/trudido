@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'notification_service.dart';
 import 'storage_service.dart';
-import 'todo_provider.dart';
+import '../providers/app_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// A singleton responsible for idempotent handling of notification actions
@@ -73,9 +73,10 @@ class NotificationActionSync {
       if (kDebugMode) debugPrint('[NotificationActionSync] marking task ${action.taskId} complete');
       await StorageService.updateTodo(updated);
       // Update provider state if available
-      try { container?.read(todosProvider.notifier).updateTodo(updated); } catch (e) {
-        if (kDebugMode) debugPrint('[NotificationActionSync] provider update failed (will rely on storage load): $e');
-      }
+      try { 
+        // Force tasks list refresh (tasksProvider loads from repository/storage)
+        await container?.read(tasksProvider.notifier).refresh();
+      } catch (e) { if (kDebugMode) debugPrint('[NotificationActionSync] refresh failed: $e'); }
       _markApplied(key);
     } else if (action.type == 'taskSnoozed') {
       // Optional: adjust reminders or track next notification time

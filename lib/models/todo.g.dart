@@ -22,6 +22,7 @@ class TodoAdapter extends TypeAdapter<Todo> {
       isCompleted: fields[2] as bool,
       createdAt: fields[3] as DateTime?,
       dueDate: fields[4] as DateTime?,
+      startDate: fields[12] as DateTime?,
       priority: fields[5] as String,
       category: fields[6] as String,
       tags: (fields[7] as List?)?.cast<String>(),
@@ -35,7 +36,7 @@ class TodoAdapter extends TypeAdapter<Todo> {
   @override
   void write(BinaryWriter writer, Todo obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -59,7 +60,9 @@ class TodoAdapter extends TypeAdapter<Todo> {
       ..writeByte(10)
       ..write(obj.folderId)
       ..writeByte(11)
-      ..write(obj.reminderOffsetsMinutes);
+      ..write(obj.reminderOffsetsMinutes)
+      ..writeByte(12)
+      ..write(obj.startDate);
   }
 
   @override

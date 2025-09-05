@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.1.0+2 # Bumped for 1.1.0 development cycle (minor feature update)
 
 environment:
   sdk: ^3.8.1
@@ -49,11 +49,20 @@ dependencies:
   uuid: ^4.5.0
   flutter_slidable: ^4.0.1
   table_calendar: ^3.1.2
+  # Dynamic Material You colors (Android 12+)
+  dynamic_color: ^1.7.0
   
   # Icons and fonts
   phosphor_flutter: ^2.1.0
-  
+  meta: ^1.12.0
+
   # (Removed flutter_local_notifications + related timezone/permission packages in favor of pure native Android implementation)
+
+  # File picker for import/export (upgrade to fix v1 embedding + desktop default plugin warnings)
+  file_picker: ^8.0.0
+
+  # Permissions handler
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:

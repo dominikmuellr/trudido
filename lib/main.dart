@@ -1,197 +1,188 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
-import 'dart:io' show Platform; // For test environment detection
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform; // platform check without BuildContext
 import 'services/storage_service.dart';
 import 'services/permissions_channel.dart';
 import 'services/theme_service.dart';
-import 'services/notification_service.dart';
-import 'services/notification_action_sync.dart';
+import 'providers/app_providers.dart';
 import 'services/navigation_service.dart';
-import 'services/lifecycle_sync_observer.dart';
-import 'screens/home_screen.dart';
-import 'widgets/system_permission_dialogs.dart';
-import 'widgets/alarm_settings_watcher.dart';
 import 'services/system_settings_service.dart';
+import 'widgets/system_permission_dialogs.dart';
+import 'screens/home_screen.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  // Do not initialize heavy storage here; defer inside bootstrap widget.
-  // Root container
-  final container = ProviderContainer();
-  runApp(UncontrolledProviderScope(container: container, child: const TodoApp()));
-
-  // Defer heavier native/channel init until after first frame for startup perf
-  WidgetsBinding.instance.addPostFrameCallback((_) async {
-    try {
-      await NotificationBridge.instance.initialize();
-      await NotificationActionSync.instance.initialize(container);
-    } catch (e) { debugPrint('[Startup] deferred init error: $e'); }
-  });
+  runApp(const ProviderScope(child: TodoApp()));
 }
 
 class TodoApp extends ConsumerStatefulWidget {
-  const TodoApp({super.key});
+  final bool disableSideEffects;
+  const TodoApp({super.key, this.disableSideEffects = false});
   @override
   ConsumerState<TodoApp> createState() => _TodoAppState();
 }
 
 class _TodoAppState extends ConsumerState<TodoApp> {
-  LifecycleSyncObserver? _observer; // existing action sync observer
-  AlarmSettingsWatcher? _alarmSettingsWatcher; // new unified settings watcher
-  bool get _isTestEnv => Platform.environment.containsKey('FLUTTER_TEST');
-  bool _ranReliabilityFlow = false; // guard to avoid duplicate dialog chains
-
   @override
   void initState() {
     super.initState();
-    // Defer observer setup until first frame so ProviderScope is in the widget tree.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _observer = LifecycleSyncObserver(ProviderScope.containerOf(context))..start();
-      _alarmSettingsWatcher = AlarmSettingsWatcher()..start();
-      if (!_isTestEnv) {
-        // Defer reliability flow until storage (settings + prefs) initialized.
-        // Boxes/categories may still be deferred, but settings/prefs ready.
-        Future(() async {
-          try {
-            await StorageService.ensureReady();
-          } catch (_) {}
-          if (!mounted) return;
-          if (!_ranReliabilityFlow) {
-            _ranReliabilityFlow = true;
-            _maybeRunInitialReliabilityFlow();
-          }
-        });
+    if (!widget.disableSideEffects) {
+      // Defer reliability flow until after first frame & minimal init.
+  WidgetsBinding.instance.addPostFrameCallback((_) => _maybeRunInitialReliabilityFlow());
+    }
+    // Kick off preferences initialization early so settings apply immediately.
+    _initPrefs();
+  }
+
+  Future<void> _initPrefs() async {
+    final svc = ref.read(preferencesServiceProvider);
+    if (!svc.isReady) {
+      await svc.ensureInitialized();
+      if (mounted) {
+        // Push hydrated snapshot into reactive state provider.
+        ref.read(preferencesStateProvider.notifier).state = svc.snapshot;
       }
-    });
-  }
-
-  @override
-  void dispose() {
-  _observer?.dispose();
-  _alarmSettingsWatcher?.disposeWatcher();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final themeMode = ref.watch(themeNotifierProvider);
-    return MaterialApp(
-      title: 'Trudido',
-      debugShowCheckedModeBanner: false,
-      navigatorKey: NavigationService.navigatorKey,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,
-  home: const SystemNavigationBarHandler(child: AppBootstrap()),
-    );
+    }
   }
 
   Future<void> _maybeRunInitialReliabilityFlow() async {
-    if (!mounted) return;
-    // Ensure native channel is ready before any permission dialogs (avoids MissingPluginException on cold start)
+    if (!mounted || widget.disableSideEffects) return;
     try { await SystemSettingsService.instance.ensureReady(); } catch (_) {}
     if (!mounted) return;
-    // First, on Android 13+ request notifications if not yet granted (only once)
-    await _maybeRequestNotificationsOnce();
-    if (!mounted) return;
-    // Then show other reliability dialogs (exact alarm, battery optimization)
-  final dialogContext = NavigationService.navigatorKey.currentContext ?? context;
-  await showExactAlarmDialogIfNeeded(dialogContext);
+  await _maybeRequestNotificationsOnce();
   if (!mounted) return;
-  // Small delay to avoid stacking dialogs back-to-back visually.
+  await showExactAlarmDialogIfNeededAuto();
+  if (!mounted) return;
   await Future.delayed(const Duration(milliseconds: 250));
   if (!mounted) return;
-  await showBatteryOptimizationDialogIfNeeded(dialogContext);
+  await showBatteryOptimizationDialogIfNeededAuto();
   }
 
   Future<void> _maybeRequestNotificationsOnce() async {
     if (!mounted) return;
-    if (!(Theme.of(context).platform == TargetPlatform.android)) return;
-  // Simple key using SharedPreferences now (removed Hive settings box)
-  const flagKey = 'notif_perm_requested_v1';
-  StorageService.kickOffPrefsInit();
-  final already = StorageService.getMeta(flagKey); // reuse meta namespace
-  if (already == '1') return; // already ran
-    // Retry getSdkInt a few times because channel may not yet be attached; wrapper returns 0 on error.
+    // Touch preferences to ensure early snapshot initialization (no direct use needed)
+    ref.read(preferencesStateProvider);
+    final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+    if (!isAndroid) return;
+    const flagKey = 'notif_perm_requested_v1';
+    StorageService.kickOffPrefsInit();
+    final already = StorageService.getMeta(flagKey);
+    if (already == '1') return;
     int sdk = 0;
     for (var attempt = 0; attempt < 5; attempt++) {
       sdk = await PermissionsChannel.instance.getSdkInt();
       if (sdk > 0) break;
       await Future.delayed(Duration(milliseconds: 60 * (attempt + 1)));
     }
-    if (sdk == 0) {
-      debugPrint('[StartupPerms] getSdkInt unresolved after retries; assuming 33+ to be safe');
-      sdk = 33; // assume new enough so we attempt permission prompt
-    }
-  if (sdk < 33) { StorageService.setMeta(flagKey, '1'); return; }
+    if (sdk == 0) sdk = 33; // assume new enough so prompt path executes once
+    if (sdk < 33) { StorageService.setMeta(flagKey, '1'); return; }
     final initiallyEnabled = await PermissionsChannel.instance.areNotificationsEnabled();
-  if (initiallyEnabled) { StorageService.setMeta(flagKey, '1'); return; }
-
-    // Wait until MaterialLocalizations available to avoid "No MaterialLocalizations found" error.
+    if (initiallyEnabled) { StorageService.setMeta(flagKey, '1'); return; }
+    // Wait for localizations / navigator to be ready.
     for (var i = 0; i < 10; i++) {
-      if (!mounted) return;
-      final loc = Localizations.of<MaterialLocalizations>(context, MaterialLocalizations);
+      final ctx = NavigationService.navigatorKey.currentContext;
+      final loc = ctx == null ? null : Localizations.of<MaterialLocalizations>(ctx, MaterialLocalizations);
       if (loc != null) break;
       await Future.delayed(Duration(milliseconds: 50 * (i + 1)));
     }
     if (!mounted) return;
-
-    final dialogContext = NavigationService.navigatorKey.currentContext ?? context;
-    bool? proceed;
-    try {
-      proceed = await showDialog<bool>(
-        context: dialogContext,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Allow Notifications'),
-          content: const Text('Enable notifications so task reminders can appear on time.'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Later')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Allow')),
-          ],
-        ),
-      );
-    } catch (e) {
-      debugPrint('[StartupPerms] showDialog threw: $e');
-    }
-    if (proceed == true) {
+  final proceed = await _showNotificationPrompt();
+  if (proceed == true) {
       await PermissionsChannel.instance.requestPostNotifications();
-      // Wait until the app resumes (permission sheet dismissed) or timeout
       const resumeTimeout = Duration(seconds: 8);
       final resumeStart = DateTime.now();
       while (mounted && WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed && DateTime.now().difference(resumeStart) < resumeTimeout) {
         await Future.delayed(const Duration(milliseconds: 150));
       }
-      // Poll for permission state (user may take a moment or system may not update instantly)
       bool enabledNow = false;
       for (var i = 0; i < 8; i++) {
         enabledNow = await PermissionsChannel.instance.areNotificationsEnabled();
         if (enabledNow) break;
         await Future.delayed(Duration(milliseconds: 120 * (i + 1)));
       }
-  if (!enabledNow && mounted) {
-        // Only now show secondary rationale
-        bool? open;
-        try {
-          open = await showDialog<bool>(
-            context: dialogContext,
-            builder: (c) => AlertDialog(
-              title: const Text('Still Disabled'),
-              content: const Text('Notifications are still disabled. Open system notification settings?'),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-                FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Open Settings')),
-              ],
-            ),
-          );
-        } catch (e) { debugPrint('[StartupPerms] secondary dialog error: $e'); }
+      if (!enabledNow && mounted) {
+        final open = await _showNotificationStillDisabledPrompt();
         if (open == true) {
           await PermissionsChannel.instance.openAppNotificationSettings();
         }
       }
+      StorageService.setMeta(flagKey, '1');
     }
-  StorageService.setMeta(flagKey, '1'); // mark flow done so we do not spam user on subsequent launches
+  }
+
+  Future<bool?> _showNotificationPrompt() async {
+    try {
+      final ctx = NavigationService.navigatorKey.currentContext;
+      if (ctx == null) return null;
+  return showDialog<bool>(
+        context: ctx,
+        builder: (dCtx) => AlertDialog(
+          title: const Text('Allow Notifications'),
+          content: const Text('Enable notifications so task reminders can appear on time.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dCtx, false), child: const Text('Later')),
+            FilledButton(onPressed: () => Navigator.pop(dCtx, true), child: const Text('Allow')),
+          ],
+        ),
+      );
+    } catch (e) {
+      debugPrint('[StartupPerms] dialog error: $e');
+      return null;
+    }
+  }
+
+  Future<bool?> _showNotificationStillDisabledPrompt() async {
+    try {
+      final ctx = NavigationService.navigatorKey.currentContext;
+      if (ctx == null) return null;
+      return showDialog<bool>(
+        context: ctx,
+        builder: (c) => AlertDialog(
+          title: const Text('Still Disabled'),
+          content: const Text('Notifications are still disabled. Open system notification settings?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Open Settings')),
+          ],
+        ),
+      );
+    } catch (e) {
+      debugPrint('[StartupPerms] dialog2 error: $e');
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final prefs = ref.watch(preferencesStateProvider);
+    final themeMode = prefs.themeMode == 'light'
+        ? ThemeMode.light
+        : prefs.themeMode == 'dark'
+            ? ThemeMode.dark
+            : ThemeMode.system;
+    final compact = prefs.compactDensity;
+    final highContrast = prefs.highContrast;
+    final schemesAsync = ref.watch(dynamicColorSchemesProvider);
+    final schemes = schemesAsync.value;
+    final themes = AppTheme.buildThemes(
+      dynamicLight: schemes?.light,
+      dynamicDark: schemes?.dark,
+      compact: compact,
+      highContrast: highContrast,
+    );
+    final useBlack = ref.watch(blackThemeEnabledProvider);
+    final darkThemeEffective = useBlack ? AppTheme.blackify(themes.$2) : themes.$2;
+    return MaterialApp(
+      title: 'Trudido',
+      debugShowCheckedModeBanner: false,
+      navigatorKey: NavigationService.navigatorKey,
+      theme: themes.$1,
+      darkTheme: darkThemeEffective,
+      themeMode: themeMode,
+      home: const SystemNavigationBarHandler(child: AppBootstrap()),
+    );
   }
 }
 

@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/todo.dart';
 import '../models/category.dart';
 import '../models/folder.dart';
+import '../models/folder_template.dart';
 import '../repositories/hive_folder_repository.dart';
+import '../repositories/hive_folder_template_repository.dart';
 
 class StorageService {
   static const String _todosBoxName = 'todos';
@@ -15,7 +18,12 @@ class StorageService {
   static Box<Category>? _categoriesBox; // small, but also deferred to shrink critical path
   static SharedPreferences? _prefs;
   static Completer<void>? _prefsCompleter; // separate fast prefs init
+  // Exposed readiness flag so preference notifiers can avoid redundant async reloads.
+  static bool get prefsReady => _prefs != null;
   static HiveFolderRepository? _folderRepository;
+  static HiveFolderTemplateRepository? _templateRepository;
+  // Toggle for console logging (timings, deferred open). Disable in tests for cleaner output.
+  static bool enableLogging = true;
 
   static bool _initialized = false; // core (prefs + hive init) ready
   static Completer<void>? _initCompleter; // completion for initial (settings only) init
@@ -35,6 +43,20 @@ class StorageService {
     Hive.registerAdapter(TodoAdapter());
     Hive.registerAdapter(CategoryAdapter());
     Hive.registerAdapter(FolderAdapter());
+    // Register template adapters if they exist
+    try {
+      if (!Hive.isAdapterRegistered(4)) {
+        Hive.registerAdapter(FolderTemplateAdapter());
+      }
+      if (!Hive.isAdapterRegistered(5)) {
+        Hive.registerAdapter(TaskTemplateAdapter());
+      }
+    } catch (e) {
+      // Template adapters not generated yet, will work when they are
+      if (enableLogging) {
+        debugPrint('[StorageService] Template adapters not ready: $e');
+      }
+    }
     final afterAdapters = DateTime.now();
 
   // SharedPreferences (fast)
@@ -59,8 +81,10 @@ class StorageService {
         _todosLazyBox = await Hive.openLazyBox<Todo>(_todosBoxName);
         _todosCompleter?.complete();
         final dur = DateTime.now().difference(todosStart).inMilliseconds;
-        // ignore: avoid_print
-        print('[StorageService.deferred] opened todos lazy box in ${dur}ms');
+        if (enableLogging) {
+          // ignore: avoid_debugPrint
+          debugPrint('[StorageService.deferred] opened todos lazy box in ${dur}ms');
+        }
       } catch (e, st) {
         _todosCompleter?.completeError(e, st);
       }
@@ -69,19 +93,30 @@ class StorageService {
       try {
         _folderRepository = HiveFolderRepository();
         await _folderRepository!.init();
+        
+        // Initialize template repository
+        _templateRepository = HiveFolderTemplateRepository();
+        await _templateRepository!.init();
+        
         final repoDur = DateTime.now().difference(repoStart).inMilliseconds;
-        // ignore: avoid_print
-        print('[StorageService.deferred] repo init ${repoDur}ms');
+        if (enableLogging) {
+          // ignore: avoid_debugPrint
+          debugPrint('[StorageService.deferred] repo init ${repoDur}ms');
+        }
       } catch (e) {
-        // ignore: avoid_print
-        print('[StorageService.deferred] repo init error $e');
+        if (enableLogging) {
+          // ignore: avoid_debugPrint
+          debugPrint('[StorageService.deferred] repo init error $e');
+        }
       }
     });
     final afterRepo = DateTime.now(); // only scheduling, not actual work
 
     // Lightweight timing log (debug only)
-    // ignore: avoid_print
-  print('[StorageService.init] hive=${afterHive.difference(start).inMilliseconds}ms adapters=${afterAdapters.difference(afterHive).inMilliseconds}ms prefs=${afterPrefs.difference(afterAdapters).inMilliseconds}ms deferredScheduled=${afterRepo.difference(afterPrefs).inMilliseconds}ms totalCritical=${afterRepo.difference(start).inMilliseconds}ms (categories,todos,repo deferred)');
+    if (enableLogging) {
+      // ignore: avoid_debugPrint
+      debugPrint('[StorageService.init] hive=${afterHive.difference(start).inMilliseconds}ms adapters=${afterAdapters.difference(afterHive).inMilliseconds}ms prefs=${afterPrefs.difference(afterAdapters).inMilliseconds}ms deferredScheduled=${afterRepo.difference(afterPrefs).inMilliseconds}ms totalCritical=${afterRepo.difference(start).inMilliseconds}ms (categories,todos,repo deferred)');
+    }
     _initialized = true;
     _initCompleter!.complete();
   }
@@ -106,6 +141,9 @@ class StorageService {
     // ignore: discarded_futures
     _ensurePrefs();
   }
+
+  // Public awaitable prefs readiness (only loads SharedPreferences)
+  static Future<void> ensurePrefs() => _ensurePrefs();
 
   static Future<void> waitCategoriesReady() async {
     if (_categoriesBox != null) return;
@@ -192,23 +230,28 @@ class StorageService {
 
   // Category operations
   static Future<void> saveCategory(Category category) async {
-    await _categoriesBox!.put(category.id, category);
+  if (_categoriesBox == null) return; // tests may not initialize categories
+  await _categoriesBox!.put(category.id, category);
   }
 
   static Future<void> deleteCategory(String id) async {
-    await _categoriesBox!.delete(id);
+  if (_categoriesBox == null) return;
+  await _categoriesBox!.delete(id);
   }
 
   static List<Category> getAllCategories() {
-    return _categoriesBox!.values.toList();
+  if (_categoriesBox == null) return const [];
+  return _categoriesBox!.values.toList();
   }
 
   static Category? getCategory(String id) {
-    return _categoriesBox!.get(id);
+  if (_categoriesBox == null) return null;
+  return _categoriesBox!.get(id);
   }
 
   static Future<void> clearAllCategories() async {
-    await _categoriesBox!.clear();
+  if (_categoriesBox == null) return;
+  await _categoriesBox!.clear();
   }
 
   // Settings operations using SharedPreferences
@@ -330,6 +373,48 @@ class StorageService {
   return _prefs?.getBool('show_completed_tasks') ?? true;
   }
 
+  // AMOLED / pure black dark theme preference
+  static Future<void> setUseBlackTheme(bool value) async {
+    await _ensurePrefs();
+    await _prefs!.setBool('use_black_theme', value);
+  }
+
+  static bool getUseBlackTheme() {
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getBool('use_black_theme') ?? false;
+  }
+
+  // Dynamic color (Material You) preference
+  static Future<void> setUseDynamicColor(bool value) async {
+    await _ensurePrefs();
+    await _prefs!.setBool('use_dynamic_color', value);
+  }
+
+  static bool getUseDynamicColor() {
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getBool('use_dynamic_color') ?? true; // default ON on capable devices
+  }
+
+  // Compact density preference
+  static Future<void> setCompactDensity(bool value) async {
+    await _ensurePrefs();
+    await _prefs!.setBool('compact_density', value);
+  }
+  static bool getCompactDensity() {
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getBool('compact_density') ?? false;
+  }
+
+  // High contrast preference
+  static Future<void> setHighContrast(bool value) async {
+    await _ensurePrefs();
+    await _prefs!.setBool('high_contrast', value);
+  }
+  static bool getHighContrast() {
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getBool('high_contrast') ?? false;
+  }
+
   static Future<void> setLastAppVersion(String version) async {
   await _ensurePrefs();
   await _prefs!.setString('last_app_version', version);
@@ -354,55 +439,173 @@ class StorageService {
 
   // Backup and restore functionality
   static Future<Map<String, dynamic>> exportData() async {
-  final todos = await getAllTodosAsync().then((l)=> l.map((todo)=> todo.toJson()).toList());
-    final categories = getAllCategories().map((cat) => cat.toJson()).toList();
-    
-    return {
-      'todos': todos,
-      'categories': categories,
-      'settings': {
-        'theme_mode': getThemeMode(),
-        'default_category': getDefaultCategory(),
-        'default_priority': getDefaultPriority(),
-        'notifications_enabled': getNotificationsEnabled(),
-        'auto_delete_completed': getAutoDeleteCompleted(),
-        'show_completed_tasks': getShowCompletedTasks(),
-      },
-      'exported_at': DateTime.now().toIso8601String(),
-      'version': '1.0.0',
-    };
+    try {
+      debugPrint('[StorageService] Starting export process...');
+      
+      final todos = await getAllTodosAsync().then((l)=> l.map((todo)=> todo.toJson()).toList());
+      final categories = getAllCategories().map((cat) => cat.toJson()).toList();
+      
+      // Export folders
+      final folders = _folderRepository != null 
+          ? (await _folderRepository!.getAllFolders()).map((folder) => folder.toJson()).toList()
+          : <Map<String, dynamic>>[];
+      
+      // Export templates (both built-in and custom)
+      final templates = _templateRepository != null 
+          ? (await _templateRepository!.getAllTemplates()).map((template) => template.toJson()).toList()
+          : <Map<String, dynamic>>[];
+      
+      debugPrint('[StorageService] Exporting ${todos.length} todos, ${categories.length} categories, ${folders.length} folders, and ${templates.length} templates');
+      
+      final exportMap = {
+        'todos': todos,
+        'categories': categories,
+        'folders': folders,
+        'templates': templates,
+        'settings': {
+          'theme_mode': getThemeMode(),
+          'default_category': getDefaultCategory(),
+          'default_priority': getDefaultPriority(),
+          'notifications_enabled': getNotificationsEnabled(),
+          'auto_delete_completed': getAutoDeleteCompleted(),
+          'show_completed_tasks': getShowCompletedTasks(),
+        },
+        'exported_at': DateTime.now().toIso8601String(),
+        'version': '1.1.0', // Increment version for template support
+      };
+      
+      debugPrint('[StorageService] Export data prepared successfully');
+      return exportMap;
+    } catch (e, stackTrace) {
+      debugPrint('[StorageService] Export failed: $e');
+      debugPrint('[StorageService] Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  // FAB position (left | center | right) preference
+  static Future<void> setFabPosition(String position) async {
+    if (position != 'left' && position != 'center' && position != 'right') return;
+    await _ensurePrefs();
+    await _prefs!.setString('fab_position', position);
+  }
+
+  static String getFabPosition() {
+    if (_prefs == null) kickOffPrefsInit();
+    final v = _prefs?.getString('fab_position');
+    if (v == null) return 'right';
+    if (v == 'left' || v == 'center' || v == 'right') return v;
+    return 'right';
+  }
+
+  // Hide greeting preference
+  static Future<void> setHideGreeting(bool value) async {
+    await _ensurePrefs();
+    await _prefs!.setBool('hide_greeting', value);
+  }
+
+  static bool getHideGreeting() {
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getBool('hide_greeting') ?? false;
   }
 
   static Future<void> importData(Map<String, dynamic> data) async {
-    // Clear existing data
-    await clearAllTodos();
-    await _categoriesBox!.clear();
-    
-    // Import categories
-    if (data['categories'] != null) {
-      for (final categoryJson in data['categories']) {
-        final category = Category.fromJson(categoryJson);
-        await saveCategory(category);
+    try {
+      debugPrint('[StorageService] Starting import process...');
+      debugPrint('[StorageService] Import data keys: ${data.keys.toList()}');
+      
+      // Ensure storage is fully initialized
+      await waitTodosReady();
+      await waitCategoriesReady();
+      
+      // Clear existing data
+      debugPrint('[StorageService] Clearing existing data...');
+      await clearAllTodos();
+      await _categoriesBox!.clear();
+      
+      // Clear folders and templates if repositories are available
+      if (_folderRepository != null) {
+        final folders = await _folderRepository!.getAllFolders();
+        for (final folder in folders) {
+          if (!folder.isDefault) { // Don't delete default folders
+            await _folderRepository!.deleteFolder(folder.id);
+          }
+        }
       }
-    }
-    
-    // Import todos
-    if (data['todos'] != null) {
-      for (final todoJson in data['todos']) {
-        final todo = Todo.fromJson(todoJson);
-        await saveTodo(todo);
+      
+      if (_templateRepository != null) {
+        final templates = await _templateRepository!.getAllTemplates();
+        for (final template in templates) {
+          if (!template.isBuiltIn) { // Don't delete built-in templates
+            await _templateRepository!.deleteTemplate(template.id);
+          }
+        }
       }
-    }
-    
-    // Import settings
-    if (data['settings'] != null) {
-      final settings = data['settings'];
-      await setThemeMode(settings['theme_mode'] ?? 'system');
-      await setDefaultCategory(settings['default_category'] ?? 'personal');
-      await setDefaultPriority(settings['default_priority'] ?? 'medium');
-      await setNotificationsEnabled(settings['notifications_enabled'] ?? true);
-      await setAutoDeleteCompleted(settings['auto_delete_completed'] ?? false);
-      await setShowCompletedTasks(settings['show_completed_tasks'] ?? true);
+
+      // Import categories first
+      if (data['categories'] != null) {
+        final categoriesData = data['categories'] as List;
+        debugPrint('[StorageService] Importing ${categoriesData.length} categories...');
+        for (final categoryJson in categoriesData) {
+          final category = Category.fromJson(categoryJson);
+          await saveCategory(category);
+          debugPrint('[StorageService] Imported category: ${category.name}');
+        }
+      }
+
+      // Import folders
+      if (data['folders'] != null && _folderRepository != null) {
+        final foldersData = data['folders'] as List;
+        debugPrint('[StorageService] Importing ${foldersData.length} folders...');
+        for (final folderJson in foldersData) {
+          final folder = Folder.fromJson(folderJson);
+          await _folderRepository!.createFolder(folder);
+          debugPrint('[StorageService] Imported folder: ${folder.name}');
+        }
+      }
+
+      // Import templates
+      if (data['templates'] != null && _templateRepository != null) {
+        final templatesData = data['templates'] as List;
+        debugPrint('[StorageService] Importing ${templatesData.length} templates...');
+        for (final templateJson in templatesData) {
+          final template = FolderTemplate.fromJson(templateJson);
+          // Only import custom templates or if user customized built-in ones
+          if (!template.isBuiltIn || template.isCustomized) {
+            await _templateRepository!.createTemplate(template);
+            debugPrint('[StorageService] Imported template: ${template.name}');
+          }
+        }
+      }
+      
+      // Import todos
+      if (data['todos'] != null) {
+        final todosData = data['todos'] as List;
+        debugPrint('[StorageService] Importing ${todosData.length} todos...');
+        for (final todoJson in todosData) {
+          final todo = Todo.fromJson(todoJson);
+          await saveTodo(todo);
+          debugPrint('[StorageService] Imported todo: ${todo.text}');
+        }
+      }
+      
+      // Import settings
+      if (data['settings'] != null) {
+        debugPrint('[StorageService] Importing settings...');
+        final settings = data['settings'];
+        await setThemeMode(settings['theme_mode'] ?? 'system');
+        await setDefaultCategory(settings['default_category'] ?? 'personal');
+        await setDefaultPriority(settings['default_priority'] ?? 'medium');
+        await setNotificationsEnabled(settings['notifications_enabled'] ?? true);
+        await setAutoDeleteCompleted(settings['auto_delete_completed'] ?? false);
+        await setShowCompletedTasks(settings['show_completed_tasks'] ?? true);
+      }
+      
+      debugPrint('[StorageService] Import completed successfully!');
+    } catch (e, stackTrace) {
+      debugPrint('[StorageService] Import failed: $e');
+      debugPrint('[StorageService] Stack trace: $stackTrace');
+      rethrow;
     }
   }
 
