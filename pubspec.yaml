@@ -54,15 +54,18 @@ dependencies:
   
   # Icons and fonts
   phosphor_flutter: ^2.1.0
-  meta: ^1.12.0
+  meta: ^1.16.0
+  
+  # Markdown support
+  flutter_markdown: ^0.7.7+1
 
   # (Removed flutter_local_notifications + related timezone/permission packages in favor of pure native Android implementation)
 
   # File picker for import/export (upgrade to fix v1 embedding + desktop default plugin warnings)
-  file_picker: ^8.0.0
+  file_picker: ^10.3.2
 
   # Permissions handler
-  permission_handler: ^11.3.1
+  permission_handler: ^12.0.1
 
 dev_dependencies:
   flutter_test:

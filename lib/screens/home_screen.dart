@@ -3,18 +3,53 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/filter_providers.dart';
 import '../controllers/task_controller.dart';
+import '../controllers/notes_controller.dart';
 import '../providers/app_providers.dart';
+import '../services/default_tab_service.dart';
 import '../widgets/add_todo_dialog.dart';
 import '../widgets/todo_list_tab.dart';
 import 'calendar_screen.dart';
 import 'progress_screen.dart';
 import 'settings_screen.dart';
+import 'notes_screen.dart';
+import 'note_editor_screen.dart';
 
 // Provider for tracking search mode state
 final searchModeProvider = StateProvider<bool>((ref) => false);
 
-// Provider for current tab index
-final currentTabProvider = StateProvider<int>((ref) => 0);
+// Provider for current tab index with default tab initialization
+final currentTabProvider = StateNotifierProvider<CurrentTabNotifier, int>((ref) {
+  return CurrentTabNotifier();
+});
+
+/// Notifier for managing current tab state with default tab support
+class CurrentTabNotifier extends StateNotifier<int> {
+  CurrentTabNotifier() : super(0) {
+    _initializeDefaultTab();
+  }
+
+  /// Initialize with user's preferred default tab
+  Future<void> _initializeDefaultTab() async {
+    try {
+      final defaultIndex = await DefaultTabService.getDefaultTabIndex();
+      state = defaultIndex;
+    } catch (e) {
+      // If loading fails, stay with tasks (index 0)
+      state = 0;
+    }
+  }
+
+  /// Update current tab
+  void setTab(int index) {
+    state = index;
+  }
+
+  /// Reset to default tab
+  Future<void> resetToDefault() async {
+    final defaultIndex = await DefaultTabService.getDefaultTabIndex();
+    state = defaultIndex;
+  }
+}
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -42,6 +77,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final tabs = [
       const TodoListTab(),
       const CalendarScreen(),
+      const NotesScreen(),
       const ProgressScreen(),
     ];
 
@@ -61,12 +97,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         selectedIndex: currentTab,
         onDestinationSelected: (index) {
-          ref.read(currentTabProvider.notifier).state = index;
+          final previousTab = ref.read(currentTabProvider);
+          ref.read(currentTabProvider.notifier).setTab(index);
           // Exit search mode when switching tabs
           if (isSearchMode) {
             ref.read(searchModeProvider.notifier).state = false;
             _searchController.clear();
-            ref.read(searchQueryProvider.notifier).state = '';
+            if (previousTab == 0) {
+              ref.read(searchQueryProvider.notifier).state = '';
+            } else if (previousTab == 2) {
+              ref.read(notesSearchQueryProvider.notifier).state = '';
+            }
           }
         },
         destinations: [
@@ -81,6 +122,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             label: 'Calendar',
           ),
           NavigationDestination(
+            icon: Icon(PhosphorIcons.noteBlank()),
+            selectedIcon: Icon(PhosphorIcons.noteBlank(PhosphorIconsStyle.fill)),
+            label: 'Notes',
+          ),
+          NavigationDestination(
             icon: Icon(PhosphorIcons.chartBar()),
             selectedIcon: Icon(PhosphorIcons.chartBar(PhosphorIconsStyle.fill)),
             label: 'Progress',
@@ -88,10 +134,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
       floatingActionButtonLocation: fabLocation,
-      floatingActionButton: currentTab == 0 ? FloatingActionButton(
-        onPressed: () => _showAddDialog(context),
-        child: Icon(PhosphorIcons.plus()),
-      ) : null,
+      floatingActionButton: _buildFloatingActionButton(currentTab),
+    );
+  }
+
+  Widget? _buildFloatingActionButton(int currentTab) {
+    switch (currentTab) {
+      case 0: // Tasks
+        return FloatingActionButton(
+          onPressed: () => _showAddDialog(context),
+          child: Icon(PhosphorIcons.plus()),
+        );
+      case 2: // Notes
+        return FloatingActionButton(
+          onPressed: _createNewNote,
+          child: Icon(PhosphorIcons.plus()),
+        );
+      default:
+        return null;
+    }
+  }
+
+  void _createNewNote() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const NoteEditorScreen(),
+      ),
     );
   }
 
@@ -100,27 +168,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final currentTab = ref.watch(currentTabProvider);
     
     // Define tab titles
-    final tabTitles = ['Tasks', 'Calendar', 'Progress'];
+    final tabTitles = ['Tasks', 'Calendar', 'Notes', 'Progress'];
     
-    if (isSearchMode && currentTab == 0) {
+    if (isSearchMode && (currentTab == 0 || currentTab == 2)) {
       return AppBar(
         leading: IconButton(
           icon: Icon(PhosphorIcons.arrowLeft()),
           onPressed: () {
             ref.read(searchModeProvider.notifier).state = false;
             _searchController.clear();
-            ref.read(searchQueryProvider.notifier).state = '';
+            if (currentTab == 0) {
+              ref.read(searchQueryProvider.notifier).state = '';
+            } else if (currentTab == 2) {
+              ref.read(notesSearchQueryProvider.notifier).state = '';
+            }
           },
         ),
         title: TextField(
           controller: _searchController,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Search tasks...',
+          decoration: InputDecoration(
+            hintText: currentTab == 0 ? 'Search tasks...' : 'Search notes...',
             border: InputBorder.none,
           ),
           onChanged: (value) {
-            ref.read(searchQueryProvider.notifier).state = value;
+            if (currentTab == 0) {
+              ref.read(searchQueryProvider.notifier).state = value;
+            } else if (currentTab == 2) {
+              ref.read(notesSearchQueryProvider.notifier).state = value;
+            }
           },
         ),
         actions: [
@@ -129,7 +205,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               icon: Icon(PhosphorIcons.x()),
               onPressed: () {
                 _searchController.clear();
-                ref.read(searchQueryProvider.notifier).state = '';
+                if (currentTab == 0) {
+                  ref.read(searchQueryProvider.notifier).state = '';
+                } else if (currentTab == 2) {
+                  ref.read(notesSearchQueryProvider.notifier).state = '';
+                }
               },
             ),
         ],
@@ -152,13 +232,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ? Text('${selectedIds.length} selected')
           : Text(tabTitles[currentTab]),
       actions: [
-        if (currentTab == 0 && !multiMode)
+        // Search - Primary action for Tasks and Notes
+        if ((currentTab == 0 || currentTab == 2) && !multiMode)
           IconButton(
             icon: Icon(PhosphorIcons.magnifyingGlass()),
             onPressed: () {
               ref.read(searchModeProvider.notifier).state = true;
             },
+            tooltip: 'Search',
           ),
+          
         if (currentTab == 0 && multiMode) ...[
           IconButton(
             icon: Icon(PhosphorIcons.checkCircle()),
@@ -203,15 +286,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   },
           ),
         ],
+        
+        // Single consistent overflow menu (global actions)
         PopupMenuButton<String>(
           icon: Icon(PhosphorIcons.dotsThreeVertical()),
+          tooltip: 'More options',
           onSelected: (value) {
             switch (value) {
-              case 'clear_completed':
-                if (currentTab == 0) {
-                  ref.read(taskControllerProvider.notifier).clearCompleted();
-                }
-                break;
               case 'settings':
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -219,33 +300,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 );
                 break;
-              // 'reliability' case removed (now accessible via Settings screen)
+              case 'help':
+                // TODO: Add help screen or link
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Help feature coming soon')),
+                );
+                break;
+              case 'about':
+                // TODO: Add about dialog
+                showAboutDialog(
+                  context: context,
+                  applicationName: 'Todo App',
+                  applicationVersion: '1.0.0',
+                  applicationIcon: Icon(PhosphorIcons.listChecks()),
+                );
+                break;
             }
           },
           itemBuilder: (context) => [
-            if (currentTab == 0)
-              PopupMenuItem(
-                value: 'clear_completed',
-                child: Row(
-                  children: [
-                    Icon(PhosphorIcons.trash()),
-                    const SizedBox(width: 8),
-                    const Text('Clear completed'),
-                  ],
-                ),
-              ),
-            // Notification test item removed (legacy plugin-based screen)
             PopupMenuItem(
               value: 'settings',
-              child: Row(
-                children: [
-                  Icon(PhosphorIcons.gear()),
-                  const SizedBox(width: 8),
-                  const Text('Settings'),
-                ],
+              child: ListTile(
+                leading: Icon(PhosphorIcons.gear()),
+                title: const Text('Settings'),
+                dense: true,
               ),
             ),
-            // Removed duplicate Reminder Reliability entry
+            PopupMenuItem(
+              value: 'help',
+              child: ListTile(
+                leading: Icon(PhosphorIcons.question()),
+                title: const Text('Help & Feedback'),
+                dense: true,
+              ),
+            ),
+            PopupMenuItem(
+              value: 'about',
+              child: ListTile(
+                leading: Icon(PhosphorIcons.info()),
+                title: const Text('About'),
+                dense: true,
+              ),
+            ),
           ],
         ),
       ],

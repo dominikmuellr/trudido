@@ -8,6 +8,7 @@ import 'backup_settings_page.dart';
 import 'display_theme_settings_page.dart';
 import 'comprehensive_notification_settings.dart';
 import 'template_management_screen.dart';
+import 'default_tab_settings_screen.dart';
 // removed unused imports (home_screen, greeting_header)
 
 class SettingsScreen extends ConsumerWidget {
@@ -50,6 +51,23 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
+          ListTile(
+            leading: Icon(PhosphorIcons.houseLine()),
+            title: const Text('Default Starting Tab'),
+            subtitle: const Text('Choose which tab opens when you start the app'),
+            trailing: Icon(PhosphorIcons.caretRight()),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const DefaultTabSettingsScreen(),
+                ),
+              );
+            },
+          ),
+          
+          // Swipe Actions Section
+          _buildSectionHeader(context, 'Note Actions'),
+          _buildSwipeDirectionSetting(context, ref),
           
           const Divider(),
           
@@ -186,6 +204,34 @@ class SettingsScreen extends ConsumerWidget {
           fontWeight: FontWeight.w600,
         ),
       ),
+    );
+  }
+
+  Widget _buildSwipeDirectionSetting(BuildContext context, WidgetRef ref) {
+    final preferences = ref.watch(preferencesStateProvider);
+    final preferencesService = ref.read(preferencesServiceProvider);
+    
+    return ListTile(
+      leading: const Icon(Icons.swipe),
+      title: const Text('Swipe Actions'),
+      subtitle: preferences.swipeLeftToDelete
+          ? const Text('Left: Delete, Right: Pin')
+          : const Text('Left: Pin, Right: Delete'),
+      trailing: Switch(
+        value: preferences.swipeLeftToDelete,
+        onChanged: (value) async {
+          final updatedPrefs = await preferencesService.update(
+            swipeLeftToDelete: value,
+          );
+          ref.read(preferencesStateProvider.notifier).state = updatedPrefs;
+        },
+      ),
+      onTap: () async {
+        final updatedPrefs = await preferencesService.update(
+          swipeLeftToDelete: !preferences.swipeLeftToDelete,
+        );
+        ref.read(preferencesStateProvider.notifier).state = updatedPrefs;
+      },
     );
   }
 

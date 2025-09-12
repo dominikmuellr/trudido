@@ -7,6 +7,7 @@ class PreferencesState {
   final bool highContrast;
   final bool hideGreeting;
   final String fabPosition; // left | center | right
+  final bool swipeLeftToDelete; // true = left to delete, right to pin | false = left to pin, right to delete
 
   const PreferencesState({
     required this.themeMode,
@@ -16,6 +17,7 @@ class PreferencesState {
     required this.highContrast,
     required this.hideGreeting,
     required this.fabPosition,
+    required this.swipeLeftToDelete,
   });
 
   PreferencesState copyWith({
@@ -26,6 +28,7 @@ class PreferencesState {
     bool? highContrast,
     bool? hideGreeting,
     String? fabPosition,
+    bool? swipeLeftToDelete,
   }) => PreferencesState(
         themeMode: themeMode ?? this.themeMode,
         useDynamicColor: useDynamicColor ?? this.useDynamicColor,
@@ -34,6 +37,7 @@ class PreferencesState {
         highContrast: highContrast ?? this.highContrast,
         hideGreeting: hideGreeting ?? this.hideGreeting,
         fabPosition: fabPosition ?? this.fabPosition,
+        swipeLeftToDelete: swipeLeftToDelete ?? this.swipeLeftToDelete,
       );
 
   static const defaultState = PreferencesState(
@@ -44,5 +48,6 @@ class PreferencesState {
     highContrast: false,
     hideGreeting: false,
     fabPosition: 'right',
+    swipeLeftToDelete: true, // Default: left to delete, right to pin
   );
 }

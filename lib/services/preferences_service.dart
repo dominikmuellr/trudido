@@ -37,6 +37,7 @@ class PreferencesService {
       highContrast: p.getBool('high_contrast') ?? PreferencesState.defaultState.highContrast,
       hideGreeting: p.getBool('hide_greeting') ?? PreferencesState.defaultState.hideGreeting,
       fabPosition: _sanitizeFabPosition(p.getString('fab_position')),
+      swipeLeftToDelete: p.getBool('swipe_left_to_delete') ?? PreferencesState.defaultState.swipeLeftToDelete,
     );
   }
 
@@ -53,6 +54,7 @@ class PreferencesService {
     bool? highContrast,
     bool? hideGreeting,
     String? fabPosition,
+    bool? swipeLeftToDelete,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -66,6 +68,7 @@ class PreferencesService {
       if (highContrast != null) await p.setBool('high_contrast', highContrast);
       if (hideGreeting != null) await p.setBool('hide_greeting', hideGreeting);
       if (fabPosition != null) await p.setString('fab_position', fabPosition);
+      if (swipeLeftToDelete != null) await p.setBool('swipe_left_to_delete', swipeLeftToDelete);
       _hydrate();
       return _cache;
     } catch (e, st) {

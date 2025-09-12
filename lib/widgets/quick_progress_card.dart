@@ -34,7 +34,7 @@ class QuickProgressCard extends ConsumerWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: InkWell(
-        onTap: () => ref.read(currentTabProvider.notifier).state = 2,
+        onTap: () => ref.read(currentTabProvider.notifier).setTab(2),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: pad,

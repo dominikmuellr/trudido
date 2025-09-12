@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auto_backup_service.dart';
 import '../services/files_channel.dart';
+import '../services/markdown_export_service.dart';
 import '../providers/app_providers.dart';
+import '../repositories/notes_repository.dart';
 
 class BackupSettingsPage extends ConsumerStatefulWidget {
   const BackupSettingsPage({super.key});
@@ -54,10 +56,12 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
       // Invalidate and refresh available providers
       ref.invalidate(tasksProvider);
       ref.invalidate(preferencesStateProvider);
+      ref.invalidate(notesProvider);
       
       // Force rebuild by reading providers
       ref.read(tasksProvider.notifier).refresh();
       ref.read(preferencesStateProvider);
+      ref.read(notesProvider.notifier).refresh();
       
       // Wait a moment for providers to refresh
       await Future.delayed(const Duration(milliseconds: 100));
@@ -67,7 +71,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
       if (!mounted) return;
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         const SnackBar(
-          content: Text('Data refreshed - your imported tasks should now be visible!'),
+          content: Text('Data refreshed - your imported tasks and notes should now be visible!'),
           backgroundColor: Colors.green,
         ),
       );
@@ -227,6 +231,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
       ),
     );
 
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
       final backups = await AutoBackupService.instance.listAutoBackups();
       
@@ -234,15 +239,14 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
       Navigator.of(context).pop(); // Close loading dialog
 
       if (backups.isEmpty) {
-        final scaffoldMessenger = ScaffoldMessenger.of(context);
-        if (!mounted) return;
-        // ignore: use_build_context_synchronously
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(
-            content: Text('No automatic backups found'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        if (mounted) {
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+              content: Text('No automatic backups found'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
         return;
       }
 
@@ -322,11 +326,11 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
         );
 
         if (reallyImport == true) {
-          final scaffoldMessenger = ScaffoldMessenger.of(context);
           // Perform the import
           final success = await AutoBackupService.instance.importAutoBackup(selectedBackup!.filename);
           if (!mounted) return;
 
+          final scaffoldMessenger = ScaffoldMessenger.of(context);
           if (success) {
             scaffoldMessenger.showSnackBar(
               const SnackBar(
@@ -437,6 +441,72 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
     }
   }
 
+  Future<void> _exportNotesToMarkdown() async {
+    try {
+      final success = await MarkdownExportService.exportNotesToFiles();
+      if (!mounted) return;
+      
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      if (success) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Notes exported as markdown files!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('No notes to export or export cancelled'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Export failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _importNotesFromMarkdown() async {
+    try {
+      final result = await MarkdownExportService.importNotesFromFiles();
+      if (!mounted) return;
+      
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      if (result.success) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Refresh notes provider to show imported notes
+        ref.read(notesProvider.notifier).refresh();
+      } else {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Import failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -452,7 +522,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
           padding: const EdgeInsets.all(16),
           children: [
             const Text(
-              'Backup and restore your tasks, categories, and settings.',
+              'Backup and restore your tasks, categories, notes, and settings.',
               style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 24),
@@ -495,9 +565,9 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                             Expanded(
                               child: FilledButton.icon(
                                 onPressed: () async {
-                                  final scaffoldMessenger = ScaffoldMessenger.of(context);
                                   final success = await AutoBackupService.instance.chooseBackupFolder();
                                   if (!mounted) return;
+                                  final scaffoldMessenger = ScaffoldMessenger.of(context);
                                   if (success) {
                                     setState(() {}); // Refresh the UI
                                     scaffoldMessenger.showSnackBar(
@@ -591,6 +661,23 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
             ]),
             const SizedBox(height: 16),
             
+            // Markdown Notes Export/Import Section
+            const Text('Markdown Files', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 12, runSpacing: 12, children: [
+              FilledButton.icon(
+                onPressed: _exportNotesToMarkdown,
+                icon: const Icon(Icons.file_upload_outlined),
+                label: const Text('Export .md'),
+              ),
+              OutlinedButton.icon(
+                onPressed: _importNotesFromMarkdown,
+                icon: const Icon(Icons.file_download_outlined),
+                label: const Text('Import .md'),
+              ),
+            ]),
+            const SizedBox(height: 16),
+            
             // Auto Backup Settings
             const Text('Automatic Backup', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -660,11 +747,12 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                               ),
                               TextButton.icon(
                                 onPressed: () async {
+                                  final scaffoldMessenger = ScaffoldMessenger.of(context);
                                   final success = await AutoBackupService.instance.openBackupFolder();
                                   if (!context.mounted) return;
                                   
                                   if (success) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
+                                    scaffoldMessenger.showSnackBar(
                                       const SnackBar(
                                         content: Text('Opening file manager...'),
                                         backgroundColor: Colors.blue,
