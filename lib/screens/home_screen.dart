@@ -670,7 +670,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             showAboutDialog(
                               context: context,
                               applicationName: 'Todo App',
-                              applicationVersion: '1.0.0',
+                              applicationVersion: '1.2.0',
                               applicationIcon: Icon(PhosphorIcons.listChecks()),
                             );
                             break;

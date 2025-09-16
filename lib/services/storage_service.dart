@@ -522,7 +522,7 @@ Enjoy taking notes! 📝''',
           'show_completed_tasks': getShowCompletedTasks(),
         },
         'exported_at': DateTime.now().toIso8601String(),
-        'version': '1.1.0', // Increment version for template support
+  'version': '1.2.0', // Increment version for template support
       };
       
       debugPrint('[StorageService] Export data prepared successfully');

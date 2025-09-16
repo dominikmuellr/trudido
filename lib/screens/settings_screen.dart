@@ -130,7 +130,7 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: Icon(PhosphorIcons.info()),
             title: const Text('App Version'),
-            trailing: const Text('1.1.0'),
+            trailing: const Text('1.2.0'),
           ),
           ListTile(
             leading: Icon(PhosphorIcons.code()),
