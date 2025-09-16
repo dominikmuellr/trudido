@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/add_todo_dialog.dart';
+import '../screens/task_editor_screen.dart';
 import '../models/todo.dart';
 import '../services/storage_service.dart';
 
@@ -39,7 +39,7 @@ class _FolderSelectionTestScreenState extends State<FolderSelectionTestScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Folder Selection Test'),
-        actions: [
+        actions: [ 
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadCurrentDefaultFolder,
@@ -201,7 +201,7 @@ class _FolderSelectionTestScreenState extends State<FolderSelectionTestScreen> {
                               ),
                               if (todo.dueDate != null)
                                 Text('Due: ${_formatDate(todo.dueDate!)}'),
-                              Text('Priority: ${todo.priority} | Category: ${todo.category}'),
+                              Text('Priority: ${todo.priority}'),
                             ],
                           ),
                           trailing: Row(
@@ -240,8 +240,8 @@ class _FolderSelectionTestScreenState extends State<FolderSelectionTestScreen> {
   void _openAddDialog() {
     showDialog(
       context: context,
-      builder: (context) => AddTodoDialog(
-        onAdd: (todo) {
+      builder: (context) => TaskEditorScreen(
+        onSave: (todo) {
           setState(() {
             _testTodos.add(todo);
           });
@@ -275,7 +275,7 @@ class _FolderSelectionTestScreenState extends State<FolderSelectionTestScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('🔄 Last selected folder cleared. Next dialog will use "Personal" folder.'),
-        duration: Duration(seconds: 2),
+        duration: const Duration(seconds: 2),
       ),
     );
   }

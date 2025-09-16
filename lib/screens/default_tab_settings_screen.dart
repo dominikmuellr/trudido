@@ -308,12 +308,8 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
     switch (tabId) {
       case 'tasks':
         return PhosphorIcons.listChecks();
-      case 'calendar':
-        return PhosphorIcons.calendar();
       case 'notes':
         return PhosphorIcons.noteBlank();
-      case 'progress':
-        return PhosphorIcons.chartBar();
       default:
         return PhosphorIcons.circle();
     }
@@ -323,12 +319,8 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
     switch (tabId) {
       case 'tasks':
         return 'Manage your to-do items and tasks';
-      case 'calendar':
-        return 'View your schedule and appointments';
       case 'notes':
         return 'Write and organize your notes';
-      case 'progress':
-        return 'Track your productivity and statistics';
       default:
         return '';
     }

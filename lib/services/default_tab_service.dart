@@ -12,9 +12,7 @@ class DefaultTabService {
   /// Available tab options that match your app's navigation structure
   static const Map<String, int> tabIndices = {
     'tasks': 0,
-    'calendar': 1,
-    'notes': 2,
-    'progress': 3,
+    'notes': 1,
   };
 
   /// Get the user's preferred default tab
@@ -43,7 +41,7 @@ class DefaultTabService {
   }
 
   /// Set the user's preferred default tab
-  /// tabId should be one of: 'tasks', 'calendar', 'notes', 'progress'
+  /// tabId should be one of: 'tasks', 'notes'
   static Future<bool> setDefaultTab(String tabId) async {
     // Validate tab ID
     if (!tabIndices.containsKey(tabId)) {
@@ -64,12 +62,8 @@ class DefaultTabService {
     switch (tabId) {
       case 'tasks':
         return 'Tasks';
-      case 'calendar':
-        return 'Calendar';
       case 'notes':
         return 'Notes';
-      case 'progress':
-        return 'Progress';
       default:
         return 'Unknown';
     }

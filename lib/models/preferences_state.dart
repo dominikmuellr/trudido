@@ -46,7 +46,7 @@ class PreferencesState {
     useBlackTheme: false,
     compactDensity: false,
     highContrast: false,
-    hideGreeting: false,
+    hideGreeting: true,
     fabPosition: 'right',
     swipeLeftToDelete: true, // Default: left to delete, right to pin
   );

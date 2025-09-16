@@ -99,19 +99,43 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     }
 
     return NotesOnboardingTooltip(
-      child: ListView.builder(
-        padding: const EdgeInsets.all(8),
-        itemCount: notes.length,
-        itemBuilder: (context, index) {
-          return NotePreviewCard(
-            note: notes[index],
-            onTap: () => _previewNote(notes[index]),
-            onLongPress: () => _editNote(notes[index].id),
-            onPin: () => _togglePin(notes[index].id),
-            onDelete: () => _deleteNote(notes[index].id, notes[index].title),
-            onDeleteConfirmed: () => _deleteNoteConfirmed(notes[index].id),
-          );
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (scrollNotification) {
+          // Detect pull-to-search gesture
+          if (scrollNotification is ScrollUpdateNotification) {
+            // Check if user is pulling down at the top (overscroll)
+            if (scrollNotification.metrics.pixels < -20) {
+              // Trigger search mode
+              ref.read(notesSearchModeProvider.notifier).state = true;
+              return true; // Consume the notification
+            }
+          }
+          
+          // Also listen for overscroll notifications
+          if (scrollNotification is OverscrollNotification) {
+            if (scrollNotification.overscroll < -20) {
+              ref.read(notesSearchModeProvider.notifier).state = true;
+              return true;
+            }
+          }
+          
+          return false;
         },
+        child: ListView.builder(
+          padding: const EdgeInsets.all(8),
+          physics: const BouncingScrollPhysics(),
+          itemCount: notes.length,
+          itemBuilder: (context, index) {
+            return NotePreviewCard(
+              note: notes[index],
+              onTap: () => _previewNote(notes[index]),
+              onLongPress: () => _editNote(notes[index].id),
+              onPin: () => _togglePin(notes[index].id),
+              onDelete: () => _deleteNote(notes[index].id, notes[index].title),
+              onDeleteConfirmed: () => _deleteNoteConfirmed(notes[index].id),
+            );
+          },
+        ),
       ),
     );
   }

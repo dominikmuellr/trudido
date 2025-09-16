@@ -1,9 +1,8 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart' hide Category;
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/todo.dart';
-import '../models/category.dart';
 import '../models/folder.dart';
 import '../models/folder_template.dart';
 import '../models/note.dart';
@@ -12,12 +11,10 @@ import '../repositories/hive_folder_template_repository.dart';
 
 class StorageService {
   static const String _todosBoxName = 'todos';
-  static const String _categoriesBoxName = 'categories';
   static const String _notesBoxName = 'notes';
   
   // Deferred / lazy boxes
   static LazyBox<Todo>? _todosLazyBox; // large dataset
-  static Box<Category>? _categoriesBox; // small, but also deferred to shrink critical path
   static Box<Note>? _notesBox; // notes storage
   static SharedPreferences? _prefs;
   static Completer<void>? _prefsCompleter; // separate fast prefs init
@@ -31,7 +28,6 @@ class StorageService {
   static bool _initialized = false; // core (prefs + hive init) ready
   static Completer<void>? _initCompleter; // completion for initial (settings only) init
   static Completer<void>? _todosCompleter; // completion for todos lazy box open
-  static Completer<void>? _categoriesCompleter; // completion for categories box open
   static Completer<void>? _notesCompleter; // completion for notes box open
 
   // Initialize Hive and boxes
@@ -45,7 +41,7 @@ class StorageService {
 
     // Register adapters (cheap)
     Hive.registerAdapter(TodoAdapter());
-    Hive.registerAdapter(CategoryAdapter());
+    // CategoryAdapter removed - categories system eliminated
     Hive.registerAdapter(FolderAdapter());
     Hive.registerAdapter(NoteAdapter());
     // Register template adapters if they exist
@@ -68,18 +64,8 @@ class StorageService {
   await _ensurePrefs();
   final afterPrefs = DateTime.now();
 
-    // Schedule deferred opens (categories then todos) without blocking UI.
+    // Schedule deferred opens (todos and notes) without blocking UI.
     Future(() async {
-      // Categories first (small)
-      _categoriesCompleter ??= Completer<void>();
-      try {
-        _categoriesBox = await Hive.openBox<Category>(_categoriesBoxName);
-        if (_categoriesBox!.isEmpty) await _initializeDefaultCategories();
-        _categoriesCompleter?.complete();
-      } catch (e) {
-        _categoriesCompleter?.completeError(e);
-      }
-      
       // Notes box (small to medium)
       _notesCompleter ??= Completer<void>();
       try {
@@ -180,13 +166,6 @@ class StorageService {
   // Public awaitable prefs readiness (only loads SharedPreferences)
   static Future<void> ensurePrefs() => _ensurePrefs();
 
-  static Future<void> waitCategoriesReady() async {
-    if (_categoriesBox != null) return;
-    await ensureReady();
-    _categoriesCompleter ??= Completer<void>(); // in case called before scheduling
-    return _categoriesCompleter!.future.timeout(const Duration(seconds: 10), onTimeout: () {});
-  }
-
   static Future<void> waitTodosReady() async {
     if (_todosLazyBox != null) return;
     await ensureReady();
@@ -204,20 +183,10 @@ class StorageService {
   // Getter for folder repository
   static HiveFolderRepository? get folderRepository => _folderRepository;
 
-  static Future<void> _initializeDefaultCategories() async {
-    for (final category in DefaultCategories.all) {
-      await _categoriesBox!.put(category.id, category);
-    }
-  }
-
   static Future<void> _initializeDefaultNote() async {
     final welcomeNote = Note(
       title: 'Welcome to Notes',
-      content: '''# Welcome to Notes!
-
-Create and organize your thoughts here. You can:
-
-- Write notes with *markdown* syntax
+      content: '''# Welcome to Notes!\n\nCreate and organize your thoughts here. You can:\n\n- Write notes with *markdown* syntax
 - Format text with **emphasis** and *styling*
 - Create [links](https://flutter.dev)
 - Add code blocks:
@@ -305,33 +274,6 @@ Enjoy taking notes! 📝''',
     }
   }
 
-  // Category operations
-  static Future<void> saveCategory(Category category) async {
-  if (_categoriesBox == null) return; // tests may not initialize categories
-  await _categoriesBox!.put(category.id, category);
-  }
-
-  static Future<void> deleteCategory(String id) async {
-  if (_categoriesBox == null) return;
-  await _categoriesBox!.delete(id);
-  }
-
-  static List<Category> getAllCategories() {
-  if (_categoriesBox == null) return const [];
-  return _categoriesBox!.values.toList();
-  }
-
-  static Category? getCategory(String id) {
-  if (_categoriesBox == null) return null;
-  return _categoriesBox!.get(id);
-  }
-
-  static Future<void> clearAllCategories() async {
-  if (_categoriesBox == null) return;
-  await _categoriesBox!.clear();
-  await _initializeDefaultCategories();
-  }
-
   // Notes operations
   static Future<void> saveNote(Note note) async {
     if (_notesBox == null) return;
@@ -356,7 +298,6 @@ Enjoy taking notes! 📝''',
   static Future<void> clearAllNotes() async {
     if (_notesBox == null) return;
     await _notesBox!.clear();
-    await _initializeDefaultNote();
   }
 
   // Theme and preferences operations
@@ -550,7 +491,6 @@ Enjoy taking notes! 📝''',
       debugPrint('[StorageService] Starting export process...');
       
       final todos = await getAllTodosAsync().then((l)=> l.map((todo)=> todo.toJson()).toList());
-      final categories = getAllCategories().map((cat) => cat.toJson()).toList();
       
       // Export notes
       await waitNotesReady();
@@ -566,11 +506,10 @@ Enjoy taking notes! 📝''',
           ? (await _templateRepository!.getAllTemplates()).map((template) => template.toJson()).toList()
           : <Map<String, dynamic>>[];
       
-      debugPrint('[StorageService] Exporting ${todos.length} todos, ${categories.length} categories, ${notes.length} notes, ${folders.length} folders, and ${templates.length} templates');
+      debugPrint('[StorageService] Exporting ${todos.length} todos, ${notes.length} notes, ${folders.length} folders, and ${templates.length} templates');
       
       final exportMap = {
         'todos': todos,
-        'categories': categories,
         'notes': notes,
         'folders': folders,
         'templates': templates,
@@ -628,12 +567,10 @@ Enjoy taking notes! 📝''',
       
       // Ensure storage is fully initialized
       await waitTodosReady();
-      await waitCategoriesReady();
       
       // Clear existing data
       debugPrint('[StorageService] Clearing existing data...');
       await clearAllTodos();
-      await _categoriesBox!.clear();
       
       // Clear folders and templates if repositories are available
       if (_folderRepository != null) {
@@ -651,17 +588,6 @@ Enjoy taking notes! 📝''',
           if (!template.isBuiltIn) { // Don't delete built-in templates
             await _templateRepository!.deleteTemplate(template.id);
           }
-        }
-      }
-
-      // Import categories first
-      if (data['categories'] != null) {
-        final categoriesData = data['categories'] as List;
-        debugPrint('[StorageService] Importing ${categoriesData.length} categories...');
-        for (final categoryJson in categoriesData) {
-          final category = Category.fromJson(categoryJson);
-          await saveCategory(category);
-          debugPrint('[StorageService] Imported category: ${category.name}');
         }
       }
 
@@ -739,11 +665,9 @@ Enjoy taking notes! 📝''',
 
   static Future<void> clearAllData() async {
     await waitTodosReady();
-    await waitCategoriesReady();
     await waitNotesReady();
 
     await clearAllTodos();
-    await clearAllCategories();
     await clearAllNotes();
 
     if (_folderRepository != null) {
@@ -768,6 +692,5 @@ Enjoy taking notes! 📝''',
   // Cleanup and close
   static Future<void> dispose() async {
   await _todosLazyBox?.close();
-    await _categoriesBox?.close();
   }
 }

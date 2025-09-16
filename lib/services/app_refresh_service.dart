@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
-import '../controllers/category_controller.dart';
 
 class AppRefreshService {
   static const AppRefreshService instance = AppRefreshService._();
@@ -16,11 +15,6 @@ class AppRefreshService {
       final tasksNotifier = ref.read(tasksProvider.notifier);
       await tasksNotifier.refresh();
       debugPrint('[AppRefreshService] Tasks refreshed');
-      
-      // Refresh categories
-      final categoriesNotifier = ref.read(categoriesProvider.notifier);
-      await categoriesNotifier.refresh();
-      debugPrint('[AppRefreshService] Categories refreshed');
       
       // Refresh preferences state
       ref.invalidate(preferencesStateProvider);

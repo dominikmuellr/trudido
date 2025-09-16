@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
-import 'package:trudido/models/note.dart';
 import 'package:trudido/repositories/notes_repository.dart';
 import 'package:trudido/services/storage_service.dart';
 

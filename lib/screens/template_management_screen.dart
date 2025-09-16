@@ -255,7 +255,6 @@ class _TemplateManagementScreenState extends ConsumerState<TemplateManagementScr
       description: template.description,
       keywords: template.keywords,
       taskTemplates: template.taskTemplates,
-      category: template.category,
       isBuiltIn: false, // Duplicates are always custom
     );
     

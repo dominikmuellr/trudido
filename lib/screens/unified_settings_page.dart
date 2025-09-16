@@ -7,7 +7,6 @@ import '../services/system_settings_service.dart';
 import '../services/files_channel.dart';
 
 import '../providers/app_providers.dart';
-import '../controllers/category_controller.dart';
 
 /// Single consolidated settings page using AlarmSettingsWatcher (Riverpod) and unified dialogs.
 class UnifiedSettingsPage extends ConsumerStatefulWidget {
@@ -64,10 +63,6 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage> with 
       // Refresh tasks
       final tasksNotifier = ref.read(tasksProvider.notifier);
       await tasksNotifier.refresh();
-      
-      // Refresh categories  
-      final categoriesNotifier = ref.read(categoriesProvider.notifier);
-      await categoriesNotifier.refresh();
       
       // Refresh preferences state
       ref.invalidate(preferencesStateProvider);

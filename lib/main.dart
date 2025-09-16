@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform; // platform check without BuildContext
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'services/storage_service.dart';
 import 'services/permissions_channel.dart';
 import 'services/theme_service.dart';
@@ -45,6 +46,18 @@ class _TodoAppState extends ConsumerState<TodoApp> {
         ref.read(preferencesStateProvider.notifier).state = svc.snapshot;
       }
     }
+    
+    // TODO: Re-enable migration after fixing StorageService category references
+    /*
+    // Run category to folder migration (creates default folders)
+    try {
+      final migrationService = ref.read(categoryMigrationProvider);
+      await migrationService.migrateFromCategories();
+    } catch (e) {
+      // Log error but don't fail the app initialization
+      debugPrint('Migration error: $e');
+    }
+    */
   }
 
   Future<void> _maybeRunInitialReliabilityFlow() async {
@@ -181,6 +194,40 @@ class _TodoAppState extends ConsumerState<TodoApp> {
       theme: themes.$1,
       darkTheme: darkThemeEffective,
       themeMode: themeMode,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en', 'GB'), // English (United Kingdom)
+        Locale('de', 'DE'), // German (Germany)
+        Locale('fr', 'FR'), // French (France)
+        Locale('es', 'ES'), // Spanish (Spain)
+        Locale('it', 'IT'), // Italian (Italy)
+        Locale('nl', 'NL'), // Dutch (Netherlands)
+        Locale('en', 'US'), // Fallback to US English if needed
+      ],
+      // Let the system determine locale, but prefer European format
+      localeResolutionCallback: (locale, supportedLocales) {
+        // If system locale is supported, use it
+        if (locale != null) {
+          for (var supportedLocale in supportedLocales) {
+            if (supportedLocale.languageCode == locale.languageCode &&
+                supportedLocale.countryCode == locale.countryCode) {
+              return supportedLocale;
+            }
+          }
+          // If only language matches, find the best European match
+          for (var supportedLocale in supportedLocales) {
+            if (supportedLocale.languageCode == locale.languageCode) {
+              return supportedLocale;
+            }
+          }
+        }
+        // Default to British English (European format)
+        return const Locale('en', 'GB');
+      },
       home: const SystemNavigationBarHandler(child: AppBootstrap()),
     );
   }

@@ -23,7 +23,6 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
   late TextEditingController _titleController;
   late TextEditingController _notesController;
   late String _selectedPriority;
-  late String _selectedCategory;
   String? _selectedFolderId;
   DateTime? _selectedDueDate;
   DateTime? _selectedStartDate; // new for multi-day
@@ -51,7 +50,6 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
           ? widget.task!.priority 
           : 'medium';
       
-      _selectedCategory = widget.task!.category;
       _selectedFolderId = widget.task!.folderId;
   _selectedDueDate = widget.task!.dueDate;
   _selectedStartDate = widget.task!.startDate;
@@ -62,7 +60,6 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
       _titleController = TextEditingController();
       _notesController = TextEditingController();
       _selectedPriority = 'medium';
-      _selectedCategory = 'personal';
       _reminderOffsetsMinutes = [];
       _tags = [];
     }
@@ -90,7 +87,6 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
           text: _titleController.text.trim(),
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
           priority: _selectedPriority,
-          category: _selectedCategory,
           folderId: _selectedFolderId,
           dueDate: _selectedDueDate,
           startDate: _multiDay ? _selectedStartDate : null,
@@ -106,7 +102,6 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
           text: _titleController.text.trim(),
           notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
           priority: _selectedPriority,
-          category: _selectedCategory,
           folderId: _selectedFolderId,
           dueDate: _selectedDueDate,
           startDate: _multiDay ? _selectedStartDate : null,

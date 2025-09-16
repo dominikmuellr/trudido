@@ -114,7 +114,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
         if (contentLines.isNotEmpty && contentLines.first.trim() == titleLine.trim()) {
           _contentController.text = _originalNote!.content;
         } else {
-          _contentController.text = titleLine + '\n' + _originalNote!.content;
+          _contentController.text = '$titleLine\n${_originalNote!.content}';
         }
         _isEditing = true;
       }
@@ -129,7 +129,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
     final hasChanges = _originalNote == null
         ? content.isNotEmpty
         : currentTitle != _originalNote!.title ||
-            content != (_originalNote!.title + '\n' + _originalNote!.content);
+            content != ('${_originalNote!.title}\n${_originalNote!.content}');
     _debounceTimer?.cancel();
     _autoSaveTimer?.cancel();
     if (hasChanges != _hasUnsavedChanges) {

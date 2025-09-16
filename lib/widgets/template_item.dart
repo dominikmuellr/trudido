@@ -73,20 +73,6 @@ class TemplateItem extends StatelessWidget {
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
-                            if (template.category != null) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  template.category!,
-                                  style: theme.textTheme.labelSmall,
-                                ),
-                              ),
-                            ],
                           ],
                         ),
                       ],

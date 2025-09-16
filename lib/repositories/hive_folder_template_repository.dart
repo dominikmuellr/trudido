@@ -90,12 +90,6 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
   }
 
   @override
-  Future<List<FolderTemplate>> getTemplatesByCategory(String category) async {
-    final allTemplates = await getAllTemplates();
-    return allTemplates.where((template) => template.category?.toLowerCase() == category.toLowerCase()).toList();
-  }
-
-  @override
   Future<List<FolderTemplate>> suggestTemplatesForFolder(String folderName) async {
     final allTemplates = await getAllTemplates();
     final lowercaseName = folderName.toLowerCase();
@@ -136,7 +130,6 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
       return TaskTemplate(
         text: todo.text,
         priority: todo.priority,
-        category: todo.category,
         tags: todo.tags,
         notes: todo.notes,
         sortOrder: index,
@@ -152,7 +145,6 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
       keywords: _extractKeywordsFromName(templateName),
       taskTemplates: taskTemplates,
       isBuiltIn: false,
-      category: _categorizeTemplate(templateName),
     );
     
     await createTemplate(template);
@@ -212,7 +204,6 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
         name: 'Project Workflow',
         description: 'Standard project management workflow',
         keywords: ['project', 'client', 'development', 'work', 'build'],
-        category: 'Work',
         isBuiltIn: true,
         taskTemplates: [
           TaskTemplate(text: 'Project Research & Planning', priority: 'high', sortOrder: 0, estimatedMinutes: 120),
@@ -231,7 +222,6 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
         name: 'Shopping Trip',
         description: 'Organized shopping workflow',
         keywords: ['shopping', 'groceries', 'store', 'buy', 'purchase'],
-        category: 'Personal',
         isBuiltIn: true,
         taskTemplates: [
           TaskTemplate(text: 'Check pantry & make list', priority: 'high', sortOrder: 0, estimatedMinutes: 15),
@@ -247,7 +237,6 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
         name: 'Travel Planning',
         description: 'Complete travel preparation workflow',
         keywords: ['travel', 'trip', 'vacation', 'holiday', 'flight'],
-        category: 'Personal',
         isBuiltIn: true,
         taskTemplates: [
           TaskTemplate(text: 'Research destinations & activities', priority: 'high', sortOrder: 0, estimatedMinutes: 120, dueDateOffset: -30),
@@ -265,7 +254,6 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
         name: 'Home Maintenance',
         description: 'Seasonal home maintenance checklist',
         keywords: ['home', 'house', 'maintenance', 'repair', 'cleaning', 'seasonal'],
-        category: 'Home',
         isBuiltIn: true,
         taskTemplates: [
           TaskTemplate(text: 'Check & replace air filters', priority: 'high', sortOrder: 0, estimatedMinutes: 15),
@@ -282,7 +270,6 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
         name: 'Event Planning',
         description: 'General event organization workflow',
         keywords: ['event', 'party', 'birthday', 'wedding', 'celebration', 'gathering'],
-        category: 'Personal',
         isBuiltIn: true,
         taskTemplates: [
           TaskTemplate(text: 'Set date & create guest list', priority: 'high', sortOrder: 0, estimatedMinutes: 30, dueDateOffset: -21),
@@ -305,18 +292,6 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
   List<String> _extractKeywordsFromName(String name) {
     final words = name.toLowerCase().split(RegExp(r'[\s\-_]+'));
     return words.where((word) => word.length > 2).toList();
-  }
-
-  /// Categorize template based on name/keywords
-  String? _categorizeTemplate(String name) {
-    final lowercaseName = name.toLowerCase();
-    if (lowercaseName.contains('work') || lowercaseName.contains('project') || lowercaseName.contains('client')) {
-      return 'Work';
-    } else if (lowercaseName.contains('home') || lowercaseName.contains('house') || lowercaseName.contains('maintenance')) {
-      return 'Home';
-    } else {
-      return 'Personal';
-    }
   }
 
   /// Get original built-in template definition (for reset functionality)

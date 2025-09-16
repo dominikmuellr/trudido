@@ -9,10 +9,10 @@ void main() {
     test('computes counts, overdue, today, soon and completion rate', () async {
       final now = DateTime.now();
       final seed = [
-        Todo(id: '1', text: 'overdue', createdAt: now.subtract(const Duration(days: 2)), dueDate: now.subtract(const Duration(days: 1)), category: 'work', priority: 'high'),
-        Todo(id: '2', text: 'today', createdAt: now, dueDate: DateTime(now.year, now.month, now.day, 23), category: 'home', priority: 'medium'),
-        Todo(id: '3', text: 'soon', createdAt: now, dueDate: now.add(const Duration(days: 2)), category: 'work', priority: 'low'),
-        Todo(id: '4', text: 'done', createdAt: now.subtract(const Duration(days: 1)), isCompleted: true, completedAt: now.subtract(const Duration(hours: 3)), category: 'home', priority: 'high'),
+        Todo(id: '1', text: 'overdue', createdAt: now.subtract(const Duration(days: 2)), dueDate: now.subtract(const Duration(days: 1)), priority: 'high'),
+        Todo(id: '2', text: 'today', createdAt: now, dueDate: DateTime(now.year, now.month, now.day, 23), priority: 'medium'),
+        Todo(id: '3', text: 'soon', createdAt: now, dueDate: now.add(const Duration(days: 2)), priority: 'low'),
+        Todo(id: '4', text: 'done', createdAt: now.subtract(const Duration(days: 1)), isCompleted: true, completedAt: now.subtract(const Duration(hours: 3)), priority: 'high'),
       ];
       final container = ProviderContainer(overrides: [
   rawTasksProvider.overrideWithValue(seed),
@@ -26,7 +26,6 @@ void main() {
       expect(stats.overdue, 1);
       expect(stats.dueToday, 1);
       expect(stats.dueSoon, 1);
-      expect(stats.byCategory['work'], 2);
       expect(stats.byPriority['high'], 2);
       expect((stats.completionRate * 100).round(), 25); // 1/4
     });

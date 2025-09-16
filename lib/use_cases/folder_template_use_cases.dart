@@ -68,7 +68,6 @@ class ApplyTemplateUseCase {
         text: taskTemplate.text,
         folderId: folderId,
         priority: taskTemplate.priority,
-        category: taskTemplate.category ?? '',
         tags: taskTemplate.tags,
         notes: taskTemplate.notes,
         dueDate: dueDate,

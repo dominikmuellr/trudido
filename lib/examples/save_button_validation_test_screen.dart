@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/add_todo_dialog.dart';
+import '../screens/task_editor_screen.dart';
 import '../models/todo.dart';
 
 /// Test screen to demonstrate the fixed Save button validation
@@ -47,10 +47,10 @@ class _SaveButtonValidationTestScreenState extends State<SaveButtonValidationTes
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '✅ Empty task name → Save button DISABLED\n'
-                    '✅ Enter text → Save button ENABLED immediately\n'
-                    '✅ Clear text → Save button DISABLED again\n'
-                    '✅ Spaces only → Save button DISABLED\n'
+                    '✅ Empty task name → Save button DISABLED\n' 
+                    '✅ Enter text → Save button ENABLED immediately\n' 
+                    '✅ Clear text → Save button DISABLED again\n' 
+                    '✅ Spaces only → Save button DISABLED\n' 
                     '✅ Valid task name → Save button ENABLED',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onPrimaryContainer,
@@ -109,12 +109,12 @@ class _SaveButtonValidationTestScreenState extends State<SaveButtonValidationTes
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      '1. Tap "Open Task Creation Dialog"\n'
-                      '2. Notice Save button is initially DISABLED\n'
-                      '3. Start typing in the task name field\n'
-                      '4. Save button should become ENABLED immediately\n'
-                      '5. Clear the text → Save button should be DISABLED\n'
-                      '6. Type only spaces → Save button should stay DISABLED\n'
+                      '1. Tap "Open Task Creation Dialog"\n' 
+                      '2. Notice Save button is initially DISABLED\n' 
+                      '3. Start typing in the task name field\n' 
+                      '4. Save button should become ENABLED immediately\n' 
+                      '5. Clear the text → Save button should be DISABLED\n' 
+                      '6. Type only spaces → Save button should stay DISABLED\n' 
                       '7. Type actual text → Save button should be ENABLED',
                     ),
                   ],
@@ -204,7 +204,6 @@ class _SaveButtonValidationTestScreenState extends State<SaveButtonValidationTes
                                     if (todo.notes?.isNotEmpty == true)
                                       Text('Notes: ${todo.notes}'),
                                     Text('Priority: ${todo.priority}'),
-                                    Text('Category: ${todo.category}'),
                                     if (todo.folderId != null)
                                       Text('Folder: ${todo.folderId}'),
                                   ],
@@ -230,8 +229,8 @@ class _SaveButtonValidationTestScreenState extends State<SaveButtonValidationTes
   void _openAddDialog() {
     showDialog(
       context: context,
-      builder: (context) => AddTodoDialog(
-        onAdd: (todo) {
+      builder: (context) => TaskEditorScreen(
+        onSave: (todo) {
           setState(() {
             _testTodos.add(todo);
           });
@@ -269,7 +268,6 @@ class _SaveButtonValidationTestScreenState extends State<SaveButtonValidationTes
             if (todo.notes?.isNotEmpty == true)
               Text('Notes: ${todo.notes}'),
             Text('Priority: ${todo.priority}'),
-            Text('Category: ${todo.category}'),
             if (todo.folderId != null)
               Text('Folder: ${todo.folderId}'),
             if (todo.dueDate != null)

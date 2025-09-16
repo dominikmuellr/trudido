@@ -4,7 +4,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:intl/intl.dart';
 import '../models/todo.dart';
 import '../services/theme_service.dart';
-import '../screens/edit_task_screen.dart';
+import '../screens/task_editor_screen.dart';
 
 class TodoItem extends StatelessWidget {
   final Todo todo;
@@ -83,7 +83,12 @@ class TodoItem extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => EditTaskScreen(task: todo),
+                    builder: (context) => TaskEditorScreen(
+                      todo: todo,
+                      onSave: (updatedTask) {
+                        // The save will be handled by the TaskEditorScreen automatically
+                      },
+                    ),
                   ),
                 );
               },
@@ -178,7 +183,7 @@ class TodoItem extends StatelessWidget {
     );
   }
 
-  bool _hasSubtitleContent() => todo.dueDate != null || (todo.notes != null && todo.notes!.isNotEmpty) || todo.category != 'personal';
+  bool _hasSubtitleContent() => todo.dueDate != null || (todo.notes != null && todo.notes!.isNotEmpty);
 
   Widget _buildSubtitleRow(BuildContext context, {Color? overrideColor}) {
     final parts = <Widget>[];
@@ -196,14 +201,6 @@ class TodoItem extends StatelessWidget {
         Icon(PhosphorIcons.calendar(), size: 14, color: dateColor),
         const SizedBox(width: 4),
         Text(dueDateText, style: TextStyle(color: dateColor, fontSize: 12, fontWeight: isOverdue || isDueToday ? FontWeight.w600 : null)),
-      ]));
-    }
-    if (todo.category != 'personal') {
-      final outline = overrideColor ?? Theme.of(context).colorScheme.outline;
-      parts.add(Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(PhosphorIcons.folder(), size: 14, color: outline),
-        const SizedBox(width: 4),
-        Text(todo.category.toUpperCase(), style: TextStyle(color: outline, fontSize: 12, fontWeight: FontWeight.w500)),
       ]));
     }
     if (todo.notes != null && todo.notes!.isNotEmpty) {

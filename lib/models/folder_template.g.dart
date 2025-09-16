@@ -28,14 +28,13 @@ class FolderTemplateAdapter extends TypeAdapter<FolderTemplate> {
       isCustomized: fields[8] as bool,
       originalTemplateId: fields[9] as String?,
       useCount: fields[10] as int,
-      category: fields[11] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, FolderTemplate obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -57,9 +56,7 @@ class FolderTemplateAdapter extends TypeAdapter<FolderTemplate> {
       ..writeByte(9)
       ..write(obj.originalTemplateId)
       ..writeByte(10)
-      ..write(obj.useCount)
-      ..writeByte(11)
-      ..write(obj.category);
+      ..write(obj.useCount);
   }
 
   @override
@@ -86,7 +83,6 @@ class TaskTemplateAdapter extends TypeAdapter<TaskTemplate> {
     return TaskTemplate(
       text: fields[0] as String,
       priority: fields[1] as String,
-      category: fields[2] as String?,
       tags: (fields[3] as List).cast<String>(),
       notes: fields[4] as String?,
       sortOrder: fields[5] as int,
@@ -99,13 +95,11 @@ class TaskTemplateAdapter extends TypeAdapter<TaskTemplate> {
   @override
   void write(BinaryWriter writer, TaskTemplate obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.text)
       ..writeByte(1)
       ..write(obj.priority)
-      ..writeByte(2)
-      ..write(obj.category)
       ..writeByte(3)
       ..write(obj.tags)
       ..writeByte(4)

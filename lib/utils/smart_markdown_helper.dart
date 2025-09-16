@@ -186,7 +186,7 @@ class SmartMarkdownHelper {
       ),
       
       code: TextStyle(
-        backgroundColor: colorScheme.surfaceVariant.withOpacity(0.7),
+        backgroundColor: colorScheme.surfaceContainerHighest.withOpacity(0.7),
         color: colorScheme.onSurfaceVariant,
         fontFamily: 'monospace',
         fontSize: theme.textTheme.bodySmall?.fontSize ?? 12,

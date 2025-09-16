@@ -19,26 +19,21 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
-  String _selectedCategory = 'Personal';
   List<String> _keywords = [];
   List<TaskTemplateData> _tasks = [];
   bool _isLoading = false;
-
-  final List<String> _categories = ['Personal', 'Work', 'Home', 'Health', 'Education'];
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.template?.name ?? '');
     _descriptionController = TextEditingController(text: widget.template?.description ?? '');
-    _selectedCategory = widget.template?.category ?? 'Personal';
     _keywords = List.from(widget.template?.keywords ?? []);
     
     // Convert existing task templates to editable data
     _tasks = widget.template?.taskTemplates.map((t) => TaskTemplateData(
       text: t.text,
       priority: t.priority,
-      category: t.category ?? '',
       notes: t.notes ?? '',
     )).toList() ?? [];
     
@@ -116,26 +111,6 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
                           border: OutlineInputBorder(),
                         ),
                         maxLines: 2,
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Category
-                      DropdownButtonFormField<String>(
-                        value: _selectedCategory,
-                        decoration: const InputDecoration(
-                          labelText: 'Category',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: _categories.map((category) => DropdownMenuItem(
-                          value: category,
-                          child: Text(category),
-                        )).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _selectedCategory = value);
-                          }
-                        },
                       ),
                       
                       const SizedBox(height: 24),
@@ -383,13 +358,11 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
             ? null 
             : _descriptionController.text.trim(),
         keywords: _keywords,
-        category: _selectedCategory,
         taskTemplates: validTasks.asMap().entries.map((entry) {
           final task = entry.value;
           return TaskTemplate(
             text: task.text.trim(),
             priority: task.priority,
-            category: task.category.isEmpty ? null : task.category,
             notes: task.notes.isEmpty ? null : task.notes,
             sortOrder: entry.key,
           );
@@ -410,13 +383,11 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
 class TaskTemplateData {
   String text;
   String priority;
-  String category;
   String notes;
 
   TaskTemplateData({
     this.text = '',
     this.priority = 'medium',
-    this.category = '',
     this.notes = '',
   });
 }

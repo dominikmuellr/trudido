@@ -26,9 +26,6 @@ abstract class FolderTemplateRepository {
   /// Search templates by name or keywords
   Future<List<FolderTemplate>> searchTemplates(String query);
 
-  /// Get templates by category
-  Future<List<FolderTemplate>> getTemplatesByCategory(String category);
-
   /// Suggest templates based on folder name
   Future<List<FolderTemplate>> suggestTemplatesForFolder(String folderName);
 

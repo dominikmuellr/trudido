@@ -38,9 +38,6 @@ class FolderTemplate extends HiveObject {
   @HiveField(10)
   int useCount; // Track how often template is used
 
-  @HiveField(11)
-  String? category; // Work, Personal, Home, etc.
-
   FolderTemplate({
     String? id,
     required this.name,
@@ -53,7 +50,6 @@ class FolderTemplate extends HiveObject {
     this.isCustomized = false,
     this.originalTemplateId,
     this.useCount = 0,
-    this.category,
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
@@ -70,7 +66,6 @@ class FolderTemplate extends HiveObject {
     bool? isCustomized,
     String? originalTemplateId,
     int? useCount,
-    String? category,
   }) {
     return FolderTemplate(
       id: id ?? this.id,
@@ -84,7 +79,6 @@ class FolderTemplate extends HiveObject {
       isCustomized: isCustomized ?? this.isCustomized,
       originalTemplateId: originalTemplateId ?? this.originalTemplateId,
       useCount: useCount ?? this.useCount,
-      category: category ?? this.category,
     );
   }
 
@@ -107,7 +101,6 @@ class FolderTemplate extends HiveObject {
       'isCustomized': isCustomized,
       'originalTemplateId': originalTemplateId,
       'useCount': useCount,
-      'category': category,
     };
   }
 
@@ -127,7 +120,6 @@ class FolderTemplate extends HiveObject {
       isCustomized: json['isCustomized'] ?? false,
       originalTemplateId: json['originalTemplateId'],
       useCount: json['useCount'] ?? 0,
-      category: json['category'],
     );
   }
 }
@@ -139,9 +131,6 @@ class TaskTemplate extends HiveObject {
 
   @HiveField(1)
   String priority; // high, medium, low
-
-  @HiveField(2)
-  String? category;
 
   @HiveField(3)
   List<String> tags;
@@ -164,7 +153,6 @@ class TaskTemplate extends HiveObject {
   TaskTemplate({
     required this.text,
     this.priority = 'medium',
-    this.category,
     this.tags = const [],
     this.notes,
     this.sortOrder = 0,
@@ -176,7 +164,6 @@ class TaskTemplate extends HiveObject {
   TaskTemplate copyWith({
     String? text,
     String? priority,
-    String? category,
     List<String>? tags,
     String? notes,
     int? sortOrder,
@@ -187,7 +174,6 @@ class TaskTemplate extends HiveObject {
     return TaskTemplate(
       text: text ?? this.text,
       priority: priority ?? this.priority,
-      category: category ?? this.category,
       tags: tags ?? this.tags,
       notes: notes ?? this.notes,
       sortOrder: sortOrder ?? this.sortOrder,
@@ -207,7 +193,6 @@ class TaskTemplate extends HiveObject {
     return {
       'text': text,
       'priority': priority,
-      'category': category,
       'tags': tags,
       'notes': notes,
       'sortOrder': sortOrder,
@@ -222,7 +207,6 @@ class TaskTemplate extends HiveObject {
     return TaskTemplate(
       text: json['text'],
       priority: json['priority'] ?? 'medium',
-      category: json['category'],
       tags: List<String>.from(json['tags'] ?? []),
       notes: json['notes'],
       sortOrder: json['sortOrder'] ?? 0,

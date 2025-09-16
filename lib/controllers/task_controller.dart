@@ -132,7 +132,6 @@ class TaskStatistics {
   final double completionRate;
   final int streakDays;
   final DateTime? lastCompleted;
-  final Map<String,int> byCategory;
   final Map<String,int> byPriority;
   const TaskStatistics({
     required this.total,
@@ -144,7 +143,6 @@ class TaskStatistics {
     required this.completionRate,
     required this.streakDays,
     required this.lastCompleted,
-    required this.byCategory,
     required this.byPriority,
   });
 
@@ -253,10 +251,8 @@ final taskStatisticsProvider = Provider<TaskStatistics>((ref) {
       .where((t) => t.completedAt != null)
       .map((t) => t.completedAt!)
       .fold<DateTime?>(null, (prev, e) => prev == null || e.isAfter(prev) ? e : prev);
-  final cat = <String,int>{};
   final pri = <String,int>{};
   for (final t in tasks) {
-    cat[t.category] = (cat[t.category] ?? 0) + 1;
     pri[t.priority] = (pri[t.priority] ?? 0) + 1;
   }
   return TaskStatistics(
@@ -269,7 +265,6 @@ final taskStatisticsProvider = Provider<TaskStatistics>((ref) {
     completionRate: completionRate,
     streakDays: streak,
     lastCompleted: lastCompleted,
-    byCategory: cat,
     byPriority: pri,
   );
 });

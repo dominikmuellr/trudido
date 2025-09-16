@@ -5,16 +5,19 @@ import '../services/folder_provider.dart';
 
 // Filter state providers
 final searchQueryProvider = StateProvider<String>((ref) => '');
-final selectedCategoryProvider = StateProvider<String>((ref) => 'all');
 final selectedPriorityProvider = StateProvider<String>((ref) => 'all');
 final showCompletedProvider = StateProvider<bool>((ref) => true);
 final sortByProvider = StateProvider<String>((ref) => 'default'); // default|date_created|date_due|priority|alphabetical|manual
+
+// View state providers
+enum TaskViewType { list, calendar }
+final taskViewTypeProvider = StateProvider<TaskViewType>((ref) => TaskViewType.list);
+final selectedCalendarDateProvider = StateProvider<DateTime?>((ref) => null);
 
 /// Derived filtered task list based on filters above.
 final filteredTasksProvider = Provider<List<Todo>>((ref) {
   final tasks = ref.watch(tasksProvider);
   final searchQuery = ref.watch(searchQueryProvider);
-  final selectedCategory = ref.watch(selectedCategoryProvider);
   final selectedPriority = ref.watch(selectedPriorityProvider);
   final showCompleted = ref.watch(showCompletedProvider);
   final sortBy = ref.watch(sortByProvider);
@@ -26,7 +29,6 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
       final q = searchQuery.toLowerCase();
       if (!todo.text.toLowerCase().contains(q) && !(todo.notes?.toLowerCase().contains(q) ?? false)) return false;
     }
-    if (selectedCategory != 'all' && todo.category != selectedCategory) return false;
     if (selectedFolder != null && todo.folderId != selectedFolder) return false;
     if (selectedPriority != 'all' && todo.priority != selectedPriority) return false;
     if (!showCompleted && todo.isCompleted) return false;

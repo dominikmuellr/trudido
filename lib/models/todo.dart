@@ -23,9 +23,6 @@ class Todo extends HiveObject {
   @HiveField(5)
   String priority;
 
-  @HiveField(6)
-  String category;
-
   @HiveField(7)
   List<String> tags;
 
@@ -52,7 +49,6 @@ class Todo extends HiveObject {
     this.dueDate,
   this.startDate,
     this.priority = 'medium',
-    this.category = 'personal',
     List<String>? tags,
     this.completedAt,
     this.notes,
@@ -72,7 +68,6 @@ class Todo extends HiveObject {
     DateTime? dueDate,
     DateTime? startDate,
     String? priority,
-    String? category,
     List<String>? tags,
     DateTime? completedAt,
     String? notes,
@@ -87,7 +82,6 @@ class Todo extends HiveObject {
       dueDate: dueDate ?? this.dueDate,
       startDate: startDate ?? this.startDate,
       priority: priority ?? this.priority,
-      category: category ?? this.category,
       tags: tags ?? this.tags,
       completedAt: completedAt ?? this.completedAt,
       notes: notes ?? this.notes,
@@ -106,7 +100,6 @@ class Todo extends HiveObject {
       'dueDate': dueDate?.toIso8601String(),
   'startDate': startDate?.toIso8601String(),
       'priority': priority,
-      'category': category,
       'tags': tags,
       'completedAt': completedAt?.toIso8601String(),
       'notes': notes,
@@ -124,7 +117,6 @@ class Todo extends HiveObject {
       dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
   startDate: json['startDate'] != null ? DateTime.parse(json['startDate']) : null,
       priority: json['priority'] ?? 'medium',
-      category: json['category'] ?? 'personal',
       tags: List<String>.from(json['tags'] ?? []),
       completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt']) : null,
       notes: json['notes'],
@@ -171,6 +163,6 @@ class Todo extends HiveObject {
 
   @override
   String toString() {
-    return 'Todo(id: $id, text: $text, isCompleted: $isCompleted, priority: $priority, category: $category)';
+    return 'Todo(id: $id, text: $text, isCompleted: $isCompleted, priority: $priority, folderId: $folderId)';
   }
 }

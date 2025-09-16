@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/add_todo_dialog.dart';
+import '../screens/task_editor_screen.dart';
 import '../models/todo.dart';
 
 /// Test screen to demonstrate the optional field validation in AddTodoDialog
@@ -37,10 +37,10 @@ class _ValidationTestScreenState extends State<ValidationTestScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    '• Task with only title (no date/time) - Should save ✅\n'
-                    '• Task with date only (no time) - Should save ✅\n'
-                    '• Task with date and future time - Should save ✅\n'
-                    '• Task with date and past time - Should show error ❌\n'
+                    '• Task with only title (no date/time) - Should save ✅\n' 
+                    '• Task with date only (no time) - Should save ✅\n' 
+                    '• Task with date and future time - Should save ✅\n' 
+                    '• Task with date and past time - Should show error ❌\n' 
                     '• Task without title - Save button disabled ❌',
                   ),
                 ],
@@ -117,7 +117,6 @@ class _ValidationTestScreenState extends State<ValidationTestScreen> {
                                   style: TextStyle(color: Colors.grey),
                                 ),
                               Text('Priority: ${todo.priority}'),
-                              Text('Category: ${todo.category}'),
                             ],
                           ),
                           leading: CircleAvatar(
@@ -145,8 +144,8 @@ class _ValidationTestScreenState extends State<ValidationTestScreen> {
   void _openAddDialog() {
     showDialog(
       context: context,
-      builder: (context) => AddTodoDialog(
-        onAdd: (todo) {
+      builder: (context) => TaskEditorScreen(
+        onSave: (todo) {
           setState(() {
             _todos.add(todo);
           });
