@@ -285,9 +285,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                         onToggle: () => _toggleTaskCompletion(task),
                         onEdit: () => _editTask(context, task),
                         onDelete: () => ref.read(taskControllerProvider.notifier).delete(task.id),
-                        compact: true, // Use compact mode for calendar view
-                        enableSlidable: false, // Disable slide actions in calendar
-                        showTimeInfo: true, // Show time instead of due date
+                        onSelectToggle: () {}, // Not selectable in calendar view
                       );
                     },
                   ),

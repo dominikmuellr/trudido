@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:math';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+
 import '../services/theme_service.dart';
 import '../providers/app_providers.dart';
 import '../services/storage_service.dart';
+import 'filters_sheet.dart';
 
 // Provider for user's name
 final userNameProvider = StateProvider<String>((ref) => StorageService.getUserName());
@@ -12,7 +13,7 @@ final userNameProvider = StateProvider<String>((ref) => StorageService.getUserNa
 // Provider for current greeting language (set once on app start)
 final greetingLanguageProvider = StateProvider<int>((ref) {
   // Generate a random greeting when the app starts
-  return Random().nextInt(12);
+  return Random().nextInt(11);
 });
 
 // Provider for hide greeting preference
@@ -26,51 +27,38 @@ class GreetingHeader extends ConsumerStatefulWidget {
   ConsumerState<GreetingHeader> createState() => _GreetingHeaderState();
 }
 
-class _GreetingHeaderState extends ConsumerState<GreetingHeader>
-    with TickerProviderStateMixin {
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
+class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
 
   final List<Map<String, String>> _greetings = [
     {'text': 'Hello', 'lang': 'English'},
     {'text': 'Hola', 'lang': 'Spanish'},
-    {'text': 'Bonjour', 'lang': 'French'},
     {'text': 'Hallo', 'lang': 'German'},
+    {'text': 'Bonjour', 'lang': 'French'},
     {'text': 'Ciao', 'lang': 'Italian'},
     {'text': 'Olá', 'lang': 'Portuguese'},
-    {'text': 'こんにちは', 'lang': 'Japanese'},
-    {'text': '안녕하세요', 'lang': 'Korean'},
-    {'text': '你好', 'lang': 'Chinese'},
-    {'text': 'Привет', 'lang': 'Russian'},
-    {'text': 'مرحبا', 'lang': 'Arabic'},
-    {'text': 'नमस्ते', 'lang': 'Hindi'},
+    {'text': 'Hallo', 'lang': 'Dutch'},
+    {'text': 'Hej', 'lang': 'Danish'},
+    {'text': 'Cześć', 'lang': 'Polish'},
+    {'text': 'Ahoj', 'lang': 'Czech'},
+    {'text': 'Geia sas', 'lang': 'Greek'},
   ];
 
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
-    );
-
-    _fadeController.forward();
   }
 
   void _changeGreeting() {
-    _fadeController.reverse().then((_) {
-      ref.read(greetingLanguageProvider.notifier).state =
-          (ref.read(greetingLanguageProvider) + 1) % _greetings.length;
-      _fadeController.forward();
-    });
+    final currentGreetingIndex = ref.read(greetingLanguageProvider);
+    int newGreetingIndex;
+    do {
+      newGreetingIndex = Random().nextInt(_greetings.length);
+    } while (newGreetingIndex == currentGreetingIndex);
+    ref.read(greetingLanguageProvider.notifier).state = newGreetingIndex;
   }
 
   @override
   void dispose() {
-    _fadeController.dispose();
     super.dispose();
   }
 
@@ -107,42 +95,60 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: AnimatedBuilder(
-                  animation: _fadeAnimation,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _fadeAnimation.value,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${greeting['text']}${userName.isNotEmpty ? ', $userName!' : '!'}',
-                            style: headlineStyle,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(greeting['lang']!, style: langStyle),
-                        ],
-                      ),
-                    );
-                  },
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 500),
+                  transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+                  child: Align(
+                    key: ValueKey<int>(greetingIndex),
+                    alignment: Alignment.centerLeft,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${greeting['text']}${userName.isNotEmpty ? ', $userName!' : '!'}',
+                          style: headlineStyle,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(greeting['lang']!, style: langStyle),
+                      ],
+                    ),
+                  ),
                 ),
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    onPressed: _changeGreeting,
-                    icon: Icon(PhosphorIcons.globe()),
-                    color: theme.colorScheme.primary,
-                    tooltip: 'Change language',
-                  ),
-                  IconButton(
-                    onPressed: () => _showNameDialog(context),
-                    icon: Icon(
-                      userName.isEmpty ? PhosphorIcons.userPlus() : PhosphorIcons.user(),
+                  Semantics(
+                    label: 'Change greeting language',
+                    button: true,
+                    child: IconButton(
+                      onPressed: _changeGreeting,
+                      icon: const Icon(Icons.language),
+                      color: theme.colorScheme.primary,
+                      tooltip: 'Change language',
                     ),
-                    color: theme.colorScheme.primary,
-                    tooltip: userName.isEmpty ? 'Set your name' : 'Change name',
+                  ),
+                  Semantics(
+                    label: userName.isEmpty ? 'Set your name' : 'Change your name',
+                    button: true,
+                    child: IconButton(
+                      onPressed: () => _showNameDialog(context),
+                      icon: Icon(
+                        userName.isEmpty ? Icons.person_add_outlined : Icons.person,
+                      ),
+                      color: theme.colorScheme.primary,
+                      tooltip: userName.isEmpty ? 'Set your name' : 'Change name',
+                    ),
+                  ),
+                  Semantics(
+                    label: 'Open filters',
+                    button: true,
+                    child: IconButton(
+                      onPressed: () => showFiltersSheet(context),
+                      icon: const Icon(Icons.tune),
+                      color: theme.colorScheme.primary,
+                      tooltip: 'Filters',
+                    ),
                   ),
                 ],
               ),

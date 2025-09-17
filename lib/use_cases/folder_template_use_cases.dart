@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../models/folder_template.dart';
 import '../models/todo.dart';
 import '../repositories/folder_template_repository.dart';
@@ -55,6 +56,8 @@ class ApplyTemplateUseCase {
 
   Future<List<Todo>> call(FolderTemplate template, String folderId, {DateTime? baseDueDate}) async {
     final todos = <Todo>[];
+    // Ensure storage (lazy todos box) is ready before attempting to save created todos.
+    await StorageService.waitTodosReady();
     
     for (final taskTemplate in template.taskTemplates) {
       // Calculate due date if template has offset
@@ -74,9 +77,14 @@ class ApplyTemplateUseCase {
         reminderOffsetsMinutes: taskTemplate.reminderOffsets,
       );
 
-      // Add to storage
-      await StorageService.saveTodo(todo);
-      todos.add(todo);
+      // Add to storage - protect each save so one failure doesn't abort the rest
+      try {
+        await StorageService.saveTodo(todo);
+        todos.add(todo);
+      } catch (e, st) {
+        // Log and continue applying remaining tasks
+        debugPrint('[ApplyTemplateUseCase] Failed to save todo from template: $e\n$st');
+      }
     }
 
     // Increment template usage

@@ -217,17 +217,54 @@ Enjoy taking notes! 📝''',
   // Todo operations
   static Future<void> saveTodo(Todo todo) async {
     await waitTodosReady();
-    if (_todosLazyBox != null) { await _todosLazyBox!.put(todo.id, todo); return; }
+    try {
+      if (_todosLazyBox == null) {
+        // Attempt to open the lazy box now as a last resort
+        _todosLazyBox = await Hive.openLazyBox<Todo>(_todosBoxName);
+      }
+      if (_todosLazyBox != null) {
+        await _todosLazyBox!.put(todo.id, todo);
+        return;
+      }
+      throw Exception('Todos lazy box is not available');
+    } catch (e, st) {
+      debugPrint('[StorageService] saveTodo failed: $e\n$st');
+      rethrow;
+    }
   }
 
   static Future<void> deleteTodo(String id) async {
     await waitTodosReady();
-    if (_todosLazyBox != null) { await _todosLazyBox!.delete(id); return; }
+    try {
+      if (_todosLazyBox == null) {
+        _todosLazyBox = await Hive.openLazyBox<Todo>(_todosBoxName);
+      }
+      if (_todosLazyBox != null) {
+        await _todosLazyBox!.delete(id);
+        return;
+      }
+      throw Exception('Todos lazy box is not available');
+    } catch (e, st) {
+      debugPrint('[StorageService] deleteTodo failed: $e\n$st');
+      rethrow;
+    }
   }
 
   static Future<void> updateTodo(Todo todo) async {
     await waitTodosReady();
-    if (_todosLazyBox != null) { await _todosLazyBox!.put(todo.id, todo); return; }
+    try {
+      if (_todosLazyBox == null) {
+        _todosLazyBox = await Hive.openLazyBox<Todo>(_todosBoxName);
+      }
+      if (_todosLazyBox != null) {
+        await _todosLazyBox!.put(todo.id, todo);
+        return;
+      }
+      throw Exception('Todos lazy box is not available');
+    } catch (e, st) {
+      debugPrint('[StorageService] updateTodo failed: $e\n$st');
+      rethrow;
+    }
   }
 
   static List<Todo> getAllTodos() {

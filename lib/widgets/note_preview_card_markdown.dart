@@ -47,9 +47,13 @@ class NotePreviewCard extends ConsumerWidget {
     final contentLines = note.content.split('\n');
     final subtitle = _extractSubtitle(contentLines);
     
-    // Read swipe preference
-    final preferences = ref.watch(preferencesStateProvider);
-    final swipeLeftToDelete = preferences.swipeLeftToDelete;
+  // Read swipe preference
+  final preferences = ref.watch(preferencesStateProvider);
+  // Map the physical swipe directions to the configured actions.
+  // startToEnd => user swiped right (maps to swipeRightAction)
+  final actionStart = preferences.swipeRightAction; // 'delete' | 'pin' | 'none'
+  // endToStart => user swiped left (maps to swipeLeftAction)
+  final actionEnd = preferences.swipeLeftAction;
     
     final titleSpan = _parseMarkdownToTextSpan(
       note.title.isEmpty ? 'Untitled' : note.title,
@@ -65,77 +69,78 @@ class NotePreviewCard extends ConsumerWidget {
 
     return Dismissible(
       key: ValueKey('dismissible_${note.id}'), // Use ValueKey for better tracking
-      // Background for left swipe (startToEnd)
-      background: Container(
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 20),
-        decoration: BoxDecoration(
-          color: swipeLeftToDelete ? Colors.red : Theme.of(context).colorScheme.primary,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              swipeLeftToDelete 
-                ? PhosphorIcons.trash()
-                : (note.isPinned 
-                    ? PhosphorIcons.pushPin(PhosphorIconsStyle.fill)
-                    : PhosphorIcons.pushPin(PhosphorIconsStyle.regular)),
-              color: Colors.white,
-              size: 28,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              swipeLeftToDelete 
-                ? 'DELETE'
-                : (note.isPinned ? 'UNPIN' : 'PIN'),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
+      // Background for startToEnd (user swiped right)
+      background: actionStart == 'none'
+          ? Container()
+          : Container(
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.only(left: 20),
+              decoration: BoxDecoration(
+                color: actionStart == 'delete' ? Colors.red : Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    actionStart == 'delete'
+                        ? PhosphorIcons.trash()
+                        : (note.isPinned
+                            ? PhosphorIcons.pushPin(PhosphorIconsStyle.fill)
+                            : PhosphorIcons.pushPin(PhosphorIconsStyle.regular)),
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    actionStart == 'delete' ? 'DELETE' : (note.isPinned ? 'UNPIN' : 'PIN'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
-            // Background for right swipe (endToStart)
-      secondaryBackground: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        decoration: BoxDecoration(
-          color: swipeLeftToDelete ? Theme.of(context).colorScheme.primary : Colors.red,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              swipeLeftToDelete 
-                ? (note.isPinned 
-                    ? PhosphorIcons.pushPin(PhosphorIconsStyle.fill)
-                    : PhosphorIcons.pushPin(PhosphorIconsStyle.regular))
-                : PhosphorIcons.trash(),
-              color: Colors.white,
-              size: 28,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              swipeLeftToDelete 
-                ? (note.isPinned ? 'UNPIN' : 'PIN')
-                : 'DELETE',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ),
+            // Background for endToStart (user swiped left)
+            secondaryBackground: actionEnd == 'none'
+                ? Container()
+                : Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    decoration: BoxDecoration(
+                      color: actionEnd == 'delete' ? Colors.red : Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          actionEnd == 'delete'
+                              ? PhosphorIcons.trash()
+                              : (note.isPinned
+                                  ? PhosphorIcons.pushPin(PhosphorIconsStyle.fill)
+                                  : PhosphorIcons.pushPin(PhosphorIconsStyle.regular)),
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          actionEnd == 'delete' ? 'DELETE' : (note.isPinned ? 'UNPIN' : 'PIN'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
       confirmDismiss: (direction) async {
-        final isDeleteAction = (swipeLeftToDelete && direction == DismissDirection.startToEnd) ||
-                              (!swipeLeftToDelete && direction == DismissDirection.endToStart);
+    // direction == startToEnd => user swiped right => maps to actionStart
+    final isDeleteAction = (actionStart == 'delete' && direction == DismissDirection.startToEnd) ||
+      (actionEnd == 'delete' && direction == DismissDirection.endToStart);
         
         if (isDeleteAction) {
           // Delete action - show confirmation and handle deletion directly
@@ -173,9 +178,12 @@ class NotePreviewCard extends ConsumerWidget {
           
           return confirmed; // Allow dismissal only if confirmed and deleted
         } else {
-          // Pin action - execute immediately and don't dismiss
-          onPin?.call();
-          return false; // Don't dismiss the card for pin action
+          // Non-delete action: could be 'pin' or 'none'. Only run pin if configured.
+          final action = direction == DismissDirection.startToEnd ? actionStart : actionEnd;
+          if (action == 'pin') {
+            onPin?.call();
+          }
+          return false; // Don't dismiss the card for pin/none actions
         }
       },
       onDismissed: (direction) {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/app_providers.dart';
 import '../controllers/task_controller.dart';
 import '../services/notification_service.dart';
@@ -8,8 +7,121 @@ import 'backup_settings_page.dart';
 import 'display_theme_settings_page.dart';
 import 'comprehensive_notification_settings.dart';
 import 'template_management_screen.dart';
-import 'default_tab_settings_screen.dart';
-// removed unused imports (home_screen, greeting_header)
+import '../controllers/preferences_controller.dart';
+
+// Moved _SwipeActionSheet and _getSwipeActionName outside the class
+String _getSwipeActionName(String action) {
+  switch (action) {
+    case 'delete':
+      return 'Delete';
+    case 'pin':
+      return 'Pin';
+    case 'none':
+      return 'None';
+    default:
+      return 'Unknown';
+  }
+}
+
+class _SwipeActionSheet extends ConsumerWidget {
+  const _SwipeActionSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final preferences = ref.watch(preferencesStateProvider);
+    final controller = ref.read(preferencesControllerProvider);
+    final cs = Theme.of(context).colorScheme;
+
+    Widget buildActionOption(String action, String label, IconData icon, bool isSelected, VoidCallback onTap) {
+      return ListTile(
+        leading: Icon(icon, color: isSelected ? cs.primary : cs.onSurfaceVariant),
+        title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : null)),
+        trailing: isSelected ? Icon(Icons.check, color: cs.primary) : null,
+        onTap: onTap,
+      );
+    }
+
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Configure Swipe Actions',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ),
+          const Divider(),
+          ListTile(
+            title: const Text('Left Swipe Action'),
+            subtitle: Text(_getSwipeActionName(preferences.swipeLeftAction)),
+          ),
+          buildActionOption(
+            'delete',
+            'Delete',
+            Icons.delete_outline,
+            preferences.swipeLeftAction == 'delete',
+            () {
+              controller.setSwipeLeftAction('delete');
+            },
+          ),
+          buildActionOption(
+            'pin',
+            'Pin',
+            Icons.push_pin_outlined,
+            preferences.swipeLeftAction == 'pin',
+            () {
+              controller.setSwipeLeftAction('pin');
+            },
+          ),
+          buildActionOption(
+            'none',
+            'None',
+            Icons.do_not_disturb_alt_outlined,
+            preferences.swipeLeftAction == 'none',
+            () {
+              controller.setSwipeLeftAction('none');
+            },
+          ),
+          const Divider(),
+          ListTile(
+            title: const Text('Right Swipe Action'),
+            subtitle: Text(_getSwipeActionName(preferences.swipeRightAction)),
+          ),
+          buildActionOption(
+            'delete',
+            'Delete',
+            Icons.delete_outline,
+            preferences.swipeRightAction == 'delete',
+            () {
+              controller.setSwipeRightAction('delete');
+            },
+          ),
+          buildActionOption(
+            'pin',
+            'Pin',
+            Icons.push_pin_outlined,
+            preferences.swipeRightAction == 'pin',
+            () {
+              controller.setSwipeRightAction('pin');
+            },
+          ),
+          buildActionOption(
+            'none',
+            'None',
+            Icons.do_not_disturb_alt_outlined,
+            preferences.swipeRightAction == 'none',
+            () {
+              controller.setSwipeRightAction('none');
+            },
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -39,10 +151,10 @@ class SettingsScreen extends ConsumerWidget {
           // Display & Theme Section
           _buildSectionHeader(context, 'Display & Theme'),
           ListTile(
-            leading: Icon(PhosphorIcons.palette()),
+            leading: Icon(Icons.palette_outlined),
             title: const Text('Display & Theme'),
             subtitle: const Text('Colors, layout, and visual preferences'),
-            trailing: Icon(PhosphorIcons.caretRight()),
+            trailing: Icon(Icons.arrow_forward_ios),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -51,33 +163,16 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
-          ListTile(
-            leading: Icon(PhosphorIcons.houseLine()),
-            title: const Text('Default Starting Tab'),
-            subtitle: const Text('Choose which tab opens when you start the app'),
-            trailing: Icon(PhosphorIcons.caretRight()),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const DefaultTabSettingsScreen(),
-                ),
-              );
-            },
-          ),
           
-          // Swipe Actions Section
-          _buildSectionHeader(context, 'Note Actions'),
-          _buildSwipeDirectionSetting(context, ref),
           
-          const Divider(),
           
           // Templates & Workflows Section
           _buildSectionHeader(context, 'Templates & Workflows'),
           ListTile(
-            leading: Icon(PhosphorIcons.squaresFour()),
+            leading: Icon(Icons.widgets_outlined),
             title: const Text('Folder Templates'),
             subtitle: const Text('Manage templates for smart folder creation'),
-            trailing: Icon(PhosphorIcons.caretRight()),
+            trailing: Icon(Icons.arrow_forward_ios),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -87,15 +182,17 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
           
+          _buildSwipeDirectionSetting(context, ref),
+          
           const Divider(),
           
           // Notifications Section
           _buildSectionHeader(context, 'Notifications'),
           ListTile(
-            leading: Icon(PhosphorIcons.bell()),
+            leading: Icon(Icons.notifications_outlined),
             title: const Text('Notifications'),
             subtitle: const Text('Permissions, settings, and reliability'),
-            trailing: Icon(PhosphorIcons.caretRight()),
+            trailing: Icon(Icons.arrow_forward_ios),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -110,10 +207,10 @@ class SettingsScreen extends ConsumerWidget {
           // Data & Storage Section
           _buildSectionHeader(context, 'Data & Storage'),
           ListTile(
-            leading: Icon(PhosphorIcons.downloadSimple()),
+            leading: Icon(Icons.save_alt),
             title: const Text('Backup & Data'),
             subtitle: const Text('Export, import and automatic backups'),
-            trailing: Icon(PhosphorIcons.caretRight()),
+            trailing: Icon(Icons.arrow_forward_ios),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -128,12 +225,12 @@ class SettingsScreen extends ConsumerWidget {
           // About Section
           _buildSectionHeader(context, 'About'),
           ListTile(
-            leading: Icon(PhosphorIcons.info()),
+            leading: Icon(Icons.info_outline),
             title: const Text('App Version'),
             trailing: const Text('1.2.0'),
           ),
           ListTile(
-            leading: Icon(PhosphorIcons.code()),
+            leading: Icon(Icons.code),
             title: const Text('Built with Flutter'),
             subtitle: const Text('Cross-platform todo app'),
           ),
@@ -144,7 +241,7 @@ class SettingsScreen extends ConsumerWidget {
           if (const bool.fromEnvironment('dart.vm.product') == false) ...[
             _buildSectionHeader(context, 'Debug'),
             ListTile(
-              leading: Icon(PhosphorIcons.bug()),
+              leading: Icon(Icons.bug_report_outlined),
               title: const Text('Test Notification (10s)'),
               subtitle: const Text('Schedules a native notification in 10 seconds'),
               onTap: () async {
@@ -171,7 +268,7 @@ class SettingsScreen extends ConsumerWidget {
           // Data Management Section
           _buildSectionHeader(context, 'Data Management'),
           ListTile(
-            leading: Icon(PhosphorIcons.trash(), color: theme.colorScheme.error),
+            leading: Icon(Icons.delete_outline, color: theme.colorScheme.error),
             title: Text(
               'Clear Completed Tasks',
               style: TextStyle(color: theme.colorScheme.error),
@@ -180,7 +277,7 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => _showClearCompletedDialog(context, ref),
           ),
           ListTile(
-            leading: Icon(PhosphorIcons.warning(), color: theme.colorScheme.error),
+            leading: Icon(Icons.warning_amber_outlined, color: theme.colorScheme.error),
             title: Text(
               'Clear All Data',
               style: TextStyle(color: theme.colorScheme.error),
@@ -194,13 +291,12 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _buildSectionHeader(BuildContext context, String title) {
-    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Text(
         title,
-        style: theme.textTheme.titleSmall?.copyWith(
-          color: theme.colorScheme.primary,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: Theme.of(context).colorScheme.primary,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -209,28 +305,20 @@ class SettingsScreen extends ConsumerWidget {
 
   Widget _buildSwipeDirectionSetting(BuildContext context, WidgetRef ref) {
     final preferences = ref.watch(preferencesStateProvider);
-    final preferencesService = ref.read(preferencesServiceProvider);
     
     return ListTile(
       leading: const Icon(Icons.swipe),
       title: const Text('Swipe Actions'),
-      subtitle: preferences.swipeLeftToDelete
-          ? const Text('Left: Delete, Right: Pin')
-          : const Text('Left: Pin, Right: Delete'),
-      trailing: Switch(
-        value: preferences.swipeLeftToDelete,
-        onChanged: (value) async {
-          final updatedPrefs = await preferencesService.update(
-            swipeLeftToDelete: value,
-          );
-          ref.read(preferencesStateProvider.notifier).state = updatedPrefs;
-        },
+      subtitle: Text(
+        'Left: ${_getSwipeActionName(preferences.swipeLeftAction)}, Right: ${_getSwipeActionName(preferences.swipeRightAction)}',
       ),
+      trailing: Icon(Icons.arrow_forward_ios),
       onTap: () async {
-        final updatedPrefs = await preferencesService.update(
-          swipeLeftToDelete: !preferences.swipeLeftToDelete,
+        await showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          builder: (ctx) => _SwipeActionSheet(),
         );
-        ref.read(preferencesStateProvider.notifier).state = updatedPrefs;
       },
     );
   }

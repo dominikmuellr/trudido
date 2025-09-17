@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/app_providers.dart';
 import '../controllers/preferences_controller.dart';
+import '../services/default_tab_service.dart';
+import 'default_tab_settings_screen.dart';
 
 class DisplayThemeSettingsPage extends ConsumerWidget {
   const DisplayThemeSettingsPage({super.key});
@@ -23,23 +24,11 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
           _buildSectionHeader(context, 'Theme'),
           _ThemeModeSelector(),
           Consumer(builder: (context, ref, _) {
-            final black = ref.watch(preferencesStateProvider).useBlackTheme;
-            final controller = ref.read(preferencesControllerProvider);
-            return SwitchListTile(
-              secondary: Icon(PhosphorIcons.monitor()),
-              title: const Text('Pure Black'),
-              subtitle: const Text('Deeper blacks for OLED screens'),
-              value: black,
-              onChanged: (v) => controller.toggleBlackTheme(),
-            );
-          }),
-          Consumer(builder: (context, ref, _) {
             final enabled = ref.watch(preferencesStateProvider).useDynamicColor;
             final controller = ref.read(preferencesControllerProvider);
             return SwitchListTile(
-              secondary: Icon(PhosphorIcons.dropHalfBottom()),
-              title: const Text('Dynamic system colors'),
-              subtitle: const Text('Material You palette (Android 12+)'),
+              secondary: Icon(Icons.auto_awesome_outlined),
+              title: const Text('Dynamic Color'),
               value: enabled,
               onChanged: (v) => controller.toggleDynamicColor(),
             );
@@ -49,45 +38,7 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
 
           // Display Section
           _buildSectionHeader(context, 'Display'),
-          Consumer(builder: (context, ref, _) {
-            final hideGreeting = ref.watch(preferencesStateProvider).hideGreeting;
-            final controller = ref.read(preferencesControllerProvider);
-            return SwitchListTile(
-              secondary: Icon(PhosphorIcons.handWaving()),
-              title: const Text('Show Greeting Header'),
-              subtitle: const Text('Disable to maximize list space'),
-              value: !hideGreeting,
-              onChanged: (v) => controller.toggleHideGreeting(),
-            );
-          }),
-          Consumer(builder: (context, ref, _) {
-            final compact = ref.watch(preferencesStateProvider).compactDensity;
-            final controller = ref.read(preferencesControllerProvider);
-            return SwitchListTile(
-              secondary: Icon(PhosphorIcons.textAlignCenter()),
-              title: const Text('Compact density'),
-              subtitle: const Text('Smaller padding & tighter lists'),
-              value: compact,
-              onChanged: (v) => controller.toggleCompactDensity(),
-            );
-          }),
-          Consumer(builder: (context, ref, _) {
-            final hc = ref.watch(preferencesStateProvider).highContrast;
-            final controller = ref.read(preferencesControllerProvider);
-            return SwitchListTile(
-              secondary: Icon(PhosphorIcons.eye()),
-              title: const Text('High contrast'),
-              subtitle: const Text('Stronger outlines & text clarity'),
-              value: hc,
-              onChanged: (v) => controller.toggleHighContrast(),
-            );
-          }),
-
-          const Divider(),
-
-          // Layout Section
-          _buildSectionHeader(context, 'Layout'),
-          _FabPositionSelector(),
+          _DefaultTabSelector(),
 
           const SizedBox(height: 16),
         ],
@@ -123,7 +74,7 @@ class _ThemeModeSelector extends ConsumerWidget {
             : ThemeMode.system;
 
     return ListTile(
-      leading: Icon(PhosphorIcons.palette()),
+      leading: Icon(Icons.palette_outlined),
       title: const Text('Theme Mode'),
       subtitle: Text(
         current == ThemeMode.system
@@ -132,7 +83,7 @@ class _ThemeModeSelector extends ConsumerWidget {
                 ? 'Dark'
                 : 'Light',
       ),
-      trailing: Icon(PhosphorIcons.caretDown()),
+      trailing: Icon(Icons.arrow_drop_down),
       onTap: () async {
         final choice = await showModalBottomSheet<ThemeMode>(
           context: context,
@@ -160,13 +111,16 @@ class _ThemeModeSelector extends ConsumerWidget {
   }
 }
 
-class _ThemeModeSheet extends StatelessWidget {
+class _ThemeModeSheet extends ConsumerWidget {
   final ThemeMode current;
   const _ThemeModeSheet({required this.current});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final useBlackTheme = ref.watch(preferencesStateProvider).useBlackTheme;
+    final controller = ref.read(preferencesControllerProvider);
+
     Widget buildOption(ThemeMode mode, String label, String desc, IconData icon) {
       final selected = current == mode;
       return ListTile(
@@ -185,6 +139,20 @@ class _ThemeModeSheet extends StatelessWidget {
           buildOption(ThemeMode.light, 'Light', 'Always use light theme', Icons.light_mode_outlined),
           buildOption(ThemeMode.dark, 'Dark', 'Always use dark theme', Icons.dark_mode_outlined),
           buildOption(ThemeMode.system, 'Auto', 'Follow device setting', Icons.auto_mode_outlined),
+          const Divider(),
+          ListTile(
+            leading: Icon(Icons.contrast, color: cs.onSurfaceVariant),
+            title: const Text('Black'),
+            trailing: Switch(
+              value: useBlackTheme,
+              onChanged: (current == ThemeMode.light) ? null : (v) {
+                controller.toggleBlackTheme();
+              },
+            ),
+            onTap: (current == ThemeMode.light) ? null : () {
+              controller.toggleBlackTheme();
+            },
+          ),
           const SizedBox(height: 8),
         ],
       ),
@@ -192,61 +160,93 @@ class _ThemeModeSheet extends StatelessWidget {
   }
 }
 
-class _FabPositionSelector extends ConsumerWidget {
-  const _FabPositionSelector();
+class _DefaultTabSelector extends ConsumerWidget {
+  const _DefaultTabSelector();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final prefs = ref.watch(preferencesStateProvider);
-    final current = prefs.fabPosition;
-    
-    return ListTile(
-      leading: Icon(PhosphorIcons.plusCircle()),
-      title: const Text('Add Button Position'),
-      subtitle: Text(current[0].toUpperCase() + current.substring(1)),
-      trailing: Icon(PhosphorIcons.caretDown()),
-      onTap: () async {
-        final choice = await showModalBottomSheet<String>(
-          context: context,
-          showDragHandle: true,
-          builder: (ctx) => _FabPositionSheet(current: current),
+    final defaultTabAsync = ref.watch(defaultTabNotifierProvider);
+
+    return defaultTabAsync.when(
+      loading: () => const ListTile(
+        leading: Icon(Icons.home_outlined),
+        title: Text('Default Starting Tab'),
+        subtitle: Text('Loading...'),
+      ),
+      error: (error, _) => ListTile(
+        leading: Icon(Icons.error_outline),
+        title: Text('Default Starting Tab'),
+        subtitle: Text('Error loading setting'),
+      ),
+      data: (currentTab) {
+        final tabs = DefaultTabService.getAllTabs();
+        final currentTabName = tabs[currentTab] ?? 'Unknown';
+
+        return ListTile(
+          leading: Icon(Icons.home_outlined),
+          title: const Text('Default Starting Tab'),
+          subtitle: Text(currentTabName),
+          trailing: Icon(Icons.arrow_drop_down),
+          onTap: () async {
+            final choice = await showModalBottomSheet<String>(
+              context: context,
+              showDragHandle: true,
+              builder: (ctx) {
+                return _DefaultTabSheet(current: currentTab);
+              },
+            );
+            if (choice != null) {
+              final notifier = ref.read(defaultTabNotifierProvider.notifier);
+              await notifier.setDefaultTab(choice);
+            }
+          },
         );
-        if (choice != null) {
-          final controller = ref.read(preferencesControllerProvider);
-          await controller.setFabPosition(choice);
-        }
       },
     );
   }
 }
 
-class _FabPositionSheet extends StatelessWidget {
+class _DefaultTabSheet extends StatelessWidget {
   final String current;
-  const _FabPositionSheet({required this.current});
+  const _DefaultTabSheet({required this.current});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    Widget option(String value, String label, IconData icon) {
-      final selected = current == value;
+    final tabs = DefaultTabService.getAllTabs();
+
+    Widget buildOption(String tabId, String tabName, IconData icon) {
+      final selected = current == tabId;
       return ListTile(
         leading: Icon(icon, color: selected ? cs.primary : cs.onSurfaceVariant),
-        title: Text(label, style: TextStyle(fontWeight: selected ? FontWeight.w600 : null)),
+        title: Text(tabName, style: TextStyle(fontWeight: selected ? FontWeight.w600 : null)),
         trailing: selected ? Icon(Icons.check, color: cs.primary) : null,
-        onTap: () => Navigator.pop(context, value),
+        onTap: () => Navigator.pop(context, tabId),
       );
     }
+
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(height: 4),
-          option('left', 'Left', PhosphorIcons.arrowLineLeft()),
-          option('center', 'Center', PhosphorIcons.arrowsInLineVertical()),
-          option('right', 'Right', PhosphorIcons.arrowLineRight()),
+          ...tabs.entries.map((entry) {
+            return buildOption(entry.key, entry.value, _getTabIcon(entry.key));
+          }).toList(),
           const SizedBox(height: 8),
         ],
       ),
     );
+  }
+
+  IconData _getTabIcon(String tabId) {
+    switch (tabId) {
+      case 'tasks':
+        return Icons.check_circle_outline;
+      case 'notes':
+        return Icons.notes_outlined;
+      default:
+        return Icons.circle_outlined;
+    }
   }
 }

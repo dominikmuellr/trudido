@@ -23,28 +23,29 @@ class PreferencesController {
 
   Future<void> toggleDynamicColor() => _update(useDynamicColor: !state.useDynamicColor);
   Future<void> toggleBlackTheme() => _update(useBlackTheme: !state.useBlackTheme);
-  Future<void> toggleCompactDensity() => _update(compactDensity: !state.compactDensity);
-  Future<void> toggleHighContrast() => _update(highContrast: !state.highContrast);
   Future<void> toggleHideGreeting() => _update(hideGreeting: !state.hideGreeting);
   Future<void> setFabPosition(String pos) => _update(fabPosition: pos);
+
+  Future<void> setSwipeLeftAction(String action) => _update(swipeLeftAction: action);
+  Future<void> setSwipeRightAction(String action) => _update(swipeRightAction: action);
 
   Future<void> _update({
     String? themeMode,
     bool? useDynamicColor,
     bool? useBlackTheme,
-    bool? compactDensity,
-    bool? highContrast,
     bool? hideGreeting,
     String? fabPosition,
+    String? swipeLeftAction,
+    String? swipeRightAction,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
       useDynamicColor: useDynamicColor,
       useBlackTheme: useBlackTheme,
-      compactDensity: compactDensity,
-      highContrast: highContrast,
       hideGreeting: hideGreeting,
       fabPosition: fabPosition,
+      swipeLeftAction: swipeLeftAction,
+      swipeRightAction: swipeRightAction,
     );
     ref.read(preferencesStateProvider.notifier).state = updated;
   }

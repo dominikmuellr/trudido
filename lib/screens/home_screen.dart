@@ -10,9 +10,11 @@ import '../services/default_tab_service.dart';
 import '../services/folder_provider.dart';
 import '../screens/task_editor_screen.dart';
 import '../widgets/todo_list_tab.dart';
+import '../widgets/create_folder_dialog.dart';
 import 'settings_screen.dart';
 import 'notes_screen.dart';
 import 'note_editor_screen.dart';
+import '../widgets/filters_sheet.dart';
 
 // Provider for tracking search mode state
 final searchModeProvider = StateProvider<bool>((ref) => false);
@@ -496,163 +498,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ref.read(searchModeProvider.notifier).state = true;
                             break;
                             case 'filters':
-                              // Open the draggable filters sheet from the overflow menu
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                                ),
-                                builder: (sheetContext) {
-                                  return DraggableScrollableSheet(
-                                    expand: true,
-                                    initialChildSize: 0.95,
-                                    minChildSize: 0.25,
-                                    maxChildSize: 0.95,
-                                    builder: (context, controller) {
-                                      return Consumer(
-                                        builder: (ctx, innerRef, _) {
-                                          final p = innerRef.watch(selectedPriorityProvider);
-                                          final s = innerRef.watch(showCompletedProvider);
-                                          final sort = innerRef.watch(sortByProvider);
-
-                                          return Padding(
-                                            padding: EdgeInsets.only(
-                                              bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-                                              left: 16,
-                                              right: 16,
-                                              top: 12,
-                                            ),
-                                            child: Column(
-                                              children: [
-                                                Container(
-                                                  width: 40,
-                                                  height: 4,
-                                                  margin: const EdgeInsets.only(bottom: 12),
-                                                  decoration: BoxDecoration(
-                                                    color: Theme.of(context).dividerColor,
-                                                    borderRadius: BorderRadius.circular(2),
-                                                  ),
-                                                ),
-                                                Expanded(
-                                                  child: ListView(
-                                                    controller: controller,
-                                                    children: [
-                                                      const Padding(
-                                                        padding: EdgeInsets.symmetric(vertical: 8.0),
-                                                        child: Text('Filters', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                                                      ),
-                                                      const Divider(),
-
-                                                      const Padding(
-                                                        padding: EdgeInsets.only(top: 8.0, bottom: 4.0),
-                                                        child: Text('Priority', style: TextStyle(fontWeight: FontWeight.w600)),
-                                                      ),
-                                                      RadioListTile<String>(
-                                                        title: const Text('All Priorities'),
-                                                        value: 'all',
-                                                        groupValue: p,
-                                                        onChanged: (v) => innerRef.read(selectedPriorityProvider.notifier).state = v ?? 'all',
-                                                      ),
-                                                      RadioListTile<String>(
-                                                        title: const Text('High Priority'),
-                                                        value: 'high',
-                                                        groupValue: p,
-                                                        onChanged: (v) => innerRef.read(selectedPriorityProvider.notifier).state = v ?? 'high',
-                                                      ),
-                                                      RadioListTile<String>(
-                                                        title: const Text('Medium Priority'),
-                                                        value: 'medium',
-                                                        groupValue: p,
-                                                        onChanged: (v) => innerRef.read(selectedPriorityProvider.notifier).state = v ?? 'medium',
-                                                      ),
-                                                      RadioListTile<String>(
-                                                        title: const Text('Low Priority'),
-                                                        value: 'low',
-                                                        groupValue: p,
-                                                        onChanged: (v) => innerRef.read(selectedPriorityProvider.notifier).state = v ?? 'low',
-                                                      ),
-
-                                                      const SizedBox(height: 8),
-
-                                                      SwitchListTile(
-                                                        title: const Text('Show Completed'),
-                                                        value: s,
-                                                        onChanged: (value) => innerRef.read(showCompletedProvider.notifier).state = value,
-                                                      ),
-
-                                                      const SizedBox(height: 8),
-
-                                                      const Padding(
-                                                        padding: EdgeInsets.only(top: 8.0, bottom: 4.0),
-                                                        child: Text('Sort by', style: TextStyle(fontWeight: FontWeight.w600)),
-                                                      ),
-                                                      RadioListTile<String>(
-                                                        title: const Text('Default'),
-                                                        value: 'default',
-                                                        groupValue: sort,
-                                                        onChanged: (v) => innerRef.read(sortByProvider.notifier).state = v ?? 'default',
-                                                      ),
-                                                      RadioListTile<String>(
-                                                        title: const Text('Manual'),
-                                                        value: 'manual',
-                                                        groupValue: sort,
-                                                        onChanged: (v) => innerRef.read(sortByProvider.notifier).state = v ?? 'manual',
-                                                      ),
-                                                      RadioListTile<String>(
-                                                        title: const Text('Date Created'),
-                                                        value: 'date_created',
-                                                        groupValue: sort,
-                                                        onChanged: (v) => innerRef.read(sortByProvider.notifier).state = v ?? 'date_created',
-                                                      ),
-                                                      RadioListTile<String>(
-                                                        title: const Text('Due Date'),
-                                                        value: 'date_due',
-                                                        groupValue: sort,
-                                                        onChanged: (v) => innerRef.read(sortByProvider.notifier).state = v ?? 'date_due',
-                                                      ),
-                                                      RadioListTile<String>(
-                                                        title: const Text('Priority'),
-                                                        value: 'priority',
-                                                        groupValue: sort,
-                                                        onChanged: (v) => innerRef.read(sortByProvider.notifier).state = v ?? 'priority',
-                                                      ),
-                                                      RadioListTile<String>(
-                                                        title: const Text('Alphabetical'),
-                                                        value: 'alphabetical',
-                                                        groupValue: sort,
-                                                        onChanged: (v) => innerRef.read(sortByProvider.notifier).state = v ?? 'alphabetical',
-                                                      ),
-
-                                                      const SizedBox(height: 12),
-                                                    ],
-                                                  ),
-                                                ),
-                                                Row(
-                                                  mainAxisAlignment: MainAxisAlignment.end,
-                                                  children: [
-                                                    TextButton(
-                                                      onPressed: () => Navigator.of(sheetContext).pop(),
-                                                      child: const Text('Close'),
-                                                    ),
-                                                    const SizedBox(width: 8),
-                                                    ElevatedButton(
-                                                      onPressed: () => Navigator.of(sheetContext).pop(),
-                                                      child: const Text('Done'),
-                                                    ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 8),
-                                              ],
-                                            ),
-                                          );
-                                        },
-                                      );
-                                    },
-                                  );
-                                },
-                              );
+                              showFiltersSheet(context);
                               break;
                           case 'settings':
                             Navigator.of(context).push(
@@ -897,10 +743,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ],
                 ),
               )).toList(),
+              // Divider + create new folder option
+              const PopupMenuDivider(),
+              PopupMenuItem<String>(
+                value: '_CREATE_FOLDER_',
+                child: Row(
+                  children: [
+                    Icon(PhosphorIcons.folderPlus(), size: 18, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 12),
+                    const Text('Create folder'),
+                  ],
+                ),
+              ),
             ];
           },
           onSelected: (String folderId) {
             debugPrint('[FolderDropdown] Selected folder: ${folderId == '_ALL_FOLDERS_' ? 'All folders' : folderId}');
+            if (folderId == '_CREATE_FOLDER_') {
+              // Open the create folder dialog
+              showDialog(
+                context: context,
+                builder: (ctx) => const CreateFolderDialog(),
+              );
+              return;
+            }
+
             ref.read(selectedFolderProvider.notifier).state = 
                 folderId == '_ALL_FOLDERS_' ? null : folderId;
           },

@@ -1,45 +1,87 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# Flutter / Dart / Pub
+# See https://github.com/flutter/flutter/blob/main/.gitignore for reference
 .dart_tool/
+.pub/
+.packages
+pubspec.lock
 .flutter-plugins
 .flutter-plugins-dependencies
-.pub-cache/
-.pub/
+**/doc/api/
+
+# Build outputs
 /build/
+**/build/
 
-# Symbolication related
-app.*.symbols
+# Generated plugin registrant
+**/GeneratedPluginRegistrant.*
 
-# Obfuscation related
-app.*.map.json
+# iOS
+**/ios/Flutter/.last_build_id
+**/ios/ServiceDefinitions.json
+**/ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+Pods/
+Podfile.lock
+Flutter/Flutter.framework
+Flutter/Flutter.podspec
 
-# Android Studio will place build artifacts here
+# Android
+/android/.gradle
 /android/app/debug
 /android/app/profile
 /android/app/release
+**/android/key.properties
+**/*.keystore
+**/*.jks
+local.properties
+key.properties
+
+# Sensitive files / service credentials (optional - keep out of repo)
+# google-services.json (Android) and GoogleService-Info.plist (iOS)
+**/google-services.json
+**/GoogleService-Info.plist
+*.env
+*.p12
+*.pem
+
+# VS Code
+.vscode/
+
+# IntelliJ / Android Studio
+*.iml
+.idea/
+
+# macOS
+.DS_Store
+**/DerivedData/
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Linux
+*~
+
+# Other editors
+*.swp
+*.swo
+*.log
+
+# Archives and binaries
+*.zip
+*.tar.gz
+
+# Symbolication and obfuscation artifacts
+app.*.symbols
+app.*.map.json
+
+# Flutter build cache and tooling
+/.flutter-plugins
+.flutter-plugins-dependencies
+.flutter-plugins
+
+# Misc
+.history
+.gradle
+.idea
+migrate_working_dir/

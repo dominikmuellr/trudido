@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+
 import '../providers/filter_providers.dart';
 import '../controllers/task_controller.dart';
 import '../widgets/hybrid_todo_item.dart';
+import '../widgets/filter_chips.dart';
 import '../widgets/greeting_header.dart';
 import '../widgets/calendar_view.dart';
 import '../screens/task_editor_screen.dart';
@@ -19,7 +20,7 @@ class TodoListTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
   final filteredTodos = ref.watch(filteredTasksProvider);
     final sortBy = ref.watch(sortByProvider);
-  final hideGreeting = ref.watch(hideGreetingProvider);
+  // hideGreeting setting removed; always show greeting header
   final multiMode = ref.watch(multiSelectModeProvider);
   final selectedIds = ref.watch(selectedTodoIdsProvider);
   final viewType = ref.watch(taskViewTypeProvider);
@@ -29,13 +30,11 @@ class TodoListTab extends ConsumerWidget {
   final sectionGap = SizedBox(height: appOpts.compact ? 6 : 8);
   
   return Column(
-      children: [
-  // Greeting header (optional)
-  if (!hideGreeting) const GreetingHeader(),
+    children: [
+  // Greeting header (always shown)
+  const GreetingHeader(),
       
-      // Filter controls moved to AppBar actions for a cleaner header
-      
-      sectionGap,
+    sectionGap,
       
       // Content view based on view type
       Expanded(
@@ -44,8 +43,9 @@ class TodoListTab extends ConsumerWidget {
             // Only trigger in calendar view or when list is empty
             if (viewType == TaskViewType.calendar || filteredTodos.isEmpty) {
               // Detect downward swipe gesture to trigger search
-              if (details.delta.dy > 5) { // Swiping down
-                print('Downward swipe detected: ${details.delta.dy}');
+              // require a larger downward movement to avoid accidental triggers
+              if (details.delta.dy > 60) { // stronger swipe down
+                // open search only for clear deliberate gestures
                 ref.read(searchModeProvider.notifier).state = true;
               }
             }
@@ -56,19 +56,23 @@ class TodoListTab extends ConsumerWidget {
               if (viewType == TaskViewType.list && filteredTodos.isNotEmpty) {
                 // Detect pull-to-search gesture
                 if (scrollNotification is ScrollUpdateNotification) {
-                  // Check if user is pulling down at the top (overscroll)
-                  if (scrollNotification.metrics.pixels < -10) {
-                    print('Triggering search from ScrollUpdate!');
-                    ref.read(searchModeProvider.notifier).state = true;
-                    return true;
+                  // Only trigger if user is at the very top of the list
+                  if (scrollNotification.metrics.extentBefore <= 0) {
+                    // Check if user is pulling down far enough (strong deliberate pull)
+                    if (scrollNotification.metrics.pixels <= -120) {
+                      ref.read(searchModeProvider.notifier).state = true;
+                      return true;
+                    }
                   }
                 }
-                
+
                 if (scrollNotification is OverscrollNotification) {
-                  if (scrollNotification.overscroll < -10) {
-                    print('Triggering search from Overscroll!');
-                    ref.read(searchModeProvider.notifier).state = true;
-                    return true;
+                  // Only trigger if at the top and overscroll is strong enough
+                  if (scrollNotification.metrics.extentBefore <= 0) {
+                    if (scrollNotification.overscroll <= -80) {
+                      ref.read(searchModeProvider.notifier).state = true;
+                      return true;
+                    }
                   }
                 }
               }
@@ -139,6 +143,23 @@ class TodoListTab extends ConsumerWidget {
   );
   }
 
+  String _getSortLabel(String sortBy) {
+    switch (sortBy) {
+      case 'manual':
+        return 'Manual';
+      case 'date_created':
+        return 'Date Created';
+      case 'date_due':
+        return 'Due Date';
+      case 'priority':
+        return 'Priority';
+      case 'alphabetical':
+        return 'A-Z';
+      default:
+        return 'Default';
+    }
+  }
+
   Widget _buildSelectableList(List<Todo> todos, WidgetRef ref, bool manual) {
   final appOpts = Theme.of(ref.context).extension<AppOptions>() ?? const AppOptions(compact: false, highContrast: false);
   final pad = EdgeInsets.all(appOpts.compact ? 12 : 16);
@@ -172,7 +193,7 @@ class TodoListTab extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            isSearching ? PhosphorIcons.magnifyingGlass() : PhosphorIcons.listChecks(),
+            isSearching ? Icons.search : Icons.check_circle_outline,
             size: 80,
             color: Theme.of(context).colorScheme.outline,
           ),

@@ -37,7 +37,8 @@ class PreferencesService {
       highContrast: p.getBool('high_contrast') ?? PreferencesState.defaultState.highContrast,
       hideGreeting: p.getBool('hide_greeting') ?? PreferencesState.defaultState.hideGreeting,
       fabPosition: _sanitizeFabPosition(p.getString('fab_position')),
-      swipeLeftToDelete: p.getBool('swipe_left_to_delete') ?? PreferencesState.defaultState.swipeLeftToDelete,
+      swipeLeftAction: p.getString('swipe_left_action') ?? PreferencesState.defaultState.swipeLeftAction,
+      swipeRightAction: p.getString('swipe_right_action') ?? PreferencesState.defaultState.swipeRightAction,
     );
   }
 
@@ -50,11 +51,10 @@ class PreferencesService {
     String? themeMode,
     bool? useDynamicColor,
     bool? useBlackTheme,
-    bool? compactDensity,
-    bool? highContrast,
     bool? hideGreeting,
     String? fabPosition,
-    bool? swipeLeftToDelete,
+    String? swipeLeftAction,
+    String? swipeRightAction,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -64,11 +64,10 @@ class PreferencesService {
       if (themeMode != null) await p.setString('theme_mode', themeMode);
       if (useDynamicColor != null) await p.setBool('use_dynamic_color', useDynamicColor);
       if (useBlackTheme != null) await p.setBool('use_black_theme', useBlackTheme);
-      if (compactDensity != null) await p.setBool('compact_density', compactDensity);
-      if (highContrast != null) await p.setBool('high_contrast', highContrast);
       if (hideGreeting != null) await p.setBool('hide_greeting', hideGreeting);
       if (fabPosition != null) await p.setString('fab_position', fabPosition);
-      if (swipeLeftToDelete != null) await p.setBool('swipe_left_to_delete', swipeLeftToDelete);
+      if (swipeLeftAction != null) await p.setString('swipe_left_action', swipeLeftAction);
+      if (swipeRightAction != null) await p.setString('swipe_right_action', swipeRightAction);
       _hydrate();
       return _cache;
     } catch (e, st) {
