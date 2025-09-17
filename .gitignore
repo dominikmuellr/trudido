@@ -3,7 +3,6 @@
 .dart_tool/
 .pub/
 .packages
-pubspec.lock
 .flutter-plugins
 .flutter-plugins-dependencies
 **/doc/api/
@@ -85,3 +84,33 @@ app.*.map.json
 .gradle
 .idea
 migrate_working_dir/
+
+# Optional additions
+# Flutter / tool artifacts
+.metadata
+coverage/
+.flutter_export_environment.sh
+
+# Build outputs / packaged artifacts
+*.apk
+*.aab
+*.apks
+**/outputs/**
+
+# Generated plugin registrants
+**/generated_plugin_registrant.*
+**/generated_plugins.*
+
+# Test / reports
+test_reports/
+reports/
+
+# Misc packaging / signing helpers
+*.keystore
+*.jks
+**/key.properties
+
+# Optional local Dev files
+.vs/
+.idea/*workspace.xml
+.idea/*tasks.xml
