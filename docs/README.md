@@ -1,6 +1,6 @@
 # Trudido
 
-A feature-rich, cross-platform todo application built with Flutter.
+A feature-rich todo application with .md-notes feature built with Flutter.
 
 ## Features
 
@@ -14,29 +14,6 @@ A feature-rich, cross-platform todo application built with Flutter.
 - 💾 **Local Storage**: All data is stored locally using Hive database
 - 📱 **Responsive Design**: Works on mobile, tablet, and desktop
 
-## Getting Started
-
-### Prerequisites
-
-- Flutter SDK (>=3.8.1)
-- Dart SDK (>=3.8.1)
-
-### Installation
-
-1. Install dependencies:
-   ```bash
-   flutter pub get
-   ```
-
-2. Generate Hive adapters:
-   ```bash
-   flutter packages pub run build_runner build
-   ```
-
-3. Run the application:
-   ```bash
-   flutter run
-   ```
 
 ## Architecture
 
@@ -82,4 +59,11 @@ Testing tips:
 2. Re-enable battery optimization, then use Unified Settings page to request exemption.
 3. On Android 13+, revoke the notifications permission and re-trigger the request flow.
 4. Schedule a reminder both before and after granting exact alarms to compare timing accuracy.
+
+## About This Project
+
+This project is entirely developed and maintained by me, dominikmuellr.
+
+While GitHub may list other contributors due to forks or code reuse, all original work and commits are mine.
+
 # trudido
