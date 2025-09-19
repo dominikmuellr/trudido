@@ -6,6 +6,7 @@ import 'dart:async';
 import '../models/note.dart';
 import '../controllers/notes_controller.dart';
 import '../repositories/notes_repository.dart';
+import '../services/storage_service.dart';
 import '../utils/smart_markdown_helper.dart';
 
 /// Screen for creating and editing markdown notes
@@ -101,23 +102,41 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
     _contentController.addListener(_onContentChanged);
   }
 
-  void _loadNote() {
-    if (widget.noteId != null) {
-      final repository = ref.read(notesRepositoryProvider);
-      _originalNote = repository.getNoteById(widget.noteId!);
-      if (_originalNote != null) {
-        // When editing, put title and content together with title as first line
-        final titleLine = _originalNote!.title;
-        final contentLines = _originalNote!.content.split('\n');
-        
-        // If content already starts with the title, don't duplicate it
-        if (contentLines.isNotEmpty && contentLines.first.trim() == titleLine.trim()) {
+  Future<void> _loadNote() async {
+    if (widget.noteId == null) return;
+
+    final repository = ref.read(notesRepositoryProvider);
+
+    // Try immediate sync read first. If notes storage isn't ready yet this
+    // can return null which previously caused the editor to treat an
+    // existing note as new and create duplicates on autosave. Wait for the
+    // notes box to be ready and try again to reliably load the note.
+    Note? note = repository.getNoteById(widget.noteId!);
+    if (note == null) {
+      await StorageService.waitNotesReady();
+      note = repository.getNoteById(widget.noteId!);
+    }
+
+    if (note != null) {
+      _originalNote = note;
+      // When editing, put title and content together with title as first line
+      final titleLine = _originalNote!.title;
+      final contentLines = _originalNote!.content.split('\n');
+
+      // If the stored content already contains the title (possibly with
+      // markdown header prefixes like '#'), don't prepend the title again.
+      // Compare a header-stripped first line to the saved title.
+      if (contentLines.isNotEmpty) {
+        final firstLineStripped = contentLines.first.trim().replaceFirst(RegExp(r'^#+\s*'), '');
+        if (firstLineStripped == titleLine.trim()) {
           _contentController.text = _originalNote!.content;
         } else {
           _contentController.text = '$titleLine\n${_originalNote!.content}';
         }
-        _isEditing = true;
+      } else {
+        _contentController.text = '$titleLine\n${_originalNote!.content}';
       }
+      _isEditing = true;
     }
   }
 
@@ -440,17 +459,28 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
     
     final controller = ref.read(notesControllerProvider.notifier);
     Note? savedNote;
-    if (_isEditing && widget.noteId != null) {
+    // Prefer an existing note id from the loaded original note, fallback to
+    // the widget.noteId (when editing via route). If we have an id, update
+    // the existing note; otherwise create a new one.
+    final existingId = _originalNote?.id ?? widget.noteId;
+    final wasCreate = existingId == null;
+    if (existingId != null) {
       savedNote = await controller.updateNote(
-        id: widget.noteId!,
+        id: existingId,
         title: title,
         content: formattedContent,
       );
+      // Mark as editing from now on so subsequent saves will update.
+      _isEditing = true;
     } else {
       savedNote = await controller.createNote(
         title: title,
         content: formattedContent,
       );
+      if (savedNote != null) {
+        // After creating, mark as editing so future autosaves update this note
+        _isEditing = true;
+      }
     }
     
     // Update the controller text with formatted content to reflect the changes
@@ -470,11 +500,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
       if (showFeedback) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isEditing ? 'Note updated successfully' : 'Note created successfully'),
+            content: Text(_isEditing && !wasCreate ? 'Note updated successfully' : 'Note created successfully'),
             backgroundColor: Colors.green,
           ),
         );
-        if (!_isEditing) {
+        // If this was a manual create (not an update), close the editor as
+        // previous behavior expected. For autosaves showFeedback is false so
+        // we won't pop.
+        if (wasCreate) {
           Navigator.of(context).pop();
         }
       }

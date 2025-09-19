@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/filter_providers.dart';
 import '../controllers/task_controller.dart';
 import '../widgets/hybrid_todo_item.dart';
-import '../widgets/filter_chips.dart';
 import '../widgets/greeting_header.dart';
 import '../widgets/calendar_view.dart';
 import '../screens/task_editor_screen.dart';
