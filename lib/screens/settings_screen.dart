@@ -4,6 +4,7 @@ import '../providers/app_providers.dart';
 import '../controllers/task_controller.dart';
 import '../services/notification_service.dart';
 import 'backup_settings_page.dart';
+import 'about_screen.dart';
 import 'display_theme_settings_page.dart';
 import 'comprehensive_notification_settings.dart';
 import 'template_management_screen.dart';
@@ -227,12 +228,21 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: Icon(Icons.info_outline),
             title: const Text('App Version'),
-            trailing: const Text('1.2.0'),
+            trailing: const Text('v.1.2.0-2'),
           ),
           ListTile(
             leading: Icon(Icons.code),
             title: const Text('Built with Flutter'),
             subtitle: const Text('Cross-platform todo app'),
+          ),
+          ListTile(
+            leading: Icon(Icons.info_outline),
+            title: const Text('About & Licenses'),
+            subtitle: const Text('App license, package licenses and repository'),
+            trailing: Icon(Icons.arrow_forward_ios),
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) => const AboutScreen()));
+            },
           ),
           
           const Divider(),

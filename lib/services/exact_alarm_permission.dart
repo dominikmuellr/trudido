@@ -1,6 +1,6 @@
 /// (Legacy stub) This file is retained only to avoid import errors during migration.
 /// Use SystemSettingsService + AlarmSettingsWatcher + dialog helpers instead.
-@Deprecated('Replaced by SystemSettingsService + AlarmSettingsWatcher. Will be removed after v1.2.0.')
+@Deprecated('Replaced by SystemSettingsService + AlarmSettingsWatcher. Will be removed after v1.2.0-2.')
 class ExactAlarmPermissionService {
   ExactAlarmPermissionService._();
   static final instance = ExactAlarmPermissionService._();

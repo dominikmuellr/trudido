@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// (Legacy stub) This page was replaced by UnifiedSettingsPage.
-@Deprecated('Use UnifiedSettingsPage instead. Will be removed after v1.2.0.')
+@Deprecated('Use UnifiedSettingsPage instead. Will be removed after v1.2.0-2.')
 class PermissionsPage extends StatelessWidget {
   const PermissionsPage({super.key});
   @override

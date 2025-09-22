@@ -1,5 +1,5 @@
 /// (Legacy stub) Use SystemSettingsService instead.
-@Deprecated('Replaced by SystemSettingsService. Will be removed after v1.2.0.')
+@Deprecated('Replaced by SystemSettingsService. Will be removed after v1.2.0-2.')
 class BatteryOptimizationService {
   BatteryOptimizationService._();
   static final instance = BatteryOptimizationService._();

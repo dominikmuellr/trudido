@@ -497,27 +497,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           case 'search':
                             ref.read(searchModeProvider.notifier).state = true;
                             break;
-                            case 'filters':
-                              showFiltersSheet(context);
-                              break;
+                          case 'filters':
+                            showFiltersSheet(context);
+                            break;
                           case 'settings':
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (context) => const SettingsScreen(),
                               ),
-                            );
-                            break;
-                          case 'help':
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Help feature coming soon')),
-                            );
-                            break;
-                          case 'about':
-                            showAboutDialog(
-                              context: context,
-                              applicationName: 'Todo App',
-                              applicationVersion: '1.2.0',
-                              applicationIcon: Icon(PhosphorIcons.listChecks()),
                             );
                             break;
                         }
@@ -548,22 +535,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             dense: true,
                           ),
                         ),
-                        PopupMenuItem(
-                          value: 'help',
-                          child: ListTile(
-                            leading: Icon(PhosphorIcons.question()),
-                            title: const Text('Help & Feedback'),
-                            dense: true,
-                          ),
-                        ),
-                        PopupMenuItem(
-                          value: 'about',
-                          child: ListTile(
-                            leading: Icon(PhosphorIcons.info()),
-                            title: const Text('About'),
-                            dense: true,
-                          ),
-                        ),
+                        // Help & About entries removed: About and Help moved to Settings -> About & Licenses
                       ],
                     ),
                   ],
