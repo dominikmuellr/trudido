@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'dart:async';
 import '../models/note.dart';
@@ -13,16 +13,14 @@ import '../utils/smart_markdown_helper.dart';
 class NoteEditorScreen extends ConsumerStatefulWidget {
   final String? noteId; // null for new note, ID for editing existing note
 
-  const NoteEditorScreen({
-    super.key,
-    this.noteId,
-  });
+  const NoteEditorScreen({super.key, this.noteId});
 
   @override
   ConsumerState<NoteEditorScreen> createState() => _NoteEditorScreenState();
 }
 
-class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with TickerProviderStateMixin {
+class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
+    with TickerProviderStateMixin {
   late final TextEditingController _contentController;
   late final TabController _tabController;
   bool _isEditing = false;
@@ -49,11 +47,27 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
               mainAxisSize: MainAxisSize.min,
               children: [
                 _toolbarButton(PhosphorIcons.textB(), '**', tooltip: 'Bold'),
-                _toolbarButton(PhosphorIcons.textItalic(), '*', tooltip: 'Italic'),
+                _toolbarButton(
+                  PhosphorIcons.textItalic(),
+                  '*',
+                  tooltip: 'Italic',
+                ),
                 _toolbarButton(PhosphorIcons.textH(), '# ', tooltip: 'Heading'),
-                _toolbarButton(PhosphorIcons.listBullets(), '- ', tooltip: 'List'),
-                _toolbarButton(PhosphorIcons.table(), '\n| Header 1 | Header 2 |\n| --- | --- |\n| Row 1 Col 1 | Row 1 Col 2 |\n', tooltip: 'Table'),
-                _toolbarButton(PhosphorIcons.code(), '\n```dart\ncode\n```\n', tooltip: 'Code Block'),
+                _toolbarButton(
+                  PhosphorIcons.listBullets(),
+                  '- ',
+                  tooltip: 'List',
+                ),
+                _toolbarButton(
+                  PhosphorIcons.table(),
+                  '\n| Header 1 | Header 2 |\n| --- | --- |\n| Row 1 Col 1 | Row 1 Col 2 |\n',
+                  tooltip: 'Table',
+                ),
+                _toolbarButton(
+                  PhosphorIcons.code(),
+                  '\n```dart\ncode\n```\n',
+                  tooltip: 'Code Block',
+                ),
               ],
             ),
           ),
@@ -82,11 +96,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
     final controller = _contentController;
     final text = controller.text;
     final selection = controller.selection;
-  final newText = text.replaceRange(
-      selection.start,
-      selection.end,
-      markdown,
-    );
+    final newText = text.replaceRange(selection.start, selection.end, markdown);
     controller.text = newText;
     // Move cursor after inserted markdown
     final newOffset = selection.start + markdown.length;
@@ -127,7 +137,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
       // markdown header prefixes like '#'), don't prepend the title again.
       // Compare a header-stripped first line to the saved title.
       if (contentLines.isNotEmpty) {
-        final firstLineStripped = contentLines.first.trim().replaceFirst(RegExp(r'^#+\s*'), '');
+        final firstLineStripped = contentLines.first.trim().replaceFirst(
+          RegExp(r'^#+\s*'),
+          '',
+        );
         if (firstLineStripped == titleLine.trim()) {
           _contentController.text = _originalNote!.content;
         } else {
@@ -144,11 +157,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
     final content = _contentController.text;
     final lines = content.split('\n');
     final currentTitle = lines.isNotEmpty ? lines.first.trim() : '';
-    
+
     final hasChanges = _originalNote == null
         ? content.isNotEmpty
         : currentTitle != _originalNote!.title ||
-            content != ('${_originalNote!.title}\n${_originalNote!.content}');
+              content != ('${_originalNote!.title}\n${_originalNote!.content}');
     _debounceTimer?.cancel();
     _autoSaveTimer?.cancel();
     if (hasChanges != _hasUnsavedChanges) {
@@ -174,7 +187,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
     final content = _contentController.text.trim();
     if (content.isEmpty) {
       setState(() {
-            _saveStatus = 'Content required for save';
+        _saveStatus = 'Content required for save';
       });
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
@@ -264,10 +277,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
         ),
         body: TabBarView(
           controller: _tabController,
-          children: [
-            _buildEditorTab(),
-            _buildPreviewTab(),
-          ],
+          children: [_buildEditorTab(), _buildPreviewTab()],
         ),
       ),
     );
@@ -275,7 +285,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
 
   Widget _buildEditorTab() {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    
+
     return Column(
       children: [
         // Sticky toolbar at the top
@@ -284,14 +294,20 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
         Expanded(
           child: SingleChildScrollView(
             physics: const ClampingScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(16.0, 16.0, 16.0, keyboardHeight + 16.0),
+            padding: EdgeInsets.fromLTRB(
+              16.0,
+              16.0,
+              16.0,
+              keyboardHeight + 16.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 TextFormField(
                   controller: _contentController,
                   decoration: const InputDecoration(
-                    hintText: 'Note title...\n\nStart writing your note here. The first line will be your title.',
+                    hintText:
+                        'Note title...\n\nStart writing your note here. The first line will be your title.',
                     border: OutlineInputBorder(),
                     alignLabelWithHint: true,
                   ),
@@ -325,30 +341,34 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
 
   Widget _buildPreviewTab() {
     final content = _contentController.text;
-    
+
     // Extract title, subtitle, and remaining content separately
     final lines = content.split('\n');
     final firstLine = lines.isNotEmpty ? lines.first.trim() : '';
     final secondLine = lines.length > 1 ? lines[1].trim() : '';
-    
+
     // Check if first line is a markdown header
     final isFirstLineHeader = firstLine.startsWith('#');
-    final title = isFirstLineHeader ? firstLine.replaceFirst(RegExp(r'^#+\s*'), '') : firstLine;
-    
+    final title = isFirstLineHeader
+        ? firstLine.replaceFirst(RegExp(r'^#+\s*'), '')
+        : firstLine;
+
     // Check if second line is a subtitle (H2)
     final isSecondLineSubtitle = secondLine.startsWith('## ');
-    final subtitle = isSecondLineSubtitle ? secondLine.replaceFirst('## ', '') : '';
-    
+    final subtitle = isSecondLineSubtitle
+        ? secondLine.replaceFirst('## ', '')
+        : '';
+
     // Extract content excluding title and subtitle lines
     int contentStartIndex = 1; // Skip title by default
     if (isSecondLineSubtitle) {
       contentStartIndex = 2; // Skip both title and subtitle
     }
-    
-    final contentOnly = lines.length > contentStartIndex 
-        ? lines.skip(contentStartIndex).join('\n').trim() 
+
+    final contentOnly = lines.length > contentStartIndex
+        ? lines.skip(contentStartIndex).join('\n').trim()
         : '';
-    
+
     if (content.isEmpty) {
       return Center(
         child: Column(
@@ -377,7 +397,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
         ),
       );
     }
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -386,9 +406,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
           if (title.isNotEmpty) ...[
             Text(
               title,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             if (subtitle.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -408,14 +428,21 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
             MarkdownBody(
               data: contentOnly,
               selectable: true,
-              styleSheet: SmartMarkdownHelper.createCompactStyleSheet(context).copyWith(
-                p: Theme.of(context).textTheme.bodyLarge, // Larger body text
-                listBullet: Theme.of(context).textTheme.bodyLarge, // Larger list text
-                code: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontFamily: 'monospace',
-                  backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                ),
-              ),
+              styleSheet: SmartMarkdownHelper.createCompactStyleSheet(context)
+                  .copyWith(
+                    p: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge, // Larger body text
+                    listBullet: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge, // Larger list text
+                    code: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontFamily: 'monospace',
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                    ),
+                  ),
             )
           else if (isFirstLineHeader)
             Text(
@@ -432,19 +459,19 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
 
   Future<void> _saveNoteInternal({bool showFeedback = true}) async {
     final rawContent = _contentController.text;
-    
+
     // Auto-format content with markdown headers
     final formattedContent = _autoFormatWithHeaders(rawContent);
-    
+
     // Extract title from first line of formatted content
     final lines = formattedContent.split('\n');
     final firstLine = lines.isNotEmpty ? lines.first.trim() : '';
-    
+
     // Remove markdown header symbols for clean title storage
-    final title = firstLine.isNotEmpty 
-        ? firstLine.replaceFirst(RegExp(r'^#+\s*'), '') 
+    final title = firstLine.isNotEmpty
+        ? firstLine.replaceFirst(RegExp(r'^#+\s*'), '')
         : 'Untitled';
-    
+
     if (rawContent.trim().isEmpty) {
       if (showFeedback) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -456,7 +483,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
       }
       throw Exception('Content cannot be empty');
     }
-    
+
     final controller = ref.read(notesControllerProvider.notifier);
     Note? savedNote;
     // Prefer an existing note id from the loaded original note, fallback to
@@ -482,7 +509,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
         _isEditing = true;
       }
     }
-    
+
     // Update the controller text with formatted content to reflect the changes
     if (_contentController.text != formattedContent) {
       _contentController.text = formattedContent;
@@ -491,7 +518,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
         TextPosition(offset: formattedContent.length),
       );
     }
-    
+
     if (savedNote != null && mounted) {
       setState(() {
         _hasUnsavedChanges = false;
@@ -500,7 +527,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
       if (showFeedback) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isEditing && !wasCreate ? 'Note updated successfully' : 'Note created successfully'),
+            content: Text(
+              _isEditing && !wasCreate
+                  ? 'Note updated successfully'
+                  : 'Note created successfully',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -518,16 +549,18 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
   String _autoFormatWithHeaders(String content) {
     final lines = content.split('\n');
     if (lines.isEmpty) return content;
-    
+
     final processedLines = <String>[];
-    
+
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i];
-      
+
       if (i == 0 && line.trim().isNotEmpty && !line.trim().startsWith('#')) {
         // First line becomes H1 if it's not already a header
         processedLines.add('# ${line.trim()}');
-      } else if (i == 1 && line.trim().isNotEmpty && !line.trim().startsWith('#')) {
+      } else if (i == 1 &&
+          line.trim().isNotEmpty &&
+          !line.trim().startsWith('#')) {
         // Second line becomes H2 if it's not already a header
         processedLines.add('## ${line.trim()}');
       } else {
@@ -535,7 +568,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> with Ticker
         processedLines.add(line);
       }
     }
-    
+
     return processedLines.join('\n');
   }
 
