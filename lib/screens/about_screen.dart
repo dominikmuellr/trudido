@@ -42,7 +42,9 @@ class _AboutScreenState extends State<AboutScreen> {
     const url = 'https://github.com/dominikmuellr/trudido';
     final uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open URL')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Could not open URL')));
     }
   }
 
@@ -50,15 +52,13 @@ class _AboutScreenState extends State<AboutScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('About & Licenses'),
-      ),
+      appBar: AppBar(title: const Text('About & Licenses')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text('Trudido', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 8),
-          Text('v.1.2.0-2', style: theme.textTheme.bodyMedium),
+          Text('v.1.2.0-3', style: theme.textTheme.bodyMedium),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             icon: const Icon(Icons.code),
@@ -78,7 +78,7 @@ class _AboutScreenState extends State<AboutScreen> {
             onPressed: () => showLicensePage(
               context: context,
               applicationName: 'Trudido',
-              applicationVersion: 'v.1.2.0-2',
+              applicationVersion: 'v.1.2.0-3',
             ),
           ),
         ],
@@ -94,11 +94,17 @@ class _AboutScreenState extends State<AboutScreen> {
         content: SizedBox(
           width: double.maxFinite,
           child: _loading
-              ? const SizedBox(height: 64, child: Center(child: CircularProgressIndicator()))
+              ? const SizedBox(
+                  height: 64,
+                  child: Center(child: CircularProgressIndicator()),
+                )
               : SingleChildScrollView(child: Text(_licenseText)),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
         ],
       ),
     );

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 /// One-time onboarding tooltip for notes gestures
-/// 
+///
 /// This widget wraps any child widget and displays a semi-transparent overlay
 /// with gesture instructions on the first app launch. Uses SharedPreferences
 /// to ensure it only shows once per device.
-/// 
+///
 /// Usage:
 /// ```dart
 /// NotesOnboardingTooltip(
@@ -49,34 +48,26 @@ class _NotesOnboardingTooltipState extends State<NotesOnboardingTooltip>
       duration: const Duration(milliseconds: 400),
       vsync: this,
     );
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
-    
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.elasticOut,
-    ));
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
+    );
   }
 
   Future<void> _checkTooltipStatus() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final hasSeenTooltip = prefs.getBool(_tooltipSeenKey) ?? false;
-      
+
       setState(() {
         _showTooltip = !hasSeenTooltip;
         _isLoading = false;
       });
-      
+
       if (_showTooltip) {
         // Small delay to allow the UI to settle
         await Future.delayed(const Duration(milliseconds: 500));
@@ -97,11 +88,11 @@ class _NotesOnboardingTooltipState extends State<NotesOnboardingTooltip>
     try {
       // Animate out
       await _animationController.reverse();
-      
+
       // Save to SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_tooltipSeenKey, true);
-      
+
       // Update state
       if (mounted) {
         setState(() {
@@ -135,7 +126,7 @@ class _NotesOnboardingTooltipState extends State<NotesOnboardingTooltip>
       children: [
         // Main content
         widget.child,
-        
+
         // Onboarding overlay
         if (_showTooltip)
           AnimatedBuilder(
@@ -175,12 +166,16 @@ class _NotesOnboardingTooltipState extends State<NotesOnboardingTooltip>
                                   Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: Theme.of(context).colorScheme.primaryContainer,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primaryContainer,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Icon(
-                                      PhosphorIcons.hand(),
-                                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                      Icons.pan_tool,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimaryContainer,
                                       size: 24,
                                     ),
                                   ),
@@ -188,53 +183,70 @@ class _NotesOnboardingTooltipState extends State<NotesOnboardingTooltip>
                                   Expanded(
                                     child: Text(
                                       'Gesture Guide',
-                                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                          ),
                                     ),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 24),
-                              
+
                               // Gesture instructions
                               _buildGestureInstruction(
                                 context,
-                                icon: PhosphorIcons.hand(),
+                                icon: Icons.pan_tool,
                                 title: 'Tap to preview',
-                                description: 'Quick tap on any note to see the full content with rendered markdown.',
+                                description:
+                                    'Quick tap on any note to see the full content with rendered markdown.',
                               ),
                               const SizedBox(height: 16),
                               _buildGestureInstruction(
                                 context,
-                                icon: PhosphorIcons.handGrabbing(),
+                                icon: Icons.touch_app,
                                 title: 'Press and hold to edit',
-                                description: 'Long press on any note to jump directly into edit mode.',
+                                description:
+                                    'Long press on any note to jump directly into edit mode.',
                               ),
                               const SizedBox(height: 32),
-                              
+
                               // Dismissal instruction
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest
+                                      .withOpacity(0.5),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
                                   children: [
                                     Icon(
-                                      PhosphorIcons.info(),
+                                      Icons.info,
                                       size: 16,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         'Tap anywhere to dismiss this guide',
-                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                        ),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                            ),
                                       ),
                                     ),
                                   ],
@@ -292,7 +304,9 @@ class _NotesOnboardingTooltipState extends State<NotesOnboardingTooltip>
               Text(
                 description,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.8),
                   height: 1.3,
                 ),
               ),
@@ -312,9 +326,7 @@ class NotesScreenWithOnboarding extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notes'),
-      ),
+      appBar: AppBar(title: const Text('Notes')),
       body: NotesOnboardingTooltip(
         child: ListView.builder(
           padding: const EdgeInsets.all(8),
@@ -379,9 +391,9 @@ class _NoteCard extends StatelessWidget {
             children: [
               Text(
                 note.title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -409,7 +421,7 @@ class _NoteCard extends StatelessWidget {
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
-    
+
     if (difference.inDays > 0) {
       return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
     } else if (difference.inHours > 0) {
@@ -424,7 +436,8 @@ class _NoteCard extends StatelessWidget {
 final List<DummyNote> _dummyNotes = [
   DummyNote(
     title: 'Meeting Notes',
-    content: '# Weekly Standup\n\n- Discussed project progress\n- **Action items** assigned\n- Next meeting scheduled',
+    content:
+        '# Weekly Standup\n\n- Discussed project progress\n- **Action items** assigned\n- Next meeting scheduled',
     updatedAt: DateTime.now().subtract(const Duration(hours: 2)),
   ),
   DummyNote(
@@ -434,12 +447,14 @@ final List<DummyNote> _dummyNotes = [
   ),
   DummyNote(
     title: 'Recipe Ideas',
-    content: '## Pasta Night\n\n`Ingredients`: tomatoes, basil, garlic\n\n**Preparation**: 30 minutes',
+    content:
+        '## Pasta Night\n\n`Ingredients`: tomatoes, basil, garlic\n\n**Preparation**: 30 minutes',
     updatedAt: DateTime.now().subtract(const Duration(days: 2)),
   ),
   DummyNote(
     title: 'Book Quotes',
-    content: '> "The only way to do great work is to love what you do."\n\nFrom Steve Jobs biography',
+    content:
+        '> "The only way to do great work is to love what you do."\n\nFrom Steve Jobs biography',
     updatedAt: DateTime.now().subtract(const Duration(days: 3)),
   ),
 ];

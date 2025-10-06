@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/note.dart';
 import '../utils/smart_markdown_helper.dart';
+import '../services/theme_service.dart';
 import 'note_editor_screen.dart';
 
 /// Full-screen note preview that renders complete markdown
@@ -22,10 +22,7 @@ class NotePreviewScreen extends StatelessWidget {
         actions: [
           // Pin indicator
           if (note.isPinned)
-            Icon(
-              PhosphorIcons.pushPin(PhosphorIconsStyle.fill),
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            Icon(Icons.push_pin, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 16),
         ],
       ),
@@ -71,8 +68,7 @@ class NotePreviewScreen extends StatelessWidget {
                       listBullet: Theme.of(
                         context,
                       ).textTheme.bodyLarge, // Larger list text
-                      code: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontFamily: 'monospace',
+                      code: AppTheme.getCodeTextStyle(context).copyWith(
                         backgroundColor: Theme.of(
                           context,
                         ).colorScheme.surfaceContainerHighest,
@@ -85,7 +81,7 @@ class NotePreviewScreen extends StatelessWidget {
                   children: [
                     const SizedBox(height: 40),
                     Icon(
-                      PhosphorIcons.note(),
+                      Icons.description,
                       size: 64,
                       color: Theme.of(context).colorScheme.onSurfaceVariant
                           .withAlpha((255 * 0.5).round()),
@@ -112,7 +108,7 @@ class NotePreviewScreen extends StatelessWidget {
             ),
           );
         },
-        child: Icon(PhosphorIcons.pencil()),
+        child: Icon(Icons.edit),
       ),
     );
   }

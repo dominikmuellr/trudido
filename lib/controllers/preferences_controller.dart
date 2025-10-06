@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/preferences_state.dart';
 import '../services/preferences_service.dart';
+import '../services/theme_service.dart';
 import '../providers/app_providers.dart';
 
 /// Central controller exposing mutation helpers for user preferences.
@@ -21,13 +22,22 @@ class PreferencesController {
     await _update(themeMode: mode);
   }
 
-  Future<void> toggleDynamicColor() => _update(useDynamicColor: !state.useDynamicColor);
-  Future<void> toggleBlackTheme() => _update(useBlackTheme: !state.useBlackTheme);
-  Future<void> toggleHideGreeting() => _update(hideGreeting: !state.hideGreeting);
+  Future<void> toggleDynamicColor() async {
+    await _update(useDynamicColor: !state.useDynamicColor);
+    // Invalidate dynamic color schemes to refresh with new setting
+    ref.invalidate(dynamicColorSchemesProvider);
+  }
+
+  Future<void> toggleBlackTheme() =>
+      _update(useBlackTheme: !state.useBlackTheme);
+  Future<void> toggleHideGreeting() =>
+      _update(hideGreeting: !state.hideGreeting);
   Future<void> setFabPosition(String pos) => _update(fabPosition: pos);
 
-  Future<void> setSwipeLeftAction(String action) => _update(swipeLeftAction: action);
-  Future<void> setSwipeRightAction(String action) => _update(swipeRightAction: action);
+  Future<void> setSwipeLeftAction(String action) =>
+      _update(swipeLeftAction: action);
+  Future<void> setSwipeRightAction(String action) =>
+      _update(swipeRightAction: action);
 
   Future<void> _update({
     String? themeMode,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../providers/filter_providers.dart';
 import '../controllers/task_controller.dart';
 import '../controllers/notes_controller.dart';
@@ -20,7 +20,9 @@ import '../widgets/filters_sheet.dart';
 final searchModeProvider = StateProvider<bool>((ref) => false);
 
 // Provider for current tab index with default tab initialization
-final currentTabProvider = StateNotifierProvider<CurrentTabNotifier, int>((ref) {
+final currentTabProvider = StateNotifierProvider<CurrentTabNotifier, int>((
+  ref,
+) {
   return CurrentTabNotifier();
 });
 
@@ -71,127 +73,137 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-  final currentTab = ref.watch(currentTabProvider);
-  
-  // Removed ambiguous loading heuristic that prevented legitimate empty state UI.
-    
+    final currentTab = ref.watch(currentTabProvider);
+
     // Define tabs
-    final tabs = [
-      const TodoListTab(),
-      const NotesScreen(),
-    ];
-  return Scaffold(
-      appBar: _buildAppBar(context),
-      body: IndexedStack(
-        index: currentTab,
-        children: tabs,
-      ),
-      bottomNavigationBar: BottomAppBar(
-          elevation: 0,
-    color: Theme.of(context).scaffoldBackgroundColor,
-          child: SizedBox(
-            height: 60,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-              // Tasks tab
-              Expanded(
-                child: InkWell(
-                  onTap: () => _onTabSelected(0),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        currentTab == 0 
-                          ? PhosphorIcons.listChecks(PhosphorIconsStyle.fill)
-                          : PhosphorIcons.listChecks(),
-                        color: currentTab == 0 
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Tasks',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: currentTab == 0 
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontWeight: currentTab == 0 ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                      ),
-                    ],
+    final tabs = [const TodoListTab(), const NotesScreen()];
+
+    // Use standard Material FAB position
+    const fabLocation = FloatingActionButtonLocation.endFloat;
+
+    // Check if we should use NavigationRail for wider screens
+    final screenWidth = MediaQuery.of(context).size.width;
+    final useNavigationRail = screenWidth >= 600; // Material 3 breakpoint
+
+    if (useNavigationRail) {
+      return Scaffold(
+        body: Row(
+          children: [
+            // Material 3 NavigationRail
+            NavigationRail(
+              selectedIndex: currentTab,
+              onDestinationSelected: (index) {
+                final previousTab = ref.read(currentTabProvider);
+                ref.read(currentTabProvider.notifier).setTab(index);
+                // Exit search mode when switching tabs
+                final isSearchMode = ref.read(searchModeProvider);
+                if (isSearchMode) {
+                  ref.read(searchModeProvider.notifier).state = false;
+                  _searchController.clear();
+                  if (previousTab == 0) {
+                    ref.read(searchQueryProvider.notifier).state = '';
+                  } else if (previousTab == 1) {
+                    ref.read(notesSearchQueryProvider.notifier).state = '';
+                  }
+                }
+              },
+              labelType: NavigationRailLabelType.all,
+              destinations: const [
+                NavigationRailDestination(
+                  icon: Icon(Icons.checklist_outlined),
+                  selectedIcon: Icon(Icons.checklist),
+                  label: Text('Tasks'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.note_outlined),
+                  selectedIcon: Icon(Icons.note),
+                  label: Text('Notes'),
+                ),
+              ],
+            ),
+            const VerticalDivider(thickness: 1, width: 1),
+            // Main content
+            Expanded(
+              child: Scaffold(
+                appBar: _buildAppBar(context),
+                body: IndexedStack(index: currentTab, children: tabs),
+                floatingActionButtonLocation: fabLocation,
+                floatingActionButton: AnimatedContainer(
+                  duration: const Duration(
+                    milliseconds: 300,
+                  ), // Material 3 standard
+                  child: FloatingActionButton(
+                    heroTag: "main_fab", // Unique hero tag
+                    onPressed: () => _onFabPressed(currentTab),
+                    backgroundColor: _getFabColor(
+                      currentTab,
+                      Theme.of(context).colorScheme,
+                    ),
+                    elevation: 3.0, // Material 3 standard elevation
+                    highlightElevation: 6.0, // Subtle interaction feedback
+                    shape: const CircleBorder(), // Explicit Material 3 shape
+                    tooltip: _getFabTooltip(currentTab),
+                    child: _buildFabIcon(currentTab),
                   ),
                 ),
               ),
-              // Space for FAB
-              const SizedBox(width: 80),
-              // Notes tab
-              Expanded(
-                child: InkWell(
-                  onTap: () => _onTabSelected(1),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        currentTab == 1 
-                          ? PhosphorIcons.noteBlank(PhosphorIconsStyle.fill)
-                          : PhosphorIcons.noteBlank(),
-                        color: currentTab == 1 
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Notes',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: currentTab == 1 
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontWeight: currentTab == 1 ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
+      );
+    }
+
+    return Scaffold(
+      appBar: _buildAppBar(context),
+      body: IndexedStack(index: currentTab, children: tabs),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: currentTab,
+        onTap: (index) {
+          final previousTab = ref.read(currentTabProvider);
+          ref.read(currentTabProvider.notifier).setTab(index);
+          // Exit search mode when switching tabs
+          final isSearchMode = ref.read(searchModeProvider);
+          if (isSearchMode) {
+            ref.read(searchModeProvider.notifier).state = false;
+            _searchController.clear();
+            if (previousTab == 0) {
+              ref.read(searchQueryProvider.notifier).state = '';
+            } else if (previousTab == 1) {
+              ref.read(notesSearchQueryProvider.notifier).state = '';
+            }
+          }
+        },
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.checklist),
+            activeIcon: Icon(Icons.checklist),
+            label: 'Tasks',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.note),
+            activeIcon: Icon(Icons.note),
+            label: 'Notes',
+          ),
+        ],
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: fabLocation,
       floatingActionButton: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 300), // Material 3 standard
         child: FloatingActionButton(
           heroTag: "main_fab", // Unique hero tag
           onPressed: () => _onFabPressed(currentTab),
-          backgroundColor: _getFabColor(currentTab, Theme.of(context).colorScheme),
-          elevation: 6.0,
-          highlightElevation: 12.0,
+          backgroundColor: _getFabColor(
+            currentTab,
+            Theme.of(context).colorScheme,
+          ),
+          elevation: 3.0, // Material 3 standard elevation
+          highlightElevation: 6.0, // Subtle interaction feedback
+          shape: const CircleBorder(), // Explicit Material 3 shape
           tooltip: _getFabTooltip(currentTab),
           child: _buildFabIcon(currentTab),
         ),
       ),
     );
-  }
-
-  void _onTabSelected(int index) {
-    final previousTab = ref.read(currentTabProvider);
-    ref.read(currentTabProvider.notifier).setTab(index);
-    // Exit search mode when switching tabs
-    final isSearchMode = ref.read(searchModeProvider);
-    if (isSearchMode) {
-      ref.read(searchModeProvider.notifier).state = false;
-      _searchController.clear();
-      if (previousTab == 0) {
-        ref.read(searchQueryProvider.notifier).state = '';
-      } else if (previousTab == 1) {
-        ref.read(notesSearchQueryProvider.notifier).state = '';
-      }
-    }
   }
 
   void _onFabPressed(int currentTab) {
@@ -210,7 +222,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final selectedDate = ref.read(selectedCalendarDateProvider);
 
     // Use selected calendar date as a preset only when in calendar view
-    final DateTime? preset = (viewType == TaskViewType.calendar && selectedDate != null) ? selectedDate : null;
+    final DateTime? preset =
+        (viewType == TaskViewType.calendar && selectedDate != null)
+        ? selectedDate
+        : null;
 
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -225,69 +240,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _createNewNote() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const NoteEditorScreen(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const NoteEditorScreen()));
   }
 
-  /// Builds the context-aware FAB icon with smooth transitions
+  /// Builds the consistent FAB icon (plus)
   Widget _buildFabIcon(int currentTab) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 400), // Slightly longer for more graceful feel
-      transitionBuilder: (child, animation) {
-        // Physics-based spring animation
-        final curvedAnimation = CurvedAnimation(
-          parent: animation,
-          curve: Curves.elasticOut, // Spring physics feel
-        );
-        
-        return RotationTransition(
-          turns: Tween<double>(
-            begin: 0.0,
-            end: 0.125, // 45 degrees rotation during transition
-          ).animate(CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeInOutCubic, // Smoother rotation curve
-          )),
-          child: ScaleTransition(
-            scale: Tween<double>(
-              begin: 0.6, // Start smaller for more dramatic effect
-              end: 1.0,
-            ).animate(curvedAnimation),
-            child: FadeTransition(
-              opacity: animation,
-              child: child,
-            ),
-          ),
-        );
-      },
-      child: Icon(
-        _getIconForTab(currentTab),
-        key: ValueKey(currentTab), // Important for AnimatedSwitcher to detect changes
-        size: 24,
-      ),
+    return const Icon(
+      Icons.add, // Consistent plus icon
+      size: 24,
     );
-  }
-
-  /// Returns the appropriate icon for the current tab
-  IconData _getIconForTab(int currentTab) {
-    switch (currentTab) {
-      case 0: // Tasks tab
-        final viewType = ref.watch(taskViewTypeProvider);
-        final selectedDate = ref.watch(selectedCalendarDateProvider);
-        
-        // Show calendar-specific icon when in calendar view with selected date
-        if (viewType == TaskViewType.calendar && selectedDate != null) {
-          return PhosphorIcons.calendarPlus(PhosphorIconsStyle.bold);
-        }
-        return PhosphorIcons.listPlus(PhosphorIconsStyle.bold);
-      case 1: // Notes tab
-        return PhosphorIcons.notePencil(PhosphorIconsStyle.bold);
-      default:
-        return PhosphorIcons.plus(PhosphorIconsStyle.bold);
-    }
   }
 
   /// Returns the appropriate tooltip for the current tab and context
@@ -296,7 +259,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       case 0: // Tasks tab
         final viewType = ref.watch(taskViewTypeProvider);
         final selectedDate = ref.watch(selectedCalendarDateProvider);
-        
+
         if (viewType == TaskViewType.calendar && selectedDate != null) {
           final dateStr = DateFormat('MMM d').format(selectedDate);
           return 'Add task for $dateStr';
@@ -333,11 +296,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     final isSearchMode = ref.watch(searchModeProvider);
     final currentTab = ref.watch(currentTabProvider);
-    
+
     if (isSearchMode && (currentTab == 0 || currentTab == 1)) {
       return AppBar(
         leading: IconButton(
-          icon: Icon(PhosphorIcons.arrowLeft()),
+          icon: Icon(Icons.arrow_back),
           onPressed: () {
             ref.read(searchModeProvider.notifier).state = false;
             _searchController.clear();
@@ -366,7 +329,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         actions: [
           if (_searchController.text.isNotEmpty)
             IconButton(
-              icon: Icon(PhosphorIcons.x()),
+              icon: Icon(Icons.close),
               onPressed: () {
                 _searchController.clear();
                 if (currentTab == 0) {
@@ -399,9 +362,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 alignment: Alignment.centerLeft,
                 child: multiMode
                     ? IconButton(
-                        icon: Icon(PhosphorIcons.x()),
+                        icon: Icon(Icons.close),
                         onPressed: () {
-                          ref.read(multiSelectModeProvider.notifier).state = false;
+                          ref.read(multiSelectModeProvider.notifier).state =
+                              false;
                           ref.read(selectedTodoIdsProvider.notifier).clear();
                         },
                       )
@@ -409,13 +373,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         padding: const EdgeInsets.only(left: 12),
                         child: Text(
                           'trudido',
-                          style: TextStyle(
+                          style: GoogleFonts.montserrat(
                             // Slightly larger app name for improved presence
-                            fontSize: 20,
-                            // Slightly bolder for better visual weight
-                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                            // Lighter weight for subtle brand presence
+                            fontWeight: FontWeight.w500,
                             // Small letter spacing for a refined look
-                            letterSpacing: 0.3,
+                            letterSpacing: 0.4,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
@@ -426,7 +390,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 alignment: Alignment.center,
                 child: multiMode && currentTab == 0
                     ? Text('${selectedIds.length} selected')
-                    : (currentTab == 0 ? _buildFolderDropdown(isLeading: false, asTitle: true) : _buildAppBarTitle(currentTab)),
+                    : (currentTab == 0
+                          ? _buildFolderDropdown(
+                              isLeading: false,
+                              asTitle: true,
+                            )
+                          : _buildAppBarTitle(currentTab)),
               ),
               // Positioned view toggle: placed between center and right area
               if (currentTab == 0 && !multiMode)
@@ -444,53 +413,74 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   children: [
                     if (currentTab == 0 && multiMode) ...[
                       IconButton(
-                        icon: Icon(PhosphorIcons.checkCircle()),
+                        icon: Icon(Icons.check_circle),
                         tooltip: 'Mark complete',
                         onPressed: selectedIds.isEmpty
                             ? null
                             : () async {
-                                final controller = ref.read(taskControllerProvider.notifier);
+                                final controller = ref.read(
+                                  taskControllerProvider.notifier,
+                                );
                                 final current = ref.read(tasksProvider);
                                 for (final id in selectedIds) {
-                                  final t = current.firstWhere((e) => e.id == id);
-                                  if (!t.isCompleted) await controller.toggleComplete(id);
+                                  final t = current.firstWhere(
+                                    (e) => e.id == id,
+                                  );
+                                  if (!t.isCompleted)
+                                    await controller.toggleComplete(id);
                                 }
-                                ref.read(selectedTodoIdsProvider.notifier).clear();
+                                ref
+                                    .read(selectedTodoIdsProvider.notifier)
+                                    .clear();
                               },
                       ),
                       IconButton(
-                        icon: Icon(PhosphorIcons.circleDashed()),
+                        icon: Icon(Icons.radio_button_unchecked),
                         tooltip: 'Mark incomplete',
                         onPressed: selectedIds.isEmpty
                             ? null
                             : () async {
-                                final controller = ref.read(taskControllerProvider.notifier);
+                                final controller = ref.read(
+                                  taskControllerProvider.notifier,
+                                );
                                 final current = ref.read(tasksProvider);
                                 for (final id in selectedIds) {
-                                  final t = current.firstWhere((e) => e.id == id);
-                                  if (t.isCompleted) await controller.toggleComplete(id);
+                                  final t = current.firstWhere(
+                                    (e) => e.id == id,
+                                  );
+                                  if (t.isCompleted)
+                                    await controller.toggleComplete(id);
                                 }
-                                ref.read(selectedTodoIdsProvider.notifier).clear();
+                                ref
+                                    .read(selectedTodoIdsProvider.notifier)
+                                    .clear();
                               },
                       ),
                       IconButton(
-                        icon: Icon(PhosphorIcons.trash()),
+                        icon: Icon(Icons.delete),
                         tooltip: 'Delete',
                         onPressed: selectedIds.isEmpty
                             ? null
                             : () async {
-                                final controller = ref.read(taskControllerProvider.notifier);
+                                final controller = ref.read(
+                                  taskControllerProvider.notifier,
+                                );
                                 await controller.bulkDelete(selectedIds);
-                                ref.read(selectedTodoIdsProvider.notifier).clear();
-                                ref.read(multiSelectModeProvider.notifier).state = false;
+                                ref
+                                    .read(selectedTodoIdsProvider.notifier)
+                                    .clear();
+                                ref
+                                        .read(multiSelectModeProvider.notifier)
+                                        .state =
+                                    false;
                               },
                       ),
                     ],
                     // Quick Filters icon (keeps chips below AppBar but provides fast access)
-                    
+
                     // Global overflow menu
                     PopupMenuButton<String>(
-                      icon: Icon(PhosphorIcons.dotsThreeVertical()),
+                      icon: Icon(Icons.more_vert),
                       tooltip: 'More options',
                       onSelected: (value) {
                         switch (value) {
@@ -514,7 +504,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           PopupMenuItem(
                             value: 'search',
                             child: ListTile(
-                              leading: Icon(PhosphorIcons.magnifyingGlass()),
+                              leading: Icon(Icons.search),
                               title: const Text('Search'),
                               dense: true,
                             ),
@@ -522,7 +512,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         PopupMenuItem(
                           value: 'filters',
                           child: ListTile(
-                            leading: Icon(PhosphorIcons.funnelSimple()),
+                            leading: Icon(Icons.filter_alt),
                             title: const Text('Filters'),
                             dense: true,
                           ),
@@ -530,7 +520,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         PopupMenuItem(
                           value: 'settings',
                           child: ListTile(
-                            leading: Icon(PhosphorIcons.gear()),
+                            leading: Icon(Icons.settings),
                             title: const Text('Settings'),
                             dense: true,
                           ),
@@ -563,36 +553,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildFolderDropdown({bool isLeading = false, bool asTitle = false}) {
     final foldersAsync = ref.watch(folderNotifierProvider);
     final selectedFolderId = ref.watch(selectedFolderProvider);
-    
+
     // Debug print current selection
     debugPrint('[FolderDropdown] Current selectedFolderId: $selectedFolderId');
-    
+
     return foldersAsync.when(
       data: (folders) {
         // Find the selected folder or use null for "All folders"
-        final selectedFolder = selectedFolderId != null 
-          ? folders.where((folder) => folder.id == selectedFolderId).firstOrNull
-          : null;
-        
+        final selectedFolder = selectedFolderId != null
+            ? folders
+                  .where((folder) => folder.id == selectedFolderId)
+                  .firstOrNull
+            : null;
+
         // compute responsive max width when used as AppBar title
         final screenWidth = MediaQuery.of(context).size.width;
-  // reserve estimated space for center/right controls (toggle + overflow)
-  // reduce reserved to allow more room for folder name
-  final reserved = 180.0;
-  // allow a larger clamp max so names can display more characters
-  final computedMax = ((screenWidth / 2) - reserved).clamp(140.0, 420.0);
+        // reserve estimated space for center/right controls (toggle + overflow)
+        // reduce reserved to allow more room for folder name
+        final reserved = 180.0;
+        // allow a larger clamp max so names can display more characters
+        final computedMax = ((screenWidth / 2) - reserved).clamp(140.0, 420.0);
 
         return PopupMenuButton<String>(
           child: Container(
             // Slightly larger padding for better tap target and presence
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      // When used as leading, apply a moderate left margin; otherwise keep right margin.
-      // When used as the AppBar title, don't add extra right margin.
-      margin: isLeading
-        ? const EdgeInsets.only(left: 16)
-        : (asTitle ? const EdgeInsets.symmetric(horizontal: 0) : const EdgeInsets.only(right: 8)),
+            // When used as leading, apply a moderate left margin; otherwise keep right margin.
+            // When used as the AppBar title, don't add extra right margin.
+            margin: isLeading
+                ? const EdgeInsets.only(left: 16)
+                : (asTitle
+                      ? const EdgeInsets.symmetric(horizontal: 0)
+                      : const EdgeInsets.only(right: 8)),
             decoration: BoxDecoration(
-              color: asTitle ? Colors.transparent : Theme.of(context).colorScheme.surfaceContainerHighest,
+              color: asTitle
+                  ? Colors.transparent
+                  : Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(20),
             ),
             // Show compact UI when used as leading: icon + caret only
@@ -603,7 +599,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       Icon(
                         selectedFolder != null
                             ? _getIconData(selectedFolder.icon)
-                            : PhosphorIcons.folders(),
+                            : Icons.folder,
                         size: 18,
                         color: selectedFolder != null
                             ? Color(selectedFolder.color)
@@ -611,23 +607,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                       const SizedBox(width: 6),
                       Icon(
-                        PhosphorIcons.caretDown(),
+                        Icons.expand_more,
                         size: 14,
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ],
                   )
-        : ConstrainedBox(
-          // When used as title, constrain the width based on screen size so
-          // long folder names ellipsize before hitting the view-toggle/menu.
-          constraints: asTitle ? BoxConstraints(maxWidth: computedMax) : const BoxConstraints(),
+                : ConstrainedBox(
+                    // When used as title, constrain the width based on screen size so
+                    // long folder names ellipsize before hitting the view-toggle/menu.
+                    constraints: asTitle
+                        ? BoxConstraints(maxWidth: computedMax)
+                        : const BoxConstraints(),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           selectedFolder != null
                               ? _getIconData(selectedFolder.icon)
-                              : PhosphorIcons.folders(),
+                              : Icons.folder,
                           // larger icon for the centered title state
                           size: 20,
                           color: selectedFolder != null
@@ -650,7 +648,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                         const SizedBox(width: 4),
                         Icon(
-                          PhosphorIcons.caretDown(),
+                          Icons.expand_more,
                           // slightly larger caret
                           size: 16,
                           color: Theme.of(context).colorScheme.onSurface,
@@ -667,61 +665,69 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Row(
                   children: [
                     Icon(
-                      PhosphorIcons.folders(),
+                      Icons.folder,
                       size: 18,
-                      color: selectedFolderId == null 
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.onSurface,
+                      color: selectedFolderId == null
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                     const SizedBox(width: 12),
                     Text(
                       'All folders',
                       style: TextStyle(
-                        color: selectedFolderId == null 
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.onSurface,
-                        fontWeight: selectedFolderId == null 
-                          ? FontWeight.w600 
-                          : FontWeight.normal,
+                        color: selectedFolderId == null
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurface,
+                        fontWeight: selectedFolderId == null
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                     ),
                   ],
                 ),
               ),
               // Individual folders
-              ...folders.map((folder) => PopupMenuItem<String>(
-                value: folder.id,
-                child: Row(
-                  children: [
-                    Icon(
-                      _getIconData(folder.icon),
-                      size: 18,
-                      color: selectedFolderId == folder.id 
-                        ? Theme.of(context).colorScheme.primary
-                        : Color(folder.color),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      folder.name,
-                      style: TextStyle(
-                        color: selectedFolderId == folder.id 
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.onSurface,
-                        fontWeight: selectedFolderId == folder.id 
-                          ? FontWeight.w600 
-                          : FontWeight.normal,
+              ...folders
+                  .map(
+                    (folder) => PopupMenuItem<String>(
+                      value: folder.id,
+                      child: Row(
+                        children: [
+                          Icon(
+                            _getIconData(folder.icon),
+                            size: 18,
+                            color: selectedFolderId == folder.id
+                                ? Theme.of(context).colorScheme.primary
+                                : Color(folder.color),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            folder.name,
+                            style: TextStyle(
+                              color: selectedFolderId == folder.id
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurface,
+                              fontWeight: selectedFolderId == folder.id
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              )).toList(),
+                  )
+                  .toList(),
               // Divider + create new folder option
               const PopupMenuDivider(),
               PopupMenuItem<String>(
                 value: '_CREATE_FOLDER_',
                 child: Row(
                   children: [
-                    Icon(PhosphorIcons.folderPlus(), size: 18, color: Theme.of(context).colorScheme.primary),
+                    Icon(
+                      Icons.create_new_folder,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     const SizedBox(width: 12),
                     const Text('Create folder'),
                   ],
@@ -730,7 +736,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ];
           },
           onSelected: (String folderId) {
-            debugPrint('[FolderDropdown] Selected folder: ${folderId == '_ALL_FOLDERS_' ? 'All folders' : folderId}');
+            debugPrint(
+              '[FolderDropdown] Selected folder: ${folderId == '_ALL_FOLDERS_' ? 'All folders' : folderId}',
+            );
             if (folderId == '_CREATE_FOLDER_') {
               // Open the create folder dialog
               showDialog(
@@ -740,24 +748,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               return;
             }
 
-            ref.read(selectedFolderProvider.notifier).state = 
+            ref.read(selectedFolderProvider.notifier).state =
                 folderId == '_ALL_FOLDERS_' ? null : folderId;
           },
         );
       },
       loading: () => Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        margin: isLeading ? const EdgeInsets.only(left: 8) : const EdgeInsets.only(right: 8),
+        margin: isLeading
+            ? const EdgeInsets.only(left: 8)
+            : const EdgeInsets.only(right: 8),
         decoration: BoxDecoration(
-          color: asTitle ? Colors.transparent : Theme.of(context).colorScheme.surfaceContainerHighest,
+          color: asTitle
+              ? Colors.transparent
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(20),
         ),
-    // Show compact loading UI when leading
-    child: isLeading
+        // Show compact loading UI when leading
+        child: isLeading
             ? Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                    SizedBox(
+                  SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
@@ -767,14 +779,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const SizedBox(width: 6),
                   Icon(
-                    PhosphorIcons.caretDown(),
+                    Icons.expand_more,
                     size: 14,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ],
               )
-      : ConstrainedBox(
-        constraints: asTitle ? const BoxConstraints(maxWidth: 220) : const BoxConstraints(),
+            : ConstrainedBox(
+                constraints: asTitle
+                    ? const BoxConstraints(maxWidth: 220)
+                    : const BoxConstraints(),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -803,35 +817,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       error: (error, stackTrace) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        margin: isLeading ? const EdgeInsets.only(left: 8) : const EdgeInsets.only(right: 8),
+        margin: isLeading
+            ? const EdgeInsets.only(left: 8)
+            : const EdgeInsets.only(right: 8),
         decoration: BoxDecoration(
-          color: asTitle ? Colors.transparent : Theme.of(context).colorScheme.surfaceContainerHighest,
+          color: asTitle
+              ? Colors.transparent
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(20),
         ),
-    child: isLeading
+        child: isLeading
             ? Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    PhosphorIcons.folder(),
+                    Icons.folder,
                     size: 18,
                     color: Theme.of(context).colorScheme.error,
                   ),
                   const SizedBox(width: 6),
                   Icon(
-                    PhosphorIcons.caretDown(),
+                    Icons.expand_more,
                     size: 14,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ],
               )
-      : ConstrainedBox(
-        constraints: asTitle ? const BoxConstraints(maxWidth: 220) : const BoxConstraints(),
+            : ConstrainedBox(
+                constraints: asTitle
+                    ? const BoxConstraints(maxWidth: 220)
+                    : const BoxConstraints(),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      PhosphorIcons.folder(),
+                      Icons.folder,
                       size: 20,
                       color: Theme.of(context).colorScheme.error,
                     ),
@@ -856,11 +876,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// Build the view toggle for switching between list and calendar views
   Widget _buildViewToggle() {
     final viewType = ref.watch(taskViewTypeProvider);
-    
+
     return Container(
-  // Move the toggle slightly to the left to reduce distance from center.
-  // Reduce right margin to 8 for a more compact placement.
-  margin: const EdgeInsets.only(right: 8),
+      // Move the toggle slightly to the left to reduce distance from center.
+      // Reduce right margin to 8 for a more compact placement.
+      margin: const EdgeInsets.only(right: 8),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(20),
@@ -869,7 +889,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           _ViewToggleButton(
-            icon: PhosphorIcons.list(),
+            icon: Icons.list,
             isSelected: viewType == TaskViewType.list,
             onTap: () {
               ref.read(taskViewTypeProvider.notifier).state = TaskViewType.list;
@@ -877,10 +897,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             tooltip: 'List View',
           ),
           _ViewToggleButton(
-            icon: PhosphorIcons.calendar(),
+            icon: Icons.calendar_month,
             isSelected: viewType == TaskViewType.calendar,
             onTap: () {
-              ref.read(taskViewTypeProvider.notifier).state = TaskViewType.calendar;
+              ref.read(taskViewTypeProvider.notifier).state =
+                  TaskViewType.calendar;
             },
             tooltip: 'Calendar View',
           ),
@@ -893,30 +914,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   IconData _getIconData(String? iconName) {
     switch (iconName) {
       case 'person':
-        return PhosphorIcons.user();
+        return Icons.person;
       case 'work':
-        return PhosphorIcons.briefcase();
+        return Icons.work;
       case 'shopping_cart':
-        return PhosphorIcons.shoppingCart();
+        return Icons.shopping_cart;
       case 'home':
-        return PhosphorIcons.house();
+        return Icons.home;
       case 'school':
-        return PhosphorIcons.graduationCap();
+        return Icons.school;
       case 'health':
-        return PhosphorIcons.heart();
+        return Icons.favorite;
       case 'travel':
-        return PhosphorIcons.airplane();
+        return Icons.flight;
       case 'finance':
-        return PhosphorIcons.piggyBank();
+        return Icons.savings;
       case 'hobby':
-        return PhosphorIcons.gameController();
+        return Icons.games;
       case 'fitness':
-        return PhosphorIcons.barbell();
+        return Icons.fitness_center;
       default:
-        return PhosphorIcons.folder();
+        return Icons.folder;
     }
   }
-
 }
 
 /// Custom view toggle button for list/calendar switching
@@ -936,7 +956,7 @@ class _ViewToggleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     return Tooltip(
       message: tooltip,
       child: InkWell(
@@ -964,7 +984,10 @@ class _ViewToggleButton extends StatelessWidget {
 
 // Multi-select providers
 final multiSelectModeProvider = StateProvider<bool>((ref) => false);
-final selectedTodoIdsProvider = StateNotifierProvider<SelectedTodoIdsNotifier, Set<String>>((ref) => SelectedTodoIdsNotifier());
+final selectedTodoIdsProvider =
+    StateNotifierProvider<SelectedTodoIdsNotifier, Set<String>>(
+      (ref) => SelectedTodoIdsNotifier(),
+    );
 
 class SelectedTodoIdsNotifier extends StateNotifier<Set<String>> {
   SelectedTodoIdsNotifier() : super(<String>{});
@@ -975,9 +998,6 @@ class SelectedTodoIdsNotifier extends StateNotifier<Set<String>> {
       state = {...state, id};
     }
   }
+
   void clear() => state = <String>{};
 }
-
-// Provider & notifier for FAB position
-// FAB position now from unified preferences.
-final fabPositionProvider = Provider<String>((ref) => ref.watch(preferencesStateProvider).fabPosition);

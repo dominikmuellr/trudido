@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/folder.dart';
 
 class FolderItem extends StatelessWidget {
@@ -21,7 +20,7 @@ class FolderItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
@@ -45,9 +44,9 @@ class FolderItem extends StatelessWidget {
                   size: 24,
                 ),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               // Folder details
               Expanded(
                 child: Column(
@@ -86,8 +85,9 @@ class FolderItem extends StatelessWidget {
                         ],
                       ],
                     ),
-                    
-                    if (folder.description != null && folder.description!.isNotEmpty) ...[
+
+                    if (folder.description != null &&
+                        folder.description!.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
                         folder.description!,
@@ -98,14 +98,14 @@ class FolderItem extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
-                    
+
                     const SizedBox(height: 8),
-                    
+
                     // Task count and actions
                     Row(
                       children: [
                         Icon(
-                          PhosphorIcons.listChecks(),
+                          Icons.checklist,
                           size: 16,
                           color: theme.colorScheme.onSurface.withAlpha(153),
                         ),
@@ -117,12 +117,12 @@ class FolderItem extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
-                        
+
                         // Action buttons
                         if (onEdit != null) ...[
                           IconButton(
                             onPressed: onEdit,
-                            icon: Icon(PhosphorIcons.pencil()),
+                            icon: Icon(Icons.edit),
                             iconSize: 18,
                             padding: const EdgeInsets.all(4),
                             constraints: const BoxConstraints(
@@ -132,11 +132,11 @@ class FolderItem extends StatelessWidget {
                             tooltip: 'Edit folder',
                           ),
                         ],
-                        
+
                         if (onDelete != null) ...[
                           IconButton(
                             onPressed: onDelete,
-                            icon: Icon(PhosphorIcons.trash()),
+                            icon: Icon(Icons.delete),
                             iconSize: 18,
                             padding: const EdgeInsets.all(4),
                             constraints: const BoxConstraints(
@@ -154,11 +154,11 @@ class FolderItem extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
               // Drag handle
               const SizedBox(width: 8),
               Icon(
-                PhosphorIcons.dotsSixVertical(),
+                Icons.drag_handle,
                 color: theme.colorScheme.onSurface.withAlpha(102),
                 size: 20,
               ),
@@ -172,27 +172,27 @@ class FolderItem extends StatelessWidget {
   IconData _getIconData(String? iconName) {
     switch (iconName) {
       case 'person':
-        return PhosphorIcons.user();
+        return Icons.person;
       case 'work':
-        return PhosphorIcons.briefcase();
+        return Icons.work;
       case 'shopping_cart':
-        return PhosphorIcons.shoppingCart();
+        return Icons.shopping_cart;
       case 'home':
-        return PhosphorIcons.house();
+        return Icons.home;
       case 'school':
-        return PhosphorIcons.graduationCap();
+        return Icons.school;
       case 'health':
-        return PhosphorIcons.heart();
+        return Icons.favorite;
       case 'travel':
-        return PhosphorIcons.airplane();
+        return Icons.flight;
       case 'finance':
-        return PhosphorIcons.piggyBank();
+        return Icons.savings;
       case 'hobby':
-        return PhosphorIcons.gameController();
+        return Icons.games;
       case 'fitness':
-        return PhosphorIcons.barbell();
+        return Icons.fitness_center;
       default:
-        return PhosphorIcons.folder();
+        return Icons.folder;
     }
   }
 }

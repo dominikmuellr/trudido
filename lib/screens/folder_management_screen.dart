@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../services/folder_provider.dart';
 import '../widgets/folder_item.dart';
 import '../widgets/create_folder_dialog.dart';
@@ -11,10 +10,12 @@ class FolderManagementScreen extends ConsumerStatefulWidget {
   const FolderManagementScreen({super.key});
 
   @override
-  ConsumerState<FolderManagementScreen> createState() => _FolderManagementScreenState();
+  ConsumerState<FolderManagementScreen> createState() =>
+      _FolderManagementScreenState();
 }
 
-class _FolderManagementScreenState extends ConsumerState<FolderManagementScreen> {
+class _FolderManagementScreenState
+    extends ConsumerState<FolderManagementScreen> {
   final _searchController = TextEditingController();
 
   @override
@@ -37,7 +38,7 @@ class _FolderManagementScreenState extends ConsumerState<FolderManagementScreen>
         elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(PhosphorIcons.plus()),
+            icon: Icon(Icons.add),
             onPressed: () => _showCreateFolderDialog(context),
             tooltip: 'Create Folder',
           ),
@@ -52,13 +53,14 @@ class _FolderManagementScreenState extends ConsumerState<FolderManagementScreen>
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search folders...',
-                prefixIcon: Icon(PhosphorIcons.magnifyingGlass()),
+                prefixIcon: Icon(Icons.search),
                 suffixIcon: searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: Icon(PhosphorIcons.x()),
+                        icon: Icon(Icons.close),
                         onPressed: () {
                           _searchController.clear();
-                          ref.read(folderSearchQueryProvider.notifier).state = '';
+                          ref.read(folderSearchQueryProvider.notifier).state =
+                              '';
                         },
                       )
                     : null,
@@ -87,7 +89,8 @@ class _FolderManagementScreenState extends ConsumerState<FolderManagementScreen>
                     // Create a map for quick lookup of task counts
                     final taskCountMap = <String, int>{};
                     for (final folderWithCount in foldersWithTaskCounts) {
-                      taskCountMap[folderWithCount.folder.id] = folderWithCount.taskCount;
+                      taskCountMap[folderWithCount.folder.id] =
+                          folderWithCount.taskCount;
                     }
 
                     return ReorderableListView.builder(
@@ -106,15 +109,17 @@ class _FolderManagementScreenState extends ConsumerState<FolderManagementScreen>
                           taskCount: taskCount,
                           onTap: () => _selectFolder(folder.id),
                           onEdit: () => _showEditFolderDialog(context, folder),
-                          onDelete: folder.isDefault ? null : () => _deleteFolder(folder.id),
+                          onDelete: folder.isDefault
+                              ? null
+                              : () => _deleteFolder(folder.id),
                         );
                       },
                     );
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (error, stack) => Center(
-                    child: Text('Error loading task counts: $error'),
-                  ),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, stack) =>
+                      Center(child: Text('Error loading task counts: $error')),
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -123,7 +128,7 @@ class _FolderManagementScreenState extends ConsumerState<FolderManagementScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      PhosphorIcons.warning(),
+                      Icons.warning,
                       size: 48,
                       color: Theme.of(context).colorScheme.error,
                     ),
@@ -140,7 +145,9 @@ class _FolderManagementScreenState extends ConsumerState<FolderManagementScreen>
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () => ref.read(folderNotifierProvider.notifier).loadFolders(),
+                      onPressed: () => ref
+                          .read(folderNotifierProvider.notifier)
+                          .loadFolders(),
                       child: const Text('Retry'),
                     ),
                   ],
@@ -155,14 +162,14 @@ class _FolderManagementScreenState extends ConsumerState<FolderManagementScreen>
 
   Widget _buildEmptyState(BuildContext context) {
     final searchQuery = ref.watch(folderSearchQueryProvider);
-    
+
     if (searchQuery.isNotEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              PhosphorIcons.magnifyingGlass(),
+              Icons.search,
               size: 48,
               color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
             ),
@@ -186,7 +193,7 @@ class _FolderManagementScreenState extends ConsumerState<FolderManagementScreen>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            PhosphorIcons.folder(),
+            Icons.folder,
             size: 48,
             color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
           ),
@@ -204,7 +211,7 @@ class _FolderManagementScreenState extends ConsumerState<FolderManagementScreen>
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () => _showCreateFolderDialog(context),
-            icon: Icon(PhosphorIcons.plus()),
+            icon: Icon(Icons.add),
             label: const Text('Create Folder'),
           ),
         ],

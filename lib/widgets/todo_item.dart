@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:intl/intl.dart';
 import '../models/todo.dart';
 import '../services/theme_service.dart';
@@ -34,7 +33,9 @@ class TodoItem extends StatelessWidget {
     final cs = theme.colorScheme;
     final selectedBg = cs.secondaryContainer;
     final selectedFg = cs.onSecondaryContainer;
-    final appOpts = theme.extension<AppOptions>() ?? const AppOptions(compact: false, highContrast: false);
+    final appOpts =
+        theme.extension<AppOptions>() ??
+        const AppOptions(compact: false, highContrast: false);
     final basePad = appOpts.compact ? 8.0 : 12.0;
     final gap = appOpts.compact ? 6.0 : 8.0;
     final titleSize = appOpts.compact ? 15.0 : 16.0;
@@ -52,14 +53,14 @@ class TodoItem extends StatelessWidget {
               onPressed: (_) => onEdit(),
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
-              icon: PhosphorIcons.pencil(),
+              icon: Icons.edit,
               label: 'Edit',
             ),
             SlidableAction(
               onPressed: (_) => onDelete(),
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
-              icon: PhosphorIcons.trash(),
+              icon: Icons.delete,
               label: 'Delete',
             ),
           ],
@@ -69,7 +70,9 @@ class TodoItem extends StatelessWidget {
           selected: selected,
           label: todo.text,
           hint: selectable
-              ? (selected ? 'Selected. Double tap to deselect.' : 'Not selected. Double tap to select.')
+              ? (selected
+                    ? 'Selected. Double tap to deselect.'
+                    : 'Not selected. Double tap to select.')
               : 'Double tap to edit task. Long press to select.',
           child: Card(
             elevation: todo.isCompleted ? 1 : 2,
@@ -98,8 +101,11 @@ class TodoItem extends StatelessWidget {
                 }
               },
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeInOut,
+                duration: const Duration(
+                  milliseconds: 300,
+                ), // Material 3 standard
+                curve:
+                    Curves.easeInOutCubicEmphasized, // Material 3 motion curve
                 padding: EdgeInsets.all(basePad),
                 child: Row(
                   children: [
@@ -109,7 +115,9 @@ class TodoItem extends StatelessWidget {
                             child: Container(
                               padding: EdgeInsets.all(controlPad),
                               child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 180),
+                                duration: const Duration(
+                                  milliseconds: 300,
+                                ), // Material 3 standard
                                 width: 24,
                                 height: 24,
                                 decoration: BoxDecoration(
@@ -125,8 +133,11 @@ class TodoItem extends StatelessWidget {
                                       : Colors.transparent,
                                 ),
                                 child: selected
-                                    ? Icon(PhosphorIcons.check(),
-                                        size: 16, color: theme.colorScheme.onPrimary)
+                                    ? Icon(
+                                        Icons.done,
+                                        size: 16,
+                                        color: theme.colorScheme.onPrimary,
+                                      )
                                     : null,
                               ),
                             ),
@@ -139,7 +150,8 @@ class TodoItem extends StatelessWidget {
                                 value: todo.isCompleted,
                                 onChanged: (_) => onToggle(),
                                 shape: const CircleBorder(),
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
                               ),
                             ),
                           ),
@@ -151,20 +163,29 @@ class TodoItem extends StatelessWidget {
                           Text(
                             todo.text,
                             style: TextStyle(
-                              decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
+                              decoration: todo.isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : null,
                               color: selected
                                   ? selectedFg
                                   : (todo.isCompleted
-                                      ? theme.colorScheme.outline
-                                      : theme.colorScheme.onSurface),
-                              fontWeight: todo.isCompleted ? FontWeight.normal : FontWeight.w500,
+                                        ? theme.colorScheme.outline
+                                        : theme.colorScheme.onSurface),
+                              fontWeight: todo.isCompleted
+                                  ? FontWeight.normal
+                                  : FontWeight.w500,
                               fontSize: titleSize,
                               letterSpacing: appOpts.highContrast ? 0.2 : null,
                             ),
                           ),
                           if (_hasSubtitleContent()) ...[
                             SizedBox(height: subtitleGap),
-                            _buildSubtitleRow(context, overrideColor: selected ? selectedFg.withAlpha(180) : null),
+                            _buildSubtitleRow(
+                              context,
+                              overrideColor: selected
+                                  ? selectedFg.withAlpha(180)
+                                  : null,
+                            ),
                           ],
                         ],
                       ),
@@ -183,7 +204,8 @@ class TodoItem extends StatelessWidget {
     );
   }
 
-  bool _hasSubtitleContent() => todo.dueDate != null || (todo.notes != null && todo.notes!.isNotEmpty);
+  bool _hasSubtitleContent() =>
+      todo.dueDate != null || (todo.notes != null && todo.notes!.isNotEmpty);
 
   Widget _buildSubtitleRow(BuildContext context, {Color? overrideColor}) {
     final parts = <Widget>[];
@@ -193,18 +215,40 @@ class TodoItem extends StatelessWidget {
       final isDueToday = todo.isDueToday;
       Color dateColor = overrideColor ?? Theme.of(context).colorScheme.outline;
       if (isOverdue && !todo.isCompleted) {
-        dateColor = Colors.red;
+        dateColor = Theme.of(context).colorScheme.error;
       } else if (isDueToday && !todo.isCompleted) {
-        dateColor = Colors.orange;
+        dateColor = Theme.of(context).colorScheme.tertiary;
       }
-      parts.add(Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(PhosphorIcons.calendar(), size: 14, color: dateColor),
-        const SizedBox(width: 4),
-        Text(dueDateText, style: TextStyle(color: dateColor, fontSize: 12, fontWeight: isOverdue || isDueToday ? FontWeight.w600 : null)),
-      ]));
+      parts.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.event, size: 14, color: dateColor),
+            const SizedBox(width: 4),
+            Text(
+              dueDateText,
+              style: TextStyle(
+                color: dateColor,
+                fontSize: 12,
+                fontWeight: isOverdue || isDueToday ? FontWeight.w600 : null,
+              ),
+            ),
+          ],
+        ),
+      );
     }
     if (todo.notes != null && todo.notes!.isNotEmpty) {
-      parts.add(Text(todo.notes!, style: TextStyle(color: overrideColor ?? Theme.of(context).colorScheme.outline, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis));
+      parts.add(
+        Text(
+          todo.notes!,
+          style: TextStyle(
+            color: overrideColor ?? Theme.of(context).colorScheme.outline,
+            fontSize: 12,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
     }
     return Wrap(spacing: 12, runSpacing: 4, children: parts);
   }
@@ -212,7 +256,7 @@ class TodoItem extends StatelessWidget {
   Widget? _buildTrailing(BuildContext context) {
     final priorityColor = AppTheme.getPriorityColor(
       todo.priority,
-      isDark: Theme.of(context).brightness == Brightness.dark,
+      Theme.of(context).colorScheme,
     );
     if (showDragHandle) {
       return Row(
@@ -221,22 +265,48 @@ class TodoItem extends StatelessWidget {
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(width: 8, height: 8, decoration: BoxDecoration(color: priorityColor, shape: BoxShape.circle)),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: priorityColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
               const SizedBox(height: 4),
-              Icon(AppTheme.getPriorityIcon(todo.priority), size: 16, color: priorityColor),
+              Icon(
+                AppTheme.getPriorityIcon(todo.priority),
+                size: 16,
+                color: priorityColor,
+              ),
             ],
           ),
-          SizedBox(width: (Theme.of(context).extension<AppOptions>()?.compact ?? false) ? 4 : 8),
-          Icon(PhosphorIcons.dotsSixVertical(), color: Theme.of(context).colorScheme.outline),
+          SizedBox(
+            width: (Theme.of(context).extension<AppOptions>()?.compact ?? false)
+                ? 4
+                : 8,
+          ),
+          Icon(Icons.drag_handle, color: Theme.of(context).colorScheme.outline),
         ],
       );
     }
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Container(width: 8, height: 8, decoration: BoxDecoration(color: priorityColor, shape: BoxShape.circle)),
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: priorityColor,
+            shape: BoxShape.circle,
+          ),
+        ),
         const SizedBox(height: 4),
-        Icon(AppTheme.getPriorityIcon(todo.priority), size: 16, color: priorityColor),
+        Icon(
+          AppTheme.getPriorityIcon(todo.priority),
+          size: 16,
+          color: priorityColor,
+        ),
       ],
     );
   }

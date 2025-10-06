@@ -17,7 +17,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
   @override
   void initState() {
     super.initState();
-    
+
     // Set up import callbacks for refreshing UI
     FilesChannel.instance.setImportCallbacks(
       onComplete: (message) {
@@ -25,7 +25,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
         ScaffoldMessenger.maybeOf(context)?.showSnackBar(
           SnackBar(
             content: Text(message),
-            backgroundColor: Colors.green,
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
           ),
         );
         // Trigger refresh after successful import
@@ -36,7 +36,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
         ScaffoldMessenger.maybeOf(context)?.showSnackBar(
           SnackBar(
             content: Text(error),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.errorContainer,
           ),
         );
       },
@@ -49,37 +49,38 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
   /// Refreshes all providers after import to ensure UI shows updated data
   Future<void> _refreshProviders() async {
     if (!mounted) return;
-    
+
     try {
       debugPrint('[BackupSettings] Starting provider refresh after import...');
-      
+
       // Invalidate and refresh available providers
       ref.invalidate(tasksProvider);
       ref.invalidate(preferencesStateProvider);
       ref.invalidate(notesProvider);
-      
+
       // Force rebuild by reading providers
       ref.read(tasksProvider.notifier).refresh();
       ref.read(preferencesStateProvider);
       ref.read(notesProvider.notifier).refresh();
-      
+
       // Wait a moment for providers to refresh
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       debugPrint('[BackupSettings] Provider refresh completed');
-      
+
       if (!mounted) return;
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         const SnackBar(
-          content: Text('Data refreshed - your imported tasks and notes should now be visible!'),
+          content: Text(
+            'Data refreshed - your imported tasks and notes should now be visible!',
+          ),
           backgroundColor: Colors.green,
         ),
       );
-      
     } catch (e) {
       debugPrint('[BackupSettings] Error during provider refresh: $e');
       if (!mounted) return;
-      
+
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(
           content: Text('Refresh failed: $e'),
@@ -106,18 +107,23 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
               children: [
                 const Text('Configure when automatic backups should run:'),
                 const SizedBox(height: 16),
-                
+
                 // Info about backup location
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, 
-                           color: Theme.of(context).colorScheme.primary, size: 20),
+                      Icon(
+                        Icons.info_outline,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -129,7 +135,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Backup Frequency
                 DropdownButtonFormField<int>(
                   value: selectedInterval,
@@ -138,10 +144,12 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                     border: OutlineInputBorder(),
                   ),
                   items: AutoBackupService.backupIntervals.entries
-                      .map((entry) => DropdownMenuItem(
-                            value: entry.value,
-                            child: Text(entry.key),
-                          ))
+                      .map(
+                        (entry) => DropdownMenuItem(
+                          value: entry.value,
+                          child: Text(entry.key),
+                        ),
+                      )
                       .toList(),
                   onChanged: (value) {
                     if (value != null) {
@@ -150,7 +158,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Conditions
                 CheckboxListTile(
                   title: const Text('Only when charging'),
@@ -162,7 +170,9 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                 ),
                 CheckboxListTile(
                   title: const Text('Only on WiFi'),
-                  subtitle: const Text('Recommended to avoid mobile data usage'),
+                  subtitle: const Text(
+                    'Recommended to avoid mobile data usage',
+                  ),
                   value: requiresWifi,
                   onChanged: (value) {
                     setState(() => requiresWifi = value ?? true);
@@ -234,7 +244,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
       final backups = await AutoBackupService.instance.listAutoBackups();
-      
+
       if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
 
@@ -276,7 +286,9 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                             setState(() => selectedBackup = value);
                           },
                           title: Text(backup.filename),
-                          subtitle: Text('${backup.formattedDate} • ${backup.formattedSize}'),
+                          subtitle: Text(
+                            '${backup.formattedDate} • ${backup.formattedSize}',
+                          ),
                         );
                       },
                     ),
@@ -290,9 +302,9 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                 child: const Text('Cancel'),
               ),
               ElevatedButton(
-                onPressed: selectedBackup != null 
-                  ? () => Navigator.of(context).pop(true)
-                  : null,
+                onPressed: selectedBackup != null
+                    ? () => Navigator.of(context).pop(true)
+                    : null,
                 child: const Text('Import'),
               ),
             ],
@@ -327,7 +339,9 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
 
         if (reallyImport == true) {
           // Perform the import
-          final success = await AutoBackupService.instance.importAutoBackup(selectedBackup!.filename);
+          final success = await AutoBackupService.instance.importAutoBackup(
+            selectedBackup!.filename,
+          );
           if (!mounted) return;
 
           final scaffoldMessenger = ScaffoldMessenger.of(context);
@@ -352,7 +366,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog if still open
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error loading backups: $e'),
@@ -369,9 +383,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
         title: const Text('Choose Export Location'),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Where would you like to save your backup?'),
-          ],
+          children: [Text('Where would you like to save your backup?')],
         ),
         actions: [
           TextButton(
@@ -445,7 +457,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
     try {
       final success = await MarkdownExportService.exportNotesToFiles();
       if (!mounted) return;
-      
+
       final scaffoldMessenger = ScaffoldMessenger.of(context);
       if (success) {
         scaffoldMessenger.showSnackBar(
@@ -477,7 +489,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
     try {
       final result = await MarkdownExportService.importNotesFromFiles();
       if (!mounted) return;
-      
+
       final scaffoldMessenger = ScaffoldMessenger.of(context);
       if (result.success) {
         scaffoldMessenger.showSnackBar(
@@ -528,13 +540,16 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
             const SizedBox(height: 24),
 
             // Backup Folder Section
-            const Text('Backup Location', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Backup Location',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
             FutureBuilder<String?>(
               future: AutoBackupService.instance.getCustomBackupFolder(),
               builder: (context, snapshot) {
                 final customFolder = snapshot.data;
-                
+
                 return Card(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: Padding(
@@ -544,19 +559,23 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.folder, color: Theme.of(context).colorScheme.primary),
+                            Icon(
+                              Icons.folder,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
                             const SizedBox(width: 8),
-                            Text('Current Location', 
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              )),
+                            Text(
+                              'Current Location',
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          customFolder != null 
-                            ? 'Custom folder selected' 
-                            : 'Default app folder (Android/data/...)',
+                          customFolder != null
+                              ? 'Custom folder selected'
+                              : 'Default app folder (Android/data/...)',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         const SizedBox(height: 12),
@@ -565,14 +584,19 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                             Expanded(
                               child: FilledButton.icon(
                                 onPressed: () async {
-                                  final success = await AutoBackupService.instance.chooseBackupFolder();
+                                  final success = await AutoBackupService
+                                      .instance
+                                      .chooseBackupFolder();
                                   if (!mounted) return;
-                                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+                                  final scaffoldMessenger =
+                                      ScaffoldMessenger.of(context);
                                   if (success) {
                                     setState(() {}); // Refresh the UI
                                     scaffoldMessenger.showSnackBar(
                                       const SnackBar(
-                                        content: Text('Backup folder updated! All future backups will use this location.'),
+                                        content: Text(
+                                          'Backup folder updated! All future backups will use this location.',
+                                        ),
                                         backgroundColor: Colors.green,
                                       ),
                                     );
@@ -586,14 +610,19 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                               const SizedBox(width: 8),
                               OutlinedButton.icon(
                                 onPressed: () async {
-                                  final scaffoldMessenger = ScaffoldMessenger.of(context);
-                                  final success = await AutoBackupService.instance.clearCustomBackupFolder();
+                                  final scaffoldMessenger =
+                                      ScaffoldMessenger.of(context);
+                                  final success = await AutoBackupService
+                                      .instance
+                                      .clearCustomBackupFolder();
                                   if (!mounted) return;
                                   if (success) {
                                     setState(() {}); // Refresh the UI
                                     scaffoldMessenger.showSnackBar(
                                       const SnackBar(
-                                        content: Text('Reverted to default app folder'),
+                                        content: Text(
+                                          'Reverted to default app folder',
+                                        ),
                                         backgroundColor: Colors.blue,
                                       ),
                                     );
@@ -611,75 +640,95 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                 );
               },
             ),
-            
+
             const SizedBox(height: 24),
 
             // Manual Backup & Restore
-            const Text('Manual Backup & Restore', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Manual Backup & Restore',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
-            Wrap(spacing: 12, runSpacing: 12, children: [
-              FilledButton.icon(
-                onPressed: () async {
-                  // Check if user has a custom backup folder set
-                  final customFolder = await AutoBackupService.instance.getCustomBackupFolder();
-                  
-                  if (customFolder != null) {
-                    // Show choice: custom folder or traditional picker
-                    await _showExportLocationDialog();
-                  } else {
-                    // No custom folder set, use traditional export
-                    await _performTraditionalExport();
-                  }
-                },
-                icon: const Icon(Icons.file_upload_outlined),
-                label: const Text('Export JSON'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  try {
-                    await FilesChannel.instance.startImport();
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                      const SnackBar(
-                        content: Text('Import started - select your backup file'),
-                        backgroundColor: Colors.blue,
-                      ),
-                    );
-                  } catch (e) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                      SnackBar(
-                        content: Text('Import failed: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.file_download_outlined),
-                label: const Text('Import JSON'),
-              ),
-            ]),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                FilledButton.icon(
+                  onPressed: () async {
+                    // Check if user has a custom backup folder set
+                    final customFolder = await AutoBackupService.instance
+                        .getCustomBackupFolder();
+
+                    if (customFolder != null) {
+                      // Show choice: custom folder or traditional picker
+                      await _showExportLocationDialog();
+                    } else {
+                      // No custom folder set, use traditional export
+                      await _performTraditionalExport();
+                    }
+                  },
+                  icon: const Icon(Icons.file_upload_outlined),
+                  label: const Text('Export JSON'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    try {
+                      await FilesChannel.instance.startImport();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Import started - select your backup file',
+                          ),
+                          backgroundColor: Colors.blue,
+                        ),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                        SnackBar(
+                          content: Text('Import failed: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.file_download_outlined),
+                  label: const Text('Import JSON'),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
-            
+
             // Markdown Notes Export/Import Section
-            const Text('Markdown Files', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Markdown Files',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
-            Wrap(spacing: 12, runSpacing: 12, children: [
-              FilledButton.icon(
-                onPressed: _exportNotesToMarkdown,
-                icon: const Icon(Icons.file_upload_outlined),
-                label: const Text('Export .md'),
-              ),
-              OutlinedButton.icon(
-                onPressed: _importNotesFromMarkdown,
-                icon: const Icon(Icons.file_download_outlined),
-                label: const Text('Import .md'),
-              ),
-            ]),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                FilledButton.icon(
+                  onPressed: _exportNotesToMarkdown,
+                  icon: const Icon(Icons.file_upload_outlined),
+                  label: const Text('Export .md'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _importNotesFromMarkdown,
+                  icon: const Icon(Icons.file_download_outlined),
+                  label: const Text('Import .md'),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
-            
+
             // Auto Backup Settings
-            const Text('Automatic Backup', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Automatic Backup',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
             FutureBuilder<bool>(
               future: AutoBackupService.instance.isAutoBackupScheduled(),
@@ -693,7 +742,9 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                         Row(
                           children: [
                             Icon(
-                              isScheduled ? Icons.backup : Icons.backup_outlined,
+                              isScheduled
+                                  ? Icons.backup
+                                  : Icons.backup_outlined,
                               color: isScheduled ? Colors.green : Colors.grey,
                             ),
                             const SizedBox(width: 12),
@@ -702,17 +753,21 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    isScheduled ? 'Auto Backup: Enabled' : 'Auto Backup: Disabled',
+                                    isScheduled
+                                        ? 'Auto Backup: Enabled'
+                                        : 'Auto Backup: Disabled',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                       color: isScheduled ? Colors.green : null,
                                     ),
                                   ),
                                   Text(
-                                    isScheduled 
-                                      ? 'Your tasks are automatically backed up daily'
-                                      : 'Enable automatic backups to protect your data',
-                                    style: Theme.of(context).textTheme.bodySmall,
+                                    isScheduled
+                                        ? 'Your tasks are automatically backed up daily'
+                                        : 'Enable automatic backups to protect your data',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
                                   ),
                                 ],
                               ),
@@ -723,7 +778,8 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                                 if (enabled) {
                                   await _showAutoBackupSetupDialog();
                                 } else {
-                                  await AutoBackupService.instance.cancelAutoBackup();
+                                  await AutoBackupService.instance
+                                      .cancelAutoBackup();
                                   setState(() {});
                                 }
                               },
@@ -747,14 +803,19 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                               ),
                               TextButton.icon(
                                 onPressed: () async {
-                                  final scaffoldMessenger = ScaffoldMessenger.of(context);
-                                  final success = await AutoBackupService.instance.openBackupFolder();
+                                  final scaffoldMessenger =
+                                      ScaffoldMessenger.of(context);
+                                  final success = await AutoBackupService
+                                      .instance
+                                      .openBackupFolder();
                                   if (!context.mounted) return;
-                                  
+
                                   if (success) {
                                     scaffoldMessenger.showSnackBar(
                                       const SnackBar(
-                                        content: Text('Opening file manager...'),
+                                        content: Text(
+                                          'Opening file manager...',
+                                        ),
                                         backgroundColor: Colors.blue,
                                         duration: Duration(seconds: 2),
                                       ),
@@ -767,28 +828,40 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                                         title: const Text('Backup Location'),
                                         content: const Column(
                                           mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            Text('Your automatic backups are saved to:'),
+                                            Text(
+                                              'Your automatic backups are saved to:',
+                                            ),
                                             SizedBox(height: 8),
                                             SelectableText(
                                               'Android/data/com.trudido.app/files/AutoBackups/',
                                               style: TextStyle(
                                                 fontFamily: 'monospace',
-                                                backgroundColor: Color(0xFFF5F5F5),
+                                                backgroundColor: Color(
+                                                  0xFFF5F5F5,
+                                                ),
                                               ),
                                             ),
                                             SizedBox(height: 12),
-                                            Text('To access this folder manually:'),
+                                            Text(
+                                              'To access this folder manually:',
+                                            ),
                                             SizedBox(height: 4),
                                             Text('1. Open your file manager'),
-                                            Text('2. Navigate to Internal Storage'),
-                                            Text('3. Go to Android → data → com.trudido.app → files → AutoBackups'),
+                                            Text(
+                                              '2. Navigate to Internal Storage',
+                                            ),
+                                            Text(
+                                              '3. Go to Android → data → com.trudido.app → files → AutoBackups',
+                                            ),
                                           ],
                                         ),
                                         actions: [
                                           TextButton(
-                                            onPressed: () => Navigator.of(context).pop(),
+                                            onPressed: () =>
+                                                Navigator.of(context).pop(),
                                             child: const Text('OK'),
                                           ),
                                         ],
@@ -808,9 +881,9 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                 );
               },
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Help Section
             Card(
               color: Theme.of(context).colorScheme.surfaceContainerLow,
@@ -821,21 +894,23 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.help_outline, color: Theme.of(context).colorScheme.primary),
+                        Icon(
+                          Icons.help_outline,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'About Backups',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '• Manual backups let you choose exactly when and where to save\n' 
-                      '• Automatic backups run in the background on your schedule\n' 
-                      '• Both use the same backup folder you select above\n' 
+                      '• Manual backups let you choose exactly when and where to save\n'
+                      '• Automatic backups run in the background on your schedule\n'
+                      '• Both use the same backup folder you select above\n'
                       '• JSON files contain all your tasks, categories, and settings',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),

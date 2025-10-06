@@ -33,10 +33,22 @@ class _SwipeActionSheet extends ConsumerWidget {
     final controller = ref.read(preferencesControllerProvider);
     final cs = Theme.of(context).colorScheme;
 
-    Widget buildActionOption(String action, String label, IconData icon, bool isSelected, VoidCallback onTap) {
+    Widget buildActionOption(
+      String action,
+      String label,
+      IconData icon,
+      bool isSelected,
+      VoidCallback onTap,
+    ) {
       return ListTile(
-        leading: Icon(icon, color: isSelected ? cs.primary : cs.onSurfaceVariant),
-        title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : null)),
+        leading: Icon(
+          icon,
+          color: isSelected ? cs.primary : cs.onSurfaceVariant,
+        ),
+        title: Text(
+          label,
+          style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : null),
+        ),
         trailing: isSelected ? Icon(Icons.check, color: cs.primary) : null,
         onTap: onTap,
       );
@@ -142,11 +154,9 @@ class SettingsScreen extends ConsumerWidget {
     }
     final taskStats = ref.watch(taskStatisticsProvider);
     final statistics = taskStats; // adapt naming for existing UI
-    
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
           // Display & Theme Section
@@ -164,9 +174,7 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
-          
-          
-          
+
           // Templates & Workflows Section
           _buildSectionHeader(context, 'Templates & Workflows'),
           ListTile(
@@ -182,11 +190,11 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
-          
+
           _buildSwipeDirectionSetting(context, ref),
-          
+
           const Divider(),
-          
+
           // Notifications Section
           _buildSectionHeader(context, 'Notifications'),
           ListTile(
@@ -197,14 +205,15 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => const ComprehensiveNotificationSettings(),
+                  builder: (context) =>
+                      const ComprehensiveNotificationSettings(),
                 ),
               );
             },
           ),
-          
+
           const Divider(),
-          
+
           // Data & Storage Section
           _buildSectionHeader(context, 'Data & Storage'),
           ListTile(
@@ -220,15 +229,15 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
-          
+
           const Divider(),
-          
+
           // About Section
           _buildSectionHeader(context, 'About'),
           ListTile(
             leading: Icon(Icons.info_outline),
             title: const Text('App Version'),
-            trailing: const Text('v.1.2.0-2'),
+            trailing: const Text('v.1.2.0-3'),
           ),
           ListTile(
             leading: Icon(Icons.code),
@@ -238,43 +247,52 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: Icon(Icons.info_outline),
             title: const Text('About & Licenses'),
-            subtitle: const Text('App license, package licenses and repository'),
+            subtitle: const Text(
+              'App license, package licenses and repository',
+            ),
             trailing: Icon(Icons.arrow_forward_ios),
             onTap: () {
-              Navigator.of(context).push(MaterialPageRoute(builder: (context) => const AboutScreen()));
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const AboutScreen()),
+              );
             },
           ),
-          
+
           const Divider(),
-          
+
           // Debug Section (only in debug mode)
           if (const bool.fromEnvironment('dart.vm.product') == false) ...[
             _buildSectionHeader(context, 'Debug'),
             ListTile(
               leading: Icon(Icons.bug_report_outlined),
               title: const Text('Test Notification (10s)'),
-              subtitle: const Text('Schedules a native notification in 10 seconds'),
+              subtitle: const Text(
+                'Schedules a native notification in 10 seconds',
+              ),
               onTap: () async {
                 final dt = DateTime.now().add(const Duration(seconds: 10));
-                final ok = await NotificationBridge.instance.scheduleTaskNotification(
-                  taskId: 'settings_test',
-                  title: 'Settings Test',
-                  body: 'This fired after a 10s delay',
-                  scheduledTime: dt,
-                );
+                final ok = await NotificationBridge.instance
+                    .scheduleTaskNotification(
+                      taskId: 'settings_test',
+                      title: 'Settings Test',
+                      body: 'This fired after a 10s delay',
+                      scheduledTime: dt,
+                    );
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(ok ? 'Scheduled for 10s from now' : 'Failed to schedule'),
+                    content: Text(
+                      ok ? 'Scheduled for 10s from now' : 'Failed to schedule',
+                    ),
                     duration: const Duration(seconds: 4),
                   ),
                 );
               },
             ),
           ],
-          
+
           const Divider(),
-          
+
           // Data Management Section
           _buildSectionHeader(context, 'Data Management'),
           ListTile(
@@ -283,11 +301,16 @@ class SettingsScreen extends ConsumerWidget {
               'Clear Completed Tasks',
               style: TextStyle(color: theme.colorScheme.error),
             ),
-            subtitle: Text('Remove all completed tasks (${statistics.completed} tasks)'),
+            subtitle: Text(
+              'Remove all completed tasks (${statistics.completed} tasks)',
+            ),
             onTap: () => _showClearCompletedDialog(context, ref),
           ),
           ListTile(
-            leading: Icon(Icons.warning_amber_outlined, color: theme.colorScheme.error),
+            leading: Icon(
+              Icons.warning_amber_outlined,
+              color: theme.colorScheme.error,
+            ),
             title: Text(
               'Clear All Data',
               style: TextStyle(color: theme.colorScheme.error),
@@ -315,7 +338,7 @@ class SettingsScreen extends ConsumerWidget {
 
   Widget _buildSwipeDirectionSetting(BuildContext context, WidgetRef ref) {
     final preferences = ref.watch(preferencesStateProvider);
-    
+
     return ListTile(
       leading: const Icon(Icons.swipe),
       title: const Text('Swipe Actions'),
@@ -351,9 +374,7 @@ class SettingsScreen extends ConsumerWidget {
               ref.read(taskControllerProvider.notifier).clearCompleted();
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Completed tasks cleared'),
-                ),
+                const SnackBar(content: Text('Completed tasks cleared')),
               );
             },
             child: const Text('Clear'),
@@ -384,11 +405,9 @@ class SettingsScreen extends ConsumerWidget {
               // Bulk delete all tasks (categories handled later)
               ref.read(taskControllerProvider.notifier).clearAll();
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('All data cleared'),
-                ),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('All data cleared')));
             },
             child: const Text('Clear All'),
           ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/note.dart';
 import '../controllers/notes_controller.dart';
 import '../repositories/notes_repository.dart';
@@ -33,7 +32,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              PhosphorIcons.warning(),
+              Icons.warning,
               size: 64,
               color: Theme.of(context).colorScheme.error,
             ),
@@ -63,15 +62,13 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     if (notes.isEmpty) {
       final isSearchMode = ref.watch(notesSearchModeProvider);
       final searchQuery = ref.watch(notesSearchQueryProvider);
-      
+
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              isSearchMode 
-                ? PhosphorIcons.magnifyingGlass() 
-                : PhosphorIcons.noteBlank(),
+              isSearchMode ? Icons.search : Icons.note_add,
               size: 64,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -110,7 +107,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               return true; // Consume the notification
             }
           }
-          
+
           // Also listen for overscroll notifications
           if (scrollNotification is OverscrollNotification) {
             if (scrollNotification.overscroll < -20) {
@@ -118,7 +115,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               return true;
             }
           }
-          
+
           return false;
         },
         child: ListView.builder(
@@ -142,17 +139,13 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
   void _previewNote(Note note) {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => NotePreviewScreen(note: note),
-      ),
+      MaterialPageRoute(builder: (context) => NotePreviewScreen(note: note)),
     );
   }
 
   void _editNote(String noteId) {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => NoteEditorScreen(noteId: noteId),
-      ),
+      MaterialPageRoute(builder: (context) => NoteEditorScreen(noteId: noteId)),
     );
   }
 
@@ -162,7 +155,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
   Future<void> _deleteNoteConfirmed(String noteId) async {
     // Direct deletion without confirmation dialog (for swipe gestures)
-    final success = await ref.read(notesControllerProvider.notifier).deleteNote(noteId);
+    final success = await ref
+        .read(notesControllerProvider.notifier)
+        .deleteNote(noteId);
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -193,7 +188,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     );
 
     if (confirmed == true) {
-      final success = await ref.read(notesControllerProvider.notifier).deleteNote(noteId);
+      final success = await ref
+          .read(notesControllerProvider.notifier)
+          .deleteNote(noteId);
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

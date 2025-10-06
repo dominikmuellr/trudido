@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/folder.dart';
 import '../services/folder_provider.dart';
 import '../screens/folder_management_screen.dart';
@@ -27,7 +26,7 @@ class FolderSelectionScreen extends ConsumerWidget {
                 ),
               );
             },
-            icon: Icon(PhosphorIcons.gear()),
+            icon: Icon(Icons.settings),
             tooltip: 'Manage folders',
           ),
         ],
@@ -46,22 +45,24 @@ class FolderSelectionScreen extends ConsumerWidget {
               },
             ),
             const SizedBox(height: 8),
-            
+
             // Individual folders
-            ...folders.map((folder) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _FolderTile(
-                folder: folder,
-                isSelected: selectedFolderId == folder.id,
-                onTap: () {
-                  ref.read(selectedFolderProvider.notifier).state = folder.id;
-                  Navigator.pop(context);
-                },
+            ...folders.map(
+              (folder) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _FolderTile(
+                  folder: folder,
+                  isSelected: selectedFolderId == folder.id,
+                  onTap: () {
+                    ref.read(selectedFolderProvider.notifier).state = folder.id;
+                    Navigator.pop(context);
+                  },
+                ),
               ),
-            )),
-            
+            ),
+
             const SizedBox(height: 32),
-            
+
             // Create new folder button
             OutlinedButton.icon(
               onPressed: () {
@@ -72,7 +73,7 @@ class FolderSelectionScreen extends ConsumerWidget {
                   ),
                 );
               },
-              icon: Icon(PhosphorIcons.plus()),
+              icon: Icon(Icons.add),
               label: const Text('Create New Folder'),
             ),
           ],
@@ -82,19 +83,13 @@ class FolderSelectionScreen extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                PhosphorIcons.warning(),
-                color: theme.colorScheme.error,
-                size: 48,
-              ),
+              Icon(Icons.warning, color: theme.colorScheme.error, size: 48),
               const SizedBox(height: 16),
-              Text(
-                'Error loading folders',
-                style: theme.textTheme.titleMedium,
-              ),
+              Text('Error loading folders', style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               ElevatedButton(
-                onPressed: () => ref.read(folderNotifierProvider.notifier).loadFolders(),
+                onPressed: () =>
+                    ref.read(folderNotifierProvider.notifier).loadFolders(),
                 child: const Text('Retry'),
               ),
             ],
@@ -120,7 +115,7 @@ class _FolderTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isAllFolders = folder == null;
-    
+
     return Material(
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
@@ -131,14 +126,12 @@ class _FolderTile extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected 
-                ? theme.colorScheme.primary
-                : theme.colorScheme.outline.withAlpha(51),
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.outline.withAlpha(51),
               width: isSelected ? 2 : 1,
             ),
-            color: isSelected 
-              ? theme.colorScheme.primary.withAlpha(13)
-              : null,
+            color: isSelected ? theme.colorScheme.primary.withAlpha(13) : null,
           ),
           child: Row(
             children: [
@@ -153,18 +146,16 @@ class _FolderTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  isAllFolders
-                      ? PhosphorIcons.folders()
-                      : _getIconData(folder!.icon),
+                  isAllFolders ? Icons.folder : _getIconData(folder!.icon),
                   color: isAllFolders
                       ? theme.colorScheme.primary
                       : Color(folder!.color),
                   size: 20,
                 ),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               // Folder info
               Expanded(
                 child: Column(
@@ -173,11 +164,14 @@ class _FolderTile extends StatelessWidget {
                     Text(
                       isAllFolders ? 'All Folders' : folder!.name,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                         color: isSelected ? theme.colorScheme.primary : null,
                       ),
                     ),
-                    if (!isAllFolders && folder!.description?.isNotEmpty == true) ...[
+                    if (!isAllFolders &&
+                        folder!.description?.isNotEmpty == true) ...[
                       const SizedBox(height: 4),
                       Text(
                         folder!.description!,
@@ -191,14 +185,10 @@ class _FolderTile extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
               // Selection indicator
               if (isSelected)
-                Icon(
-                  PhosphorIcons.check(),
-                  color: theme.colorScheme.primary,
-                  size: 20,
-                ),
+                Icon(Icons.done, color: theme.colorScheme.primary, size: 20),
             ],
           ),
         ),
@@ -209,27 +199,27 @@ class _FolderTile extends StatelessWidget {
   IconData _getIconData(String? iconName) {
     switch (iconName) {
       case 'person':
-        return PhosphorIcons.user();
+        return Icons.person;
       case 'work':
-        return PhosphorIcons.briefcase();
+        return Icons.work;
       case 'shopping_cart':
-        return PhosphorIcons.shoppingCart();
+        return Icons.shopping_cart;
       case 'home':
-        return PhosphorIcons.house();
+        return Icons.home;
       case 'school':
-        return PhosphorIcons.graduationCap();
+        return Icons.school;
       case 'health':
-        return PhosphorIcons.heart();
+        return Icons.favorite;
       case 'travel':
-        return PhosphorIcons.airplane();
+        return Icons.flight;
       case 'finance':
-        return PhosphorIcons.piggyBank();
+        return Icons.savings;
       case 'hobby':
-        return PhosphorIcons.gameController();
+        return Icons.games;
       case 'fitness':
-        return PhosphorIcons.barbell();
+        return Icons.fitness_center;
       default:
-        return PhosphorIcons.folder();
+        return Icons.folder;
     }
   }
 }

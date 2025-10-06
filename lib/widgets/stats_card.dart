@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../controllers/task_controller.dart';
 
 class StatsCard extends StatelessWidget {
   final TaskStatistics statistics;
 
-  const StatsCard({
-    super.key,
-    required this.statistics,
-  });
+  const StatsCard({super.key, required this.statistics});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -35,7 +31,8 @@ class StatsCard extends StatelessWidget {
                       const SizedBox(height: 8),
                       LinearProgressIndicator(
                         value: statistics.completionRate,
-                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
                         valueColor: AlwaysStoppedAnimation<Color>(
                           theme.colorScheme.primary,
                         ),
@@ -59,7 +56,8 @@ class StatsCard extends StatelessWidget {
                       child: CircularProgressIndicator(
                         value: statistics.completionRate,
                         strokeWidth: 6,
-                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
                         valueColor: AlwaysStoppedAnimation<Color>(
                           theme.colorScheme.primary,
                         ),
@@ -76,50 +74,53 @@ class StatsCard extends StatelessWidget {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Stats row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildStatItem(
                   context,
-                  icon: PhosphorIcons.listChecks(),
+                  icon: Icons.checklist,
                   label: 'Total',
                   value: '${statistics.total}',
                 ),
                 _buildStatItem(
                   context,
-                  icon: PhosphorIcons.clock(),
+                  icon: Icons.schedule,
                   label: 'Pending',
                   value: '${statistics.pending}',
-                  color: Colors.orange,
+                  color: Theme.of(context).colorScheme.tertiary,
                 ),
                 if (statistics.overdue > 0)
                   _buildStatItem(
                     context,
-                    icon: PhosphorIcons.warning(),
+                    icon: Icons.warning,
                     label: 'Overdue',
                     value: '${statistics.overdue}',
-                    color: Colors.red,
+                    color: Theme.of(context).colorScheme.error,
                   ),
                 if (statistics.dueToday > 0)
                   _buildStatItem(
                     context,
-                    icon: PhosphorIcons.calendar(),
+                    icon: Icons.event,
                     label: 'Due Today',
                     value: '${statistics.dueToday}',
-                    color: Colors.orange,
+                    color: Theme.of(context).colorScheme.tertiary,
                   ),
               ],
             ),
-            
+
             // Motivational message
             if (statistics.motivationalMessage.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(20),
@@ -149,15 +150,11 @@ class StatsCard extends StatelessWidget {
   }) {
     final theme = Theme.of(context);
     final statColor = color ?? theme.colorScheme.outline;
-    
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          icon,
-          color: statColor,
-          size: 20,
-        ),
+        Icon(icon, color: statColor, size: 20),
         const SizedBox(height: 4),
         Text(
           value,

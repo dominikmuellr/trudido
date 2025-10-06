@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../services/folder_provider.dart';
 import '../screens/folder_selection_screen.dart';
 import '../services/theme_service.dart';
@@ -33,26 +32,28 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
     final foldersAsync = ref.watch(folderNotifierProvider);
     final selectedFolderId = ref.watch(selectedFolderProvider);
     final theme = Theme.of(context);
-  final appOpts = theme.extension<AppOptions>() ?? const AppOptions(compact: false, highContrast: false);
-  final cardHeight = appOpts.compact ? 64.0 : 80.0;
-  final iconBox = appOpts.compact ? 40.0 : 48.0;
-  final outerMarginV = appOpts.compact ? 4.0 : 8.0;
-  final outerMarginH = 16.0;
-  final horizPad = appOpts.compact ? 12.0 : 16.0;
-  final vertPad = appOpts.compact ? 8.0 : 12.0;
-  final titleSize = appOpts.compact ? 15.0 : 16.0;
-  final descSize = appOpts.compact ? 11.0 : 12.0;
+    final appOpts =
+        theme.extension<AppOptions>() ??
+        const AppOptions(compact: false, highContrast: false);
+    final cardHeight = appOpts.compact ? 64.0 : 80.0;
+    final iconBox = appOpts.compact ? 40.0 : 48.0;
+    final outerMarginV = appOpts.compact ? 4.0 : 8.0;
+    final outerMarginH = 16.0;
+    final horizPad = appOpts.compact ? 12.0 : 16.0;
+    final vertPad = appOpts.compact ? 8.0 : 12.0;
+    final titleSize = appOpts.compact ? 15.0 : 16.0;
+    final descSize = appOpts.compact ? 11.0 : 12.0;
 
     return foldersAsync.when(
       data: (folders) {
         // Create list with "All folders" option at the beginning
         final allOptions = [null, ...folders];
-        
+
         // Find current index based on selected folder
-        final selectedIndex = selectedFolderId == null 
-            ? 0 
+        final selectedIndex = selectedFolderId == null
+            ? 0
             : allOptions.indexWhere((folder) => folder?.id == selectedFolderId);
-        
+
         // Update page controller if selection changed externally
         if (selectedIndex != -1 && selectedIndex != _currentIndex) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -77,10 +78,16 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
             );
           },
           child: Card(
-            margin: EdgeInsets.symmetric(horizontal: outerMarginH, vertical: outerMarginV),
+            margin: EdgeInsets.symmetric(
+              horizontal: outerMarginH,
+              vertical: outerMarginV,
+            ),
             child: Container(
               height: cardHeight,
-              padding: EdgeInsets.symmetric(horizontal: horizPad, vertical: vertPad),
+              padding: EdgeInsets.symmetric(
+                horizontal: horizPad,
+                vertical: vertPad,
+              ),
               child: allOptions.isEmpty
                   ? Row(
                       children: [
@@ -92,7 +99,7 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
-                            PhosphorIcons.folders(),
+                            Icons.folder,
                             color: theme.colorScheme.primary,
                             size: 24,
                           ),
@@ -124,16 +131,17 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                               setState(() {
                                 _currentIndex = index;
                               });
-                              
+
                               // Update selected folder
                               final folder = allOptions[index];
-                              ref.read(selectedFolderProvider.notifier).state = folder?.id;
+                              ref.read(selectedFolderProvider.notifier).state =
+                                  folder?.id;
                             },
                             itemCount: allOptions.length,
                             itemBuilder: (context, index) {
                               final folder = allOptions[index];
                               final isAllFolders = folder == null;
-                              
+
                               return Row(
                                 children: [
                                   // Folder icon
@@ -142,13 +150,15 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                                     height: iconBox,
                                     decoration: BoxDecoration(
                                       color: isAllFolders
-                                          ? theme.colorScheme.primary.withAlpha(51)
+                                          ? theme.colorScheme.primary.withAlpha(
+                                              51,
+                                            )
                                           : Color(folder.color).withAlpha(51),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Icon(
                                       isAllFolders
-                                          ? PhosphorIcons.folders()
+                                          ? Icons.folder
                                           : _getIconData(folder.icon),
                                       color: isAllFolders
                                           ? theme.colorScheme.primary
@@ -156,33 +166,43 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                                       size: 24,
                                     ),
                                   ),
-                                  
+
                                   SizedBox(width: appOpts.compact ? 12 : 16),
-                                  
+
                                   // Folder info
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Text(
-                                          isAllFolders ? 'All Folders' : folder.name,
+                                          isAllFolders
+                                              ? 'All Folders'
+                                              : folder.name,
                                           style: TextStyle(
                                             fontSize: titleSize,
                                             fontWeight: FontWeight.w600,
                                           ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
-                                        SizedBox(height: appOpts.compact ? 1 : 2),
+                                        SizedBox(
+                                          height: appOpts.compact ? 1 : 2,
+                                        ),
                                         Text(
-                                          isAllFolders 
+                                          isAllFolders
                                               ? 'View all your todos'
-                                              : (folder.description?.isNotEmpty == true
-                                                  ? folder.description!
-                                                  : 'Folder todos'),
+                                              : (folder
+                                                            .description
+                                                            ?.isNotEmpty ==
+                                                        true
+                                                    ? folder.description!
+                                                    : 'Folder todos'),
                                           style: TextStyle(
                                             fontSize: descSize,
-                                            color: theme.colorScheme.onSurface.withAlpha(153),
+                                            color: theme.colorScheme.onSurface
+                                                .withAlpha(153),
                                           ),
                                           overflow: TextOverflow.ellipsis,
                                           maxLines: 1,
@@ -195,9 +215,9 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                             },
                           ),
                         ),
-                        
+
                         // Navigation indicator and tap hint
-        Column(
+                        Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             if (allOptions.length > 1) ...[
@@ -209,19 +229,22 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                                   (index) => Container(
                                     width: 6,
                                     height: 6,
-                                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 2,
+                                    ),
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: index == _currentIndex
                                           ? theme.colorScheme.primary
-                                          : theme.colorScheme.onSurface.withAlpha(77),
+                                          : theme.colorScheme.onSurface
+                                                .withAlpha(77),
                                     ),
                                   ),
                                 ),
                               ),
-          SizedBox(height: appOpts.compact ? 2 : 4),
+                              SizedBox(height: appOpts.compact ? 2 : 4),
                             ],
-                            
+
                             // Tap to select icon
                             Icon(
                               Icons.more_horiz,
@@ -237,15 +260,21 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
         );
       },
       loading: () => Card(
-    margin: EdgeInsets.symmetric(horizontal: outerMarginH, vertical: outerMarginV),
+        margin: EdgeInsets.symmetric(
+          horizontal: outerMarginH,
+          vertical: outerMarginV,
+        ),
         child: Container(
-      height: cardHeight,
-      padding: EdgeInsets.symmetric(horizontal: horizPad, vertical: vertPad),
+          height: cardHeight,
+          padding: EdgeInsets.symmetric(
+            horizontal: horizPad,
+            vertical: vertPad,
+          ),
           child: Row(
             children: [
               Container(
-        width: iconBox,
-        height: iconBox,
+                width: iconBox,
+                height: iconBox,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary.withAlpha(51),
                   borderRadius: BorderRadius.circular(12),
@@ -259,26 +288,25 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                 ),
               ),
               SizedBox(width: appOpts.compact ? 12 : 16),
-              const Text(
-                'Loading folders...',
-                style: TextStyle(fontSize: 16),
-              ),
+              const Text('Loading folders...', style: TextStyle(fontSize: 16)),
             ],
           ),
         ),
       ),
       error: (error, stack) => Card(
-        margin: EdgeInsets.symmetric(horizontal: outerMarginH, vertical: outerMarginV),
+        margin: EdgeInsets.symmetric(
+          horizontal: outerMarginH,
+          vertical: outerMarginV,
+        ),
         child: Container(
           height: cardHeight,
-          padding: EdgeInsets.symmetric(horizontal: horizPad, vertical: vertPad),
+          padding: EdgeInsets.symmetric(
+            horizontal: horizPad,
+            vertical: vertPad,
+          ),
           child: Row(
             children: [
-              Icon(
-                PhosphorIcons.warning(),
-                color: theme.colorScheme.error,
-                size: 24,
-              ),
+              Icon(Icons.warning, color: theme.colorScheme.error, size: 24),
               SizedBox(width: appOpts.compact ? 12 : 16),
               const Expanded(
                 child: Text(
@@ -287,7 +315,8 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
                 ),
               ),
               TextButton(
-                onPressed: () => ref.read(folderNotifierProvider.notifier).loadFolders(),
+                onPressed: () =>
+                    ref.read(folderNotifierProvider.notifier).loadFolders(),
                 child: const Text('Retry'),
               ),
             ],
@@ -300,27 +329,27 @@ class _FolderSelectorState extends ConsumerState<FolderSelector> {
   IconData _getIconData(String? iconName) {
     switch (iconName) {
       case 'person':
-        return PhosphorIcons.user();
+        return Icons.person;
       case 'work':
-        return PhosphorIcons.briefcase();
+        return Icons.work;
       case 'shopping_cart':
-        return PhosphorIcons.shoppingCart();
+        return Icons.shopping_cart;
       case 'home':
-        return PhosphorIcons.house();
+        return Icons.home;
       case 'school':
-        return PhosphorIcons.graduationCap();
+        return Icons.school;
       case 'health':
-        return PhosphorIcons.heart();
+        return Icons.favorite;
       case 'travel':
-        return PhosphorIcons.airplane();
+        return Icons.flight;
       case 'finance':
-        return PhosphorIcons.piggyBank();
+        return Icons.savings;
       case 'hobby':
-        return PhosphorIcons.gameController();
+        return Icons.games;
       case 'fitness':
-        return PhosphorIcons.barbell();
+        return Icons.fitness_center;
       default:
-        return PhosphorIcons.folder();
+        return Icons.folder;
     }
   }
 }

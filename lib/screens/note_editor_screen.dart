@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'dart:async';
 import '../models/note.dart';
 import '../controllers/notes_controller.dart';
 import '../repositories/notes_repository.dart';
-import '../services/storage_service.dart';
 import '../utils/smart_markdown_helper.dart';
+import '../services/theme_service.dart';
 
 /// Screen for creating and editing markdown notes
 class NoteEditorScreen extends ConsumerStatefulWidget {
@@ -46,25 +45,21 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _toolbarButton(PhosphorIcons.textB(), '**', tooltip: 'Bold'),
+                _toolbarButton(Icons.format_bold, '**', tooltip: 'Bold'),
+                _toolbarButton(Icons.format_italic, '*', tooltip: 'Italic'),
+                _toolbarButton(Icons.title, '# ', tooltip: 'Heading'),
                 _toolbarButton(
-                  PhosphorIcons.textItalic(),
-                  '*',
-                  tooltip: 'Italic',
-                ),
-                _toolbarButton(PhosphorIcons.textH(), '# ', tooltip: 'Heading'),
-                _toolbarButton(
-                  PhosphorIcons.listBullets(),
+                  Icons.format_list_bulleted,
                   '- ',
                   tooltip: 'List',
                 ),
                 _toolbarButton(
-                  PhosphorIcons.table(),
+                  Icons.table_chart,
                   '\n| Header 1 | Header 2 |\n| --- | --- |\n| Row 1 Col 1 | Row 1 Col 2 |\n',
                   tooltip: 'Table',
                 ),
                 _toolbarButton(
-                  PhosphorIcons.code(),
+                  Icons.code,
                   '\n```dart\ncode\n```\n',
                   tooltip: 'Code Block',
                 ),
@@ -122,35 +117,29 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     // existing note as new and create duplicates on autosave. Wait for the
     // notes box to be ready and try again to reliably load the note.
     Note? note = repository.getNoteById(widget.noteId!);
-    if (note == null) {
-      await StorageService.waitNotesReady();
-      note = repository.getNoteById(widget.noteId!);
-    }
 
-    if (note != null) {
-      _originalNote = note;
-      // When editing, put title and content together with title as first line
-      final titleLine = _originalNote!.title;
-      final contentLines = _originalNote!.content.split('\n');
+    _originalNote = note;
+    // When editing, put title and content together with title as first line
+    final titleLine = _originalNote!.title;
+    final contentLines = _originalNote!.content.split('\n');
 
-      // If the stored content already contains the title (possibly with
-      // markdown header prefixes like '#'), don't prepend the title again.
-      // Compare a header-stripped first line to the saved title.
-      if (contentLines.isNotEmpty) {
-        final firstLineStripped = contentLines.first.trim().replaceFirst(
-          RegExp(r'^#+\s*'),
-          '',
-        );
-        if (firstLineStripped == titleLine.trim()) {
-          _contentController.text = _originalNote!.content;
-        } else {
-          _contentController.text = '$titleLine\n${_originalNote!.content}';
-        }
+    // If the stored content already contains the title (possibly with
+    // markdown header prefixes like '#'), don't prepend the title again.
+    // Compare a header-stripped first line to the saved title.
+    if (contentLines.isNotEmpty) {
+      final firstLineStripped = contentLines.first.trim().replaceFirst(
+        RegExp(r'^#+\s*'),
+        '',
+      );
+      if (firstLineStripped == titleLine.trim()) {
+        _contentController.text = _originalNote!.content;
       } else {
         _contentController.text = '$titleLine\n${_originalNote!.content}';
       }
-      _isEditing = true;
+    } else {
+      _contentController.text = '$titleLine\n${_originalNote!.content}';
     }
+    _isEditing = true;
   }
 
   void _onContentChanged() {
@@ -259,8 +248,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
           bottom: TabBar(
             controller: _tabController,
             tabs: [
-              Tab(icon: Icon(PhosphorIcons.pencil()), text: 'Editor'),
-              Tab(icon: Icon(PhosphorIcons.eye()), text: 'Preview'),
+              Tab(icon: Icon(Icons.edit), text: 'Editor'),
+              Tab(icon: Icon(Icons.preview), text: 'Preview'),
             ],
           ),
           actions: [
@@ -375,7 +364,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              PhosphorIcons.fileText(),
+              Icons.description,
               size: 64,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -436,8 +425,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                     listBullet: Theme.of(
                       context,
                     ).textTheme.bodyLarge, // Larger list text
-                    code: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontFamily: 'monospace',
+                    code: AppTheme.getCodeTextStyle(context).copyWith(
                       backgroundColor: Theme.of(
                         context,
                       ).colorScheme.surfaceContainerHighest,
@@ -475,9 +463,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     if (rawContent.trim().isEmpty) {
       if (showFeedback) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please enter some content for the note'),
-            backgroundColor: Colors.red,
+          SnackBar(
+            content: const Text('Please enter some content for the note'),
+            backgroundColor: Theme.of(context).colorScheme.errorContainer,
           ),
         );
       }
@@ -504,10 +492,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         title: title,
         content: formattedContent,
       );
-      if (savedNote != null) {
-        // After creating, mark as editing so future autosaves update this note
-        _isEditing = true;
-      }
+      // After creating, mark as editing so future autosaves update this note
+      _isEditing = true;
     }
 
     // Update the controller text with formatted content to reflect the changes
@@ -519,7 +505,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       );
     }
 
-    if (savedNote != null && mounted) {
+    if (mounted) {
       setState(() {
         _hasUnsavedChanges = false;
         _originalNote = savedNote;
@@ -532,7 +518,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                   ? 'Note updated successfully'
                   : 'Note created successfully',
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
           ),
         );
         // If this was a manual create (not an update), close the editor as
@@ -616,16 +602,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     switch (_saveStatus) {
       case 'Auto-saving...':
       case 'Saving...':
-        return PhosphorIcons.cloudArrowUp();
+        return Icons.cloud_upload;
       case 'Auto-saved':
       case 'Saved':
-        return PhosphorIcons.checkCircle();
+        return Icons.check_circle;
       case 'Auto-save failed':
       case 'Save failed':
       case 'Title required for save':
-        return PhosphorIcons.warning();
+        return Icons.warning;
       default:
-        return PhosphorIcons.info();
+        return Icons.info;
     }
   }
 }

@@ -12,7 +12,7 @@ import '../repositories/hive_folder_template_repository.dart';
 class StorageService {
   static const String _todosBoxName = 'todos';
   static const String _notesBoxName = 'notes';
-  
+
   // Deferred / lazy boxes
   static LazyBox<Todo>? _todosLazyBox; // large dataset
   static Box<Note>? _notesBox; // notes storage
@@ -26,7 +26,8 @@ class StorageService {
   static bool enableLogging = true;
 
   static bool _initialized = false; // core (prefs + hive init) ready
-  static Completer<void>? _initCompleter; // completion for initial (settings only) init
+  static Completer<void>?
+  _initCompleter; // completion for initial (settings only) init
   static Completer<void>? _todosCompleter; // completion for todos lazy box open
   static Completer<void>? _notesCompleter; // completion for notes box open
 
@@ -60,9 +61,9 @@ class StorageService {
     }
     final afterAdapters = DateTime.now();
 
-  // SharedPreferences (fast)
-  await _ensurePrefs();
-  final afterPrefs = DateTime.now();
+    // SharedPreferences (fast)
+    await _ensurePrefs();
+    final afterPrefs = DateTime.now();
 
     // Schedule deferred opens (todos and notes) without blocking UI.
     Future(() async {
@@ -75,9 +76,11 @@ class StorageService {
       } catch (e) {
         if (enableLogging) {
           debugPrint('[StorageService] Failed to initialize notes box: $e');
-          debugPrint('[StorageService] Attempting to recover by clearing corrupted data...');
+          debugPrint(
+            '[StorageService] Attempting to recover by clearing corrupted data...',
+          );
         }
-        
+
         // Try to recover by deleting the corrupted box
         try {
           await Hive.deleteBoxFromDisk(_notesBoxName);
@@ -90,11 +93,13 @@ class StorageService {
         } catch (recoveryError, recoverySt) {
           _notesCompleter?.completeError(recoveryError, recoverySt);
           if (enableLogging) {
-            debugPrint('[StorageService] Failed to recover notes box: $recoveryError');
+            debugPrint(
+              '[StorageService] Failed to recover notes box: $recoveryError',
+            );
           }
         }
       }
-      
+
       // Todos lazy box (potentially large)
       _todosCompleter ??= Completer<void>();
       final todosStart = DateTime.now();
@@ -104,7 +109,9 @@ class StorageService {
         final dur = DateTime.now().difference(todosStart).inMilliseconds;
         if (enableLogging) {
           // ignore: avoid_debugPrint
-          debugPrint('[StorageService.deferred] opened todos lazy box in ${dur}ms');
+          debugPrint(
+            '[StorageService.deferred] opened todos lazy box in ${dur}ms',
+          );
         }
       } catch (e, st) {
         _todosCompleter?.completeError(e, st);
@@ -114,11 +121,11 @@ class StorageService {
       try {
         _folderRepository = HiveFolderRepository();
         await _folderRepository!.init();
-        
+
         // Initialize template repository
         _templateRepository = HiveFolderTemplateRepository();
         await _templateRepository!.init();
-        
+
         final repoDur = DateTime.now().difference(repoStart).inMilliseconds;
         if (enableLogging) {
           // ignore: avoid_debugPrint
@@ -136,7 +143,9 @@ class StorageService {
     // Lightweight timing log (debug only)
     if (enableLogging) {
       // ignore: avoid_debugPrint
-      debugPrint('[StorageService.init] hive=${afterHive.difference(start).inMilliseconds}ms adapters=${afterAdapters.difference(afterHive).inMilliseconds}ms prefs=${afterPrefs.difference(afterAdapters).inMilliseconds}ms deferredScheduled=${afterRepo.difference(afterPrefs).inMilliseconds}ms totalCritical=${afterRepo.difference(start).inMilliseconds}ms (categories,todos,repo deferred)');
+      debugPrint(
+        '[StorageService.init] hive=${afterHive.difference(start).inMilliseconds}ms adapters=${afterAdapters.difference(afterHive).inMilliseconds}ms prefs=${afterPrefs.difference(afterAdapters).inMilliseconds}ms deferredScheduled=${afterRepo.difference(afterPrefs).inMilliseconds}ms totalCritical=${afterRepo.difference(start).inMilliseconds}ms (categories,todos,repo deferred)',
+      );
     }
     _initialized = true;
     _initCompleter!.complete();
@@ -170,14 +179,20 @@ class StorageService {
     if (_todosLazyBox != null) return;
     await ensureReady();
     _todosCompleter ??= Completer<void>();
-    return _todosCompleter!.future.timeout(const Duration(seconds: 20), onTimeout: () {});
+    return _todosCompleter!.future.timeout(
+      const Duration(seconds: 20),
+      onTimeout: () {},
+    );
   }
 
   static Future<void> waitNotesReady() async {
     if (_notesBox != null) return;
     await ensureReady();
     _notesCompleter ??= Completer<void>();
-    return _notesCompleter!.future.timeout(const Duration(seconds: 10), onTimeout: () {});
+    return _notesCompleter!.future.timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {},
+    );
   }
 
   // Getter for folder repository
@@ -186,7 +201,8 @@ class StorageService {
   static Future<void> _initializeDefaultNote() async {
     final welcomeNote = Note(
       title: 'Welcome to Notes',
-      content: '''# Welcome to Notes!\n\nCreate and organize your thoughts here. You can:\n\n- Write notes with *markdown* syntax
+      content:
+          '''# Welcome to Notes!\n\nCreate and organize your thoughts here. You can:\n\n- Write notes with *markdown* syntax
 - Format text with **emphasis** and *styling*
 - Create [links](https://flutter.dev)
 - Add code blocks:
@@ -298,7 +314,10 @@ Enjoy taking notes! 📝''',
 
   static Future<void> clearAllTodos() async {
     await waitTodosReady();
-    if (_todosLazyBox != null) { await _todosLazyBox!.clear(); return; }
+    if (_todosLazyBox != null) {
+      await _todosLazyBox!.clear();
+      return;
+    }
   }
 
   static Future<void> saveTodosOrder(List<Todo> todos) async {
@@ -306,7 +325,9 @@ Enjoy taking notes! 📝''',
     await waitTodosReady();
     if (_todosLazyBox != null) {
       await _todosLazyBox!.clear();
-      for (final t in todos) { await _todosLazyBox!.put(t.id, t); }
+      for (final t in todos) {
+        await _todosLazyBox!.put(t.id, t);
+      }
       return;
     }
   }
@@ -341,54 +362,54 @@ Enjoy taking notes! 📝''',
 
   // Settings operations using SharedPreferences
   static Future<void> setThemeMode(String mode) async {
-  await _ensurePrefs();
-  await _prefs!.setString('theme_mode', mode);
+    await _ensurePrefs();
+    await _prefs!.setString('theme_mode', mode);
   }
 
   static String getThemeMode() {
-  if (_prefs == null) kickOffPrefsInit();
-  return _prefs?.getString('theme_mode') ?? 'system';
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getString('theme_mode') ?? 'system';
   }
 
   static Future<void> setDefaultCategory(String categoryId) async {
-  await _ensurePrefs();
-  await _prefs!.setString('default_category', categoryId);
+    await _ensurePrefs();
+    await _prefs!.setString('default_category', categoryId);
   }
 
   static String getDefaultCategory() {
-  if (_prefs == null) kickOffPrefsInit();
-  return _prefs?.getString('default_category') ?? 'personal';
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getString('default_category') ?? 'personal';
   }
 
   static Future<void> setDefaultPriority(String priority) async {
-  await _ensurePrefs();
-  await _prefs!.setString('default_priority', priority);
+    await _ensurePrefs();
+    await _prefs!.setString('default_priority', priority);
   }
 
   static String getDefaultPriority() {
-  if (_prefs == null) kickOffPrefsInit();
-  return _prefs?.getString('default_priority') ?? 'medium';
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getString('default_priority') ?? 'medium';
   }
 
   static Future<void> setLastSelectedFolder(String folderId) async {
-  await _ensurePrefs();
-  await _prefs!.setString('last_selected_folder', folderId);
+    await _ensurePrefs();
+    await _prefs!.setString('last_selected_folder', folderId);
   }
 
   static String? getLastSelectedFolder() {
-  if (_prefs == null) kickOffPrefsInit();
-  return _prefs?.getString('last_selected_folder');
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getString('last_selected_folder');
   }
 
   static Future<void> saveDefaultReminderOffset(int minutes) async {
-  await _ensurePrefs();
-  await _prefs!.setInt('default_reminder_offset', minutes);
+    await _ensurePrefs();
+    await _prefs!.setInt('default_reminder_offset', minutes);
   }
 
   static int getDefaultReminderOffset() {
     // Default to 15 minutes if no setting is saved
-  if (_prefs == null) kickOffPrefsInit();
-  return _prefs?.getInt('default_reminder_offset') ?? 15;
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getInt('default_reminder_offset') ?? 15;
   }
 
   static Future<String> getDefaultFolderId() async {
@@ -401,61 +422,63 @@ Enjoy taking notes! 📝''',
         return lastSelected;
       }
     }
-    
+
     // Fall back to 'Personal' folder or first available folder
     final folders = await _folderRepository!.getAllFolders();
-    final personalFolder = folders.where((f) => f.name == 'Personal').firstOrNull;
+    final personalFolder = folders
+        .where((f) => f.name == 'Personal')
+        .firstOrNull;
     if (personalFolder != null) {
       return personalFolder.id;
     }
-    
+
     // If no Personal folder, return the first folder or create a default
     if (folders.isNotEmpty) {
       return folders.first.id;
     }
-    
+
     // This should not happen due to default folder creation, but handle it
     throw Exception('No folders available');
   }
 
   static Future<void> setUserName(String name) async {
-  await _ensurePrefs();
-  await _prefs!.setString('user_name', name);
+    await _ensurePrefs();
+    await _prefs!.setString('user_name', name);
   }
 
   static String getUserName() {
-  if (_prefs == null) kickOffPrefsInit();
-  return _prefs?.getString('user_name') ?? '';
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getString('user_name') ?? '';
   }
 
   static Future<void> setNotificationsEnabled(bool enabled) async {
-  await _ensurePrefs();
-  await _prefs!.setBool('notifications_enabled', enabled);
+    await _ensurePrefs();
+    await _prefs!.setBool('notifications_enabled', enabled);
   }
 
   static bool getNotificationsEnabled() {
-  if (_prefs == null) kickOffPrefsInit();
-  return _prefs?.getBool('notifications_enabled') ?? true;
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getBool('notifications_enabled') ?? true;
   }
 
   static Future<void> setAutoDeleteCompleted(bool enabled) async {
-  await _ensurePrefs();
-  await _prefs!.setBool('auto_delete_completed', enabled);
+    await _ensurePrefs();
+    await _prefs!.setBool('auto_delete_completed', enabled);
   }
 
   static bool getAutoDeleteCompleted() {
-  if (_prefs == null) kickOffPrefsInit();
-  return _prefs?.getBool('auto_delete_completed') ?? false;
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getBool('auto_delete_completed') ?? false;
   }
 
   static Future<void> setShowCompletedTasks(bool show) async {
-  await _ensurePrefs();
-  await _prefs!.setBool('show_completed_tasks', show);
+    await _ensurePrefs();
+    await _prefs!.setBool('show_completed_tasks', show);
   }
 
   static bool getShowCompletedTasks() {
-  if (_prefs == null) kickOffPrefsInit();
-  return _prefs?.getBool('show_completed_tasks') ?? true;
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getBool('show_completed_tasks') ?? true;
   }
 
   // AMOLED / pure black dark theme preference
@@ -477,7 +500,8 @@ Enjoy taking notes! 📝''',
 
   static bool getUseDynamicColor() {
     if (_prefs == null) kickOffPrefsInit();
-    return _prefs?.getBool('use_dynamic_color') ?? true; // default ON on capable devices
+    return _prefs?.getBool('use_dynamic_color') ??
+        true; // default ON on capable devices
   }
 
   // Compact density preference
@@ -485,6 +509,7 @@ Enjoy taking notes! 📝''',
     await _ensurePrefs();
     await _prefs!.setBool('compact_density', value);
   }
+
   static bool getCompactDensity() {
     if (_prefs == null) kickOffPrefsInit();
     return _prefs?.getBool('compact_density') ?? false;
@@ -495,56 +520,65 @@ Enjoy taking notes! 📝''',
     await _ensurePrefs();
     await _prefs!.setBool('high_contrast', value);
   }
+
   static bool getHighContrast() {
     if (_prefs == null) kickOffPrefsInit();
     return _prefs?.getBool('high_contrast') ?? false;
   }
 
   static Future<void> setLastAppVersion(String version) async {
-  await _ensurePrefs();
-  await _prefs!.setString('last_app_version', version);
+    await _ensurePrefs();
+    await _prefs!.setString('last_app_version', version);
   }
 
   static String? getLastAppVersion() {
-  if (_prefs == null) kickOffPrefsInit();
-  return _prefs?.getString('last_app_version');
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getString('last_app_version');
   }
 
   // Generic meta helpers (small key-value pairs) for internal features like
   // notification action idempotency markers. Keys should be namespace prefixed.
   static String? getMeta(String key) {
-  if (_prefs == null) kickOffPrefsInit();
-  return _prefs?.getString('meta_$key');
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getString('meta_$key');
   }
 
   static Future<void> setMeta(String key, String value) async {
-  await _ensurePrefs();
-  await _prefs!.setString('meta_$key', value);
+    await _ensurePrefs();
+    await _prefs!.setString('meta_$key', value);
   }
 
   // Backup and restore functionality
   static Future<Map<String, dynamic>> exportData() async {
     try {
       debugPrint('[StorageService] Starting export process...');
-      
-      final todos = await getAllTodosAsync().then((l)=> l.map((todo)=> todo.toJson()).toList());
-      
+
+      final todos = await getAllTodosAsync().then(
+        (l) => l.map((todo) => todo.toJson()).toList(),
+      );
+
       // Export notes
       await waitNotesReady();
       final notes = getAllNotes().map((note) => note.toJson()).toList();
-      
+
       // Export folders
-      final folders = _folderRepository != null 
-          ? (await _folderRepository!.getAllFolders()).map((folder) => folder.toJson()).toList()
+      final folders = _folderRepository != null
+          ? (await _folderRepository!.getAllFolders())
+                .map((folder) => folder.toJson())
+                .toList()
           : <Map<String, dynamic>>[];
-      
+
       // Export templates (both built-in and custom)
-      final templates = _templateRepository != null 
-          ? (await _templateRepository!.getAllTemplates()).map((template) => template.toJson()).toList()
+      final templates = _templateRepository != null
+          ? (await _templateRepository!.getAllTemplates())
+                .map((template) => template.toJson())
+                .toList()
           : <Map<String, dynamic>>[];
-      
-      debugPrint('[StorageService] Exporting ${todos.length} todos, ${notes.length} notes, ${folders.length} folders, and ${templates.length} templates');
-      
+
+      debugPrint(
+        '[StorageService] Exporting ${todos.length} todos, ${notes.length} notes, ${folders.length} folders, and ${templates.length} templates',
+      );
+
       final exportMap = {
         'todos': todos,
         'notes': notes,
@@ -559,9 +593,10 @@ Enjoy taking notes! 📝''',
           'show_completed_tasks': getShowCompletedTasks(),
         },
         'exported_at': DateTime.now().toIso8601String(),
-  'version': '1.2.0-2', // Increment version for template support (release v.1.2.0-2)
+        'version':
+            '1.2.0-3', // Increment version for template support (release v.1.2.0-3)
       };
-      
+
       debugPrint('[StorageService] Export data prepared successfully');
       return exportMap;
     } catch (e, stackTrace) {
@@ -573,7 +608,8 @@ Enjoy taking notes! 📝''',
 
   // FAB position (left | center | right) preference
   static Future<void> setFabPosition(String position) async {
-    if (position != 'left' && position != 'center' && position != 'right') return;
+    if (position != 'left' && position != 'center' && position != 'right')
+      return;
     await _ensurePrefs();
     await _prefs!.setString('fab_position', position);
   }
@@ -601,28 +637,30 @@ Enjoy taking notes! 📝''',
     try {
       debugPrint('[StorageService] Starting import process...');
       debugPrint('[StorageService] Import data keys: ${data.keys.toList()}');
-      
+
       // Ensure storage is fully initialized
       await waitTodosReady();
-      
+
       // Clear existing data
       debugPrint('[StorageService] Clearing existing data...');
       await clearAllTodos();
-      
+
       // Clear folders and templates if repositories are available
       if (_folderRepository != null) {
         final folders = await _folderRepository!.getAllFolders();
         for (final folder in folders) {
-          if (!folder.isDefault) { // Don't delete default folders
+          if (!folder.isDefault) {
+            // Don't delete default folders
             await _folderRepository!.deleteFolder(folder.id);
           }
         }
       }
-      
+
       if (_templateRepository != null) {
         final templates = await _templateRepository!.getAllTemplates();
         for (final template in templates) {
-          if (!template.isBuiltIn) { // Don't delete built-in templates
+          if (!template.isBuiltIn) {
+            // Don't delete built-in templates
             await _templateRepository!.deleteTemplate(template.id);
           }
         }
@@ -631,7 +669,9 @@ Enjoy taking notes! 📝''',
       // Import folders
       if (data['folders'] != null && _folderRepository != null) {
         final foldersData = data['folders'] as List;
-        debugPrint('[StorageService] Importing ${foldersData.length} folders...');
+        debugPrint(
+          '[StorageService] Importing ${foldersData.length} folders...',
+        );
         for (final folderJson in foldersData) {
           final folder = Folder.fromJson(folderJson);
           await _folderRepository!.createFolder(folder);
@@ -642,7 +682,9 @@ Enjoy taking notes! 📝''',
       // Import templates
       if (data['templates'] != null && _templateRepository != null) {
         final templatesData = data['templates'] as List;
-        debugPrint('[StorageService] Importing ${templatesData.length} templates...');
+        debugPrint(
+          '[StorageService] Importing ${templatesData.length} templates...',
+        );
         for (final templateJson in templatesData) {
           final template = FolderTemplate.fromJson(templateJson);
           // Only import custom templates or if user customized built-in ones
@@ -652,23 +694,23 @@ Enjoy taking notes! 📝''',
           }
         }
       }
-      
+
       // Import notes
       if (data['notes'] != null) {
         await waitNotesReady();
         final notesData = data['notes'] as List;
         debugPrint('[StorageService] Importing ${notesData.length} notes...');
-        
+
         // Clear existing notes (except the default welcome note)
         await clearAllNotes();
-        
+
         for (final noteJson in notesData) {
           final note = Note.fromJson(noteJson);
           await saveNote(note);
           debugPrint('[StorageService] Imported note: ${note.title}');
         }
       }
-      
+
       // Import todos
       if (data['todos'] != null) {
         final todosData = data['todos'] as List;
@@ -679,7 +721,7 @@ Enjoy taking notes! 📝''',
           debugPrint('[StorageService] Imported todo: ${todo.text}');
         }
       }
-      
+
       // Import settings
       if (data['settings'] != null) {
         debugPrint('[StorageService] Importing settings...');
@@ -687,11 +729,15 @@ Enjoy taking notes! 📝''',
         await setThemeMode(settings['theme_mode'] ?? 'system');
         await setDefaultCategory(settings['default_category'] ?? 'personal');
         await setDefaultPriority(settings['default_priority'] ?? 'medium');
-        await setNotificationsEnabled(settings['notifications_enabled'] ?? true);
-        await setAutoDeleteCompleted(settings['auto_delete_completed'] ?? false);
+        await setNotificationsEnabled(
+          settings['notifications_enabled'] ?? true,
+        );
+        await setAutoDeleteCompleted(
+          settings['auto_delete_completed'] ?? false,
+        );
         await setShowCompletedTasks(settings['show_completed_tasks'] ?? true);
       }
-      
+
       debugPrint('[StorageService] Import completed successfully!');
     } catch (e, stackTrace) {
       debugPrint('[StorageService] Import failed: $e');
@@ -728,6 +774,6 @@ Enjoy taking notes! 📝''',
 
   // Cleanup and close
   static Future<void> dispose() async {
-  await _todosLazyBox?.close();
+    await _todosLazyBox?.close();
   }
 }

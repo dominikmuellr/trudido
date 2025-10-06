@@ -43,21 +43,18 @@ class TemplateSelectionDialog extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'Available Templates:',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            ...suggestedTemplates.map((template) => _buildTemplateOption(context, template)),
+            ...suggestedTemplates.map(
+              (template) => _buildTemplateOption(context, template),
+            ),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: onSkip,
-          child: const Text('Skip'),
-        ),
-      ],
+      actions: [TextButton(onPressed: onSkip, child: const Text('Skip'))],
     );
   }
 
@@ -91,7 +88,10 @@ class TemplateSelectionDialog extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(12),
@@ -110,7 +110,9 @@ class TemplateSelectionDialog extends StatelessWidget {
                 Text(
                   template.description!,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withOpacity(0.9),
                   ),
                 ),
               ],
@@ -118,7 +120,9 @@ class TemplateSelectionDialog extends StatelessWidget {
               Text(
                 'Tasks: ${template.taskTemplates.take(3).map((t) => t.text).join(', ')}${template.taskTemplates.length > 3 ? '...' : ''}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withOpacity(0.85),
                   fontStyle: FontStyle.italic,
                 ),
                 maxLines: 2,

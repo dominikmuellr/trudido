@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:intl/intl.dart';
 import '../models/note.dart';
 import '../providers/app_providers.dart';
+import '../services/theme_service.dart';
 
 /// A clean, scannable preview card with lightweight markdown rendering
-/// 
+///
 /// This widget implements a CUSTOM, lightweight markdown parser specifically
 /// optimized for list view performance. Unlike full markdown packages that
 /// are resource-intensive, this approach manually handles only the most
@@ -20,7 +20,7 @@ import '../providers/app_providers.dart';
 ///
 /// Key Performance Benefits:
 /// - No heavy markdown package overhead
-/// - Optimized for scrolling lists 
+/// - Optimized for scrolling lists
 /// - Fixed card heights prevent layout recalculations
 /// - Manual parsing is faster than full markdown rendering
 class NotePreviewCard extends ConsumerWidget {
@@ -29,7 +29,8 @@ class NotePreviewCard extends ConsumerWidget {
   final VoidCallback? onLongPress;
   final VoidCallback? onPin;
   final VoidCallback? onDelete;
-  final VoidCallback? onDeleteConfirmed; // For direct deletion without confirmation
+  final VoidCallback?
+  onDeleteConfirmed; // For direct deletion without confirmation
 
   const NotePreviewCard({
     super.key,
@@ -46,15 +47,16 @@ class NotePreviewCard extends ConsumerWidget {
     // Extract content structure
     final contentLines = note.content.split('\n');
     final subtitle = _extractSubtitle(contentLines);
-    
-  // Read swipe preference
-  final preferences = ref.watch(preferencesStateProvider);
-  // Map the physical swipe directions to the configured actions.
-  // startToEnd => user swiped right (maps to swipeRightAction)
-  final actionStart = preferences.swipeRightAction; // 'delete' | 'pin' | 'none'
-  // endToStart => user swiped left (maps to swipeLeftAction)
-  final actionEnd = preferences.swipeLeftAction;
-    
+
+    // Read swipe preference
+    final preferences = ref.watch(preferencesStateProvider);
+    // Map the physical swipe directions to the configured actions.
+    // startToEnd => user swiped right (maps to swipeRightAction)
+    final actionStart =
+        preferences.swipeRightAction; // 'delete' | 'pin' | 'none'
+    // endToStart => user swiped left (maps to swipeLeftAction)
+    final actionEnd = preferences.swipeLeftAction;
+
     final titleSpan = _parseMarkdownToTextSpan(
       note.title.isEmpty ? 'Untitled' : note.title,
       context,
@@ -65,10 +67,14 @@ class NotePreviewCard extends ConsumerWidget {
       context,
       isTitle: false,
     );
-    final formattedDate = DateFormat('MMM d, y • h:mm a').format(note.updatedAt);
+    final formattedDate = DateFormat(
+      'MMM d, y • h:mm a',
+    ).format(note.updatedAt);
 
     return Dismissible(
-      key: ValueKey('dismissible_${note.id}'), // Use ValueKey for better tracking
+      key: ValueKey(
+        'dismissible_${note.id}',
+      ), // Use ValueKey for better tracking
       // Background for startToEnd (user swiped right)
       background: actionStart == 'none'
           ? Container()
@@ -76,7 +82,9 @@ class NotePreviewCard extends ConsumerWidget {
               alignment: Alignment.centerLeft,
               padding: const EdgeInsets.only(left: 20),
               decoration: BoxDecoration(
-                color: actionStart == 'delete' ? Colors.red : Theme.of(context).colorScheme.primary,
+                color: actionStart == 'delete'
+                    ? Colors.red
+                    : Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -84,16 +92,18 @@ class NotePreviewCard extends ConsumerWidget {
                 children: [
                   Icon(
                     actionStart == 'delete'
-                        ? PhosphorIcons.trash()
+                        ? Icons.delete
                         : (note.isPinned
-                            ? PhosphorIcons.pushPin(PhosphorIconsStyle.fill)
-                            : PhosphorIcons.pushPin(PhosphorIconsStyle.regular)),
+                              ? Icons.push_pin
+                              : Icons.push_pin_outlined),
                     color: Colors.white,
                     size: 28,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    actionStart == 'delete' ? 'DELETE' : (note.isPinned ? 'UNPIN' : 'PIN'),
+                    actionStart == 'delete'
+                        ? 'DELETE'
+                        : (note.isPinned ? 'UNPIN' : 'PIN'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -103,66 +113,76 @@ class NotePreviewCard extends ConsumerWidget {
                 ],
               ),
             ),
-            // Background for endToStart (user swiped left)
-            secondaryBackground: actionEnd == 'none'
-                ? Container()
-                : Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20),
-                    decoration: BoxDecoration(
-                      color: actionEnd == 'delete' ? Colors.red : Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          actionEnd == 'delete'
-                              ? PhosphorIcons.trash()
-                              : (note.isPinned
-                                  ? PhosphorIcons.pushPin(PhosphorIconsStyle.fill)
-                                  : PhosphorIcons.pushPin(PhosphorIconsStyle.regular)),
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          actionEnd == 'delete' ? 'DELETE' : (note.isPinned ? 'UNPIN' : 'PIN'),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+      // Background for endToStart (user swiped left)
+      secondaryBackground: actionEnd == 'none'
+          ? Container()
+          : Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              decoration: BoxDecoration(
+                color: actionEnd == 'delete'
+                    ? Colors.red
+                    : Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    actionEnd == 'delete'
+                        ? Icons.delete
+                        : (note.isPinned
+                              ? Icons.push_pin
+                              : Icons.push_pin_outlined),
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    actionEnd == 'delete'
+                        ? 'DELETE'
+                        : (note.isPinned ? 'UNPIN' : 'PIN'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
                     ),
                   ),
+                ],
+              ),
+            ),
       confirmDismiss: (direction) async {
-    // direction == startToEnd => user swiped right => maps to actionStart
-    final isDeleteAction = (actionStart == 'delete' && direction == DismissDirection.startToEnd) ||
-      (actionEnd == 'delete' && direction == DismissDirection.endToStart);
-        
+        // direction == startToEnd => user swiped right => maps to actionStart
+        final isDeleteAction =
+            (actionStart == 'delete' &&
+                direction == DismissDirection.startToEnd) ||
+            (actionEnd == 'delete' && direction == DismissDirection.endToStart);
+
         if (isDeleteAction) {
           // Delete action - show confirmation and handle deletion directly
-          final confirmed = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Delete Note'),
-              content: const Text('Are you sure you want to delete this note? This action cannot be undone.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
+          final confirmed =
+              await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Delete Note'),
+                  content: const Text(
+                    'Are you sure you want to delete this note? This action cannot be undone.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      child: const Text('Delete'),
+                    ),
+                  ],
                 ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  style: TextButton.styleFrom(foregroundColor: Colors.red),
-                  child: const Text('Delete'),
-                ),
-              ],
-            ),
-          ) ?? false;
-          
+              ) ??
+              false;
+
           if (confirmed) {
             // Perform the actual deletion here, before dismissing
             try {
@@ -175,11 +195,13 @@ class NotePreviewCard extends ConsumerWidget {
               debugPrint('Error during note deletion: $e');
             }
           }
-          
+
           return confirmed; // Allow dismissal only if confirmed and deleted
         } else {
           // Non-delete action: could be 'pin' or 'none'. Only run pin if configured.
-          final action = direction == DismissDirection.startToEnd ? actionStart : actionEnd;
+          final action = direction == DismissDirection.startToEnd
+              ? actionStart
+              : actionEnd;
           if (action == 'pin') {
             onPin?.call();
           }
@@ -213,100 +235,110 @@ class NotePreviewCard extends ConsumerWidget {
                     children: [
                       // Pin indicator
                       if (note.isPinned) ...[
-                      Icon(
-                        PhosphorIcons.pushPin(PhosphorIconsStyle.fill),
-                        size: 16,
-                        color: Theme.of(context).colorScheme.primary,
+                        Icon(
+                          Icons.push_pin,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+
+                      // Title with lightweight markdown rendering
+                      // CRITICAL: maxLines=1 prevents vertical overflow
+                      Expanded(
+                        child: RichText(
+                          maxLines: 1, // ⭐ ESSENTIAL for preventing overflow
+                          overflow:
+                              TextOverflow.ellipsis, // ⭐ Graceful truncation
+                          text: titleSpan,
+                        ),
                       ),
-                      const SizedBox(width: 8),
                     ],
-                    
-                    // Title with lightweight markdown rendering
-                    // CRITICAL: maxLines=1 prevents vertical overflow
-                    Expanded(
-                      child: RichText(
-                        maxLines: 1, // ⭐ ESSENTIAL for preventing overflow
-                        overflow: TextOverflow.ellipsis, // ⭐ Graceful truncation
-                        text: titleSpan,
+                  ),
+
+                  // Subtitle (if exists)
+                  if (subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 4), // Reduced from 6 to 4
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                ),
-                
-                // Subtitle (if exists)
-                if (subtitle.isNotEmpty) ...[
-                  const SizedBox(height: 4), // Reduced from 6 to 4
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-                
-                // Body snippet with lightweight markdown rendering
-                if (bodySpan.text?.isNotEmpty == true || bodySpan.children?.isNotEmpty == true) ...[
-                  SizedBox(height: subtitle.isNotEmpty ? 6 : 8), // Less space if subtitle exists
-                  // CRITICAL: maxLines=2 prevents vertical overflow while showing content
-                  RichText(
-                    maxLines: 2, // ⭐ KEY to preventing RenderFlex overflow
-                    overflow: TextOverflow.ellipsis, // ⭐ Essential for graceful truncation
-                    text: bodySpan,
-                  ),
-                ],
-                
-                // Footer with metadata
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(
-                      PhosphorIcons.clock(),
-                      size: 14,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      formattedDate,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '${_getWordCount(note.content)} words',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+
+                  // Body snippet with lightweight markdown rendering
+                  if (bodySpan.text?.isNotEmpty == true ||
+                      bodySpan.children?.isNotEmpty == true) ...[
+                    SizedBox(
+                      height: subtitle.isNotEmpty ? 6 : 8,
+                    ), // Less space if subtitle exists
+                    // CRITICAL: maxLines=2 prevents vertical overflow while showing content
+                    RichText(
+                      maxLines: 2, // ⭐ KEY to preventing RenderFlex overflow
+                      overflow: TextOverflow
+                          .ellipsis, // ⭐ Essential for graceful truncation
+                      text: bodySpan,
                     ),
                   ],
-                ),
-              ],
+
+                  // Footer with metadata
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.schedule,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        formattedDate,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${_getWordCount(note.content)} words',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ));
+    );
   }
 
   /// LIGHTWEIGHT MARKDOWN PARSER
-  /// 
+  ///
   /// This is the CORE of our performance-optimized solution. Instead of using
   /// a heavy markdown package, we manually parse only the most important
   /// formatting elements. This approach is:
-  /// 
+  ///
   /// ✅ FAST: No package overhead, direct string processing
-  /// ✅ LIGHTWEIGHT: Only handles essential formatting (bold, italic, headers)  
+  /// ✅ LIGHTWEIGHT: Only handles essential formatting (bold, italic, headers)
   /// ✅ SMOOTH: Optimized for scrolling list performance
   /// ✅ VISUAL: Provides rich text formatting without performance cost
-  /// 
+  ///
   /// This is the BEST PRACTICE for list view markdown previews!
-  TextSpan _parseMarkdownToTextSpan(String text, BuildContext context, {required bool isTitle}) {
+  TextSpan _parseMarkdownToTextSpan(
+    String text,
+    BuildContext context, {
+    required bool isTitle,
+  }) {
     if (text.isEmpty) return const TextSpan(text: '');
-    
-    final baseStyle = isTitle 
+
+    final baseStyle = isTitle
         ? Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
             height: 1.2,
@@ -318,31 +350,35 @@ class NotePreviewCard extends ConsumerWidget {
 
     // Handle headers first - strip # symbols and make them plain text
     // Headers in preview should not be huge, just slightly emphasized
-    text = text.replaceAllMapped(RegExp(r'^#+\s*(.*)$', multiLine: true), (match) {
+    text = text.replaceAllMapped(RegExp(r'^#+\s*(.*)$', multiLine: true), (
+      match,
+    ) {
       return match.group(1) ?? '';
     });
 
     List<TextSpan> spans = [];
     int currentIndex = 0;
-    
+
     // Find all bold and italic patterns
     final patterns = <RegExp>[
-      RegExp(r'\*\*([^*]+)\*\*'),        // **bold**
-      RegExp(r'\*([^*]+)\*'),            // *italic*
-      RegExp(r'__([^_]+)__'),            // __bold__
-      RegExp(r'_([^_]+)_'),              // _italic_
-      RegExp(r'`([^`]+)`'),              // `code`
+      RegExp(r'\*\*([^*]+)\*\*'), // **bold**
+      RegExp(r'\*([^*]+)\*'), // *italic*
+      RegExp(r'__([^_]+)__'), // __bold__
+      RegExp(r'_([^_]+)_'), // _italic_
+      RegExp(r'`([^`]+)`'), // `code`
     ];
-    
+
     // Create a list of all matches with their positions
     List<MapEntry<Match, String>> allMatches = [];
-    
+
     for (RegExp pattern in patterns) {
       for (Match match in pattern.allMatches(text)) {
         String type = '';
-        if (pattern.pattern.contains(r'\*\*') || pattern.pattern.contains(r'__')) {
+        if (pattern.pattern.contains(r'\*\*') ||
+            pattern.pattern.contains(r'__')) {
           type = 'bold';
-        } else if (pattern.pattern.contains(r'\*') || pattern.pattern.contains(r'_')) {
+        } else if (pattern.pattern.contains(r'\*') ||
+            pattern.pattern.contains(r'_')) {
           type = 'italic';
         } else if (pattern.pattern.contains(r'`')) {
           type = 'code';
@@ -350,27 +386,29 @@ class NotePreviewCard extends ConsumerWidget {
         allMatches.add(MapEntry(match, type));
       }
     }
-    
+
     // Sort matches by start position
     allMatches.sort((a, b) => a.key.start.compareTo(b.key.start));
-    
+
     // Build TextSpan with formatted sections
     for (var matchEntry in allMatches) {
       final match = matchEntry.key;
       final type = matchEntry.value;
-      
+
       // Add text before the match
       if (match.start > currentIndex) {
-        spans.add(TextSpan(
-          text: text.substring(currentIndex, match.start),
-          style: baseStyle,
-        ));
+        spans.add(
+          TextSpan(
+            text: text.substring(currentIndex, match.start),
+            style: baseStyle,
+          ),
+        );
       }
-      
+
       // Add the formatted match
       final matchText = match.group(1) ?? '';
       TextStyle? style;
-      
+
       switch (type) {
         case 'bold':
           style = baseStyle?.copyWith(fontWeight: FontWeight.bold);
@@ -379,79 +417,77 @@ class NotePreviewCard extends ConsumerWidget {
           style = baseStyle?.copyWith(fontStyle: FontStyle.italic);
           break;
         case 'code':
-          style = baseStyle?.copyWith(
-            fontFamily: 'monospace',
-            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          style = AppTheme.getCodeTextStyle(context).copyWith(
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest,
             color: Theme.of(context).colorScheme.onSurface,
           );
           break;
       }
-      
+
       spans.add(TextSpan(text: matchText, style: style));
       currentIndex = match.end;
     }
-    
+
     // Add remaining text
     if (currentIndex < text.length) {
-      spans.add(TextSpan(
-        text: text.substring(currentIndex),
-        style: baseStyle,
-      ));
+      spans.add(TextSpan(text: text.substring(currentIndex), style: baseStyle));
     }
-    
+
     // If no formatting was found, return simple text span
     if (spans.isEmpty) {
       return TextSpan(text: text, style: baseStyle);
     }
-    
+
     return TextSpan(children: spans);
   }
 
   /// Extracts subtitle from second line if it's an H2 header
   String _extractSubtitle(List<String> contentLines) {
     if (contentLines.length < 2) return '';
-    
+
     // Skip empty lines and find the second non-empty line
     bool titleFound = false;
     for (String line in contentLines) {
       if (line.trim().isEmpty) continue;
-      
+
       if (!titleFound) {
         titleFound = true; // Skip title line
         continue;
       }
-      
+
       // This is the second non-empty line - check if it's a subtitle
       if (line.trim().startsWith('## ')) {
         return line.trim().replaceFirst('## ', '');
       }
-      
+
       break; // Stop after checking the second non-empty line
     }
-    
+
     return '';
   }
 
   /// Extracts only content lines (excluding title and subtitle)
   String _extractContentOnly(List<String> contentLines) {
     if (contentLines.isEmpty) return '';
-    
+
     // Skip title and subtitle, collect remaining content
     bool titleFound = false;
     bool subtitleFound = false;
     List<String> contentOnlyLines = [];
-    
+
     for (String line in contentLines) {
       if (!titleFound && line.trim().isNotEmpty) {
         titleFound = true; // Skip title line
         continue;
       }
-      
+
       if (titleFound && !subtitleFound && line.trim().startsWith('## ')) {
         subtitleFound = true; // Skip subtitle line
         continue;
       }
-      
+
       if (titleFound && line.trim().isNotEmpty) {
         // Regular content line - clean up any remaining headers
         String trimmedLine = line.trim();
@@ -461,7 +497,7 @@ class NotePreviewCard extends ConsumerWidget {
         contentOnlyLines.add(trimmedLine);
       }
     }
-    
+
     return contentOnlyLines.join(' ').trim();
   }
 
@@ -502,7 +538,7 @@ The team agreed on using __Agile methodology__ for this project.''',
       isPinned: true,
     ),
     Note(
-      id: '2', 
+      id: '2',
       title: 'Recipe with Formatting',
       content: '''## Chocolate Chip Cookies
 
@@ -618,7 +654,7 @@ This approach gives us the **best of both worlds**: performance _and_ visual app
               ],
             ),
           ),
-          
+
           // List of notes with lightweight markdown rendering
           Expanded(
             child: ListView.builder(

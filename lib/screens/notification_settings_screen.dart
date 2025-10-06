@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../services/notification_service.dart';
 
 class NotificationSettingsScreen extends StatelessWidget {
@@ -7,7 +6,7 @@ class NotificationSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-  final bridge = NotificationBridge.instance;
+    final bridge = NotificationBridge.instance;
 
     return Scaffold(
       appBar: AppBar(
@@ -29,12 +28,16 @@ class NotificationSettingsScreen extends StatelessWidget {
                   ),
                 ),
                 ListTile(
-                  leading: Icon(PhosphorIcons.testTube()),
+                  leading: Icon(Icons.science),
                   title: const Text('Schedule Test (10s)'),
-                  subtitle: const Text('Schedules a notification 10 seconds from now.'),
+                  subtitle: const Text(
+                    'Schedules a notification 10 seconds from now.',
+                  ),
                   trailing: ElevatedButton(
                     onPressed: () async {
-                      final dt = DateTime.now().add(const Duration(seconds: 10));
+                      final dt = DateTime.now().add(
+                        const Duration(seconds: 10),
+                      );
                       await bridge.scheduleTaskNotification(
                         taskId: 'test-10s',
                         title: 'Test Notification',
@@ -42,23 +45,34 @@ class NotificationSettingsScreen extends StatelessWidget {
                         scheduledTime: dt,
                       );
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Scheduled test notification for 10s')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Scheduled test notification for 10s'),
+                        ),
+                      );
                     },
                     child: const Text('Schedule'),
                   ),
                 ),
                 ListTile(
-                  leading: Icon(PhosphorIcons.trash(), color: Colors.red),
+                  leading: Icon(Icons.delete, color: Colors.red),
                   title: const Text('Cancel Test Notification'),
-                  subtitle: const Text('Cancels the test notification if pending.'),
+                  subtitle: const Text(
+                    'Cancels the test notification if pending.',
+                  ),
                   trailing: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red[100],
-                        foregroundColor: Colors.red[800]),
+                      backgroundColor: Colors.red[100],
+                      foregroundColor: Colors.red[800],
+                    ),
                     onPressed: () async {
                       await bridge.cancelTaskNotification('test-10s');
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cancelled test notification')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Cancelled test notification'),
+                        ),
+                      );
                     },
                     child: const Text('Cancel'),
                   ),
@@ -68,8 +82,7 @@ class NotificationSettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Card(
-            color:
-                Theme.of(context).colorScheme.primaryContainer.withAlpha(77),
+            color: Theme.of(context).colorScheme.primaryContainer.withAlpha(77),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -78,13 +91,14 @@ class NotificationSettingsScreen extends StatelessWidget {
                   Row(
                     children: [
                       Icon(
-                        PhosphorIcons.info(),
+                        Icons.info,
                         color: Theme.of(context).colorScheme.primary,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         'How Notifications Work',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: Theme.of(context).colorScheme.primary,
                             ),
@@ -97,10 +111,9 @@ class NotificationSettingsScreen extends StatelessWidget {
                     '• They are sent at the exact time you specified.\n'
                     '• Notifications are canceled when you complete or delete a task.',
                     style: TextStyle(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withAlpha(204),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withAlpha(204),
                     ),
                   ),
                 ],

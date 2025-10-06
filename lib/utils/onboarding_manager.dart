@@ -1,10 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Utility class for managing onboarding state
-/// 
+///
 /// This class provides methods to check and reset the onboarding tooltip state
 /// for development and testing purposes.
 class OnboardingManager {
@@ -31,7 +30,7 @@ class OnboardingManager {
   }
 
   /// Reset the tooltip state for testing/debugging
-  /// 
+  ///
   /// Call this method to force the tooltip to show again.
   /// Useful during development to test the onboarding flow.
   static Future<void> resetTooltip() async {
@@ -60,10 +59,10 @@ class OnboardingManager {
 }
 
 /// Debug widget for testing onboarding in development
-/// 
+///
 /// Add this to your app during development to easily test the onboarding flow.
 /// It provides buttons to reset and check the tooltip state.
-/// 
+///
 /// Usage:
 /// ```dart
 /// if (kDebugMode) OnboardingDebugPanel(),
@@ -78,7 +77,7 @@ class OnboardingDebugPanel extends StatefulWidget {
 
 class _OnboardingDebugPanelState extends State<OnboardingDebugPanel> {
   bool? _hasSeenTooltip;
-  
+
   @override
   void initState() {
     super.initState();
@@ -98,7 +97,9 @@ class _OnboardingDebugPanelState extends State<OnboardingDebugPanel> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Onboarding tooltip reset! Restart app to see it again.'),
+          content: Text(
+            'Onboarding tooltip reset! Restart app to see it again.',
+          ),
         ),
       );
     }
@@ -107,7 +108,7 @@ class _OnboardingDebugPanelState extends State<OnboardingDebugPanel> {
   @override
   Widget build(BuildContext context) {
     if (!kDebugMode) return const SizedBox.shrink();
-    
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -122,7 +123,7 @@ class _OnboardingDebugPanelState extends State<OnboardingDebugPanel> {
         children: [
           Row(
             children: [
-              Icon(PhosphorIcons.wrench(), size: 16, color: Colors.orange),
+              Icon(Icons.build, size: 16, color: Colors.orange),
               const SizedBox(width: 8),
               const Text(
                 'DEBUG: Onboarding Controls',
@@ -135,7 +136,11 @@ class _OnboardingDebugPanelState extends State<OnboardingDebugPanel> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tooltip Status: ${_hasSeenTooltip == null ? 'Loading...' : _hasSeenTooltip! ? 'Seen' : 'Not seen'}',
+            'Tooltip Status: ${_hasSeenTooltip == null
+                ? 'Loading...'
+                : _hasSeenTooltip!
+                ? 'Seen'
+                : 'Not seen'}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 8),
@@ -143,13 +148,13 @@ class _OnboardingDebugPanelState extends State<OnboardingDebugPanel> {
             children: [
               ElevatedButton.icon(
                 onPressed: _resetTooltip,
-                icon: Icon(PhosphorIcons.arrowClockwise(), size: 16),
+                icon: Icon(Icons.refresh, size: 16),
                 label: const Text('Reset Tooltip'),
               ),
               const SizedBox(width: 8),
               TextButton.icon(
                 onPressed: _checkStatus,
-                icon: Icon(PhosphorIcons.circleNotch(), size: 16),
+                icon: Icon(Icons.hourglass_empty, size: 16),
                 label: const Text('Refresh'),
               ),
             ],

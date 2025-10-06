@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/folder.dart';
 import '../services/folder_provider.dart';
 import '../use_cases/folder_use_cases.dart';
@@ -8,10 +7,7 @@ import '../use_cases/folder_use_cases.dart';
 class EditFolderDialog extends ConsumerStatefulWidget {
   final Folder folder;
 
-  const EditFolderDialog({
-    super.key,
-    required this.folder,
-  });
+  const EditFolderDialog({super.key, required this.folder});
 
   @override
   ConsumerState<EditFolderDialog> createState() => _EditFolderDialogState();
@@ -21,23 +17,23 @@ class _EditFolderDialogState extends ConsumerState<EditFolderDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _descriptionController;
-  
+
   late String _selectedIcon;
   late int _selectedColor;
   bool _isLoading = false;
 
   final List<Map<String, dynamic>> _availableIcons = [
-    {'name': 'folder', 'icon': PhosphorIcons.folder(), 'label': 'Folder'},
-    {'name': 'person', 'icon': PhosphorIcons.user(), 'label': 'Personal'},
-    {'name': 'work', 'icon': PhosphorIcons.briefcase(), 'label': 'Work'},
-    {'name': 'shopping_cart', 'icon': PhosphorIcons.shoppingCart(), 'label': 'Shopping'},
-    {'name': 'home', 'icon': PhosphorIcons.house(), 'label': 'Home'},
-    {'name': 'school', 'icon': PhosphorIcons.graduationCap(), 'label': 'Education'},
-    {'name': 'health', 'icon': PhosphorIcons.heart(), 'label': 'Health'},
-    {'name': 'travel', 'icon': PhosphorIcons.airplane(), 'label': 'Travel'},
-    {'name': 'finance', 'icon': PhosphorIcons.piggyBank(), 'label': 'Finance'},
-    {'name': 'hobby', 'icon': PhosphorIcons.gameController(), 'label': 'Hobby'},
-    {'name': 'fitness', 'icon': PhosphorIcons.barbell(), 'label': 'Fitness'},
+    {'name': 'folder', 'icon': Icons.folder, 'label': 'Folder'},
+    {'name': 'person', 'icon': Icons.person, 'label': 'Personal'},
+    {'name': 'work', 'icon': Icons.work, 'label': 'Work'},
+    {'name': 'shopping_cart', 'icon': Icons.shopping_cart, 'label': 'Shopping'},
+    {'name': 'home', 'icon': Icons.home, 'label': 'Home'},
+    {'name': 'school', 'icon': Icons.school, 'label': 'Education'},
+    {'name': 'health', 'icon': Icons.favorite, 'label': 'Health'},
+    {'name': 'travel', 'icon': Icons.flight, 'label': 'Travel'},
+    {'name': 'finance', 'icon': Icons.savings, 'label': 'Finance'},
+    {'name': 'hobby', 'icon': Icons.games, 'label': 'Hobby'},
+    {'name': 'fitness', 'icon': Icons.fitness_center, 'label': 'Fitness'},
   ];
 
   final List<int> _availableColors = [
@@ -59,7 +55,9 @@ class _EditFolderDialogState extends ConsumerState<EditFolderDialog> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.folder.name);
-    _descriptionController = TextEditingController(text: widget.folder.description ?? '');
+    _descriptionController = TextEditingController(
+      text: widget.folder.description ?? '',
+    );
     _selectedIcon = widget.folder.icon ?? 'folder';
     _selectedColor = widget.folder.color;
   }
@@ -99,7 +97,7 @@ class _EditFolderDialogState extends ConsumerState<EditFolderDialog> {
                     child: Row(
                       children: [
                         Icon(
-                          PhosphorIcons.info(),
+                          Icons.info,
                           color: theme.colorScheme.primary,
                           size: 20,
                         ),
@@ -169,17 +167,18 @@ class _EditFolderDialogState extends ConsumerState<EditFolderDialog> {
                   height: 80,
                   child: GridView.builder(
                     scrollDirection: Axis.horizontal,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 1,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 1,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
                     itemCount: _availableIcons.length,
                     itemBuilder: (context, index) {
                       final iconData = _availableIcons[index];
                       final isSelected = _selectedIcon == iconData['name'];
-                      
+
                       return InkWell(
                         onTap: () {
                           setState(() {
@@ -233,7 +232,7 @@ class _EditFolderDialogState extends ConsumerState<EditFolderDialog> {
                     itemBuilder: (context, index) {
                       final color = _availableColors[index];
                       final isSelected = _selectedColor == color;
-                      
+
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: InkWell(
@@ -258,7 +257,7 @@ class _EditFolderDialogState extends ConsumerState<EditFolderDialog> {
                             ),
                             child: isSelected
                                 ? Icon(
-                                    PhosphorIcons.check(),
+                                    Icons.done,
                                     color: Colors.white,
                                     size: 20,
                                   )
@@ -301,22 +300,26 @@ class _EditFolderDialogState extends ConsumerState<EditFolderDialog> {
     });
 
     try {
-      final result = await ref.read(folderNotifierProvider.notifier).updateFolder(
-        folderId: widget.folder.id,
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty
-            ? null
-            : _descriptionController.text.trim(),
-        color: _selectedColor,
-        icon: _selectedIcon,
-      );
+      final result = await ref
+          .read(folderNotifierProvider.notifier)
+          .updateFolder(
+            folderId: widget.folder.id,
+            name: _nameController.text.trim(),
+            description: _descriptionController.text.trim().isEmpty
+                ? null
+                : _descriptionController.text.trim(),
+            color: _selectedColor,
+            icon: _selectedIcon,
+          );
 
       if (mounted) {
         if (result is FolderUpdateSuccess) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Folder "${result.folder.name}" updated successfully'),
+              content: Text(
+                'Folder "${result.folder.name}" updated successfully',
+              ),
               backgroundColor: Theme.of(context).colorScheme.primary,
             ),
           );

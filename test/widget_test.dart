@@ -19,37 +19,35 @@ class _TestRepo extends TaskRepository {
 void main() {
   setUpAll(() {
     WidgetsFlutterBinding.ensureInitialized();
-  const String testPathChannel = 'plugins.flutter.io/path_provider';
-  const MethodChannel channel = MethodChannel(testPathChannel);
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-      channel,
-      (call) async {
-        if (call.method == 'getApplicationDocumentsDirectory') {
-          // Return a fake path for tests.
+    const String testPathChannel = 'plugins.flutter.io/path_provider';
+    const MethodChannel channel = MethodChannel(testPathChannel);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          if (call.method == 'getApplicationDocumentsDirectory') {
+            // Return a fake path for tests.
             return 'test_documents';
-        }
-        return null;
-      },
-    );
+          }
+          return null;
+        });
     // Mock shared_preferences
-    const MethodChannel spChannel = MethodChannel('plugins.flutter.io/shared_preferences');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-      spChannel,
-      (call) async {
-        switch (call.method) {
-          case 'getAll':
-            return <String, Object?>{};
-          case 'setBool':
-          case 'setString':
-          case 'setInt':
-          case 'setDouble':
-          case 'setStringList':
-            return true;
-          default:
-            return null;
-        }
-      },
+    const MethodChannel spChannel = MethodChannel(
+      'plugins.flutter.io/shared_preferences',
     );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(spChannel, (call) async {
+          switch (call.method) {
+            case 'getAll':
+              return <String, Object?>{};
+            case 'setBool':
+            case 'setString':
+            case 'setInt':
+            case 'setDouble':
+            case 'setStringList':
+              return true;
+            default:
+              return null;
+          }
+        });
   });
 
   setUp(() async {
@@ -73,9 +71,13 @@ void main() {
       async.elapse(const Duration(seconds: 10));
       await tester.pump();
 
-      final hasYet = find.text('No todos yet').evaluate().isNotEmpty;
+      final hasYet = find.text('No tasks yet').evaluate().isNotEmpty;
       final hasFound = find.text('No todos found').evaluate().isNotEmpty;
-      expect(hasYet || hasFound, isTrue, reason: 'Expected an empty state message but none appeared');
+      expect(
+        hasYet || hasFound,
+        isTrue,
+        reason: 'Expected an empty state message but none appeared',
+      );
       expect(find.byType(FloatingActionButton), findsOneWidget);
     });
   });

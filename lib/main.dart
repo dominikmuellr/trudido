@@ -2,7 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform; // platform check without BuildContext
+import 'package:flutter/foundation.dart'
+    show
+        defaultTargetPlatform,
+        TargetPlatform; // platform check without BuildContext
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'services/storage_service.dart';
 import 'services/permissions_channel.dart';
@@ -25,16 +28,42 @@ class TodoApp extends ConsumerStatefulWidget {
   ConsumerState<TodoApp> createState() => _TodoAppState();
 }
 
-class _TodoAppState extends ConsumerState<TodoApp> {
+class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (!widget.disableSideEffects) {
       // Defer reliability flow until after first frame & minimal init.
-  WidgetsBinding.instance.addPostFrameCallback((_) => _maybeRunInitialReliabilityFlow());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _maybeRunInitialReliabilityFlow(),
+      );
     }
     // Kick off preferences initialization early so settings apply immediately.
     _initPrefs();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+    // Invalidate dynamic color schemes when platform brightness changes
+    // This helps detect system theme/wallpaper changes that affect dynamic colors
+    ref.invalidate(dynamicColorSchemesProvider);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Refresh dynamic colors when app resumes (user might have changed wallpaper)
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(dynamicColorSchemesProvider);
+    }
   }
 
   Future<void> _initPrefs() async {
@@ -46,7 +75,7 @@ class _TodoAppState extends ConsumerState<TodoApp> {
         ref.read(preferencesStateProvider.notifier).state = svc.snapshot;
       }
     }
-    
+
     // TODO: Re-enable migration after fixing StorageService category references
     /*
     // Run category to folder migration (creates default folders)
@@ -62,15 +91,17 @@ class _TodoAppState extends ConsumerState<TodoApp> {
 
   Future<void> _maybeRunInitialReliabilityFlow() async {
     if (!mounted || widget.disableSideEffects) return;
-    try { await SystemSettingsService.instance.ensureReady(); } catch (_) {}
+    try {
+      await SystemSettingsService.instance.ensureReady();
+    } catch (_) {}
     if (!mounted) return;
-  await _maybeRequestNotificationsOnce();
-  if (!mounted) return;
-  await showExactAlarmDialogIfNeededAuto();
-  if (!mounted) return;
-  await Future.delayed(const Duration(milliseconds: 250));
-  if (!mounted) return;
-  await showBatteryOptimizationDialogIfNeededAuto();
+    await _maybeRequestNotificationsOnce();
+    if (!mounted) return;
+    await showExactAlarmDialogIfNeededAuto();
+    if (!mounted) return;
+    await Future.delayed(const Duration(milliseconds: 250));
+    if (!mounted) return;
+    await showBatteryOptimizationDialogIfNeededAuto();
   }
 
   Future<void> _maybeRequestNotificationsOnce() async {
@@ -90,28 +121,40 @@ class _TodoAppState extends ConsumerState<TodoApp> {
       await Future.delayed(Duration(milliseconds: 60 * (attempt + 1)));
     }
     if (sdk == 0) sdk = 33; // assume new enough so prompt path executes once
-    if (sdk < 33) { StorageService.setMeta(flagKey, '1'); return; }
-    final initiallyEnabled = await PermissionsChannel.instance.areNotificationsEnabled();
-    if (initiallyEnabled) { StorageService.setMeta(flagKey, '1'); return; }
+    if (sdk < 33) {
+      StorageService.setMeta(flagKey, '1');
+      return;
+    }
+    final initiallyEnabled = await PermissionsChannel.instance
+        .areNotificationsEnabled();
+    if (initiallyEnabled) {
+      StorageService.setMeta(flagKey, '1');
+      return;
+    }
     // Wait for localizations / navigator to be ready.
     for (var i = 0; i < 10; i++) {
       final ctx = NavigationService.navigatorKey.currentContext;
-      final loc = ctx == null ? null : Localizations.of<MaterialLocalizations>(ctx, MaterialLocalizations);
+      final loc = ctx == null
+          ? null
+          : Localizations.of<MaterialLocalizations>(ctx, MaterialLocalizations);
       if (loc != null) break;
       await Future.delayed(Duration(milliseconds: 50 * (i + 1)));
     }
     if (!mounted) return;
-  final proceed = await _showNotificationPrompt();
-  if (proceed == true) {
+    final proceed = await _showNotificationPrompt();
+    if (proceed == true) {
       await PermissionsChannel.instance.requestPostNotifications();
       const resumeTimeout = Duration(seconds: 8);
       final resumeStart = DateTime.now();
-      while (mounted && WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed && DateTime.now().difference(resumeStart) < resumeTimeout) {
+      while (mounted &&
+          WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed &&
+          DateTime.now().difference(resumeStart) < resumeTimeout) {
         await Future.delayed(const Duration(milliseconds: 150));
       }
       bool enabledNow = false;
       for (var i = 0; i < 8; i++) {
-        enabledNow = await PermissionsChannel.instance.areNotificationsEnabled();
+        enabledNow = await PermissionsChannel.instance
+            .areNotificationsEnabled();
         if (enabledNow) break;
         await Future.delayed(Duration(milliseconds: 120 * (i + 1)));
       }
@@ -129,14 +172,22 @@ class _TodoAppState extends ConsumerState<TodoApp> {
     try {
       final ctx = NavigationService.navigatorKey.currentContext;
       if (ctx == null) return null;
-  return showDialog<bool>(
+      return showDialog<bool>(
         context: ctx,
         builder: (dCtx) => AlertDialog(
           title: const Text('Allow Notifications'),
-          content: const Text('Enable notifications so task reminders can appear on time.'),
+          content: const Text(
+            'Enable notifications so task reminders can appear on time.',
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dCtx, false), child: const Text('Later')),
-            FilledButton(onPressed: () => Navigator.pop(dCtx, true), child: const Text('Allow')),
+            TextButton(
+              onPressed: () => Navigator.pop(dCtx, false),
+              child: const Text('Later'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dCtx, true),
+              child: const Text('Allow'),
+            ),
           ],
         ),
       );
@@ -154,10 +205,18 @@ class _TodoAppState extends ConsumerState<TodoApp> {
         context: ctx,
         builder: (c) => AlertDialog(
           title: const Text('Still Disabled'),
-          content: const Text('Notifications are still disabled. Open system notification settings?'),
+          content: const Text(
+            'Notifications are still disabled. Open system notification settings?',
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Open Settings')),
+            TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('Open Settings'),
+            ),
           ],
         ),
       );
@@ -173,8 +232,8 @@ class _TodoAppState extends ConsumerState<TodoApp> {
     final themeMode = prefs.themeMode == 'light'
         ? ThemeMode.light
         : prefs.themeMode == 'dark'
-            ? ThemeMode.dark
-            : ThemeMode.system;
+        ? ThemeMode.dark
+        : ThemeMode.system;
     final compact = prefs.compactDensity;
     final highContrast = prefs.highContrast;
     final schemesAsync = ref.watch(dynamicColorSchemesProvider);
@@ -186,7 +245,9 @@ class _TodoAppState extends ConsumerState<TodoApp> {
       highContrast: highContrast,
     );
     final useBlack = ref.watch(blackThemeEnabledProvider);
-    final darkThemeEffective = useBlack ? AppTheme.blackify(themes.$2) : themes.$2;
+    final darkThemeEffective = useBlack
+        ? AppTheme.blackify(themes.$2)
+        : themes.$2;
     return MaterialApp(
       title: 'Trudido',
       debugShowCheckedModeBanner: false,
@@ -241,9 +302,13 @@ class AppBootstrap extends StatefulWidget {
   State<AppBootstrap> createState() => _AppBootstrapState();
 }
 
-class _AppBootstrapState extends State<AppBootstrap> with SingleTickerProviderStateMixin {
+class _AppBootstrapState extends State<AppBootstrap>
+    with SingleTickerProviderStateMixin {
   bool _ready = false;
-  late final AnimationController _fadeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 350));
+  late final AnimationController _fadeCtrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 350),
+  );
 
   @override
   void initState() {
@@ -252,9 +317,13 @@ class _AppBootstrapState extends State<AppBootstrap> with SingleTickerProviderSt
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
         await StorageService.init();
-      } catch (e) { debugPrint('[Bootstrap] storage init error: $e'); }
+      } catch (e) {
+        debugPrint('[Bootstrap] storage init error: $e');
+      }
       if (!mounted) return;
-      setState(() { _ready = true; });
+      setState(() {
+        _ready = true;
+      });
       _fadeCtrl.forward();
     });
   }
@@ -270,14 +339,15 @@ class _AppBootstrapState extends State<AppBootstrap> with SingleTickerProviderSt
     if (!_ready) {
       return const Scaffold(
         body: Center(
-          child: SizedBox(width: 42, height: 42, child: CircularProgressIndicator(strokeWidth: 3)),
+          child: SizedBox(
+            width: 42,
+            height: 42,
+            child: CircularProgressIndicator(strokeWidth: 3),
+          ),
         ),
       );
     }
-    return FadeTransition(
-      opacity: _fadeCtrl,
-      child: const HomeScreen(),
-    );
+    return FadeTransition(opacity: _fadeCtrl, child: const HomeScreen());
   }
 }
 

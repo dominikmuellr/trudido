@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../services/permissions_channel.dart';
 import '../providers/alarm_settings_providers.dart';
 import '../services/notification_service.dart';
@@ -10,14 +9,13 @@ class ComprehensiveNotificationSettings extends ConsumerStatefulWidget {
   const ComprehensiveNotificationSettings({super.key});
 
   @override
-  ConsumerState<ComprehensiveNotificationSettings> createState() => 
+  ConsumerState<ComprehensiveNotificationSettings> createState() =>
       _ComprehensiveNotificationSettingsState();
 }
 
-class _ComprehensiveNotificationSettingsState 
-    extends ConsumerState<ComprehensiveNotificationSettings> 
+class _ComprehensiveNotificationSettingsState
+    extends ConsumerState<ComprehensiveNotificationSettings>
     with WidgetsBindingObserver {
-  
   @override
   void initState() {
     super.initState();
@@ -53,66 +51,70 @@ class _ComprehensiveNotificationSettingsState
         children: [
           // Permissions Section
           _buildSectionHeader(context, 'Permissions'),
-          
+
           FutureBuilder<bool>(
             future: PermissionsChannel.instance.areNotificationsEnabled(),
             builder: (context, snapshot) {
               final isGranted = snapshot.data ?? false;
               return _buildPermissionTile(
                 context: context,
-                icon: PhosphorIcons.bell(),
+                icon: Icons.notifications,
                 title: 'Notification Permission',
                 subtitle: 'Allow app to show notifications',
                 isGranted: isGranted,
-                onTap: () => PermissionsChannel.instance.openAppNotificationSettings(),
+                onTap: () =>
+                    PermissionsChannel.instance.openAppNotificationSettings(),
               );
             },
           ),
-          
+
           _buildPermissionTile(
             context: context,
-            icon: PhosphorIcons.alarm(),
+            icon: Icons.alarm,
             title: 'Exact Alarms',
             subtitle: 'Precise timing for reminders',
             isGranted: canExactAlarms,
             onTap: () => PermissionsChannel.instance.openExactAlarmSettings(),
           ),
-          
+
           _buildPermissionTile(
             context: context,
-            icon: PhosphorIcons.batteryHigh(),
+            icon: Icons.battery_full,
             title: 'Battery Optimization',
             subtitle: 'Disable to ensure notifications work',
             isGranted: ignoringBattery,
-            onTap: () => PermissionsChannel.instance.openBatteryOptimizationSettings(),
+            onTap: () =>
+                PermissionsChannel.instance.openBatteryOptimizationSettings(),
           ),
 
           const Divider(),
 
           // System Settings Section
           _buildSectionHeader(context, 'System Settings'),
-          
+
           ListTile(
-            leading: Icon(PhosphorIcons.gear()),
+            leading: Icon(Icons.settings),
             title: const Text('App Notification Settings'),
             subtitle: const Text('Open system settings for this app'),
-            trailing: Icon(PhosphorIcons.arrowSquareOut()),
-            onTap: () => PermissionsChannel.instance.openAppNotificationSettings(),
+            trailing: Icon(Icons.open_in_new),
+            onTap: () =>
+                PermissionsChannel.instance.openAppNotificationSettings(),
           ),
-          
+
           if (Platform.isAndroid) ...[
             ListTile(
-              leading: Icon(PhosphorIcons.batteryHigh()),
+              leading: Icon(Icons.battery_full),
               title: const Text('Battery Settings'),
               subtitle: const Text('Open battery optimization settings'),
-              trailing: Icon(PhosphorIcons.arrowSquareOut()),
-              onTap: () => PermissionsChannel.instance.openBatteryOptimizationSettings(),
+              trailing: Icon(Icons.open_in_new),
+              onTap: () =>
+                  PermissionsChannel.instance.openBatteryOptimizationSettings(),
             ),
             ListTile(
-              leading: Icon(PhosphorIcons.alarm()),
+              leading: Icon(Icons.alarm),
               title: const Text('Alarms & Reminders'),
               subtitle: const Text('Open system alarm settings'),
-              trailing: Icon(PhosphorIcons.arrowSquareOut()),
+              trailing: Icon(Icons.open_in_new),
               onTap: () => PermissionsChannel.instance.openExactAlarmSettings(),
             ),
           ],
@@ -121,11 +123,11 @@ class _ComprehensiveNotificationSettingsState
 
           // Testing Section
           _buildSectionHeader(context, 'Test Notifications'),
-          
+
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: ListTile(
-              leading: Icon(PhosphorIcons.testTube()),
+              leading: Icon(Icons.science),
               title: const Text('Test Notification (10s)'),
               subtitle: const Text('Schedule test notification in 10 seconds'),
               trailing: ElevatedButton(
@@ -156,7 +158,7 @@ class _ComprehensiveNotificationSettingsState
 
   Widget _buildPermissionTile({
     required BuildContext context,
-    required PhosphorIconData icon,
+    required IconData icon,
     required String title,
     required String subtitle,
     required bool isGranted,

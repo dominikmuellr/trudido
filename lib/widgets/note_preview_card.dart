@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:intl/intl.dart';
 import '../models/note.dart';
 
 /// A clean, scannable preview card for displaying notes in a list
-/// 
+///
 /// This widget handles notes of any length by:
 /// - Using maxLines to limit text display
 /// - Using TextOverflow.ellipsis to gracefully truncate long content
@@ -29,7 +28,9 @@ class NotePreviewCard extends StatelessWidget {
     final contentLines = note.content.split('\n');
     final title = _extractTitle(contentLines);
     final bodySnippet = _extractBodySnippet(contentLines);
-    final formattedDate = DateFormat('MMM d, y • h:mm a').format(note.updatedAt);
+    final formattedDate = DateFormat(
+      'MMM d, y • h:mm a',
+    ).format(note.updatedAt);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -49,13 +50,13 @@ class NotePreviewCard extends StatelessWidget {
                   // Pin indicator
                   if (note.isPinned) ...[
                     Icon(
-                      PhosphorIcons.pushPin(PhosphorIconsStyle.fill),
+                      Icons.push_pin,
                       size: 16,
                       color: Theme.of(context).colorScheme.primary,
                     ),
                     const SizedBox(width: 8),
                   ],
-                  
+
                   // Title - CRITICAL: maxLines and overflow prevent layout overflow
                   Expanded(
                     child: Text(
@@ -71,13 +72,13 @@ class NotePreviewCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  
+
                   // Action menu
                   if (onPin != null || onDelete != null) ...[
                     const SizedBox(width: 8),
                     PopupMenuButton<String>(
                       icon: Icon(
-                        PhosphorIcons.dotsThreeVertical(),
+                        Icons.more_vert,
                         size: 20,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -99,9 +100,9 @@ class NotePreviewCard extends StatelessWidget {
                             child: Row(
                               children: [
                                 Icon(
-                                  note.isPinned 
-                                    ? PhosphorIcons.pushPin(PhosphorIconsStyle.regular)
-                                    : PhosphorIcons.pushPin(PhosphorIconsStyle.fill),
+                                  note.isPinned
+                                      ? Icons.push_pin
+                                      : Icons.push_pin_outlined,
                                   size: 16,
                                 ),
                                 const SizedBox(width: 8),
@@ -114,11 +115,7 @@ class NotePreviewCard extends StatelessWidget {
                             value: 'delete',
                             child: Row(
                               children: [
-                                Icon(
-                                  PhosphorIcons.trash(),
-                                  size: 16,
-                                  color: Colors.red,
-                                ),
+                                Icon(Icons.delete, size: 16, color: Colors.red),
                                 const SizedBox(width: 8),
                                 const Text(
                                   'Delete',
@@ -132,7 +129,7 @@ class NotePreviewCard extends StatelessWidget {
                   ],
                 ],
               ),
-              
+
               // Body snippet - CRITICAL: maxLines prevents overflow
               if (bodySnippet.isNotEmpty) ...[
                 const SizedBox(height: 8),
@@ -150,13 +147,13 @@ class NotePreviewCard extends StatelessWidget {
                   ),
                 ),
               ],
-              
+
               // Footer with metadata
               const SizedBox(height: 12),
               Row(
                 children: [
                   Icon(
-                    PhosphorIcons.clock(),
+                    Icons.schedule,
                     size: 14,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -187,7 +184,7 @@ class NotePreviewCard extends StatelessWidget {
   /// Removes markdown formatting for readable display
   String _extractTitle(List<String> contentLines) {
     if (contentLines.isEmpty) return 'Untitled';
-    
+
     String firstNonEmptyLine = '';
     for (String line in contentLines) {
       if (line.trim().isNotEmpty) {
@@ -195,9 +192,9 @@ class NotePreviewCard extends StatelessWidget {
         break;
       }
     }
-    
+
     if (firstNonEmptyLine.isEmpty) return 'Untitled';
-    
+
     // Remove markdown formatting from title
     return _stripMarkdownFormatting(firstNonEmptyLine);
   }
@@ -206,24 +203,24 @@ class NotePreviewCard extends StatelessWidget {
   /// Removes markdown formatting for clean preview
   String _extractBodySnippet(List<String> contentLines) {
     if (contentLines.isEmpty) return '';
-    
+
     // Find the first non-empty line (which is the title) and skip it
     bool titleFound = false;
     List<String> bodyLines = [];
-    
+
     for (String line in contentLines) {
       if (!titleFound && line.trim().isNotEmpty) {
         titleFound = true; // This is the title line, skip it
         continue;
       }
-      
+
       if (titleFound && line.trim().isNotEmpty) {
         bodyLines.add(line.trim());
       }
     }
-    
+
     if (bodyLines.isEmpty) return '';
-    
+
     // Join the body lines and clean up markdown
     final bodyText = bodyLines.join(' ').trim();
     return _stripMarkdownFormatting(bodyText);
@@ -297,7 +294,7 @@ The team agreed on using **Agile methodology** for this project.''',
       isPinned: true,
     ),
     Note(
-      id: '2', 
+      id: '2',
       title: 'Recipe',
       content: '''Chocolate Chip Cookies
 
@@ -345,7 +342,8 @@ Run this code in any Dart environment or Flutter app.''',
     Note(
       id: '5',
       title: 'Very Long Note',
-      content: '''# Extremely Long Note with Lots of Content to Test Overflow Handling
+      content:
+          '''# Extremely Long Note with Lots of Content to Test Overflow Handling
 
 This note contains a tremendous amount of text that would normally cause overflow issues in a poorly designed card component. The purpose of this note is to demonstrate how the NotePreviewCard widget gracefully handles extremely long content by using maxLines and TextOverflow.ellipsis properties.
 

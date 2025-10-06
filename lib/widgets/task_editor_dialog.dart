@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:intl/intl.dart';
 import '../models/todo.dart';
 import '../services/storage_service.dart';
@@ -12,11 +11,7 @@ class TaskEditorDialog extends ConsumerStatefulWidget {
   final Todo? todo;
   final Function(Todo) onAdd;
 
-  const TaskEditorDialog({
-    super.key,
-    this.todo,
-    required this.onAdd,
-  });
+  const TaskEditorDialog({super.key, this.todo, required this.onAdd});
 
   @override
   ConsumerState<TaskEditorDialog> createState() => _TaskEditorDialogState();
@@ -26,7 +21,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
   late TextEditingController _titleController;
   late TextEditingController _notesController;
   final _formKey = GlobalKey<FormState>();
-  
+
   // Core task data
   DateTime? _startDate;
   DateTime? _dueDate;
@@ -35,7 +30,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
   String _priority = 'medium';
   String _selectedFolderId = '';
   List<int> _reminderOffsetsMinutes = [];
-  
+
   // UI state
   bool _showAdvancedOptions = false;
   bool _isLoading = false;
@@ -45,7 +40,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
     super.initState();
     _titleController = TextEditingController(text: widget.todo?.text ?? '');
     _notesController = TextEditingController(text: widget.todo?.notes ?? '');
-    
+
     // Initialize from existing todo if editing
     if (widget.todo != null) {
       _startDate = widget.todo!.startDate;
@@ -55,9 +50,11 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
         _dueTime = TimeOfDay.fromDateTime(_dueDate!);
       }
       _priority = widget.todo!.priority;
-      _reminderOffsetsMinutes = List<int>.from(widget.todo!.reminderOffsetsMinutes);
+      _reminderOffsetsMinutes = List<int>.from(
+        widget.todo!.reminderOffsetsMinutes,
+      );
     }
-    
+
     _initializeFolderSelection();
   }
 
@@ -85,12 +82,10 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     return Dialog(
       clipBehavior: Clip.hardEdge,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(28),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       child: SizedBox(
         width: MediaQuery.of(context).size.width * 0.9,
         child: Column(
@@ -98,7 +93,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           children: [
             // Header
             _buildHeader(theme, colorScheme),
-            
+
             // Content
             Flexible(
               child: SingleChildScrollView(
@@ -111,17 +106,17 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
                       // Title input
                       _buildTitleInput(theme),
                       const SizedBox(height: 20),
-                      
+
                       // Quick actions row
                       _buildQuickActions(theme, colorScheme),
                       const SizedBox(height: 20),
-                      
+
                       // Advanced options
                       if (_showAdvancedOptions) ...[
                         _buildAdvancedOptions(theme, colorScheme),
                         const SizedBox(height: 20),
                       ],
-                      
+
                       // Advanced toggle
                       _buildAdvancedToggle(theme),
                     ],
@@ -129,7 +124,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
                 ),
               ),
             ),
-            
+
             // Actions
             _buildActions(theme, colorScheme),
           ],
@@ -158,14 +153,10 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
               color: colorScheme.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              PhosphorIcons.listPlus(PhosphorIconsStyle.bold),
-              color: colorScheme.primary,
-              size: 24,
-            ),
+            child: Icon(Icons.add_task, color: colorScheme.primary, size: 24),
           ),
           const SizedBox(width: 16),
-          
+
           // Title
           Expanded(
             child: Column(
@@ -181,17 +172,17 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
                 Text(
                   'Add to your task list',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                    color: colorScheme.onSurfaceVariant.withOpacity(0.9),
                   ),
                 ),
               ],
             ),
           ),
-          
+
           // Close button
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: Icon(PhosphorIcons.x()),
+            icon: Icon(Icons.close),
             style: IconButton.styleFrom(
               foregroundColor: colorScheme.onSurfaceVariant,
             ),
@@ -209,10 +200,8 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
         labelText: 'Task title',
         hintText: 'What needs to be done?',
         filled: true,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        prefixIcon: Icon(PhosphorIcons.textT()),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+        prefixIcon: Icon(Icons.title),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
@@ -233,13 +222,13 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           'Quick Options',
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w600,
-            color: colorScheme.onSurfaceVariant,
+            color: colorScheme.onSurface.withOpacity(0.9),
           ),
         ),
         const SizedBox(height: 12),
         // Date selection (full width for better display of ranges)
         _buildQuickActionChip(
-          icon: PhosphorIcons.calendar(),
+          icon: Icons.event,
           label: _getDueDateLabel(),
           isSelected: _dueDate != null,
           onTap: _selectDueDate,
@@ -247,11 +236,11 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           colorScheme: colorScheme,
         ),
         const SizedBox(height: 12),
-        
+
         // Time selection (only show if date is selected)
         if (_dueDate != null) ...[
           _buildQuickActionChip(
-            icon: PhosphorIcons.clock(),
+            icon: Icons.schedule,
             label: _getTimeLabel(),
             isSelected: _dueTime != null,
             onTap: _selectTime,
@@ -260,7 +249,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           ),
           const SizedBox(height: 12),
         ],
-        
+
         // Priority selection
         _buildQuickActionChip(
           icon: _getPriorityIcon(_priority),
@@ -310,14 +299,14 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
-            color: isSelected 
-              ? colorScheme.primaryContainer 
-              : colorScheme.surfaceContainerHighest,
+            color: isSelected
+                ? colorScheme.primaryContainer
+                : colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected 
-                ? colorScheme.primary.withValues(alpha: 0.3)
-                : colorScheme.outline.withValues(alpha: 0.2),
+              color: isSelected
+                  ? colorScheme.primary.withValues(alpha: 0.3)
+                  : colorScheme.outline.withValues(alpha: 0.2),
             ),
           ),
           child: Row(
@@ -326,15 +315,21 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
               Icon(
                 icon,
                 size: 18,
-                color: isSelected ? colorScheme.onPrimaryContainer : colorScheme.onSurfaceVariant,
+                color: isSelected
+                    ? colorScheme.onPrimaryContainer
+                    : colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
                   label,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isSelected ? colorScheme.onPrimaryContainer : colorScheme.onSurfaceVariant,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color: isSelected
+                        ? colorScheme.onPrimaryContainer
+                        : colorScheme.onSurfaceVariant,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -354,11 +349,11 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           'Additional Options',
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w600,
-            color: colorScheme.onSurfaceVariant,
+            color: colorScheme.onSurface.withOpacity(0.9),
           ),
         ),
         const SizedBox(height: 16),
-        
+
         // Notes input
         TextFormField(
           controller: _notesController,
@@ -366,10 +361,8 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
             labelText: 'Notes (optional)',
             hintText: 'Add details...',
             filled: true,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            prefixIcon: Icon(PhosphorIcons.notepad()),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+            prefixIcon: Icon(Icons.notes),
           ),
           maxLines: 3,
           textCapitalization: TextCapitalization.sentences,
@@ -378,20 +371,13 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
     );
   }
 
-
   Widget _buildAdvancedToggle(ThemeData theme) {
     return TextButton.icon(
       onPressed: () {
         setState(() => _showAdvancedOptions = !_showAdvancedOptions);
       },
-      icon: Icon(
-        _showAdvancedOptions 
-          ? PhosphorIcons.caretUp() 
-          : PhosphorIcons.caretDown(),
-      ),
-      label: Text(
-        _showAdvancedOptions ? 'Less options' : 'More options',
-      ),
+      icon: Icon(_showAdvancedOptions ? Icons.expand_less : Icons.expand_more),
+      label: Text(_showAdvancedOptions ? 'Less options' : 'More options'),
     );
   }
 
@@ -402,9 +388,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         border: Border(
-          top: BorderSide(
-            color: colorScheme.outline.withValues(alpha: 0.2),
-          ),
+          top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.2)),
         ),
       ),
       child: Row(
@@ -417,21 +401,19 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
             ),
           ),
           const SizedBox(width: 16),
-          
-          // Save button  
+
+          // Save button
           Expanded(
             flex: 2,
             child: FilledButton(
               onPressed: _isLoading ? null : _saveTodo,
-              child: _isLoading 
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                    ),
-                  )
-                : Text(widget.todo == null ? 'Add Task' : 'Save Changes'),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(widget.todo == null ? 'Add Task' : 'Save Changes'),
             ),
           ),
         ],
@@ -443,11 +425,11 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
   IconData _getPriorityIcon(String priority) {
     switch (priority) {
       case 'high':
-        return PhosphorIcons.arrowUp(PhosphorIconsStyle.bold);
+        return Icons.keyboard_arrow_up;
       case 'low':
-        return PhosphorIcons.arrowDown(PhosphorIconsStyle.bold);
+        return Icons.keyboard_arrow_down;
       default:
-        return PhosphorIcons.minus(PhosphorIconsStyle.bold);
+        return Icons.remove;
     }
   }
 
@@ -479,7 +461,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
       helpText: 'Select date or date range',
       saveText: 'Done',
     );
-    
+
     if (picked != null) {
       setState(() {
         _startDate = picked.start;
@@ -507,9 +489,9 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
 
   Future<void> _saveTodo() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
       // Combine date and time
       DateTime? finalDueDate;
@@ -526,11 +508,13 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           finalDueDate = _dueDate;
         }
       }
-      
+
       final todo = Todo(
         id: widget.todo?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         text: _titleController.text.trim(),
-        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
         startDate: _isMultiDay ? _startDate : null,
         dueDate: finalDueDate,
         priority: _priority,
@@ -540,17 +524,17 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
         createdAt: widget.todo?.createdAt ?? DateTime.now(),
         completedAt: widget.todo?.completedAt,
       );
-      
+
       widget.onAdd(todo);
-      
+
       if (mounted) {
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving task: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving task: $e')));
       }
     } finally {
       if (mounted) {

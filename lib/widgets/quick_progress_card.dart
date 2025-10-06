@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../controllers/task_controller.dart';
 import '../screens/home_screen.dart';
 import '../services/theme_service.dart';
@@ -12,10 +11,12 @@ class QuickProgressCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final appOpts = theme.extension<AppOptions>() ?? const AppOptions(compact: false, highContrast: false);
+    final appOpts =
+        theme.extension<AppOptions>() ??
+        const AppOptions(compact: false, highContrast: false);
     final completionRate = statistics.completionRate;
-  final completedToday = statistics.completed;
-  final totalToday = statistics.total;
+    final completedToday = statistics.completed;
+    final totalToday = statistics.total;
     final hasCompletedTasksToday = completedToday > 0;
     final streakEmoji = hasCompletedTasksToday ? '🔥' : '📝';
 
@@ -44,7 +45,9 @@ class QuickProgressCard extends ConsumerWidget {
                 height: boxSize,
                 width: boxSize,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                  color: theme.colorScheme.primaryContainer.withValues(
+                    alpha: 0.3,
+                  ),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: theme.colorScheme.primary.withValues(alpha: 0.5),
@@ -69,12 +72,20 @@ class QuickProgressCard extends ConsumerWidget {
                   children: [
                     Text("Today's Progress", style: titleStyle),
                     SizedBox(height: appOpts.compact ? 2 : 4),
-                    Text('$completedToday of $totalToday tasks completed', style: bodyStyle),
+                    Text(
+                      '$completedToday of $totalToday tasks completed',
+                      style: bodyStyle,
+                    ),
                     if (hasCompletedTasksToday) ...[
                       SizedBox(height: appOpts.compact ? 2 : 4),
                       Row(
                         children: [
-                          Text(streakEmoji, style: TextStyle(fontSize: appOpts.compact ? 14 : 16)),
+                          Text(
+                            streakEmoji,
+                            style: TextStyle(
+                              fontSize: appOpts.compact ? 14 : 16,
+                            ),
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Great progress!',
@@ -91,7 +102,7 @@ class QuickProgressCard extends ConsumerWidget {
                 ),
               ),
               Icon(
-                PhosphorIcons.caretRight(),
+                Icons.chevron_right,
                 color: theme.colorScheme.onSurfaceVariant,
                 size: appOpts.compact ? 18 : 20,
               ),

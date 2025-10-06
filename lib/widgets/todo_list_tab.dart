@@ -17,154 +17,167 @@ class TodoListTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-  final filteredTodos = ref.watch(filteredTasksProvider);
+    final filteredTodos = ref.watch(filteredTasksProvider);
     final sortBy = ref.watch(sortByProvider);
-  // hideGreeting setting removed; always show greeting header
-  final multiMode = ref.watch(multiSelectModeProvider);
-  final selectedIds = ref.watch(selectedTodoIdsProvider);
-  final viewType = ref.watch(taskViewTypeProvider);
+    // hideGreeting setting removed; always show greeting header
+    final multiMode = ref.watch(multiSelectModeProvider);
+    final selectedIds = ref.watch(selectedTodoIdsProvider);
+    final viewType = ref.watch(taskViewTypeProvider);
 
-  final appOpts = Theme.of(context).extension<AppOptions>() ?? const AppOptions(compact: false, highContrast: false);
-  final outerPad = EdgeInsets.all(appOpts.compact ? 12 : 16);
-  final sectionGap = SizedBox(height: appOpts.compact ? 6 : 8);
-  
-  return Column(
-    children: [
-  // Greeting header (always shown)
-  const GreetingHeader(),
-      
-    sectionGap,
-      
-      // Content view based on view type
-      Expanded(
-        child: GestureDetector(
-          onPanUpdate: (details) {
-            // Only trigger in calendar view or when list is empty
-            if (viewType == TaskViewType.calendar || filteredTodos.isEmpty) {
-              // Detect downward swipe gesture to trigger search
-              // require a larger downward movement to avoid accidental triggers
-              if (details.delta.dy > 60) { // stronger swipe down
-                // open search only for clear deliberate gestures
-                ref.read(searchModeProvider.notifier).state = true;
-              }
-            }
-          },
-          child: NotificationListener<ScrollNotification>(
-            onNotification: (scrollNotification) {
-              // Only handle scroll-to-search for list views with content
-              if (viewType == TaskViewType.list && filteredTodos.isNotEmpty) {
-                // Detect pull-to-search gesture
-                if (scrollNotification is ScrollUpdateNotification) {
-                  // Only trigger if user is at the very top of the list
-                  if (scrollNotification.metrics.extentBefore <= 0) {
-                    // Check if user is pulling down far enough (strong deliberate pull)
-                    if (scrollNotification.metrics.pixels <= -120) {
-                      ref.read(searchModeProvider.notifier).state = true;
-                      return true;
-                    }
-                  }
-                }
+    final appOpts =
+        Theme.of(context).extension<AppOptions>() ??
+        const AppOptions(compact: false, highContrast: false);
+    final outerPad = EdgeInsets.all(appOpts.compact ? 12 : 16);
+    final sectionGap = SizedBox(height: appOpts.compact ? 6 : 8);
 
-                if (scrollNotification is OverscrollNotification) {
-                  // Only trigger if at the top and overscroll is strong enough
-                  if (scrollNotification.metrics.extentBefore <= 0) {
-                    if (scrollNotification.overscroll <= -80) {
-                      ref.read(searchModeProvider.notifier).state = true;
-                      return true;
-                    }
-                  }
+    return Column(
+      children: [
+        // Greeting header (always shown)
+        const GreetingHeader(),
+
+        sectionGap,
+
+        // Content view based on view type
+        Expanded(
+          child: GestureDetector(
+            onPanUpdate: (details) {
+              // Only trigger in calendar view or when list is empty
+              if (viewType == TaskViewType.calendar || filteredTodos.isEmpty) {
+                // Detect downward swipe gesture to trigger search
+                // require a larger downward movement to avoid accidental triggers
+                if (details.delta.dy > 60) {
+                  // stronger swipe down
+                  // open search only for clear deliberate gestures
+                  ref.read(searchModeProvider.notifier).state = true;
                 }
               }
-              
-              return false;
             },
-            child: viewType == TaskViewType.calendar
-                ? CalendarView(tasks: filteredTodos)
-                : filteredTodos.isEmpty
-                  ? _buildEmptyState(context, ref.watch(searchQueryProvider).isNotEmpty)
-                  : sortBy == 'manual'
-                      ? (!multiMode ? ReorderableListView.builder(
-                          padding: outerPad,
-                          itemCount: filteredTodos.length,
-                          physics: const BouncingScrollPhysics(),
-                          onReorder: (oldIndex, newIndex) {
-                            ref.read(taskControllerProvider.notifier).reorder(oldIndex, newIndex, filteredTodos);
-                          },
-                          itemBuilder: (context, index) {
-                            final todo = filteredTodos[index];
-                            return HybridTodoItem(
-                              key: ValueKey(todo.id),
-                              todo: todo,
-                              onToggle: () => ref.read(taskControllerProvider.notifier).toggleComplete(todo.id),
-                              onEdit: () => _showEditDialog(context, ref, todo),
-                              onDelete: () => _deleteTodoWithConfirmation(context, ref, todo),
-                              showDragHandle: true,
-                              selectable: multiMode,
-                              selected: selectedIds.contains(todo.id),
-                              onSelectToggle: () {
-                                // For manual reorder view, only allow selection if already in multi mode to avoid gesture conflict
-                                final wasMulti = ref.read(multiSelectModeProvider);
-                                if (!wasMulti) return; // user should use toolbar icon in manual mode
-                                ref.read(selectedTodoIdsProvider.notifier).toggle(todo.id);
-                                HapticFeedback.selectionClick();
-                              },
-                            );
-                          },
-                        ) : _buildSelectableList(filteredTodos, ref, true))
-                      : ListView.builder(
-                          padding: outerPad,
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: filteredTodos.length,
-                          itemBuilder: (context, index) {
-                            final todo = filteredTodos[index];
-                            return HybridTodoItem(
-                              todo: todo,
-                              onToggle: () => ref.read(taskControllerProvider.notifier).toggleComplete(todo.id),
-                              onEdit: () => _showEditDialog(context, ref, todo),
-                              onDelete: () => _deleteTodoWithConfirmation(context, ref, todo),
-                              selectable: multiMode,
-                              selected: selectedIds.contains(todo.id),
-                              onSelectToggle: () {
-                                final wasMulti = ref.read(multiSelectModeProvider);
-                                if (!wasMulti) {
-                                  ref.read(multiSelectModeProvider.notifier).state = true;
-                                }
-                                ref.read(selectedTodoIdsProvider.notifier).toggle(todo.id);
-                                HapticFeedback.selectionClick();
-                              },
-                            );
-                          },
-                        ),
-        ),
-      ),
-    ),
-    ],
-  );
-  }
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (scrollNotification) {
+                // Only handle scroll-to-search for list views with content
+                if (viewType == TaskViewType.list && filteredTodos.isNotEmpty) {
+                  // Detect pull-to-search gesture
+                  if (scrollNotification is ScrollUpdateNotification) {
+                    // Only trigger if user is at the very top of the list
+                    if (scrollNotification.metrics.extentBefore <= 0) {
+                      // Check if user is pulling down far enough (strong deliberate pull)
+                      if (scrollNotification.metrics.pixels <= -120) {
+                        ref.read(searchModeProvider.notifier).state = true;
+                        return true;
+                      }
+                    }
+                  }
 
-  String _getSortLabel(String sortBy) {
-    switch (sortBy) {
-      case 'manual':
-        return 'Manual';
-      case 'date_created':
-        return 'Date Created';
-      case 'date_due':
-        return 'Due Date';
-      case 'priority':
-        return 'Priority';
-      case 'alphabetical':
-        return 'A-Z';
-      default:
-        return 'Default';
-    }
+                  if (scrollNotification is OverscrollNotification) {
+                    // Only trigger if at the top and overscroll is strong enough
+                    if (scrollNotification.metrics.extentBefore <= 0) {
+                      if (scrollNotification.overscroll <= -80) {
+                        ref.read(searchModeProvider.notifier).state = true;
+                        return true;
+                      }
+                    }
+                  }
+                }
+
+                return false;
+              },
+              child: viewType == TaskViewType.calendar
+                  ? CalendarView(tasks: filteredTodos)
+                  : filteredTodos.isEmpty
+                  ? _buildEmptyState(
+                      context,
+                      ref.watch(searchQueryProvider).isNotEmpty,
+                    )
+                  : sortBy == 'manual'
+                  ? (!multiMode
+                        ? ReorderableListView.builder(
+                            padding: outerPad,
+                            itemCount: filteredTodos.length,
+                            physics: const BouncingScrollPhysics(),
+                            onReorder: (oldIndex, newIndex) {
+                              ref
+                                  .read(taskControllerProvider.notifier)
+                                  .reorder(oldIndex, newIndex, filteredTodos);
+                            },
+                            itemBuilder: (context, index) {
+                              final todo = filteredTodos[index];
+                              return HybridTodoItem(
+                                key: ValueKey(todo.id),
+                                todo: todo,
+                                onToggle: () => ref
+                                    .read(taskControllerProvider.notifier)
+                                    .toggleComplete(todo.id),
+                                onEdit: () =>
+                                    _showEditDialog(context, ref, todo),
+                                onDelete: () => _deleteTodoWithConfirmation(
+                                  context,
+                                  ref,
+                                  todo,
+                                ),
+                                showDragHandle: true,
+                                selectable: multiMode,
+                                selected: selectedIds.contains(todo.id),
+                                onSelectToggle: () {
+                                  // For manual reorder view, only allow selection if already in multi mode to avoid gesture conflict
+                                  final wasMulti = ref.read(
+                                    multiSelectModeProvider,
+                                  );
+                                  if (!wasMulti)
+                                    return; // user should use toolbar icon in manual mode
+                                  ref
+                                      .read(selectedTodoIdsProvider.notifier)
+                                      .toggle(todo.id);
+                                  HapticFeedback.selectionClick();
+                                },
+                              );
+                            },
+                          )
+                        : _buildSelectableList(filteredTodos, ref, true))
+                  : ListView.builder(
+                      padding: outerPad,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: filteredTodos.length,
+                      itemBuilder: (context, index) {
+                        final todo = filteredTodos[index];
+                        return HybridTodoItem(
+                          todo: todo,
+                          onToggle: () => ref
+                              .read(taskControllerProvider.notifier)
+                              .toggleComplete(todo.id),
+                          onEdit: () => _showEditDialog(context, ref, todo),
+                          onDelete: () =>
+                              _deleteTodoWithConfirmation(context, ref, todo),
+                          selectable: multiMode,
+                          selected: selectedIds.contains(todo.id),
+                          onSelectToggle: () {
+                            final wasMulti = ref.read(multiSelectModeProvider);
+                            if (!wasMulti) {
+                              ref.read(multiSelectModeProvider.notifier).state =
+                                  true;
+                            }
+                            ref
+                                .read(selectedTodoIdsProvider.notifier)
+                                .toggle(todo.id);
+                            HapticFeedback.selectionClick();
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildSelectableList(List<Todo> todos, WidgetRef ref, bool manual) {
-  final appOpts = Theme.of(ref.context).extension<AppOptions>() ?? const AppOptions(compact: false, highContrast: false);
-  final pad = EdgeInsets.all(appOpts.compact ? 12 : 16);
-  return ListView.builder(
-	padding: pad,
-    physics: const BouncingScrollPhysics(),
+    final appOpts =
+        Theme.of(ref.context).extension<AppOptions>() ??
+        const AppOptions(compact: false, highContrast: false);
+    final pad = EdgeInsets.all(appOpts.compact ? 12 : 16);
+    return ListView.builder(
+      padding: pad,
+      physics: const BouncingScrollPhysics(),
       itemCount: todos.length,
       itemBuilder: (context, index) {
         final todo = todos[index];
@@ -172,7 +185,8 @@ class TodoListTab extends ConsumerWidget {
         return HybridTodoItem(
           key: ValueKey(todo.id),
           todo: todo,
-          onToggle: () => ref.read(taskControllerProvider.notifier).toggleComplete(todo.id),
+          onToggle: () =>
+              ref.read(taskControllerProvider.notifier).toggleComplete(todo.id),
           onEdit: () => _showEditDialog(context, ref, todo),
           onDelete: () => _deleteTodoWithConfirmation(context, ref, todo),
           selectable: true,
@@ -198,16 +212,16 @@ class TodoListTab extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            isSearching ? 'No todos found' : 'No todos yet',
+            isSearching ? 'No tasks found' : 'No tasks yet',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Theme.of(context).colorScheme.outline,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            isSearching 
+            isSearching
                 ? 'Try adjusting your search or filters'
-                : 'Tap the + button to add your first todo',
+                : 'Tap the + button to add your first task',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.outline,
             ),
@@ -231,7 +245,11 @@ class TodoListTab extends ConsumerWidget {
     );
   }
 
-  void _deleteTodoWithConfirmation(BuildContext context, WidgetRef ref, Todo todo) {
+  void _deleteTodoWithConfirmation(
+    BuildContext context,
+    WidgetRef ref,
+    Todo todo,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

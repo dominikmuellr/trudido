@@ -17,16 +17,10 @@ This repository contains the app source. The public README below gives contribut
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/1.png" alt="screenshot 1" width="200"/>
-  <img src="screenshots/2.png" alt="screenshot 2" width="200"/>
-  <img src="screenshots/3.png" alt="screenshot 3" width="200"/>
-
-  
-  <img src="screenshots/6.png" alt="screenshot 6" width="200"/>
-  <img src="screenshots/7.png" alt="screenshot 7" width="200"/>
-  <img src="screenshots/8.png" alt="screenshot 8" width="200"/>
-  <img src="screenshots/9.png" alt="screenshot 9" width="200"/>
+  <img src="imagefiles/1.png" alt="screenshot 1" width="180"/>
+  <img src="imagefiles/2.png" alt="screenshot 2" width="180"/>
+  <img src="imagefiles/3.png" alt="screenshot 3" width="180"/>
+  <img src="imagefiles/4.png" alt="screenshot 4" width="180"/>
+  <img src="imagefiles/5.png" alt="screenshot 5" width="180"/>
 
 </p
-
-

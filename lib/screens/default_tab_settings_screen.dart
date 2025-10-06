@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../services/default_tab_service.dart';
 
 /// Provider for the current default tab setting
@@ -9,9 +8,10 @@ final defaultTabProvider = FutureProvider<String>((ref) async {
 });
 
 /// Provider for saving default tab changes
-final defaultTabNotifierProvider = StateNotifierProvider<DefaultTabNotifier, AsyncValue<String>>((ref) {
-  return DefaultTabNotifier();
-});
+final defaultTabNotifierProvider =
+    StateNotifierProvider<DefaultTabNotifier, AsyncValue<String>>((ref) {
+      return DefaultTabNotifier();
+    });
 
 /// State notifier for managing default tab changes
 class DefaultTabNotifier extends StateNotifier<AsyncValue<String>> {
@@ -55,7 +55,7 @@ class DefaultTabNotifier extends StateNotifier<AsyncValue<String>> {
 }
 
 /// Default Tab Settings Screen
-/// 
+///
 /// This screen allows users to choose their preferred starting tab.
 /// It integrates with your existing app's Material Design 3 theme
 /// and follows Android best practices for settings UI.
@@ -72,15 +72,13 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
         centerTitle: false,
       ),
       body: defaultTabAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                PhosphorIcons.warning(),
+                Icons.warning,
                 size: 48,
                 color: Theme.of(context).colorScheme.error,
               ),
@@ -100,7 +98,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: () => ref.refresh(defaultTabNotifierProvider),
-                icon: Icon(PhosphorIcons.arrowClockwise()),
+                icon: Icon(Icons.refresh),
                 label: const Text('Retry'),
               ),
             ],
@@ -111,7 +109,11 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSettingsBody(BuildContext context, WidgetRef ref, String currentTab) {
+  Widget _buildSettingsBody(
+    BuildContext context,
+    WidgetRef ref,
+    String currentTab,
+  ) {
     final tabs = DefaultTabService.getAllTabs();
 
     return ListView(
@@ -134,7 +136,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
-                        PhosphorIcons.houseLine(),
+                        Icons.home_outlined,
                         color: Theme.of(context).colorScheme.onPrimaryContainer,
                         size: 20,
                       ),
@@ -146,39 +148,43 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
                         children: [
                           Text(
                             'Default Starting Tab',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
                           ),
                           Text(
                             'Choose which tab opens when you start the app',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Tab selection options
-                ...tabs.entries.map((entry) => _buildTabOption(
-                  context,
-                  ref,
-                  entry.key,
-                  entry.value,
-                  currentTab,
-                )),
+                ...tabs.entries.map(
+                  (entry) => _buildTabOption(
+                    context,
+                    ref,
+                    entry.key,
+                    entry.value,
+                    currentTab,
+                  ),
+                ),
               ],
             ),
           ),
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Information card
         Card(
           child: Padding(
@@ -189,7 +195,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
                 Row(
                   children: [
                     Icon(
-                      PhosphorIcons.info(),
+                      Icons.info,
                       size: 20,
                       color: Theme.of(context).colorScheme.primary,
                     ),
@@ -215,15 +221,15 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
             ),
           ),
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Reset button
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: () => _showResetDialog(context, ref),
-            icon: Icon(PhosphorIcons.arrowCounterClockwise()),
+            icon: Icon(Icons.undo),
             label: const Text('Reset to Default (Tasks)'),
           ),
         ),
@@ -239,7 +245,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
     String currentTab,
   ) {
     final isSelected = currentTab == tabId;
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: InkWell(
@@ -256,7 +262,9 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
             ),
             borderRadius: BorderRadius.circular(8),
             color: isSelected
-                ? Theme.of(context).colorScheme.primaryContainer.withAlpha((255 * 0.3).round())
+                ? Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer.withAlpha((255 * 0.3).round())
                 : null,
           ),
           child: Row(
@@ -276,7 +284,9 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
                     Text(
                       tabName,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                         color: isSelected
                             ? Theme.of(context).colorScheme.primary
                             : null,
@@ -293,7 +303,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
               ),
               if (isSelected)
                 Icon(
-                  PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
+                  Icons.check_circle,
                   color: Theme.of(context).colorScheme.primary,
                   size: 20,
                 ),
@@ -307,11 +317,11 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
   IconData _getTabIcon(String tabId) {
     switch (tabId) {
       case 'tasks':
-        return PhosphorIcons.listChecks();
+        return Icons.checklist;
       case 'notes':
-        return PhosphorIcons.noteBlank();
+        return Icons.description;
       default:
-        return PhosphorIcons.circle();
+        return Icons.circle_outlined;
     }
   }
 
@@ -326,10 +336,15 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _selectTab(BuildContext context, WidgetRef ref, String tabId, String tabName) async {
+  Future<void> _selectTab(
+    BuildContext context,
+    WidgetRef ref,
+    String tabId,
+    String tabName,
+  ) async {
     final notifier = ref.read(defaultTabNotifierProvider.notifier);
     await notifier.setDefaultTab(tabId);
-    
+
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -371,7 +386,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
     if (confirmed == true && context.mounted) {
       final notifier = ref.read(defaultTabNotifierProvider.notifier);
       await notifier.resetToDefault();
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

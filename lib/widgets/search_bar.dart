@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class TodoSearchBar extends StatefulWidget {
   final String searchQuery;
@@ -36,10 +35,10 @@ class _TodoSearchBarState extends State<TodoSearchBar> {
       controller: _controller,
       decoration: InputDecoration(
         hintText: 'Search todos...',
-        prefixIcon: Icon(PhosphorIcons.magnifyingGlass()),
+        prefixIcon: Icon(Icons.search),
         suffixIcon: widget.searchQuery.isNotEmpty
             ? IconButton(
-                icon: Icon(PhosphorIcons.x()),
+                icon: Icon(Icons.close),
                 onPressed: () {
                   _controller.clear();
                   widget.onSearchChanged('');
