@@ -1,8 +1,12 @@
+<p align="center">
+  <img src="imagefiles/trudiconRound.png" alt="App Icon" width="120" height="120">
+</p>
+
+
+
 # Trudido — Flutter Todo App
 
 Lightweight, privacy-first todo application built with Flutter.
-
-This repository contains the app source. The public README below gives contributors and users the quick steps to run the app and add screenshots or documentation.
 
 ---
 
@@ -17,10 +21,13 @@ This repository contains the app source. The public README below gives contribut
 ## Screenshots
 
 <p align="center">
-  <img src="imagefiles/1.png" alt="screenshot 1" width="180"/>
-  <img src="imagefiles/2.png" alt="screenshot 2" width="180"/>
-  <img src="imagefiles/3.png" alt="screenshot 3" width="180"/>
-  <img src="imagefiles/4.png" alt="screenshot 4" width="180"/>
-  <img src="imagefiles/5.png" alt="screenshot 5" width="180"/>
+  <img src="imagefiles/1.png" alt="screenshot 1" width="200"/>
+   &nbsp;&nbsp;&nbsp;
+  <img src="imagefiles/2.png" alt="screenshot 2" width="200"/>
+   &nbsp;&nbsp;&nbsp;
+  <img src="imagefiles/4.png" alt="screenshot 4" width="200"/>
+   &nbsp;&nbsp;&nbsp;
+  <img src="imagefiles/5.png" alt="screenshot 5" width="200"/>
+   &nbsp;&nbsp;&nbsp;
 
 </p
