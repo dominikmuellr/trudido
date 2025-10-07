@@ -18,7 +18,52 @@ import 'screens/home_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Set initial system UI overlay style before app starts
+  // This prevents the colored band issue on Samsung Galaxy devices
+  _setInitialSystemUIOverlayStyle();
+
   runApp(const ProviderScope(child: TodoApp()));
+}
+
+/// Sets the initial system UI overlay style based on system theme
+/// Called before runApp() to ensure proper styling from first frame
+void _setInitialSystemUIOverlayStyle() {
+  // Get system brightness to determine initial styling
+  final platformBrightness =
+      WidgetsBinding.instance.platformDispatcher.platformBrightness;
+
+  // Set system UI overlay style based on system theme
+  // This provides a reasonable default that works for both light and dark themes
+  final overlayStyle = _createSystemUIOverlayStyle(platformBrightness);
+
+  // Debug output to verify the fix is working
+  debugPrint(
+    '🎨 Setting initial system UI for ${platformBrightness.name} theme',
+  );
+
+  SystemChrome.setSystemUIOverlayStyle(overlayStyle);
+}
+
+/// Creates SystemUiOverlayStyle based on brightness and theme colors
+/// This ensures consistent system UI styling throughout the app
+SystemUiOverlayStyle _createSystemUIOverlayStyle(
+  Brightness brightness, {
+  Color? backgroundColor,
+}) {
+  final isDark = brightness == Brightness.dark;
+
+  return SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+    statusBarBrightness: brightness,
+    systemNavigationBarColor:
+        backgroundColor ?? (isDark ? Colors.black : Colors.white),
+    systemNavigationBarIconBrightness: isDark
+        ? Brightness.light
+        : Brightness.dark,
+    systemNavigationBarDividerColor: Colors.transparent,
+  );
 }
 
 class TodoApp extends ConsumerStatefulWidget {
@@ -255,6 +300,19 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
       theme: themes.$1,
       darkTheme: darkThemeEffective,
       themeMode: themeMode,
+      // Ensure MaterialApp uses theme background color to prevent visual gaps
+      // This helps eliminate the colored band issue on Samsung Galaxy devices
+      builder: (context, child) {
+        // Apply system UI overlay style that matches the current theme
+        final currentTheme = Theme.of(context);
+        final overlayStyle = _createSystemUIOverlayStyle(
+          currentTheme.brightness,
+          backgroundColor: currentTheme.scaffoldBackgroundColor,
+        );
+        SystemChrome.setSystemUIOverlayStyle(overlayStyle);
+
+        return child ?? const SizedBox.shrink();
+      },
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -357,16 +415,15 @@ class SystemNavigationBarHandler extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scaffoldBackgroundColor = Theme.of(context).scaffoldBackgroundColor;
-    final brightness = Theme.of(context).brightness;
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        systemNavigationBarColor: scaffoldBackgroundColor,
-        systemNavigationBarIconBrightness: brightness == Brightness.dark
-            ? Brightness.light
-            : Brightness.dark,
-      ),
+    // Apply system UI overlay style that matches the current theme
+    // This works in conjunction with the initial styling set in main()
+    final currentTheme = Theme.of(context);
+    final overlayStyle = _createSystemUIOverlayStyle(
+      currentTheme.brightness,
+      backgroundColor: currentTheme.scaffoldBackgroundColor,
     );
+    SystemChrome.setSystemUIOverlayStyle(overlayStyle);
+
     return child;
   }
 }

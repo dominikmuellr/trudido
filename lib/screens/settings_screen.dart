@@ -236,16 +236,6 @@ class SettingsScreen extends ConsumerWidget {
           _buildSectionHeader(context, 'About'),
           ListTile(
             leading: Icon(Icons.info_outline),
-            title: const Text('App Version'),
-            trailing: const Text('v.1.2.0-3'),
-          ),
-          ListTile(
-            leading: Icon(Icons.code),
-            title: const Text('Built with Flutter'),
-            subtitle: const Text('Cross-platform todo app'),
-          ),
-          ListTile(
-            leading: Icon(Icons.info_outline),
             title: const Text('About & Licenses'),
             subtitle: const Text(
               'App license, package licenses and repository',
