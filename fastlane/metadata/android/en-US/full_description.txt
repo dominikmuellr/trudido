@@ -1,0 +1,24 @@
+A powerful and elegant todo list application built with Flutter to help you organize your daily tasks and stay productive.
+
+Features:
+• Create, edit, and delete tasks with ease
+• Mark tasks as completed with a simple tap
+• Rich markdown support for detailed notes
+• Material 3 design language for modern UI
+• Dark mode and light mode themes
+• Import and export your tasks for backup
+• Clean and intuitive user interface
+• Lightning-fast performance
+• No ads or tracking
+• Works completely offline
+
+Design & Experience:
+• Beautiful Material 3 design system
+• Adaptive themes that follow system preferences
+• Smooth animations and transitions
+
+Data Management:
+• Import tasks from other apps or files
+• Export your data for backup or migration
+• All data stored securely on your device
+• Complete privacy - no cloud syncing required
