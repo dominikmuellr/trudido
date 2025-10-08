@@ -38,7 +38,7 @@
 
 ## 📦 Installation
 [⬇️ Download the latest release](https://github.com/dominikmuellr/trudido/releases)  
-*(F-Droid listing coming soon)*
+*(Play Store listing coming soon)*
 
 ---
 
