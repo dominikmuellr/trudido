@@ -8,15 +8,30 @@
 
 Lightweight, privacy-first todo application built with Flutter.
 
+## 📋 Task Management
+- Smart Task Creation - Create tasks with titles, notes, due dates, and priorities
+- Flexible Organization - Organize tasks into custom folders and categories
+- Multiple Views - Switch between list and calendar views
+- Advanced Filtering - Sort and filter tasks by date, priority, completion status
+- Quick Actions - Swipe to edit or delete, multi-select for batch operations
+
+## 📝 Markdown Notes
+- Markdown Support - Rich text formatting with live preview
+
+## 🎨 Beautiful Design
+- Material 3 Design - Modern, clean interface following Google's latest design principles
+- Dynamic Theming - Automatic Material You color extraction (Android 12+)
+- Dark/Light Modes - Adaptive themes that follow system preferences
+- Responsive Layout - Optimized for all screen sizes
+
+## 🔒 Privacy-First
+- 100% Offline - All data stored locally on your device
+- No Tracking - Zero analytics, ads, or data collection
+- Your Data, Your Control - Import/export functionality for complete data ownership
+
+- No accounts, no subscriptions, no tracking
+
 ---
-
-## Features
-
-- Task creation, editing and completion
-- Categories/folders and templates
-- Local persistence (no remote server required)
-- Light / Dark theme support with dynamic color schemes
-- Notification prompts and system permission helpers
 
 ## Screenshots
 
