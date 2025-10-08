@@ -30,15 +30,33 @@ class PreferencesService {
   void _hydrate() {
     final p = _prefs!;
     _cache = PreferencesState(
-      themeMode: p.getString('theme_mode') ?? PreferencesState.defaultState.themeMode,
-      useDynamicColor: p.getBool('use_dynamic_color') ?? PreferencesState.defaultState.useDynamicColor,
-      useBlackTheme: p.getBool('use_black_theme') ?? PreferencesState.defaultState.useBlackTheme,
-      compactDensity: p.getBool('compact_density') ?? PreferencesState.defaultState.compactDensity,
-      highContrast: p.getBool('high_contrast') ?? PreferencesState.defaultState.highContrast,
-      hideGreeting: p.getBool('hide_greeting') ?? PreferencesState.defaultState.hideGreeting,
+      themeMode:
+          p.getString('theme_mode') ?? PreferencesState.defaultState.themeMode,
+      useDynamicColor:
+          p.getBool('use_dynamic_color') ??
+          PreferencesState.defaultState.useDynamicColor,
+      useBlackTheme:
+          p.getBool('use_black_theme') ??
+          PreferencesState.defaultState.useBlackTheme,
+      accentColorSeed:
+          p.getInt('accent_color_seed') ??
+          PreferencesState.defaultState.accentColorSeed,
+      compactDensity:
+          p.getBool('compact_density') ??
+          PreferencesState.defaultState.compactDensity,
+      highContrast:
+          p.getBool('high_contrast') ??
+          PreferencesState.defaultState.highContrast,
+      hideGreeting:
+          p.getBool('hide_greeting') ??
+          PreferencesState.defaultState.hideGreeting,
       fabPosition: _sanitizeFabPosition(p.getString('fab_position')),
-      swipeLeftAction: p.getString('swipe_left_action') ?? PreferencesState.defaultState.swipeLeftAction,
-      swipeRightAction: p.getString('swipe_right_action') ?? PreferencesState.defaultState.swipeRightAction,
+      swipeLeftAction:
+          p.getString('swipe_left_action') ??
+          PreferencesState.defaultState.swipeLeftAction,
+      swipeRightAction:
+          p.getString('swipe_right_action') ??
+          PreferencesState.defaultState.swipeRightAction,
     );
   }
 
@@ -51,6 +69,7 @@ class PreferencesService {
     String? themeMode,
     bool? useDynamicColor,
     bool? useBlackTheme,
+    int? accentColorSeed,
     bool? hideGreeting,
     String? fabPosition,
     String? swipeLeftAction,
@@ -62,16 +81,27 @@ class PreferencesService {
     }
     try {
       if (themeMode != null) await p.setString('theme_mode', themeMode);
-      if (useDynamicColor != null) await p.setBool('use_dynamic_color', useDynamicColor);
-      if (useBlackTheme != null) await p.setBool('use_black_theme', useBlackTheme);
+      if (useDynamicColor != null)
+        await p.setBool('use_dynamic_color', useDynamicColor);
+      if (useBlackTheme != null)
+        await p.setBool('use_black_theme', useBlackTheme);
+      if (accentColorSeed != null)
+        await p.setInt('accent_color_seed', accentColorSeed);
       if (hideGreeting != null) await p.setBool('hide_greeting', hideGreeting);
       if (fabPosition != null) await p.setString('fab_position', fabPosition);
-      if (swipeLeftAction != null) await p.setString('swipe_left_action', swipeLeftAction);
-      if (swipeRightAction != null) await p.setString('swipe_right_action', swipeRightAction);
+      if (swipeLeftAction != null)
+        await p.setString('swipe_left_action', swipeLeftAction);
+      if (swipeRightAction != null)
+        await p.setString('swipe_right_action', swipeRightAction);
       _hydrate();
       return _cache;
     } catch (e, st) {
-      throw AppError(AppErrorType.storageWrite, 'Failed to update preferences', cause: e, stackTrace: st);
+      throw AppError(
+        AppErrorType.storageWrite,
+        'Failed to update preferences',
+        cause: e,
+        stackTrace: st,
+      );
     }
   }
 }

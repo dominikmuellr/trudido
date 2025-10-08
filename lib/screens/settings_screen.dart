@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
 import '../controllers/task_controller.dart';
-import '../services/notification_service.dart';
 import 'backup_settings_page.dart';
 import 'about_screen.dart';
 import 'display_theme_settings_page.dart';
@@ -65,7 +64,6 @@ class _SwipeActionSheet extends ConsumerWidget {
               style: Theme.of(context).textTheme.titleLarge,
             ),
           ),
-          const Divider(),
           ListTile(
             title: const Text('Left Swipe Action'),
             subtitle: Text(_getSwipeActionName(preferences.swipeLeftAction)),
@@ -97,7 +95,6 @@ class _SwipeActionSheet extends ConsumerWidget {
               controller.setSwipeLeftAction('none');
             },
           ),
-          const Divider(),
           ListTile(
             title: const Text('Right Swipe Action'),
             subtitle: Text(_getSwipeActionName(preferences.swipeRightAction)),
@@ -130,6 +127,130 @@ class _SwipeActionSheet extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
+
+class _DangerZoneSheet extends ConsumerWidget {
+  final dynamic statistics;
+  const _DangerZoneSheet({required this.statistics});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Danger Zone',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: cs.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              'These actions cannot be undone. Please proceed with caution.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 24),
+          ListTile(
+            leading: Icon(Icons.delete_outline, color: cs.error),
+            title: Text(
+              'Clear Completed Tasks',
+              style: TextStyle(color: cs.error),
+            ),
+            subtitle: Text(
+              'Remove all completed tasks (${statistics.completed} tasks)',
+            ),
+            onTap: () {
+              Navigator.of(context).pop(); // Close the sheet first
+              _showClearCompletedDialog(context, ref);
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.warning_amber_outlined, color: cs.error),
+            title: Text('Clear All Data', style: TextStyle(color: cs.error)),
+            subtitle: const Text('Delete all tasks and categories'),
+            onTap: () {
+              Navigator.of(context).pop(); // Close the sheet first
+              _showClearAllDataDialog(context, ref);
+            },
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  void _showClearCompletedDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Completed Tasks'),
+        content: const Text(
+          'Are you sure you want to delete all completed tasks? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              ref.read(taskControllerProvider.notifier).clearCompleted();
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Completed tasks cleared')),
+              );
+            },
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showClearAllDataDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear All Data'),
+        content: const Text(
+          'Are you sure you want to delete ALL tasks and categories? This will permanently remove all your data and cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () {
+              // Bulk delete all tasks (categories handled later)
+              ref.read(taskControllerProvider.notifier).clearAll();
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('All data cleared')));
+            },
+            child: const Text('Clear All'),
+          ),
         ],
       ),
     );
@@ -193,8 +314,6 @@ class SettingsScreen extends ConsumerWidget {
 
           _buildSwipeDirectionSetting(context, ref),
 
-          const Divider(),
-
           // Notifications Section
           _buildSectionHeader(context, 'Notifications'),
           ListTile(
@@ -212,8 +331,6 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
 
-          const Divider(),
-
           // Data & Storage Section
           _buildSectionHeader(context, 'Data & Storage'),
           ListTile(
@@ -229,8 +346,19 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
-
-          const Divider(),
+          ListTile(
+            leading: Icon(
+              Icons.warning_amber_outlined,
+              color: theme.colorScheme.error,
+            ),
+            title: Text(
+              'Danger Zone',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+            subtitle: const Text('Clear tasks and reset data'),
+            trailing: Icon(Icons.arrow_forward_ios),
+            onTap: () => _showDangerZoneSheet(context, ref, statistics),
+          ),
 
           // About Section
           _buildSectionHeader(context, 'About'),
@@ -246,67 +374,6 @@ class SettingsScreen extends ConsumerWidget {
                 MaterialPageRoute(builder: (context) => const AboutScreen()),
               );
             },
-          ),
-
-          const Divider(),
-
-          // Debug Section (only in debug mode)
-          if (const bool.fromEnvironment('dart.vm.product') == false) ...[
-            _buildSectionHeader(context, 'Debug'),
-            ListTile(
-              leading: Icon(Icons.bug_report_outlined),
-              title: const Text('Test Notification (10s)'),
-              subtitle: const Text(
-                'Schedules a native notification in 10 seconds',
-              ),
-              onTap: () async {
-                final dt = DateTime.now().add(const Duration(seconds: 10));
-                final ok = await NotificationBridge.instance
-                    .scheduleTaskNotification(
-                      taskId: 'settings_test',
-                      title: 'Settings Test',
-                      body: 'This fired after a 10s delay',
-                      scheduledTime: dt,
-                    );
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      ok ? 'Scheduled for 10s from now' : 'Failed to schedule',
-                    ),
-                    duration: const Duration(seconds: 4),
-                  ),
-                );
-              },
-            ),
-          ],
-
-          const Divider(),
-
-          // Data Management Section
-          _buildSectionHeader(context, 'Data Management'),
-          ListTile(
-            leading: Icon(Icons.delete_outline, color: theme.colorScheme.error),
-            title: Text(
-              'Clear Completed Tasks',
-              style: TextStyle(color: theme.colorScheme.error),
-            ),
-            subtitle: Text(
-              'Remove all completed tasks (${statistics.completed} tasks)',
-            ),
-            onTap: () => _showClearCompletedDialog(context, ref),
-          ),
-          ListTile(
-            leading: Icon(
-              Icons.warning_amber_outlined,
-              color: theme.colorScheme.error,
-            ),
-            title: Text(
-              'Clear All Data',
-              style: TextStyle(color: theme.colorScheme.error),
-            ),
-            subtitle: const Text('Delete all tasks and categories'),
-            onTap: () => _showClearAllDataDialog(context, ref),
           ),
         ],
       ),
@@ -346,63 +413,11 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _showClearCompletedDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
+  void _showDangerZoneSheet(BuildContext context, WidgetRef ref, statistics) {
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear Completed Tasks'),
-        content: const Text(
-          'Are you sure you want to delete all completed tasks? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              ref.read(taskControllerProvider.notifier).clearCompleted();
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Completed tasks cleared')),
-              );
-            },
-            child: const Text('Clear'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showClearAllDataDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear All Data'),
-        content: const Text(
-          'Are you sure you want to delete ALL tasks and categories? This will permanently remove all your data and cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: () {
-              // Bulk delete all tasks (categories handled later)
-              ref.read(taskControllerProvider.notifier).clearAll();
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('All data cleared')));
-            },
-            child: const Text('Clear All'),
-          ),
-        ],
-      ),
+      showDragHandle: true,
+      builder: (ctx) => _DangerZoneSheet(statistics: statistics),
     );
   }
 }

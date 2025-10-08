@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:math';
+import 'dart:async';
 import '../providers/filter_providers.dart';
 import '../controllers/task_controller.dart';
 import '../controllers/notes_controller.dart';
@@ -369,20 +371,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ref.read(selectedTodoIdsProvider.notifier).clear();
                         },
                       )
-                    : Padding(
-                        padding: const EdgeInsets.only(left: 12),
-                        child: Text(
-                          'trudido',
-                          style: GoogleFonts.montserrat(
-                            // Slightly larger app name for improved presence
-                            fontSize: 18,
-                            // Lighter weight for subtle brand presence
-                            fontWeight: FontWeight.w500,
-                            // Small letter spacing for a refined look
-                            letterSpacing: 0.4,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
+                    : Consumer(
+                        builder: (context, ref, child) {
+                          final preferences = ref.watch(
+                            preferencesStateProvider,
+                          );
+                          final isHackTheme =
+                              preferences.accentColorSeed == 0xFF00FF00 &&
+                              !preferences
+                                  .useDynamicColor; // Dynamic colors override hack theme
+
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 12),
+                            child: GestureDetector(
+                              onTap: isHackTheme
+                                  ? () => _triggerMatrixRain(ref)
+                                  : null,
+                              child: Text(
+                                'trudido',
+                                style: GoogleFonts.montserrat(
+                                  // Slightly larger app name for improved presence
+                                  fontSize: 18,
+                                  // Lighter weight for subtle brand presence
+                                  fontWeight: FontWeight.w500,
+                                  // Small letter spacing for a refined look
+                                  letterSpacing: 0.4,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
               ),
               // Center area: folder selector (or selected count when multiMode)
@@ -480,7 +501,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                     // Global overflow menu
                     PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert),
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                       tooltip: 'More options',
                       onSelected: (value) {
                         switch (value) {
@@ -937,6 +961,249 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return Icons.folder;
     }
   }
+
+  void _triggerMatrixRain(WidgetRef ref) {
+    // Show Matrix rain overlay
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.8),
+      builder: (context) => const MatrixRainOverlay(),
+    );
+  }
+}
+
+// Matrix Rain Overlay Widget
+class MatrixRainOverlay extends StatefulWidget {
+  const MatrixRainOverlay({super.key});
+
+  @override
+  State<MatrixRainOverlay> createState() => _MatrixRainOverlayState();
+}
+
+class _MatrixRainOverlayState extends State<MatrixRainOverlay>
+    with TickerProviderStateMixin {
+  late AnimationController _controller;
+  final List<MatrixColumn> _columns = [];
+  final Random _random = Random();
+  Timer? _animationTimer;
+  bool _columnsInitialized = false;
+
+  final List<String> _matrixChars = [
+    'ｱ',
+    'ｲ',
+    'ｳ',
+    'ｴ',
+    'ｵ',
+    'ｶ',
+    'ｷ',
+    'ｸ',
+    'ｹ',
+    'ｺ',
+    'ｻ',
+    'ｼ',
+    'ｽ',
+    'ｾ',
+    'ｿ',
+    'ﾀ',
+    'ﾁ',
+    'ﾂ',
+    'ﾃ',
+    'ﾄ',
+    'ﾅ',
+    'ﾆ',
+    'ﾇ',
+    'ﾈ',
+    'ﾉ',
+    'ﾊ',
+    'ﾋ',
+    'ﾌ',
+    'ﾍ',
+    'ﾎ',
+    '0',
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    'T',
+    'R',
+    'U',
+    'D',
+    'I',
+    'D',
+    'O',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    // Note: _initializeColumns() moved to build method to avoid MediaQuery issues
+
+    // Use a timer for better performance control (30 FPS instead of 60)
+    _animationTimer = Timer.periodic(const Duration(milliseconds: 33), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      _updateRain();
+    });
+
+    _controller.forward();
+
+    // Auto-close after 1.5 seconds
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) Navigator.of(context).pop();
+    });
+  }
+
+  void _initializeColumns(BuildContext context) {
+    // Create optimized columns for better performance on low-end devices
+    final screenWidth = MediaQuery.of(context).size.width;
+    final columnCount = (screenWidth / 25).floor().clamp(
+      20,
+      30,
+    ); // Adaptive column count
+
+    for (int i = 0; i < columnCount; i++) {
+      _columns.add(
+        MatrixColumn(
+          x: i * (screenWidth / columnCount),
+          chars: List.generate(
+            8 +
+                _random.nextInt(
+                  8,
+                ), // Shorter columns (8-16 chars) for performance
+            (index) => _matrixChars[_random.nextInt(_matrixChars.length)],
+          ),
+          speed: 0.5 + _random.nextDouble() * 1.5,
+          opacity: 0.3 + _random.nextDouble() * 0.7,
+        ),
+      );
+    }
+  }
+
+  void _updateRain() {
+    if (!mounted) return;
+    setState(() {
+      for (var column in _columns) {
+        column.y +=
+            column.speed * 6; // Reduced multiplier for smoother animation
+        if (column.y > 800) {
+          // Vary the reset position for more natural flow
+          column.y = -200 - _random.nextDouble() * 100;
+          // Regenerate characters with performance-optimized length
+          final newLength =
+              8 + _random.nextInt(8); // Keep shorter for performance
+          column.chars = List.generate(
+            newLength,
+            (index) => _matrixChars[_random.nextInt(_matrixChars.length)],
+          );
+          // Slightly vary speed and opacity on reset
+          column.speed = 0.5 + _random.nextDouble() * 1.5;
+          column.opacity = 0.3 + _random.nextDouble() * 0.7;
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Initialize columns on first build when MediaQuery is available
+    if (!_columnsInitialized) {
+      _initializeColumns(context);
+      _columnsInitialized = true;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: Stack(
+        children: [
+          // Matrix rain columns
+          ..._columns.map(
+            (column) => Positioned(
+              left: column.x,
+              top: column.y,
+              child: Column(
+                children: column.chars
+                    .map(
+                      (char) => Text(
+                        char,
+                        style: TextStyle(
+                          color: const Color(
+                            0xFF00FF00,
+                          ).withOpacity(column.opacity),
+                          fontSize: 16,
+                          fontFamily: 'monospace',
+                          shadows: [
+                            Shadow(
+                              color: const Color(0xFF00FF00).withOpacity(0.5),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ),
+          // Center "trudido" text
+          Center(
+            child: Text(
+              'trudido',
+              style: TextStyle(
+                color: const Color(0xFF00FF00),
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    color: const Color(0xFF00FF00).withOpacity(0.8),
+                    blurRadius: 16,
+                  ),
+                  Shadow(
+                    color: const Color(0xFF00FF00).withOpacity(0.4),
+                    blurRadius: 32,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class MatrixColumn {
+  double x;
+  double y;
+  List<String> chars;
+  double speed;
+  double opacity;
+
+  MatrixColumn({
+    required this.x,
+    this.y = -200,
+    required this.chars,
+    required this.speed,
+    required this.opacity,
+  });
 }
 
 /// Custom view toggle button for list/calendar switching

@@ -80,7 +80,7 @@ class NotePreviewCard extends StatelessWidget {
                       icon: Icon(
                         Icons.more_vert,
                         size: 20,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                       padding: EdgeInsets.zero,
                       onSelected: (value) {

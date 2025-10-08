@@ -30,6 +30,13 @@ class PreferencesController {
 
   Future<void> toggleBlackTheme() =>
       _update(useBlackTheme: !state.useBlackTheme);
+
+  Future<void> setAccentColorSeed(int colorSeed) async {
+    await _update(accentColorSeed: colorSeed);
+    // Invalidate dynamic color schemes to refresh themes with new color
+    ref.invalidate(dynamicColorSchemesProvider);
+  }
+
   Future<void> toggleHideGreeting() =>
       _update(hideGreeting: !state.hideGreeting);
   Future<void> setFabPosition(String pos) => _update(fabPosition: pos);
@@ -43,6 +50,7 @@ class PreferencesController {
     String? themeMode,
     bool? useDynamicColor,
     bool? useBlackTheme,
+    int? accentColorSeed,
     bool? hideGreeting,
     String? fabPosition,
     String? swipeLeftAction,
@@ -52,6 +60,7 @@ class PreferencesController {
       themeMode: themeMode,
       useDynamicColor: useDynamicColor,
       useBlackTheme: useBlackTheme,
+      accentColorSeed: accentColorSeed,
       hideGreeting: hideGreeting,
       fabPosition: fabPosition,
       swipeLeftAction: swipeLeftAction,

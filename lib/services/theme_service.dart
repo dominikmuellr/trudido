@@ -56,6 +56,68 @@ class AppTheme {
     0xFF2196F3,
   ); // seed when dynamic disabled
 
+  // Material 3 seed color options for accent color selection
+  static const List<int> accentColorSeeds = [
+    0xFF2196F3, // Blue (default)
+    0xFFE91E63, // Pink
+    0xFF9C27B0, // Purple
+    0xFF673AB7, // Deep Purple
+    0xFF3F51B5, // Indigo
+    0xFF009688, // Teal
+    0xFF4CAF50, // Green
+    0xFF8BC34A, // Light Green
+    0xFFCDDC39, // Lime
+    0xFFFFC107, // Amber
+    0xFFFF9800, // Orange
+    0xFFFF5722, // Deep Orange
+    0xFF795548, // Brown
+    0xFF9E9E9E, // Monochrome (black/white accents)
+    0xFF757575, // Grey (grey accents)
+    0xFF00FF00, // Hack (Matrix green)
+    0xFF607D8B, // Blue Grey
+  ];
+
+  static String getAccentColorName(int colorValue) {
+    switch (colorValue) {
+      case 0xFF2196F3:
+        return 'Blue';
+      case 0xFFE91E63:
+        return 'Pink';
+      case 0xFF9C27B0:
+        return 'Purple';
+      case 0xFF673AB7:
+        return 'Deep Purple';
+      case 0xFF3F51B5:
+        return 'Indigo';
+      case 0xFF009688:
+        return 'Teal';
+      case 0xFF4CAF50:
+        return 'Green';
+      case 0xFF8BC34A:
+        return 'Light Green';
+      case 0xFFCDDC39:
+        return 'Lime';
+      case 0xFFFFC107:
+        return 'Amber';
+      case 0xFFFF9800:
+        return 'Orange';
+      case 0xFFFF5722:
+        return 'Deep Orange';
+      case 0xFF795548:
+        return 'Brown';
+      case 0xFF9E9E9E:
+        return 'Monochrome';
+      case 0xFF757575:
+        return 'Grey';
+      case 0xFF00FF00:
+        return 'Hack';
+      case 0xFF607D8B:
+        return 'Blue Grey';
+      default:
+        return 'Custom';
+    }
+  }
+
   // Priority colors - keep these for now as they're used by widgets
   static const Color highPriority = Color(0xFFE57373);
   static const Color mediumPriority = Color(0xFFFFB74D);
@@ -218,6 +280,13 @@ class AppTheme {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       backgroundColor: colorScheme.surfaceContainerHigh,
     ),
+    // Icon button styling for three-dot menus
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        foregroundColor: colorScheme.onSurfaceVariant,
+        iconSize: 20,
+      ),
+    ),
   );
 
   static ThemeData _baseDark(ColorScheme colorScheme) => ThemeData(
@@ -293,25 +362,215 @@ class AppTheme {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       backgroundColor: colorScheme.surfaceContainerHigh,
     ),
+    // Icon button styling for three-dot menus
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        foregroundColor: colorScheme.onSurfaceVariant,
+        iconSize: 20,
+      ),
+    ),
   );
+
+  /// Creates a monochromatic light color scheme with black accents
+  static ColorScheme _createMonochromaticLightScheme() {
+    return const ColorScheme.light(
+      primary: Colors.black,
+      onPrimary: Colors.white,
+      primaryContainer: Color(0xFFE0E0E0),
+      onPrimaryContainer: Colors.black,
+      secondary: Colors.black87,
+      onSecondary: Colors.white,
+      secondaryContainer: Color(0xFFF5F5F5),
+      onSecondaryContainer: Colors.black87,
+      tertiary: Colors.black54,
+      onTertiary: Colors.white,
+      tertiaryContainer: Color(0xFFF0F0F0),
+      onTertiaryContainer: Colors.black54,
+      error: Color(0xFFBA1A1A),
+      onError: Colors.white,
+      surface: Color(0xFFFFFBFE),
+      onSurface: Colors.black,
+      surfaceContainerHighest: Color(0xFFE6E0E9),
+      onSurfaceVariant: Color(0xFF49454F),
+      outline: Color(0xFF79747E),
+    );
+  }
+
+  /// Creates a monochromatic dark color scheme with white accents
+  static ColorScheme _createMonochromaticDarkScheme() {
+    return const ColorScheme.dark(
+      primary: Colors.white,
+      onPrimary: Colors.black,
+      primaryContainer: Color(0xFF424242),
+      onPrimaryContainer: Colors.white,
+      secondary: Color(0xFFE6E0E9),
+      onSecondary: Color(0xFF1D1B20),
+      secondaryContainer: Color(0xFF303030),
+      onSecondaryContainer: Color(0xFFE6E0E9),
+      tertiary: Color(0xFFCAC4D0),
+      onTertiary: Color(0xFF322F35),
+      tertiaryContainer: Color(0xFF484848),
+      onTertiaryContainer: Color(0xFFCAC4D0),
+      error: Color(0xFFFFB4AB),
+      onError: Color(0xFF690005),
+      surface: Color(0xFF1D1B20),
+      onSurface: Colors.white,
+      surfaceContainerHighest: Color(0xFF49454F),
+      onSurfaceVariant: Color(0xFFCAC4D0),
+      outline: Color(0xFF938F99),
+    );
+  }
+
+  /// Creates a grey light color scheme with grey accents
+  static ColorScheme _createGreyLightScheme() {
+    return const ColorScheme.light(
+      primary: Color(0xFF616161),
+      onPrimary: Colors.white,
+      primaryContainer: Color(0xFFE0E0E0),
+      onPrimaryContainer: Color(0xFF424242),
+      secondary: Color(0xFF757575),
+      onSecondary: Colors.white,
+      secondaryContainer: Color(0xFFF5F5F5),
+      onSecondaryContainer: Color(0xFF616161),
+      tertiary: Color(0xFF9E9E9E),
+      onTertiary: Colors.white,
+      tertiaryContainer: Color(0xFFEEEEEE),
+      onTertiaryContainer: Color(0xFF757575),
+      error: Color(0xFFBA1A1A),
+      onError: Colors.white,
+      surface: Color(0xFFFFFBFE),
+      onSurface: Color(0xFF424242),
+      surfaceContainerHighest: Color(0xFFE0E0E0),
+      onSurfaceVariant: Color(0xFF616161),
+      outline: Color(0xFF9E9E9E),
+    );
+  }
+
+  /// Creates a grey dark color scheme with grey accents
+  static ColorScheme _createGreyDarkScheme() {
+    return const ColorScheme.dark(
+      primary: Color(0xFFBDBDBD),
+      onPrimary: Color(0xFF212121),
+      primaryContainer: Color(0xFF616161),
+      onPrimaryContainer: Color(0xFFE0E0E0),
+      secondary: Color(0xFF9E9E9E),
+      onSecondary: Color(0xFF303030),
+      secondaryContainer: Color(0xFF424242),
+      onSecondaryContainer: Color(0xFFBDBDBD),
+      tertiary: Color(0xFF757575),
+      onTertiary: Color(0xFF424242),
+      tertiaryContainer: Color(0xFF484848),
+      onTertiaryContainer: Color(0xFF9E9E9E),
+      error: Color(0xFFFFB4AB),
+      onError: Color(0xFF690005),
+      surface: Color(0xFF212121),
+      onSurface: Color(0xFFE0E0E0),
+      surfaceContainerHighest: Color(0xFF424242),
+      onSurfaceVariant: Color(0xFFBDBDBD),
+      outline: Color(0xFF757575),
+    );
+  }
+
+  /// Creates a hack dark color scheme with Matrix green accents and terminal feel
+  static ColorScheme _createHackDarkScheme() {
+    return const ColorScheme.dark(
+      primary: Color(0xFF00FF00), // Bright Matrix green for dark mode
+      onPrimary: Color(0xFF000000),
+      primaryContainer: Color(0xFF005500), // Dark green container
+      onPrimaryContainer: Color(0xFF80FF80),
+      secondary: Color(0xFF00CC00),
+      onSecondary: Color(0xFF000000),
+      secondaryContainer: Color(0xFF004400),
+      onSecondaryContainer: Color(0xFF66FF66),
+      tertiary: Color(0xFF00AA00),
+      onTertiary: Color(0xFF000000),
+      tertiaryContainer: Color(0xFF003300),
+      onTertiaryContainer: Color(0xFF4DFF4D),
+      error: Color(0xFFFF4444), // Bright red for terminal errors
+      onError: Color(0xFF000000),
+      surface: Color(0xFF0A0A0A), // Very dark surface (terminal-like)
+      onSurface: Color(0xFF00FF00), // Green text on dark
+      surfaceContainerHighest: Color(0xFF001100), // Very dark green
+      onSurfaceVariant: Color(0xFF00CC00), // Medium green for secondary text
+      outline: Color(0xFF007700),
+    );
+  }
+
+  /// Creates a hack light scheme (for Matrix theme light mode fallback)
+  static ColorScheme _createHackLightScheme() {
+    return const ColorScheme.light(
+      primary: Color(0xFF006600), // Dark green for light mode
+      onPrimary: Color(0xFFFFFFFF),
+      primaryContainer: Color(0xFF80FF80), // Light green container
+      onPrimaryContainer: Color(0xFF003300),
+      secondary: Color(0xFF005500),
+      onSecondary: Color(0xFFFFFFFF),
+      secondaryContainer: Color(0xFF99FF99),
+      onSecondaryContainer: Color(0xFF002200),
+      tertiary: Color(0xFF004400),
+      onTertiary: Color(0xFFFFFFFF),
+      tertiaryContainer: Color(0xFFB3FFB3),
+      onTertiaryContainer: Color(0xFF001100),
+      error: Color(0xFFCC0000), // Dark red for light mode errors
+      onError: Color(0xFFFFFFFF),
+      surface: Color(0xFFF8F8F8), // Light surface
+      onSurface: Color(0xFF006600), // Dark green text on light
+      surfaceContainerHighest: Color(0xFFE8F5E8), // Light green tint
+      onSurfaceVariant: Color(
+        0xFF005500,
+      ), // Medium dark green for secondary text
+      outline: Color(0xFF007700),
+    );
+  }
 
   /// Build current light/dark themes (dynamic aware) given optional dynamic schemes.
   static (ThemeData light, ThemeData dark) buildThemes({
     ColorScheme? dynamicLight,
     ColorScheme? dynamicDark,
+    Color? accentColorSeed,
     bool compact = false,
     bool highContrast = false,
   }) {
-    final seedLight = ColorScheme.fromSeed(
-      seedColor: legacyPrimarySeed,
-      brightness: Brightness.light,
-    );
-    final seedDark = ColorScheme.fromSeed(
-      seedColor: legacyPrimarySeed,
-      brightness: Brightness.dark,
-    );
-    var light = _baseLight(dynamicLight ?? seedLight);
-    var dark = _baseDark(dynamicDark ?? seedDark);
+    final seedColor = accentColorSeed ?? legacyPrimarySeed;
+
+    // Declare variables
+    late ThemeData light;
+    late ThemeData dark;
+
+    // Special handling for monochrome - create black/white scheme
+    if (seedColor.value == 0xFF9E9E9E) {
+      final monoLight = _createMonochromaticLightScheme();
+      final monoDark = _createMonochromaticDarkScheme();
+      light = _baseLight(dynamicLight ?? monoLight);
+      dark = _baseDark(dynamicDark ?? monoDark);
+    }
+    // Special handling for grey - create grey accent scheme
+    else if (seedColor.value == 0xFF757575) {
+      final greyLight = _createGreyLightScheme();
+      final greyDark = _createGreyDarkScheme();
+      light = _baseLight(dynamicLight ?? greyLight);
+      dark = _baseDark(dynamicDark ?? greyDark);
+    }
+    // Special handling for hack - create Matrix green scheme (proper brightness handling)
+    else if (seedColor.value == 0xFF00FF00) {
+      final hackLight = _createHackLightScheme();
+      final hackDark = _createHackDarkScheme();
+      // Use proper light/dark schemes with matching brightness
+      light = _baseLight(dynamicLight ?? hackLight);
+      dark = _baseDark(dynamicDark ?? hackDark);
+    } else {
+      // Use normal Material 3 color generation for other colors
+      final seedLight = ColorScheme.fromSeed(
+        seedColor: seedColor,
+        brightness: Brightness.light,
+      );
+      final seedDark = ColorScheme.fromSeed(
+        seedColor: seedColor,
+        brightness: Brightness.dark,
+      );
+      light = _baseLight(dynamicLight ?? seedLight);
+      dark = _baseDark(dynamicDark ?? seedDark);
+    }
 
     if (compact) {
       light = light.copyWith(

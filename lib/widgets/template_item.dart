@@ -22,7 +22,7 @@ class TemplateItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -40,7 +40,7 @@ class TemplateItem extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: template.isBuiltIn 
+                      color: template.isBuiltIn
                           ? Colors.blue.withAlpha(26)
                           : Colors.green.withAlpha(26),
                       borderRadius: BorderRadius.circular(8),
@@ -52,7 +52,7 @@ class TemplateItem extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  
+
                   // Template name and info
                   Expanded(
                     child: Column(
@@ -78,14 +78,17 @@ class TemplateItem extends StatelessWidget {
                       ],
                     ),
                   ),
-                  
+
                   // Usage count and status
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       if (template.useCount > 0)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: theme.colorScheme.primaryContainer,
                             borderRadius: BorderRadius.circular(12),
@@ -103,7 +106,10 @@ class TemplateItem extends StatelessWidget {
                         children: [
                           if (template.isBuiltIn)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.blue.withAlpha(26),
                                 borderRadius: BorderRadius.circular(8),
@@ -118,7 +124,10 @@ class TemplateItem extends StatelessWidget {
                           if (template.isCustomized)
                             Container(
                               margin: const EdgeInsets.only(left: 4),
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.orange.withAlpha(26),
                                 borderRadius: BorderRadius.circular(8),
@@ -136,9 +145,10 @@ class TemplateItem extends StatelessWidget {
                   ),
                 ],
               ),
-              
+
               // Description
-              if (template.description != null && template.description!.isNotEmpty) ...[
+              if (template.description != null &&
+                  template.description!.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
                   template.description!,
@@ -149,7 +159,7 @@ class TemplateItem extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
-              
+
               // Task preview
               if (template.taskTemplates.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -163,7 +173,7 @@ class TemplateItem extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
-              
+
               // Action buttons
               const SizedBox(height: 16),
               Row(
@@ -174,27 +184,37 @@ class TemplateItem extends StatelessWidget {
                       icon: const Icon(Icons.play_arrow, size: 16),
                       label: const Text('Use'),
                       style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         textStyle: theme.textTheme.labelMedium,
                       ),
                     ),
                   const SizedBox(width: 8),
-                  
+
                   if (onDuplicate != null)
                     OutlinedButton.icon(
                       onPressed: onDuplicate,
                       icon: const Icon(Icons.copy, size: 16),
                       label: const Text('Copy'),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         textStyle: theme.textTheme.labelMedium,
                       ),
                     ),
-                  
+
                   const Spacer(),
-                  
+
                   // More actions menu
                   PopupMenuButton<String>(
+                    icon: Icon(
+                      Icons.more_vert,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     onSelected: (value) {
                       switch (value) {
                         case 'edit':
@@ -237,7 +257,10 @@ class TemplateItem extends StatelessWidget {
                             children: [
                               Icon(Icons.delete, size: 16, color: Colors.red),
                               SizedBox(width: 8),
-                              Text('Delete', style: TextStyle(color: Colors.red)),
+                              Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.red),
+                              ),
                             ],
                           ),
                         ),
