@@ -6,7 +6,7 @@
 
 # Trudido — Flutter Todo App
 
-Lightweight, privacy-first todo application built with Flutter.
+Lightweight, privacy-first todo application built with Flutter. Trudido is a minimalist Material You to-do app focused on simplicity and open design.
 
 ## 📋 Task Management
 - Smart Task Creation - Create tasks with titles, notes, due dates, and priorities
