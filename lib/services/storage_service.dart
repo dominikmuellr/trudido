@@ -593,8 +593,7 @@ Enjoy taking notes! 📝''',
           'show_completed_tasks': getShowCompletedTasks(),
         },
         'exported_at': DateTime.now().toIso8601String(),
-        'version':
-            '1.2.0-3', // Increment version for template support (release v.1.2.0-3)
+        'version': '1.0.0', // Version for fresh v1.0.0 release
       };
 
       debugPrint('[StorageService] Export data prepared successfully');
