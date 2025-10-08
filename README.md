@@ -23,6 +23,7 @@ Lightweight, privacy-first todo application built with Flutter.
 - Dynamic Theming - Automatic Material You color extraction (Android 12+)
 - Dark/Light Modes - Adaptive themes that follow system preferences
 - Responsive Layout - Optimized for all screen sizes
+- Material 3 accent colors and others to choose from when Dynamic color is off
 
 ## 🔒 Privacy-First
 - 100% Offline - All data stored locally on your device
