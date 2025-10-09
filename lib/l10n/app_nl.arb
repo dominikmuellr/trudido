@@ -5,23 +5,23 @@
   "@appTitle": {
     "description": "The name of the application"
   },
-  "appDescription": "A feature-rich todo app built with Flutter",
+  "appDescription": "Een feature-rijke todo app gebouwd met Flutter",
   "@appDescription": {
     "description": "Brief description of the app"
   },
-  "tabs": "Tasks",
+  "tabs": "Taken",
   "@tabs": {
     "description": "Tasks tab label"
   },
-  "notes": "Notes",
+  "notes": "Notities",
   "@notes": {
     "description": "Notes tab label"
   },
-  "newTask": "New Task",
+  "newTask": "Nieuwe taak",
   "@newTask": {
     "description": "Title for creating a new task"
   },
-  "editTask": "Edit Task",
+  "editTask": "Taak bewerken",
   "@editTask": {
     "description": "Title for editing an existing task"
   },
@@ -29,39 +29,39 @@
   "@addToTaskList": {
     "description": "Subtitle for task creation dialog"
   },
-  "taskTitle": "Task title",
+  "taskTitle": "Taak titel",
   "@taskTitle": {
     "description": "Label for task title input field"
   },
-  "taskTitleHint": "What needs to be done?",
+  "taskTitleHint": "Wat moet er gedaan worden?",
   "@taskTitleHint": {
     "description": "Hint text for task title input"
   },
-  "taskTitleValidation": "Please enter a task title",
+  "taskTitleValidation": "Voer een taak titel in",
   "@taskTitleValidation": {
     "description": "Validation message for empty task title"
   },
-  "quickOptions": "Quick Options",
+  "quickOptions": "Snelle opties",
   "@quickOptions": {
     "description": "Section title for quick task options"
   },
-  "displayTheme": "Display & Theme",
+  "displayTheme": "Display en thema",
   "@displayTheme": {
     "description": "Title for display and theme settings page"
   },
-  "theme": "Theme",
+  "theme": "Thema",
   "@theme": {
     "description": "Theme section header"
   },
-  "themeMode": "Theme Mode",
+  "themeMode": "Thema modus",
   "@themeMode": {
     "description": "Label for theme mode selector"
   },
-  "themeModeLight": "Light",
+  "themeModeLight": "Licht",
   "@themeModeLight": {
     "description": "Light theme mode option"
   },
-  "themeModeDark": "Dark",
+  "themeModeDark": "Donker",
   "@themeModeDark": {
     "description": "Dark theme mode option"
   },
@@ -89,11 +89,11 @@
   "@themeBlackAmoled": {
     "description": "AMOLED black theme option"
   },
-  "dynamicColor": "Dynamic Color",
+  "dynamicColor": "Dynamische kleur",
   "@dynamicColor": {
     "description": "Dynamic color setting label"
   },
-  "accentColor": "Accent Color",
+  "accentColor": "Accent kleur",
   "@accentColor": {
     "description": "Accent color setting label"
   },
@@ -109,7 +109,7 @@
   "@display": {
     "description": "Display section header"
   },
-  "about": "About",
+  "about": "Over",
   "@about": {
     "description": "About page title"
   },
@@ -121,7 +121,7 @@
   "@licenseTitle": {
     "description": "License dialog title"
   },
-  "close": "Close",
+  "close": "Sluiten",
   "@close": {
     "description": "Close button text"
   },
@@ -141,7 +141,7 @@
   "@scheduleTest10sDescription": {
     "description": "Description for 10 second test notification"
   },
-  "error": "Error",
+  "error": "Fout",
   "@error": {
     "description": "Generic error label"
   },
