@@ -5,63 +5,63 @@
   "@appTitle": {
     "description": "The name of the application"
   },
-  "appDescription": "A feature-rich todo app built with Flutter",
+  "appDescription": "Una aplicación de tareas rica en características construida con Flutter",
   "@appDescription": {
     "description": "Brief description of the app"
   },
-  "tabs": "Tasks",
+  "tabs": "Tareas",
   "@tabs": {
     "description": "Tasks tab label"
   },
-  "notes": "Notes",
+  "notes": "Notas",
   "@notes": {
     "description": "Notes tab label"
   },
-  "newTask": "New Task",
+  "newTask": "Nueva tarea",
   "@newTask": {
     "description": "Title for creating a new task"
   },
-  "editTask": "Edit Task",
+  "editTask": "Editar tarea",
   "@editTask": {
     "description": "Title for editing an existing task"
   },
-  "addToTaskList": "Add to your task list",
+  "addToTaskList": "Agregar a su lista de tareas",
   "@addToTaskList": {
     "description": "Subtitle for task creation dialog"
   },
-  "taskTitle": "Task title",
+  "taskTitle": "Título de la tarea",
   "@taskTitle": {
     "description": "Label for task title input field"
   },
-  "taskTitleHint": "What needs to be done?",
+  "taskTitleHint": "¿Qué necesita hacerse?",
   "@taskTitleHint": {
     "description": "Hint text for task title input"
   },
-  "taskTitleValidation": "Please enter a task title",
+  "taskTitleValidation": "Por favor, ingrese un título de tarea",
   "@taskTitleValidation": {
     "description": "Validation message for empty task title"
   },
-  "quickOptions": "Quick Options",
+  "quickOptions": "Opciones rápidas",
   "@quickOptions": {
     "description": "Section title for quick task options"
   },
-  "displayTheme": "Display & Theme",
+  "displayTheme": "Pantalla y tema",
   "@displayTheme": {
     "description": "Title for display and theme settings page"
   },
-  "theme": "Theme",
+  "theme": "Tema",
   "@theme": {
     "description": "Theme section header"
   },
-  "themeMode": "Theme Mode",
+  "themeMode": "Modo de tema",
   "@themeMode": {
     "description": "Label for theme mode selector"
   },
-  "themeModeLight": "Light",
+  "themeModeLight": "Claro",
   "@themeModeLight": {
     "description": "Light theme mode option"
   },
-  "themeModeDark": "Dark",
+  "themeModeDark": "Oscuro",
   "@themeModeDark": {
     "description": "Dark theme mode option"
   },
@@ -69,7 +69,7 @@
   "@themeModeAuto": {
     "description": "Auto theme mode option"
   },
-  "themeModeSystem": "Auto (follows device)",
+  "themeModeSystem": "Auto (sigue el dispositivo)",
   "@themeModeSystem": {
     "description": "System theme mode description"
   },
@@ -89,27 +89,27 @@
   "@themeBlackAmoled": {
     "description": "AMOLED black theme option"
   },
-  "dynamicColor": "Dynamic Color",
+  "dynamicColor": "Color dinámico",
   "@dynamicColor": {
     "description": "Dynamic color setting label"
   },
-  "accentColor": "Accent Color",
+  "accentColor": "Color de acento",
   "@accentColor": {
     "description": "Accent color setting label"
   },
-  "chooseAccentColor": "Choose Accent Color",
+  "chooseAccentColor": "Elegir color de acento",
   "@chooseAccentColor": {
     "description": "Title for accent color selection sheet"
   },
-  "hackThemeNotAvailable": "Not available for Hack theme",
+  "hackThemeNotAvailable": "No disponible para tema Hack",
   "@hackThemeNotAvailable": {
     "description": "Message shown when a theme mode is not available for hack theme"
   },
-  "display": "Display",
+  "display": "Pantalla",
   "@display": {
     "description": "Display section header"
   },
-  "about": "About",
+  "about": "Acerca de",
   "@about": {
     "description": "About page title"
   },
@@ -121,7 +121,7 @@
   "@licenseTitle": {
     "description": "License dialog title"
   },
-  "close": "Close",
+  "close": "Cerrar",
   "@close": {
     "description": "Close button text"
   },
