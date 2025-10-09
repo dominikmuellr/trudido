@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
 import '../controllers/preferences_controller.dart';
 import '../services/default_tab_service.dart';
+import '../l10n/app_localizations.dart';
 import 'default_tab_settings_screen.dart';
 
 class DisplayThemeSettingsPage extends ConsumerWidget {
@@ -11,17 +12,18 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Display & Theme'),
+        title: Text(l10n.displayTheme),
         backgroundColor: theme.colorScheme.surface,
         surfaceTintColor: theme.colorScheme.surfaceTint,
       ),
       body: ListView(
         children: [
           // Theme Section
-          _buildSectionHeader(context, 'Theme'),
+          _buildSectionHeader(context, l10n.theme),
           _ThemeModeSelector(),
           Consumer(
             builder: (context, ref, _) {
@@ -51,7 +53,7 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
           ),
 
           // Display Section
-          _buildSectionHeader(context, 'Display'),
+          _buildSectionHeader(context, l10n.display),
           _DefaultTabSelector(),
 
           const SizedBox(height: 16),
@@ -147,8 +149,10 @@ class _ThemeModeSheet extends ConsumerWidget {
       IconData icon,
     ) {
       final selected = current == mode;
-      // Disable light mode for Hack theme
-      final isEnabled = !(isHackTheme && mode == ThemeMode.light);
+      // Disable light mode and auto mode for Hack theme
+      final isEnabled =
+          !(isHackTheme &&
+              (mode == ThemeMode.light || mode == ThemeMode.system));
       final effectiveColor = !isEnabled
           ? cs.onSurfaceVariant.withOpacity(0.4)
           : selected
@@ -166,7 +170,7 @@ class _ThemeModeSheet extends ConsumerWidget {
           ),
         ),
         subtitle: Text(
-          isHackTheme && mode == ThemeMode.light
+          isHackTheme && (mode == ThemeMode.light || mode == ThemeMode.system)
               ? 'Not available for Hack theme'
               : desc,
           style: TextStyle(

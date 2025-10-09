@@ -1,0 +1,31 @@
+# Crowdin configuration file for Trudido Flutter app
+# Visit https://support.crowdin.com/configuration-file/ for more info
+
+project_id: "YOUR_PROJECT_ID" # Replace with your actual Crowdin project ID
+api_token_env: "CROWDIN_API_TOKEN" # Environment variable containing your API token
+base_path: "."
+base_url: "https://api.crowdin.com"
+
+preserve_hierarchy: true
+
+files:
+  - source: "/lib/l10n/app_en.arb"
+    translation: "/lib/l10n/app_%two_letters_code%.arb"
+    languages_mapping:
+      two_letters_code:
+        "en": "en" # English
+        "de": "de" # German
+        "fr": "fr" # French
+        "es": "es" # Spanish
+        "it": "it" # Italian
+        "nl": "nl" # Dutch
+        "pt": "pt" # Portuguese
+        "pl": "pl" # Polish
+        "uk": "uk" # Ukrainian
+        "da": "da" # Danish
+        "ro": "ro" # Romanian
+        "cs": "cs" # Czech
+    type: "arb"
+    update_option: "update_as_unapproved"
+    export_quotes: "true"
+    export_escaped_quotes: "true"

@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart'
         defaultTargetPlatform,
         TargetPlatform; // platform check without BuildContext
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_localizations.dart';
 import 'services/storage_service.dart';
 import 'services/permissions_channel.dart';
 import 'services/theme_service.dart';
@@ -316,18 +317,24 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
         return child ?? const SizedBox.shrink();
       },
       localizationsDelegates: const [
+        AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
-        Locale('en', 'GB'), // English (United Kingdom)
-        Locale('de', 'DE'), // German (Germany)
-        Locale('fr', 'FR'), // French (France)
-        Locale('es', 'ES'), // Spanish (Spain)
-        Locale('it', 'IT'), // Italian (Italy)
-        Locale('nl', 'NL'), // Dutch (Netherlands)
-        Locale('en', 'US'), // Fallback to US English if needed
+        Locale('en'), // English
+        Locale('de'), // German
+        Locale('fr'), // French
+        Locale('es'), // Spanish
+        Locale('it'), // Italian
+        Locale('nl'), // Dutch
+        Locale('pt'), // Portuguese
+        Locale('pl'), // Polish
+        Locale('uk'), // Ukrainian
+        Locale('da'), // Danish
+        Locale('ro'), // Romanian
+        Locale('cs'), // Czech
       ],
       // Let the system determine locale, but prefer European format
       localeResolutionCallback: (locale, supportedLocales) {
