@@ -5,11 +5,11 @@
   "@appTitle": {
     "description": "The name of the application"
   },
-  "appDescription": "A feature-rich todo app built with Flutter",
+  "appDescription": "Une application de tâches riche en fonctionnalités construite avec Flutter",
   "@appDescription": {
     "description": "Brief description of the app"
   },
-  "tabs": "Tasks",
+  "tabs": "Tâches",
   "@tabs": {
     "description": "Tasks tab label"
   },
@@ -17,51 +17,51 @@
   "@notes": {
     "description": "Notes tab label"
   },
-  "newTask": "New Task",
+  "newTask": "Nouvelle tâche",
   "@newTask": {
     "description": "Title for creating a new task"
   },
-  "editTask": "Edit Task",
+  "editTask": "Modifier la tâche",
   "@editTask": {
     "description": "Title for editing an existing task"
   },
-  "addToTaskList": "Add to your task list",
+  "addToTaskList": "Ajouter à votre liste de tâches",
   "@addToTaskList": {
     "description": "Subtitle for task creation dialog"
   },
-  "taskTitle": "Task title",
+  "taskTitle": "Titre de la tâche",
   "@taskTitle": {
     "description": "Label for task title input field"
   },
-  "taskTitleHint": "What needs to be done?",
+  "taskTitleHint": "Que faut-il faire ?",
   "@taskTitleHint": {
     "description": "Hint text for task title input"
   },
-  "taskTitleValidation": "Please enter a task title",
+  "taskTitleValidation": "Veuillez saisir un titre de tâche",
   "@taskTitleValidation": {
     "description": "Validation message for empty task title"
   },
-  "quickOptions": "Quick Options",
+  "quickOptions": "Options rapides",
   "@quickOptions": {
     "description": "Section title for quick task options"
   },
-  "displayTheme": "Display & Theme",
+  "displayTheme": "Affichage et thème",
   "@displayTheme": {
     "description": "Title for display and theme settings page"
   },
-  "theme": "Theme",
+  "theme": "Thème",
   "@theme": {
     "description": "Theme section header"
   },
-  "themeMode": "Theme Mode",
+  "themeMode": "Mode thème",
   "@themeMode": {
     "description": "Label for theme mode selector"
   },
-  "themeModeLight": "Light",
+  "themeModeLight": "Clair",
   "@themeModeLight": {
     "description": "Light theme mode option"
   },
-  "themeModeDark": "Dark",
+  "themeModeDark": "Sombre",
   "@themeModeDark": {
     "description": "Dark theme mode option"
   },
@@ -69,7 +69,7 @@
   "@themeModeAuto": {
     "description": "Auto theme mode option"
   },
-  "themeModeSystem": "Auto (follows device)",
+  "themeModeSystem": "Auto (suit l'appareil)",
   "@themeModeSystem": {
     "description": "System theme mode description"
   },
@@ -89,27 +89,27 @@
   "@themeBlackAmoled": {
     "description": "AMOLED black theme option"
   },
-  "dynamicColor": "Dynamic Color",
+  "dynamicColor": "Couleur dynamique",
   "@dynamicColor": {
     "description": "Dynamic color setting label"
   },
-  "accentColor": "Accent Color",
+  "accentColor": "Couleur d'accent",
   "@accentColor": {
     "description": "Accent color setting label"
   },
-  "chooseAccentColor": "Choose Accent Color",
+  "chooseAccentColor": "Choisir la couleur d'accent",
   "@chooseAccentColor": {
     "description": "Title for accent color selection sheet"
   },
-  "hackThemeNotAvailable": "Not available for Hack theme",
+  "hackThemeNotAvailable": "Non disponible pour le thème Hack",
   "@hackThemeNotAvailable": {
     "description": "Message shown when a theme mode is not available for hack theme"
   },
-  "display": "Display",
+  "display": "Affichage",
   "@display": {
     "description": "Display section header"
   },
-  "about": "About",
+  "about": "À propos",
   "@about": {
     "description": "About page title"
   },
@@ -121,7 +121,7 @@
   "@licenseTitle": {
     "description": "License dialog title"
   },
-  "close": "Close",
+  "close": "Fermer",
   "@close": {
     "description": "Close button text"
   },
@@ -141,7 +141,7 @@
   "@scheduleTest10sDescription": {
     "description": "Description for 10 second test notification"
   },
-  "error": "Error",
+  "error": "Erreur",
   "@error": {
     "description": "Generic error label"
   },
