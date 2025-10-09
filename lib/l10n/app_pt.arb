@@ -1,27 +1,27 @@
 {
-  "@@locale": "pt-BR",
+  "@@locale": "pt-PT",
   "@@context": "Trudido Todo App Localization",
   "appTitle": "Trudido",
   "@appTitle": {
     "description": "The name of the application"
   },
-  "appDescription": "Um aplicativo de tarefas rico em recursos construído com Flutter",
+  "appDescription": "A feature-rich todo app built with Flutter",
   "@appDescription": {
     "description": "Brief description of the app"
   },
-  "tabs": "Tarefas",
+  "tabs": "Tasks",
   "@tabs": {
     "description": "Tasks tab label"
   },
-  "notes": "Notas",
+  "notes": "Notes",
   "@notes": {
     "description": "Notes tab label"
   },
-  "newTask": "Nova tarefa",
+  "newTask": "New Task",
   "@newTask": {
     "description": "Title for creating a new task"
   },
-  "editTask": "Editar tarefa",
+  "editTask": "Edit Task",
   "@editTask": {
     "description": "Title for editing an existing task"
   },
@@ -29,39 +29,39 @@
   "@addToTaskList": {
     "description": "Subtitle for task creation dialog"
   },
-  "taskTitle": "Título da tarefa",
+  "taskTitle": "Task title",
   "@taskTitle": {
     "description": "Label for task title input field"
   },
-  "taskTitleHint": "O que precisa ser feito?",
+  "taskTitleHint": "What needs to be done?",
   "@taskTitleHint": {
     "description": "Hint text for task title input"
   },
-  "taskTitleValidation": "Por favor, insira um título de tarefa",
+  "taskTitleValidation": "Please enter a task title",
   "@taskTitleValidation": {
     "description": "Validation message for empty task title"
   },
-  "quickOptions": "Opções rápidas",
+  "quickOptions": "Quick Options",
   "@quickOptions": {
     "description": "Section title for quick task options"
   },
-  "displayTheme": "Display e tema",
+  "displayTheme": "Display & Theme",
   "@displayTheme": {
     "description": "Title for display and theme settings page"
   },
-  "theme": "Tema",
+  "theme": "Theme",
   "@theme": {
     "description": "Theme section header"
   },
-  "themeMode": "Modo do tema",
+  "themeMode": "Theme Mode",
   "@themeMode": {
     "description": "Label for theme mode selector"
   },
-  "themeModeLight": "Claro",
+  "themeModeLight": "Light",
   "@themeModeLight": {
     "description": "Light theme mode option"
   },
-  "themeModeDark": "Escuro",
+  "themeModeDark": "Dark",
   "@themeModeDark": {
     "description": "Dark theme mode option"
   },
@@ -89,11 +89,11 @@
   "@themeBlackAmoled": {
     "description": "AMOLED black theme option"
   },
-  "dynamicColor": "Cor dinâmica",
+  "dynamicColor": "Dynamic Color",
   "@dynamicColor": {
     "description": "Dynamic color setting label"
   },
-  "accentColor": "Cor de destaque",
+  "accentColor": "Accent Color",
   "@accentColor": {
     "description": "Accent color setting label"
   },
@@ -109,7 +109,7 @@
   "@display": {
     "description": "Display section header"
   },
-  "about": "Sobre",
+  "about": "About",
   "@about": {
     "description": "About page title"
   },
@@ -121,7 +121,7 @@
   "@licenseTitle": {
     "description": "License dialog title"
   },
-  "close": "Fechar",
+  "close": "Close",
   "@close": {
     "description": "Close button text"
   },
@@ -141,7 +141,7 @@
   "@scheduleTest10sDescription": {
     "description": "Description for 10 second test notification"
   },
-  "error": "Erro",
+  "error": "Error",
   "@error": {
     "description": "Generic error label"
   },
