@@ -1,35 +1,270 @@
 {
   "@@locale": "de",
+  "@@context": "Trudido Todo App Localization",
   "appTitle": "Trudido",
+  "@appTitle": {
+    "description": "The name of the application"
+  },
   "appDescription": "Eine funktionsreiche Todo-App, die mit Flutter erstellt wurde",
+  "@appDescription": {
+    "description": "Brief description of the app"
+  },
   "tabs": "Aufgaben",
+  "@tabs": {
+    "description": "Tasks tab label"
+  },
   "notes": "Notizen",
+  "@notes": {
+    "description": "Notes tab label"
+  },
   "newTask": "Neue Aufgabe",
+  "@newTask": {
+    "description": "Title for creating a new task"
+  },
   "editTask": "Aufgabe bearbeiten",
+  "@editTask": {
+    "description": "Title for editing an existing task"
+  },
   "addToTaskList": "Zu Ihrer Aufgabenliste hinzufügen",
+  "@addToTaskList": {
+    "description": "Subtitle for task creation dialog"
+  },
   "taskTitle": "Aufgabentitel",
+  "@taskTitle": {
+    "description": "Label for task title input field"
+  },
   "taskTitleHint": "Was muss erledigt werden?",
+  "@taskTitleHint": {
+    "description": "Hint text for task title input"
+  },
   "taskTitleValidation": "Bitte geben Sie einen Aufgabentitel ein",
+  "@taskTitleValidation": {
+    "description": "Validation message for empty task title"
+  },
   "quickOptions": "Schnelle Optionen",
+  "@quickOptions": {
+    "description": "Section title for quick task options"
+  },
   "displayTheme": "Anzeige & Design",
+  "@displayTheme": {
+    "description": "Title for display and theme settings page"
+  },
   "theme": "Design",
+  "@theme": {
+    "description": "Theme section header"
+  },
   "themeMode": "Design-Modus",
+  "@themeMode": {
+    "description": "Label for theme mode selector"
+  },
   "themeModeLight": "Hell",
+  "@themeModeLight": {
+    "description": "Light theme mode option"
+  },
   "themeModeDark": "Dunkel",
+  "@themeModeDark": {
+    "description": "Dark theme mode option"
+  },
   "themeModeAuto": "Auto",
+  "@themeModeAuto": {
+    "description": "Auto theme mode option"
+  },
   "themeModeSystem": "Auto (folgt Gerät)",
+  "@themeModeSystem": {
+    "description": "System theme mode description"
+  },
   "themeModeAlwaysLight": "Immer helles Design verwenden",
+  "@themeModeAlwaysLight": {
+    "description": "Light theme mode description"
+  },
   "themeModeAlwaysDark": "Immer dunkles Design verwenden",
+  "@themeModeAlwaysDark": {
+    "description": "Dark theme mode description"
+  },
   "themeModeFollowDevice": "Geräteeinstellung folgen",
+  "@themeModeFollowDevice": {
+    "description": "Auto theme mode description"
+  },
   "themeBlackAmoled": "Schwarz (AMOLED)",
+  "@themeBlackAmoled": {
+    "description": "AMOLED black theme option"
+  },
   "dynamicColor": "Dynamische Farbe",
+  "@dynamicColor": {
+    "description": "Dynamic color setting label"
+  },
   "accentColor": "Akzentfarbe",
+  "@accentColor": {
+    "description": "Accent color setting label"
+  },
   "chooseAccentColor": "Akzentfarbe wählen",
+  "@chooseAccentColor": {
+    "description": "Title for accent color selection sheet"
+  },
   "hackThemeNotAvailable": "Für Hack-Design nicht verfügbar",
+  "@hackThemeNotAvailable": {
+    "description": "Message shown when a theme mode is not available for hack theme"
+  },
   "display": "Anzeige",
+  "@display": {
+    "description": "Display section header"
+  },
   "about": "Über",
+  "@about": {
+    "description": "About page title"
+  },
   "openPackageLicenses": "Paketlizenzen öffnen",
+  "@openPackageLicenses": {
+    "description": "Button text to open package licenses"
+  },
   "licenseTitle": "LIZENZ (GPL-3.0)",
+  "@licenseTitle": {
+    "description": "License dialog title"
+  },
   "close": "Schließen",
-  "error": "Fehler"
+  "@close": {
+    "description": "Close button text"
+  },
+  "notificationTesting": "Notification Testing",
+  "@notificationTesting": {
+    "description": "Title for notification testing screen"
+  },
+  "testManageNotifications": "Test & Manage Notifications",
+  "@testManageNotifications": {
+    "description": "Title for notification testing section"
+  },
+  "scheduleTest10s": "Schedule Test (10s)",
+  "@scheduleTest10s": {
+    "description": "Button text for 10 second test notification"
+  },
+  "scheduleTest10sDescription": "Schedules a notification 10 seconds from now.",
+  "@scheduleTest10sDescription": {
+    "description": "Description for 10 second test notification"
+  },
+  "error": "Fehler",
+  "@error": {
+    "description": "Generic error label"
+  },
+  "demoInstructions": "Demo Instructions",
+  "@demoInstructions": {
+    "description": "Title for demo instructions section"
+  },
+  "tryItOut": "Try It Out",
+  "@tryItOut": {
+    "description": "Title for try it out section"
+  },
+  "createTestFolder": "Create Test Folder",
+  "@createTestFolder": {
+    "description": "Button text to create a test folder"
+  },
+  "schedule": "Schedule",
+  "@schedule": {
+    "description": "Schedule section title"
+  },
+  "debugOnboardingControls": "DEBUG: Onboarding Controls",
+  "@debugOnboardingControls": {
+    "description": "Debug section title for onboarding controls"
+  },
+  "tooltipStatus": "Tooltip Status: {status}",
+  "@tooltipStatus": {
+    "description": "Tooltip status display",
+    "placeholders": {
+      "status": {
+        "type": "String",
+        "description": "Current tooltip status"
+      }
+    }
+  },
+  "loading": "Loading...",
+  "@loading": {
+    "description": "Loading status text"
+  },
+  "seen": "Seen",
+  "@seen": {
+    "description": "Status indicating something has been seen"
+  },
+  "notSeen": "Not seen",
+  "@notSeen": {
+    "description": "Status indicating something has not been seen"
+  },
+  "resetTooltip": "Reset Tooltip",
+  "@resetTooltip": {
+    "description": "Button text to reset tooltip"
+  },
+  "refresh": "Refresh",
+  "@refresh": {
+    "description": "Refresh button text"
+  },
+  "colorBlue": "Blue",
+  "@colorBlue": {
+    "description": "Blue color name"
+  },
+  "colorPink": "Pink",
+  "@colorPink": {
+    "description": "Pink color name"
+  },
+  "colorPurple": "Purple",
+  "@colorPurple": {
+    "description": "Purple color name"
+  },
+  "colorDeepPurple": "Deep Purple",
+  "@colorDeepPurple": {
+    "description": "Deep Purple color name"
+  },
+  "colorIndigo": "Indigo",
+  "@colorIndigo": {
+    "description": "Indigo color name"
+  },
+  "colorTeal": "Teal",
+  "@colorTeal": {
+    "description": "Teal color name"
+  },
+  "colorGreen": "Green",
+  "@colorGreen": {
+    "description": "Green color name"
+  },
+  "colorLightGreen": "Light Green",
+  "@colorLightGreen": {
+    "description": "Light Green color name"
+  },
+  "colorLime": "Lime",
+  "@colorLime": {
+    "description": "Lime color name"
+  },
+  "colorAmber": "Amber",
+  "@colorAmber": {
+    "description": "Amber color name"
+  },
+  "colorOrange": "Orange",
+  "@colorOrange": {
+    "description": "Orange color name"
+  },
+  "colorDeepOrange": "Deep Orange",
+  "@colorDeepOrange": {
+    "description": "Deep Orange color name"
+  },
+  "colorBrown": "Brown",
+  "@colorBrown": {
+    "description": "Brown color name"
+  },
+  "colorMonochrome": "Monochrome",
+  "@colorMonochrome": {
+    "description": "Monochrome color name"
+  },
+  "colorGrey": "Grey",
+  "@colorGrey": {
+    "description": "Grey color name"
+  },
+  "colorHack": "Hack",
+  "@colorHack": {
+    "description": "Hack theme color name"
+  },
+  "colorBlueGrey": "Blue Grey",
+  "@colorBlueGrey": {
+    "description": "Blue Grey color name"
+  },
+  "colorCustom": "Custom",
+  "@colorCustom": {
+    "description": "Custom color name"
+  }
 }
