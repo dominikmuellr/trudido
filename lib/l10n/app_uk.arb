@@ -5,123 +5,123 @@
   "@appTitle": {
     "description": "The name of the application"
   },
-  "appDescription": "A feature-rich todo app built with Flutter",
+  "appDescription": "Багатофункціональний додаток завдань, створений з Flutter",
   "@appDescription": {
     "description": "Brief description of the app"
   },
-  "tabs": "Tasks",
+  "tabs": "Завдання",
   "@tabs": {
     "description": "Tasks tab label"
   },
-  "notes": "Notes",
+  "notes": "Нотатки",
   "@notes": {
     "description": "Notes tab label"
   },
-  "newTask": "New Task",
+  "newTask": "Нове завдання",
   "@newTask": {
     "description": "Title for creating a new task"
   },
-  "editTask": "Edit Task",
+  "editTask": "Редагувати завдання",
   "@editTask": {
     "description": "Title for editing an existing task"
   },
-  "addToTaskList": "Add to your task list",
+  "addToTaskList": "Додати до списку завдань",
   "@addToTaskList": {
     "description": "Subtitle for task creation dialog"
   },
-  "taskTitle": "Task title",
+  "taskTitle": "Назва завдання",
   "@taskTitle": {
     "description": "Label for task title input field"
   },
-  "taskTitleHint": "What needs to be done?",
+  "taskTitleHint": "Що потрібно зробити?",
   "@taskTitleHint": {
     "description": "Hint text for task title input"
   },
-  "taskTitleValidation": "Please enter a task title",
+  "taskTitleValidation": "Будь ласка, введіть назву завдання",
   "@taskTitleValidation": {
     "description": "Validation message for empty task title"
   },
-  "quickOptions": "Quick Options",
+  "quickOptions": "Швидкі опції",
   "@quickOptions": {
     "description": "Section title for quick task options"
   },
-  "displayTheme": "Display & Theme",
+  "displayTheme": "Відображення та тема",
   "@displayTheme": {
     "description": "Title for display and theme settings page"
   },
-  "theme": "Theme",
+  "theme": "Тема",
   "@theme": {
     "description": "Theme section header"
   },
-  "themeMode": "Theme Mode",
+  "themeMode": "Режим теми",
   "@themeMode": {
     "description": "Label for theme mode selector"
   },
-  "themeModeLight": "Light",
+  "themeModeLight": "Світлий",
   "@themeModeLight": {
     "description": "Light theme mode option"
   },
-  "themeModeDark": "Dark",
+  "themeModeDark": "Темний",
   "@themeModeDark": {
     "description": "Dark theme mode option"
   },
-  "themeModeAuto": "Auto",
+  "themeModeAuto": "Авто",
   "@themeModeAuto": {
     "description": "Auto theme mode option"
   },
-  "themeModeSystem": "Auto (follows device)",
+  "themeModeSystem": "Авто (слідує пристрою)",
   "@themeModeSystem": {
     "description": "System theme mode description"
   },
-  "themeModeAlwaysLight": "Always use light theme",
+  "themeModeAlwaysLight": "Завжди використовувати світлу тему",
   "@themeModeAlwaysLight": {
     "description": "Light theme mode description"
   },
-  "themeModeAlwaysDark": "Always use dark theme",
+  "themeModeAlwaysDark": "Завжди використовувати темну тему",
   "@themeModeAlwaysDark": {
     "description": "Dark theme mode description"
   },
-  "themeModeFollowDevice": "Follow device setting",
+  "themeModeFollowDevice": "Слідувати налаштуванню пристрою",
   "@themeModeFollowDevice": {
     "description": "Auto theme mode description"
   },
-  "themeBlackAmoled": "Black (AMOLED)",
+  "themeBlackAmoled": "Чорний (AMOLED)",
   "@themeBlackAmoled": {
     "description": "AMOLED black theme option"
   },
-  "dynamicColor": "Dynamic Color",
+  "dynamicColor": "Динамічний колір",
   "@dynamicColor": {
     "description": "Dynamic color setting label"
   },
-  "accentColor": "Accent Color",
+  "accentColor": "Акцентний колір",
   "@accentColor": {
     "description": "Accent color setting label"
   },
-  "chooseAccentColor": "Choose Accent Color",
+  "chooseAccentColor": "Виберіть акцентний колір",
   "@chooseAccentColor": {
     "description": "Title for accent color selection sheet"
   },
-  "hackThemeNotAvailable": "Not available for Hack theme",
+  "hackThemeNotAvailable": "Недоступно для теми Hack",
   "@hackThemeNotAvailable": {
     "description": "Message shown when a theme mode is not available for hack theme"
   },
-  "display": "Display",
+  "display": "Відображення",
   "@display": {
     "description": "Display section header"
   },
-  "about": "About",
+  "about": "Про додаток",
   "@about": {
     "description": "About page title"
   },
-  "openPackageLicenses": "Open package licenses",
+  "openPackageLicenses": "Відкрити ліцензії пакетів",
   "@openPackageLicenses": {
     "description": "Button text to open package licenses"
   },
-  "licenseTitle": "LICENSE (GPL-3.0)",
+  "licenseTitle": "ЛІЦЕНЗІЯ (GPL-3.0)",
   "@licenseTitle": {
     "description": "License dialog title"
   },
-  "close": "Close",
+  "close": "Закрити",
   "@close": {
     "description": "Close button text"
   },
@@ -141,7 +141,7 @@
   "@scheduleTest10sDescription": {
     "description": "Description for 10 second test notification"
   },
-  "error": "Error",
+  "error": "Помилка",
   "@error": {
     "description": "Generic error label"
   },
