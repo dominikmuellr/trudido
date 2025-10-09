@@ -5,63 +5,63 @@
   "@appTitle": {
     "description": "The name of the application"
   },
-  "appDescription": "A feature-rich todo app built with Flutter",
+  "appDescription": "Bogata w funkcje aplikacja zadań zbudowana z Flutter",
   "@appDescription": {
     "description": "Brief description of the app"
   },
-  "tabs": "Tasks",
+  "tabs": "Zadania",
   "@tabs": {
     "description": "Tasks tab label"
   },
-  "notes": "Notes",
+  "notes": "Notatki",
   "@notes": {
     "description": "Notes tab label"
   },
-  "newTask": "New Task",
+  "newTask": "Nowe zadanie",
   "@newTask": {
     "description": "Title for creating a new task"
   },
-  "editTask": "Edit Task",
+  "editTask": "Edytuj zadanie",
   "@editTask": {
     "description": "Title for editing an existing task"
   },
-  "addToTaskList": "Add to your task list",
+  "addToTaskList": "Dodaj do listy zadań",
   "@addToTaskList": {
     "description": "Subtitle for task creation dialog"
   },
-  "taskTitle": "Task title",
+  "taskTitle": "Tytuł zadania",
   "@taskTitle": {
     "description": "Label for task title input field"
   },
-  "taskTitleHint": "What needs to be done?",
+  "taskTitleHint": "Co trzeba zrobić?",
   "@taskTitleHint": {
     "description": "Hint text for task title input"
   },
-  "taskTitleValidation": "Please enter a task title",
+  "taskTitleValidation": "Proszę wprowadzić tytuł zadania",
   "@taskTitleValidation": {
     "description": "Validation message for empty task title"
   },
-  "quickOptions": "Quick Options",
+  "quickOptions": "Szybkie opcje",
   "@quickOptions": {
     "description": "Section title for quick task options"
   },
-  "displayTheme": "Display & Theme",
+  "displayTheme": "Wyświetlanie i motyw",
   "@displayTheme": {
     "description": "Title for display and theme settings page"
   },
-  "theme": "Theme",
+  "theme": "Motyw",
   "@theme": {
     "description": "Theme section header"
   },
-  "themeMode": "Theme Mode",
+  "themeMode": "Tryb motywu",
   "@themeMode": {
     "description": "Label for theme mode selector"
   },
-  "themeModeLight": "Light",
+  "themeModeLight": "Jasny",
   "@themeModeLight": {
     "description": "Light theme mode option"
   },
-  "themeModeDark": "Dark",
+  "themeModeDark": "Ciemny",
   "@themeModeDark": {
     "description": "Dark theme mode option"
   },
@@ -69,59 +69,59 @@
   "@themeModeAuto": {
     "description": "Auto theme mode option"
   },
-  "themeModeSystem": "Auto (follows device)",
+  "themeModeSystem": "Auto (podąża za urządzeniem)",
   "@themeModeSystem": {
     "description": "System theme mode description"
   },
-  "themeModeAlwaysLight": "Always use light theme",
+  "themeModeAlwaysLight": "Zawsze używaj jasnego motywu",
   "@themeModeAlwaysLight": {
     "description": "Light theme mode description"
   },
-  "themeModeAlwaysDark": "Always use dark theme",
+  "themeModeAlwaysDark": "Zawsze używaj ciemnego motywu",
   "@themeModeAlwaysDark": {
     "description": "Dark theme mode description"
   },
-  "themeModeFollowDevice": "Follow device setting",
+  "themeModeFollowDevice": "Podążaj za ustawieniem urządzenia",
   "@themeModeFollowDevice": {
     "description": "Auto theme mode description"
   },
-  "themeBlackAmoled": "Black (AMOLED)",
+  "themeBlackAmoled": "Czarny (AMOLED)",
   "@themeBlackAmoled": {
     "description": "AMOLED black theme option"
   },
-  "dynamicColor": "Dynamic Color",
+  "dynamicColor": "Dynamiczny kolor",
   "@dynamicColor": {
     "description": "Dynamic color setting label"
   },
-  "accentColor": "Accent Color",
+  "accentColor": "Kolor akcentu",
   "@accentColor": {
     "description": "Accent color setting label"
   },
-  "chooseAccentColor": "Choose Accent Color",
+  "chooseAccentColor": "Wybierz kolor akcentu",
   "@chooseAccentColor": {
     "description": "Title for accent color selection sheet"
   },
-  "hackThemeNotAvailable": "Not available for Hack theme",
+  "hackThemeNotAvailable": "Niedostępne dla motywu Hack",
   "@hackThemeNotAvailable": {
     "description": "Message shown when a theme mode is not available for hack theme"
   },
-  "display": "Display",
+  "display": "Wyświetlanie",
   "@display": {
     "description": "Display section header"
   },
-  "about": "About",
+  "about": "O aplikacji",
   "@about": {
     "description": "About page title"
   },
-  "openPackageLicenses": "Open package licenses",
+  "openPackageLicenses": "Otwórz licencje pakietów",
   "@openPackageLicenses": {
     "description": "Button text to open package licenses"
   },
-  "licenseTitle": "LICENSE (GPL-3.0)",
+  "licenseTitle": "LICENCJA (GPL-3.0)",
   "@licenseTitle": {
     "description": "License dialog title"
   },
-  "close": "Close",
+  "close": "Zamknij",
   "@close": {
     "description": "Close button text"
   },
@@ -141,7 +141,7 @@
   "@scheduleTest10sDescription": {
     "description": "Description for 10 second test notification"
   },
-  "error": "Error",
+  "error": "Błąd",
   "@error": {
     "description": "Generic error label"
   },
