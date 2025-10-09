@@ -5,63 +5,63 @@
   "@appTitle": {
     "description": "The name of the application"
   },
-  "appDescription": "A feature-rich todo app built with Flutter",
+  "appDescription": "O aplicație de sarcini bogată în funcții construită cu Flutter",
   "@appDescription": {
     "description": "Brief description of the app"
   },
-  "tabs": "Tasks",
+  "tabs": "Sarcini",
   "@tabs": {
     "description": "Tasks tab label"
   },
-  "notes": "Notes",
+  "notes": "Notițe",
   "@notes": {
     "description": "Notes tab label"
   },
-  "newTask": "New Task",
+  "newTask": "Sarcină nouă",
   "@newTask": {
     "description": "Title for creating a new task"
   },
-  "editTask": "Edit Task",
+  "editTask": "Editează sarcina",
   "@editTask": {
     "description": "Title for editing an existing task"
   },
-  "addToTaskList": "Add to your task list",
+  "addToTaskList": "Adaugă la lista de sarcini",
   "@addToTaskList": {
     "description": "Subtitle for task creation dialog"
   },
-  "taskTitle": "Task title",
+  "taskTitle": "Titlul sarcinii",
   "@taskTitle": {
     "description": "Label for task title input field"
   },
-  "taskTitleHint": "What needs to be done?",
+  "taskTitleHint": "Ce trebuie făcut?",
   "@taskTitleHint": {
     "description": "Hint text for task title input"
   },
-  "taskTitleValidation": "Please enter a task title",
+  "taskTitleValidation": "Vă rugăm să introduceți un titlu pentru sarcină",
   "@taskTitleValidation": {
     "description": "Validation message for empty task title"
   },
-  "quickOptions": "Quick Options",
+  "quickOptions": "Opțiuni rapide",
   "@quickOptions": {
     "description": "Section title for quick task options"
   },
-  "displayTheme": "Display & Theme",
+  "displayTheme": "Afișaj și temă",
   "@displayTheme": {
     "description": "Title for display and theme settings page"
   },
-  "theme": "Theme",
+  "theme": "Temă",
   "@theme": {
     "description": "Theme section header"
   },
-  "themeMode": "Theme Mode",
+  "themeMode": "Modul temei",
   "@themeMode": {
     "description": "Label for theme mode selector"
   },
-  "themeModeLight": "Light",
+  "themeModeLight": "Luminos",
   "@themeModeLight": {
     "description": "Light theme mode option"
   },
-  "themeModeDark": "Dark",
+  "themeModeDark": "Întunecat",
   "@themeModeDark": {
     "description": "Dark theme mode option"
   },
@@ -69,59 +69,59 @@
   "@themeModeAuto": {
     "description": "Auto theme mode option"
   },
-  "themeModeSystem": "Auto (follows device)",
+  "themeModeSystem": "Auto (urmează dispozitivul)",
   "@themeModeSystem": {
     "description": "System theme mode description"
   },
-  "themeModeAlwaysLight": "Always use light theme",
+  "themeModeAlwaysLight": "Folosește întotdeauna tema luminoasă",
   "@themeModeAlwaysLight": {
     "description": "Light theme mode description"
   },
-  "themeModeAlwaysDark": "Always use dark theme",
+  "themeModeAlwaysDark": "Folosește întotdeauna tema întunecată",
   "@themeModeAlwaysDark": {
     "description": "Dark theme mode description"
   },
-  "themeModeFollowDevice": "Follow device setting",
+  "themeModeFollowDevice": "Urmează setarea dispozitivului",
   "@themeModeFollowDevice": {
     "description": "Auto theme mode description"
   },
-  "themeBlackAmoled": "Black (AMOLED)",
+  "themeBlackAmoled": "Negru (AMOLED)",
   "@themeBlackAmoled": {
     "description": "AMOLED black theme option"
   },
-  "dynamicColor": "Dynamic Color",
+  "dynamicColor": "Culoare dinamică",
   "@dynamicColor": {
     "description": "Dynamic color setting label"
   },
-  "accentColor": "Accent Color",
+  "accentColor": "Culoare accent",
   "@accentColor": {
     "description": "Accent color setting label"
   },
-  "chooseAccentColor": "Choose Accent Color",
+  "chooseAccentColor": "Alege culoarea accent",
   "@chooseAccentColor": {
     "description": "Title for accent color selection sheet"
   },
-  "hackThemeNotAvailable": "Not available for Hack theme",
+  "hackThemeNotAvailable": "Nu este disponibil pentru tema Hack",
   "@hackThemeNotAvailable": {
     "description": "Message shown when a theme mode is not available for hack theme"
   },
-  "display": "Display",
+  "display": "Afișaj",
   "@display": {
     "description": "Display section header"
   },
-  "about": "About",
+  "about": "Despre",
   "@about": {
     "description": "About page title"
   },
-  "openPackageLicenses": "Open package licenses",
+  "openPackageLicenses": "Deschide licențele pachetelor",
   "@openPackageLicenses": {
     "description": "Button text to open package licenses"
   },
-  "licenseTitle": "LICENSE (GPL-3.0)",
+  "licenseTitle": "LICENȚĂ (GPL-3.0)",
   "@licenseTitle": {
     "description": "License dialog title"
   },
-  "close": "Close",
+  "close": "Închide",
   "@close": {
     "description": "Close button text"
   },
@@ -141,7 +141,7 @@
   "@scheduleTest10sDescription": {
     "description": "Description for 10 second test notification"
   },
-  "error": "Error",
+  "error": "Eroare",
   "@error": {
     "description": "Generic error label"
   },
