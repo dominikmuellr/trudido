@@ -2,7 +2,16 @@
   <img src="imagefiles/trudiconRound.png" alt="App Icon" width="120" height="120">
 </p>
 
+<div align="right">
+  Here you can help with the translation -->
+  <a href="https://crowdin.com/project/trudido">
+    <img src="https://badges.crowdin.net/trudido/localized.svg" alt="Crowdin">
+  </a>
+</div>
+
+
 <h1 align="center">Trudido — Minimalist Material You To-Do App</h1>
+
 
 <p align="center">
   A lightweight, privacy-first to-do app built with Flutter and Material You.
@@ -63,3 +72,4 @@ For major changes, please open an issue first to discuss what you’d like to mo
   <img src="imagefiles/4.png" alt="screenshot 4" width="200"/>
   <img src="imagefiles/5.png" alt="screenshot 5" width="200"/>
 </p
+
