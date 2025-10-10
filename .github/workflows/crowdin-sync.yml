@@ -42,7 +42,7 @@ jobs:
         run: flutter pub get
 
       - name: Validate ARB files
-        run: flutter gen-l10n --verify-only
+        run: flutter gen-l10n
 
       - name: Upload source files to Crowdin
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
