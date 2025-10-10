@@ -3,7 +3,7 @@
 </p>
 
 <div align="right">
-  Here you can help with the translation -->
+  Here you can help me with the translation -->
   <a href="https://crowdin.com/project/trudido">
     <img src="https://badges.crowdin.net/trudido/localized.svg" alt="Crowdin">
   </a>
