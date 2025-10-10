@@ -24,11 +24,19 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Remove old Dart SDK
+        run: sudo rm -rf /opt/hostedtoolcache/dart
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "master"
           channel: "master"
+
+      - name: Check Flutter & Dart version
+        run: |
+          flutter --version
+          dart --version
 
       - name: Get dependencies
         run: flutter pub get

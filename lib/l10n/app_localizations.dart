@@ -92,25 +92,7 @@ abstract class AppLocalizations {
       ];
 
   /// A list of this localizations delegate's supported locales.
-  static const List<Locale> supportedLocales = <Locale>[
-    Locale('af'),
-    Locale('ar'),
-    Locale('ca'),
-    Locale('el'),
-    Locale('en'),
-    Locale('fi'),
-    Locale('he'),
-    Locale('hu'),
-    Locale('ja'),
-    Locale('ko'),
-    Locale('no'),
-    Locale('ru'),
-    Locale('sr'),
-    Locale('sv'),
-    Locale('tr'),
-    Locale('vi'),
-    Locale('zh'),
-  ];
+  static const List<Locale> supportedLocales = <Locale>[Locale('en')];
 
   /// The name of the application
   ///
@@ -527,7 +509,6 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsEn();
   }
 
-  // If we get here, it means no supported locale was found
   throw FlutterError(
     'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
     'an issue with the localizations generation tool. Please file an issue '
