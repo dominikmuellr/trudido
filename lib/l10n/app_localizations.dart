@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
+
 // ignore_for_file: type=lint
 
 /// Callers can lookup localized strings with an instance of AppLocalizations
@@ -92,18 +93,23 @@ abstract class AppLocalizations {
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
-    Locale('cs'),
-    Locale('da'),
-    Locale('de'),
+    Locale('af'),
+    Locale('ar'),
+    Locale('ca'),
+    Locale('el'),
     Locale('en'),
-    Locale('es'),
-    Locale('fr'),
-    Locale('it'),
-    Locale('nl'),
-    Locale('pl'),
-    Locale('pt'),
-    Locale('ro'),
-    Locale('uk'),
+    Locale('fi'),
+    Locale('he'),
+    Locale('hu'),
+    Locale('ja'),
+    Locale('ko'),
+    Locale('no'),
+    Locale('ru'),
+    Locale('sr'),
+    Locale('sv'),
+    Locale('tr'),
+    Locale('vi'),
+    Locale('zh'),
   ];
 
   /// The name of the application
@@ -507,20 +513,8 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) => <String>[
-    'cs',
-    'da',
-    'de',
-    'en',
-    'es',
-    'fr',
-    'it',
-    'nl',
-    'pl',
-    'pt',
-    'ro',
-    'uk',
-  ].contains(locale.languageCode);
+  bool isSupported(Locale locale) =>
+      <String>['en'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -533,6 +527,7 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsEn();
   }
 
+  // If we get here, it means no supported locale was found
   throw FlutterError(
     'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
     'an issue with the localizations generation tool. Please file an issue '
