@@ -1,5 +1,5 @@
 {
-  "@@locale": "es-ES",
+  "@@locale": "uk",
   "@@context": "Trudido Todo App Localization",
   "appTitle": "Trudido",
   "@appTitle": {
@@ -17,7 +17,7 @@
   "@notes": {
     "description": "Notes tab label"
   },
-  "newTask": "Nueva tarea",
+  "newTask": "New Task",
   "@newTask": {
     "description": "Title for creating a new task"
   },

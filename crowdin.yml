@@ -13,17 +13,22 @@ files:
     translation: "lib/l10n/app_%locale%.arb"
     languages_mapping:
       two_letters_code:
-        de: de-DE
-        fr: fr-FR
-        es: es-ES
-        it: it-IT
-        nl: nl-NL
-        pt: pt-PT
-        pl: pl-PL
-        uk: uk-UA
-        da: da-DK
-        ro: ro-RO
-        cs: cs-CZ
+        de: de
+        fr: fr
+        es: es
+        it: it
+        nl: nl
+        pt: pt
+        pl: pl
+        uk: uk
+        da: da
+        ro: ro
+        cs: cs
+        fi: fi
+        hu: hu
+        no: no
+        tr: tr
+        sv: sv
         en: en
     type: "arb"
     update_option: "update_as_unapproved"
