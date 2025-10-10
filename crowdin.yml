@@ -10,7 +10,7 @@ preserve_hierarchy: true
 
 files:
   - source: "lib/l10n/app_en.arb"
-    translation: "lib/l10n/app_%two_letters_code%.arb"
+    translation: "lib/l10n/app_%locale%.arb"
     languages_mapping:
       two_letters_code:
         "en": "en" # English
