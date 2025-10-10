@@ -1,8 +1,8 @@
 # Crowdin configuration file for Trudido Flutter app
 # Visit https://support.crowdin.com/configuration-file/ for more info
 
-project_id: "YOUR_PROJECT_ID" # Replace with your actual Crowdin project ID
-api_token_env: "CROWDIN_API_TOKEN" # Environment variable containing your API token
+project_id: "836952" # Replace with your actual Crowdin project ID
+api_token_env: "9756d9d931d50086bc34aec1291c4c80d78f28100285212c5945c24a1a70634e792eba114208e03d" # Environment variable containing your API token
 base_path: "."
 base_url: "https://api.crowdin.com"
 
