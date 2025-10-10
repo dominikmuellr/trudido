@@ -13,18 +13,18 @@ files:
     translation: "lib/l10n/app_%locale%.arb"
     languages_mapping:
       two_letters_code:
-        en: en # English
-        de: de # German
-        fr: fr # French
-        es: es # Spanish
-        it: it # Italian
-        nl: nl # Dutch
-        pt: pt # Portuguese
-        pl: pl # Polish
-        uk: uk # Ukrainian
-        da: da # Danish
-        ro: ro # Romanian
-        cs: cs # Czech
+        en: en # English (Crowdin: en, Locale: en)
+        de: de # German (Crowdin: de, Locale: de)
+        fr: fr # French (Crowdin: fr, Locale: fr)
+        es: es # Spanish (Crowdin: es, Locale: es)
+        it: it # Italian (Crowdin: it, Locale: it)
+        nl: nl # Dutch (Crowdin: nl, Locale: nl)
+        pt: pt # Portuguese (Crowdin: pt, Locale: pt)
+        pl: pl # Polish (Crowdin: pl, Locale: pl)
+        uk-UA: uk # Ukrainian (Crowdin: uk-UA, Locale: uk)
+        da: da # Danish (Crowdin: da, Locale: da)
+        ro: ro # Romanian (Crowdin: ro, Locale: ro)
+        cs: cs # Czech (Crowdin: cs, Locale: cs)
     type: "arb"
     update_option: "update_as_unapproved"
     export_quotes: "double"
