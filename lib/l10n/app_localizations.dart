@@ -5,7 +5,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
-import 'app_localizations_cs.dart';
 import 'app_localizations_da.dart';
 import 'app_localizations_de.dart';
 import 'app_localizations_en.dart';
@@ -109,23 +108,37 @@ abstract class AppLocalizations {
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
-    Locale('cs'),
     Locale('da'),
+    Locale('da', 'DK'),
     Locale('de'),
+    Locale('de', 'DE'),
     Locale('en'),
     Locale('es'),
+    Locale('es', 'ES'),
     Locale('fi'),
+    Locale('fi', 'FI'),
     Locale('fr'),
+    Locale('fr', 'FR'),
     Locale('hu'),
+    Locale('hu', 'HU'),
     Locale('it'),
+    Locale('it', 'IT'),
     Locale('nl'),
+    Locale('nl', 'NL'),
     Locale('no'),
+    Locale('no', 'NO'),
     Locale('pl'),
+    Locale('pl', 'PL'),
     Locale('pt'),
+    Locale('pt', 'PT'),
     Locale('ro'),
+    Locale('ro', 'RO'),
     Locale('sv'),
+    Locale('sv', 'SE'),
     Locale('tr'),
+    Locale('tr', 'TR'),
     Locale('uk'),
+    Locale('uk', 'UA'),
   ];
 
   /// The name of the application
@@ -530,7 +543,6 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) => <String>[
-    'cs',
     'da',
     'de',
     'en',
@@ -554,10 +566,132 @@ class _AppLocalizationsDelegate
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+  // Lookup logic when language+country codes are specified.
+  switch (locale.languageCode) {
+    case 'da':
+      {
+        switch (locale.countryCode) {
+          case 'DK':
+            return AppLocalizationsDaDk();
+        }
+        break;
+      }
+    case 'de':
+      {
+        switch (locale.countryCode) {
+          case 'DE':
+            return AppLocalizationsDeDe();
+        }
+        break;
+      }
+    case 'es':
+      {
+        switch (locale.countryCode) {
+          case 'ES':
+            return AppLocalizationsEsEs();
+        }
+        break;
+      }
+    case 'fi':
+      {
+        switch (locale.countryCode) {
+          case 'FI':
+            return AppLocalizationsFiFi();
+        }
+        break;
+      }
+    case 'fr':
+      {
+        switch (locale.countryCode) {
+          case 'FR':
+            return AppLocalizationsFrFr();
+        }
+        break;
+      }
+    case 'hu':
+      {
+        switch (locale.countryCode) {
+          case 'HU':
+            return AppLocalizationsHuHu();
+        }
+        break;
+      }
+    case 'it':
+      {
+        switch (locale.countryCode) {
+          case 'IT':
+            return AppLocalizationsItIt();
+        }
+        break;
+      }
+    case 'nl':
+      {
+        switch (locale.countryCode) {
+          case 'NL':
+            return AppLocalizationsNlNl();
+        }
+        break;
+      }
+    case 'no':
+      {
+        switch (locale.countryCode) {
+          case 'NO':
+            return AppLocalizationsNoNo();
+        }
+        break;
+      }
+    case 'pl':
+      {
+        switch (locale.countryCode) {
+          case 'PL':
+            return AppLocalizationsPlPl();
+        }
+        break;
+      }
+    case 'pt':
+      {
+        switch (locale.countryCode) {
+          case 'PT':
+            return AppLocalizationsPtPt();
+        }
+        break;
+      }
+    case 'ro':
+      {
+        switch (locale.countryCode) {
+          case 'RO':
+            return AppLocalizationsRoRo();
+        }
+        break;
+      }
+    case 'sv':
+      {
+        switch (locale.countryCode) {
+          case 'SE':
+            return AppLocalizationsSvSe();
+        }
+        break;
+      }
+    case 'tr':
+      {
+        switch (locale.countryCode) {
+          case 'TR':
+            return AppLocalizationsTrTr();
+        }
+        break;
+      }
+    case 'uk':
+      {
+        switch (locale.countryCode) {
+          case 'UA':
+            return AppLocalizationsUkUa();
+        }
+        break;
+      }
+  }
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'cs':
-      return AppLocalizationsCs();
     case 'da':
       return AppLocalizationsDa();
     case 'de':
