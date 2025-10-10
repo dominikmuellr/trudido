@@ -5,6 +5,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
+import 'app_localizations_app.dart';
+import 'app_localizations_cs.dart';
 import 'app_localizations_da.dart';
 import 'app_localizations_de.dart';
 import 'app_localizations_en.dart';
@@ -108,6 +110,9 @@ abstract class AppLocalizations {
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
+    Locale('app'),
+    Locale('cs'),
+    Locale('cs', 'CZ'),
     Locale('da'),
     Locale('da', 'DK'),
     Locale('de'),
@@ -543,6 +548,8 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) => <String>[
+    'app',
+    'cs',
     'da',
     'de',
     'en',
@@ -568,6 +575,14 @@ class _AppLocalizationsDelegate
 AppLocalizations lookupAppLocalizations(Locale locale) {
   // Lookup logic when language+country codes are specified.
   switch (locale.languageCode) {
+    case 'cs':
+      {
+        switch (locale.countryCode) {
+          case 'CZ':
+            return AppLocalizationsCsCz();
+        }
+        break;
+      }
     case 'da':
       {
         switch (locale.countryCode) {
@@ -692,6 +707,10 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
 
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
+    case 'app':
+      return AppLocalizationsApp();
+    case 'cs':
+      return AppLocalizationsCs();
     case 'da':
       return AppLocalizationsDa();
     case 'de':
