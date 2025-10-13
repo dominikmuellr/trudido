@@ -83,6 +83,15 @@ jobs:
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_API_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
+      - name: Fix @@locale in arb files
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          find lib/l10n -name "app_*.arb" -not -name "app_en.arb" | while read filename; do
+            locale=$(basename "$filename" .arb | sed 's/app_//')
+            sed -i "s/\"@@locale\": \".*\"/\"@@locale\": \"$locale\"/" "$filename"
+            echo "Fixed @@locale in $filename to $locale"
+          done
+
       - name: Generate localization files
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: flutter gen-l10n
