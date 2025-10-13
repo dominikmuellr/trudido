@@ -10,7 +10,7 @@ preserve_hierarchy: true
 
 files:
   - source: "lib/l10n/app_en.arb"
-    translation: "lib/l10n/app_%locale_with_underscore%.arb"
+    translation: "lib/l10n/app_%locale%.arb"
     type: "arb"
     update_option: "update_as_unapproved"
     export_quotes: "double"
