@@ -56,6 +56,10 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
           _buildSectionHeader(context, l10n.display),
           _DefaultTabSelector(),
 
+          // Interface Section
+          _buildSectionHeader(context, 'Interface'),
+          _buildGreetingSettings(),
+
           const SizedBox(height: 16),
         ],
       ),
@@ -73,6 +77,71 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildGreetingSettings() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final preferences = ref.watch(preferencesStateProvider);
+        final controller = ref.read(preferencesControllerProvider);
+
+        return Column(
+          children: [
+            SwitchListTile(
+              secondary: Icon(Icons.language),
+              title: const Text('Random Greetings'),
+              subtitle: const Text('Show greeting in different languages'),
+              value: preferences.randomGreetingsEnabled,
+              onChanged: (value) {
+                controller.toggleRandomGreetings();
+              },
+            ),
+            if (!preferences.randomGreetingsEnabled)
+              ListTile(
+                leading: const Icon(Icons.translate),
+                title: const Text('Greeting Language'),
+                subtitle: Text(
+                  _getGreetingLanguageName(preferences.fixedGreetingLanguage),
+                ),
+                trailing: Icon(Icons.arrow_forward_ios),
+                onTap: () async {
+                  await showModalBottomSheet<void>(
+                    context: context,
+                    showDragHandle: true,
+                    builder: (ctx) => _GreetingLanguageSheet(),
+                  );
+                },
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _getGreetingLanguageName(int index) {
+    const greetings = [
+      'English',
+      'Español',
+      'Français',
+      'Deutsch',
+      'Italiano',
+      'Nederlands',
+      'Português',
+      'Svenska',
+      'Dansk',
+      'Norsk',
+      'Suomi',
+      'Polski',
+      'Čeština',
+      'Magyar',
+      'Română',
+      'Türkçe',
+      'Українська',
+    ];
+    if (index >= 0 && index < greetings.length) {
+      return greetings[index];
+    }
+    return 'English';
   }
 }
 
@@ -139,8 +208,10 @@ class _ThemeModeSheet extends ConsumerWidget {
     final useDynamicColor = ref.watch(preferencesStateProvider).useDynamicColor;
     final controller = ref.read(preferencesControllerProvider);
 
-    // Check if Hack theme is selected (Matrix green) and dynamic colors are disabled
+    // Check if Hack or Dracula theme is selected and dynamic colors are disabled
     final isHackTheme = accentColorSeed == 0xFF00FF00 && !useDynamicColor;
+    final isDraculaTheme = accentColorSeed == 0xFFBD93F9 && !useDynamicColor;
+    final isDarkOnlyTheme = isHackTheme || isDraculaTheme;
 
     Widget buildOption(
       ThemeMode mode,
@@ -149,15 +220,21 @@ class _ThemeModeSheet extends ConsumerWidget {
       IconData icon,
     ) {
       final selected = current == mode;
-      // Disable light mode and auto mode for Hack theme
+      // Disable light mode and auto mode for dark-only themes
       final isEnabled =
-          !(isHackTheme &&
+          !(isDarkOnlyTheme &&
               (mode == ThemeMode.light || mode == ThemeMode.system));
       final effectiveColor = !isEnabled
           ? cs.onSurfaceVariant.withOpacity(0.4)
           : selected
           ? cs.primary
           : cs.onSurfaceVariant;
+
+      String getUnavailableMessage() {
+        if (isHackTheme) return 'Not available for Hack theme';
+        if (isDraculaTheme) return 'Not available for Dracula theme';
+        return desc;
+      }
 
       return ListTile(
         enabled: isEnabled,
@@ -170,8 +247,9 @@ class _ThemeModeSheet extends ConsumerWidget {
           ),
         ),
         subtitle: Text(
-          isHackTheme && (mode == ThemeMode.light || mode == ThemeMode.system)
-              ? 'Not available for Hack theme'
+          isDarkOnlyTheme &&
+                  (mode == ThemeMode.light || mode == ThemeMode.system)
+              ? getUnavailableMessage()
               : desc,
           style: TextStyle(
             color: !isEnabled ? cs.onSurfaceVariant.withOpacity(0.4) : null,
@@ -394,6 +472,22 @@ class _AccentColorSelector extends ConsumerWidget {
         ),
         child: const Icon(Icons.terminal, color: Color(0xFF00FF00), size: 12),
       );
+    } else if (colorValue == 0xFFBD93F9) {
+      // Special Dracula-style icon for Dracula theme
+      return Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          color: const Color(0xFF282A36), // Dracula background
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFFBD93F9), width: 2),
+        ),
+        child: const Icon(
+          Icons.nights_stay,
+          color: Color(0xFFBD93F9),
+          size: 12,
+        ),
+      );
     } else {
       // Regular solid color circle for other colors
       return Container(
@@ -445,6 +539,8 @@ class _AccentColorSelector extends ConsumerWidget {
         return 'Grey';
       case 0xFF00FF00:
         return 'Hack';
+      case 0xFFBD93F9:
+        return 'Dracula';
       case 0xFF607D8B:
         return 'Blue Grey';
       default:
@@ -458,6 +554,7 @@ class _AccentColorSheet extends StatelessWidget {
   const _AccentColorSheet({required this.current});
 
   static const List<int> accentColorSeeds = [
+    // Standard Material 3 seed colors
     0xFF2196F3, // Blue (default)
     0xFFE91E63, // Pink
     0xFF9C27B0, // Purple
@@ -471,10 +568,12 @@ class _AccentColorSheet extends StatelessWidget {
     0xFFFF9800, // Orange
     0xFFFF5722, // Deep Orange
     0xFF795548, // Brown
-    0xFF9E9E9E, // Monochrome (black/white accents)
-    0xFF757575, // Grey
-    0xFF00FF00, // Hack
     0xFF607D8B, // Blue Grey
+    // Custom theme colors with special behavior
+    0xFF9E9E9E, // Monochrome (black/white accents)
+    0xFF757575, // Grey (grey accents)
+    0xFF00FF00, // Hack (Matrix green, dark mode only)
+    0xFFBD93F9, // Dracula (authentic Dracula colors, dark mode only)
   ];
 
   @override
@@ -511,7 +610,33 @@ class _AccentColorSheet extends StatelessWidget {
           Expanded(
             child: ListView(
               children: [
-                ...accentColorSeeds.map((colorValue) {
+                // Standard Material 3 colors section
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Text(
+                    'Standard Colors',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ...accentColorSeeds.take(14).map((colorValue) {
+                  return buildOption(colorValue, _getColorName(colorValue));
+                }).toList(),
+
+                // Custom themes section
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Text(
+                    'Special Themes',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ...accentColorSeeds.skip(14).map((colorValue) {
                   return buildOption(colorValue, _getColorName(colorValue));
                 }).toList(),
               ],
@@ -559,6 +684,25 @@ class _AccentColorSheet extends StatelessWidget {
           ),
         ),
         child: const Icon(Icons.terminal, color: Color(0xFF00FF00), size: 16),
+      );
+    } else if (colorValue == 0xFFBD93F9) {
+      // Special Dracula-style icon for Dracula theme
+      return Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: const Color(0xFF282A36), // Dracula background
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected ? cs.primary : const Color(0xFFBD93F9),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: const Icon(
+          Icons.nights_stay,
+          color: Color(0xFFBD93F9),
+          size: 16,
+        ),
       );
     } else {
       // Regular solid color circle for other colors
@@ -611,10 +755,90 @@ class _AccentColorSheet extends StatelessWidget {
         return 'Grey';
       case 0xFF00FF00:
         return 'Hack';
+      case 0xFFBD93F9:
+        return 'Dracula';
       case 0xFF607D8B:
         return 'Blue Grey';
       default:
         return 'Custom';
     }
+  }
+}
+
+class _GreetingLanguageSheet extends ConsumerWidget {
+  const _GreetingLanguageSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final preferences = ref.watch(preferencesStateProvider);
+    final controller = ref.read(preferencesControllerProvider);
+
+    final languages = [
+      'English',
+      'Español',
+      'Français',
+      'Deutsch',
+      'Italiano',
+      'Nederlands',
+      'Português',
+      'Svenska',
+      'Dansk',
+      'Norsk',
+      'Suomi',
+      'Polski',
+      'Čeština',
+      'Magyar',
+      'Română',
+      'Türkçe',
+      'Українська',
+    ];
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 40,
+          height: 4,
+          margin: const EdgeInsets.only(top: 8, bottom: 16),
+          decoration: BoxDecoration(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant.withOpacity(0.4),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Text(
+            'Select Greeting Language',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Flexible(
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: languages.length,
+            itemBuilder: (context, index) {
+              final isSelected = preferences.fixedGreetingLanguage == index;
+              return ListTile(
+                title: Text(languages[index]),
+                trailing: isSelected
+                    ? Icon(
+                        Icons.check,
+                        color: Theme.of(context).colorScheme.primary,
+                      )
+                    : null,
+                onTap: () {
+                  controller.setFixedGreetingLanguage(index);
+                  Navigator.of(context).pop();
+                },
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
   }
 }

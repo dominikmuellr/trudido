@@ -238,10 +238,16 @@ final userNameProvider = StateProvider<String>(
   (ref) => StorageService.getUserName(),
 );
 
-// Provider for current greeting language (set once on app start)
+// Provider for current greeting language
 final greetingLanguageProvider = StateProvider<int>((ref) {
-  // Generate a random greeting when the app starts
-  return Random().nextInt(11);
+  final prefs = ref.watch(preferencesStateProvider);
+  if (prefs.randomGreetingsEnabled) {
+    // Generate a random greeting when random is enabled
+    return Random().nextInt(17);
+  } else {
+    // Use fixed language from preferences
+    return prefs.fixedGreetingLanguage;
+  }
 });
 
 // Provider for hide greeting preference
@@ -260,16 +266,22 @@ class GreetingHeader extends ConsumerStatefulWidget {
 class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
   final List<Map<String, String>> _greetings = [
     {'text': 'Hello', 'lang': 'English'},
-    {'text': 'Hola', 'lang': 'Spanish'},
-    {'text': 'Hallo', 'lang': 'German'},
-    {'text': 'Bonjour', 'lang': 'French'},
-    {'text': 'Ciao', 'lang': 'Italian'},
-    {'text': 'Olá', 'lang': 'Portuguese'},
-    {'text': 'Hallo', 'lang': 'Dutch'},
-    {'text': 'Hej', 'lang': 'Danish'},
-    {'text': 'Cześć', 'lang': 'Polish'},
-    {'text': 'Ahoj', 'lang': 'Czech'},
-    {'text': 'Geia sas', 'lang': 'Greek'},
+    {'text': 'Hola', 'lang': 'Español'},
+    {'text': 'Bonjour', 'lang': 'Français'},
+    {'text': 'Hallo', 'lang': 'Deutsch'},
+    {'text': 'Ciao', 'lang': 'Italiano'},
+    {'text': 'Hallo', 'lang': 'Nederlands'},
+    {'text': 'Olá', 'lang': 'Português'},
+    {'text': 'Hej', 'lang': 'Svenska'},
+    {'text': 'Hej', 'lang': 'Dansk'},
+    {'text': 'Hei', 'lang': 'Norsk'},
+    {'text': 'Hei', 'lang': 'Suomi'},
+    {'text': 'Cześć', 'lang': 'Polski'},
+    {'text': 'Ahoj', 'lang': 'Čeština'},
+    {'text': 'Szia', 'lang': 'Magyar'},
+    {'text': 'Salut', 'lang': 'Română'},
+    {'text': 'Merhaba', 'lang': 'Türkçe'},
+    {'text': 'Привіт', 'lang': 'Українська'},
   ];
 
   @override
@@ -295,7 +307,9 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
   Widget build(BuildContext context) {
     final userName = ref.watch(userNameProvider);
     final greetingIndex = ref.watch(greetingLanguageProvider);
-    final greeting = _greetings[greetingIndex];
+    // Add bounds checking to prevent index out of range errors
+    final safeGreetingIndex = greetingIndex.clamp(0, _greetings.length - 1);
+    final greeting = _greetings[safeGreetingIndex];
     final theme = Theme.of(context);
     final preferences = ref.watch(preferencesStateProvider);
     final isHackTheme =
@@ -306,18 +320,17 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
         theme.extension<AppOptions>() ??
         const AppOptions(compact: false, highContrast: false);
     final pad = EdgeInsets.all(appOpts.compact ? 12 : 20);
-    final gap = appOpts.compact ? 8.0 : 12.0;
-    final headlineStyle = theme.textTheme.headlineSmall?.copyWith(
+    final headlineStyle = theme.textTheme.titleMedium?.copyWith(
       fontWeight: FontWeight.bold,
-      fontSize: appOpts.compact ? 20 : null,
-      color: theme.colorScheme.onSurface,
+      fontSize: appOpts.compact ? 16 : null,
+      color: theme.colorScheme.primary,
     );
     final langStyle = theme.textTheme.bodySmall?.copyWith(
-      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+      color: theme.colorScheme.secondary.withValues(alpha: 0.8),
       fontSize: appOpts.compact ? 10 : null,
     );
     final messageStyle = theme.textTheme.bodyMedium?.copyWith(
-      color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+      color: theme.colorScheme.secondary,
       fontSize: appOpts.compact ? 12 : null,
     );
 
@@ -336,7 +349,7 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
                   transitionBuilder: (child, animation) =>
                       FadeTransition(opacity: animation, child: child),
                   child: Align(
-                    key: ValueKey<int>(greetingIndex),
+                    key: ValueKey<int>(safeGreetingIndex),
                     alignment: Alignment.centerLeft,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -352,19 +365,46 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
                                     ),
                                   ),
                                   Flexible(
-                                    child: MatrixNameAnimation(
-                                      text: '$userName!',
-                                      style: headlineStyle ?? const TextStyle(),
-                                    ),
+                                    child: userName.isNotEmpty
+                                        ? GestureDetector(
+                                            onTap: () =>
+                                                _showNameDialog(context),
+                                            child: MatrixNameAnimation(
+                                              text: '$userName!',
+                                              style:
+                                                  headlineStyle ??
+                                                  const TextStyle(),
+                                            ),
+                                          )
+                                        : MatrixNameAnimation(
+                                            text: '$userName!',
+                                            style:
+                                                headlineStyle ??
+                                                const TextStyle(),
+                                          ),
                                   ),
                                 ],
                               )
-                            : Text(
-                                '${greeting['text']}${userName.isNotEmpty ? ', $userName!' : '!'}',
-                                style: headlineStyle,
-                                overflow: TextOverflow.ellipsis,
+                            : GestureDetector(
+                                onTap: () => _showNameDialog(context),
+                                child: Text(
+                                  _getGreetingText(greeting['text']!, userName),
+                                  style: headlineStyle?.copyWith(
+                                    color: _shouldShowNameHint(userName)
+                                        ? theme.colorScheme.primary.withValues(
+                                            alpha: 0.8,
+                                          )
+                                        : theme.colorScheme.primary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                        Text(greeting['lang']!, style: langStyle),
+                        // Only show language explanation when random greetings are enabled
+                        if (preferences.randomGreetingsEnabled)
+                          Text(greeting['lang']!, style: langStyle),
+                        // Time-based message as subtitle
+                        const SizedBox(height: 4),
+                        Text(_getTimeBasedMessage(), style: messageStyle),
                       ],
                     ),
                   ),
@@ -373,40 +413,25 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Semantics(
-                    label: 'Change greeting language',
-                    button: true,
-                    child: IconButton(
-                      onPressed: _changeGreeting,
-                      icon: const Icon(Icons.language),
-                      color: theme.colorScheme.primary,
-                      tooltip: 'Change language',
-                    ),
-                  ),
-                  Semantics(
-                    label: userName.isEmpty
-                        ? 'Set your name'
-                        : 'Change your name',
-                    button: true,
-                    child: IconButton(
-                      onPressed: () => _showNameDialog(context),
-                      icon: Icon(
-                        userName.isEmpty
-                            ? Icons.person_add_outlined
-                            : Icons.person,
+                  // Only show globe button if random greetings are enabled
+                  if (preferences.randomGreetingsEnabled)
+                    Semantics(
+                      label: 'Change greeting language',
+                      button: true,
+                      child: IconButton(
+                        onPressed: _changeGreeting,
+                        icon: const Icon(Icons.language),
+                        color: theme.colorScheme.primary,
+                        tooltip: 'Change language',
                       ),
-                      color: theme.colorScheme.primary,
-                      tooltip: userName.isEmpty
-                          ? 'Set your name'
-                          : 'Change name',
                     ),
-                  ),
+
                   Semantics(
                     label: 'Open filters',
                     button: true,
                     child: IconButton(
                       onPressed: () => showFiltersSheet(context),
-                      icon: const Icon(Icons.tune),
+                      icon: const Icon(Icons.filter_alt),
                       color: theme.colorScheme.primary,
                       tooltip: 'Filters',
                     ),
@@ -415,8 +440,6 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
               ),
             ],
           ),
-          SizedBox(height: gap),
-          Text(_getTimeBasedMessage(), style: messageStyle),
         ],
       ),
     );
@@ -434,14 +457,21 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
   }
 
   void _showNameDialog(BuildContext context) {
+    final currentName = ref.read(userNameProvider);
     final textController = TextEditingController(
-      text: ref.read(userNameProvider),
+      text: (currentName == '_SKIP_NAME_' || currentName == '_CLEARED_NAME_')
+          ? ''
+          : currentName,
     );
+    final hasName =
+        currentName.isNotEmpty &&
+        currentName != '_SKIP_NAME_' &&
+        currentName != '_CLEARED_NAME_';
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('What\'s your name?'),
+        title: Text(hasName ? 'Change your name' : 'What\'s your name?'),
         content: TextField(
           controller: textController,
           decoration: const InputDecoration(
@@ -457,11 +487,35 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
+          // Show "Clear" option if user currently has a name
+          if (hasName)
+            TextButton(
+              onPressed: () async {
+                // Use a special marker to indicate user cleared their name (different from never setting one)
+                await StorageService.setUserName('_CLEARED_NAME_');
+                ref.read(userNameProvider.notifier).state = '_CLEARED_NAME_';
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: const Text('Clear'),
+            ),
+          // Show "Skip" option only if user has no name currently
+          if (!hasName)
+            TextButton(
+              onPressed: () async {
+                // Set a special marker to indicate user chose not to use name
+                await StorageService.setUserName('_SKIP_NAME_');
+                ref.read(userNameProvider.notifier).state = '_SKIP_NAME_';
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: const Text('Skip'),
+            ),
           TextButton(
             onPressed: () async {
               final name = textController.text.trim();
-              await StorageService.setUserName(name);
-              ref.read(userNameProvider.notifier).state = name;
+              if (name.isNotEmpty) {
+                await StorageService.setUserName(name);
+                ref.read(userNameProvider.notifier).state = name;
+              }
               if (context.mounted) Navigator.pop(context);
             },
             child: const Text('Save'),
@@ -469,5 +523,19 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
         ],
       ),
     );
+  }
+
+  String _getGreetingText(String greetingText, String userName) {
+    if (userName.isEmpty) {
+      return '$greetingText! Tap here to set your name';
+    } else if (userName == '_SKIP_NAME_' || userName == '_CLEARED_NAME_') {
+      return '$greetingText!';
+    } else {
+      return '$greetingText, $userName!';
+    }
+  }
+
+  bool _shouldShowNameHint(String userName) {
+    return userName.isEmpty;
   }
 }

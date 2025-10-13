@@ -265,7 +265,6 @@ class TemplateItem extends StatelessWidget {
                           ),
                         ),
                     ],
-                    child: const Icon(Icons.more_vert),
                   ),
                 ],
               ),

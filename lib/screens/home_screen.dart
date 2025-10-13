@@ -16,7 +16,6 @@ import '../widgets/create_folder_dialog.dart';
 import 'settings_screen.dart';
 import 'notes_screen.dart';
 import 'note_editor_screen.dart';
-import '../widgets/filters_sheet.dart';
 
 // Provider for tracking search mode state
 final searchModeProvider = StateProvider<bool>((ref) => false);
@@ -396,9 +395,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   fontWeight: FontWeight.w500,
                                   // Small letter spacing for a refined look
                                   letterSpacing: 0.4,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface,
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
                             ),
@@ -511,9 +508,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           case 'search':
                             ref.read(searchModeProvider.notifier).state = true;
                             break;
-                          case 'filters':
-                            showFiltersSheet(context);
-                            break;
                           case 'settings':
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -533,14 +527,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               dense: true,
                             ),
                           ),
-                        PopupMenuItem(
-                          value: 'filters',
-                          child: ListTile(
-                            leading: Icon(Icons.filter_alt),
-                            title: const Text('Filters'),
-                            dense: true,
-                          ),
-                        ),
+
                         PopupMenuItem(
                           value: 'settings',
                           child: ListTile(
@@ -742,7 +729,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   )
                   .toList(),
               // Divider + create new folder option
-              const PopupMenuDivider(),
+              PopupMenuDivider(
+                height: 1,
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+              ),
               PopupMenuItem<String>(
                 value: '_CREATE_FOLDER_',
                 child: Row(
@@ -1168,12 +1158,14 @@ class _MatrixRainOverlayState extends State<MatrixRainOverlay>
             child: Text(
               'trudido',
               style: TextStyle(
-                color: const Color(0xFF00FF00),
+                color: Theme.of(context).colorScheme.primary,
                 fontSize: 48,
                 fontWeight: FontWeight.bold,
                 shadows: [
                   Shadow(
-                    color: const Color(0xFF00FF00).withOpacity(0.8),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.8),
                     blurRadius: 16,
                   ),
                   Shadow(

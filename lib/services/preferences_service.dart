@@ -50,6 +50,12 @@ class PreferencesService {
       hideGreeting:
           p.getBool('hide_greeting') ??
           PreferencesState.defaultState.hideGreeting,
+      randomGreetingsEnabled:
+          p.getBool('random_greetings_enabled') ??
+          PreferencesState.defaultState.randomGreetingsEnabled,
+      fixedGreetingLanguage:
+          p.getInt('fixed_greeting_language') ??
+          PreferencesState.defaultState.fixedGreetingLanguage,
       fabPosition: _sanitizeFabPosition(p.getString('fab_position')),
       swipeLeftAction:
           p.getString('swipe_left_action') ??
@@ -71,6 +77,8 @@ class PreferencesService {
     bool? useBlackTheme,
     int? accentColorSeed,
     bool? hideGreeting,
+    bool? randomGreetingsEnabled,
+    int? fixedGreetingLanguage,
     String? fabPosition,
     String? swipeLeftAction,
     String? swipeRightAction,
@@ -88,6 +96,10 @@ class PreferencesService {
       if (accentColorSeed != null)
         await p.setInt('accent_color_seed', accentColorSeed);
       if (hideGreeting != null) await p.setBool('hide_greeting', hideGreeting);
+      if (randomGreetingsEnabled != null)
+        await p.setBool('random_greetings_enabled', randomGreetingsEnabled);
+      if (fixedGreetingLanguage != null)
+        await p.setInt('fixed_greeting_language', fixedGreetingLanguage);
       if (fabPosition != null) await p.setString('fab_position', fabPosition);
       if (swipeLeftAction != null)
         await p.setString('swipe_left_action', swipeLeftAction);

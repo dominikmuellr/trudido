@@ -58,6 +58,7 @@ class AppTheme {
 
   // Material 3 seed color options for accent color selection
   static const List<int> accentColorSeeds = [
+    // Standard Material 3 seed colors
     0xFF2196F3, // Blue (default)
     0xFFE91E63, // Pink
     0xFF9C27B0, // Purple
@@ -71,10 +72,12 @@ class AppTheme {
     0xFFFF9800, // Orange
     0xFFFF5722, // Deep Orange
     0xFF795548, // Brown
+    0xFF607D8B, // Blue Grey
+    // Custom theme colors with special behavior
     0xFF9E9E9E, // Monochrome (black/white accents)
     0xFF757575, // Grey (grey accents)
-    0xFF00FF00, // Hack (Matrix green)
-    0xFF607D8B, // Blue Grey
+    0xFF00FF00, // Hack (Matrix green, dark mode only)
+    0xFFBD93F9, // Dracula (authentic Dracula colors, dark mode only)
   ];
 
   static String getAccentColorName(int colorValue) {
@@ -111,6 +114,8 @@ class AppTheme {
         return 'Grey';
       case 0xFF00FF00:
         return 'Hack';
+      case 0xFFBD93F9:
+        return 'Dracula';
       case 0xFF607D8B:
         return 'Blue Grey';
       default:
@@ -523,6 +528,58 @@ class AppTheme {
     );
   }
 
+  /// Creates a Dracula dark color scheme with authentic Dracula colors and deep dark background
+  static ColorScheme _createDraculaDarkScheme() {
+    return const ColorScheme.dark(
+      primary: Color(0xFFBD93F9), // Dracula Purple
+      onPrimary: Color(0xFF1A1A1A), // Even darker for contrast
+      primaryContainer: Color(0xFF44475A), // Dracula Selection
+      onPrimaryContainer: Color(0xFFBD93F9),
+      secondary: Color(0xFFFF79C6), // Dracula Pink
+      onSecondary: Color(0xFF1A1A1A),
+      secondaryContainer: Color(0xFF44475A),
+      onSecondaryContainer: Color(0xFFFF79C6),
+      tertiary: Color(0xFF8BE9FD), // Dracula Cyan
+      onTertiary: Color(0xFF1A1A1A),
+      tertiaryContainer: Color(0xFF44475A),
+      onTertiaryContainer: Color(0xFF8BE9FD),
+      error: Color(0xFFFF5555), // Dracula Red
+      onError: Color(0xFF1A1A1A),
+      surface: Color(0xFF1A1A1A), // Very dark surface (similar to hack theme)
+      onSurface: Color(0xFFF8F8F2), // Dracula Foreground
+      surfaceContainerHighest: Color(
+        0xFF282A36,
+      ), // Dracula Background as container
+      onSurfaceVariant: Color(0xFF6272A4), // Dracula Comment
+      outline: Color(0xFF6272A4), // Dracula Comment
+    );
+  }
+
+  /// Creates a Dracula light scheme (fallback for light mode)
+  static ColorScheme _createDraculaLightScheme() {
+    return const ColorScheme.light(
+      primary: Color(0xFF6B46C1), // Darker purple for light mode
+      onPrimary: Color(0xFFFFFFFF),
+      primaryContainer: Color(0xFFE9D5FF), // Light purple container
+      onPrimaryContainer: Color(0xFF4C1D95),
+      secondary: Color(0xFFD946EF), // Adjusted pink for light mode
+      onSecondary: Color(0xFFFFFFFF),
+      secondaryContainer: Color(0xFFFDF2FF),
+      onSecondaryContainer: Color(0xFF86198F),
+      tertiary: Color(0xFF0891B2), // Adjusted cyan for light mode
+      onTertiary: Color(0xFFFFFFFF),
+      tertiaryContainer: Color(0xFFE0F2FE),
+      onTertiaryContainer: Color(0xFF0C4A6E),
+      error: Color(0xFFDC2626), // Adjusted red for light mode
+      onError: Color(0xFFFFFFFF),
+      surface: Color(0xFFFAFAFA), // Light surface
+      onSurface: Color(0xFF1F2937), // Dark text on light
+      surfaceContainerHighest: Color(0xFFF3F4F6), // Light grey container
+      onSurfaceVariant: Color(0xFF6B7280), // Medium grey for secondary text
+      outline: Color(0xFF9CA3AF), // Light grey outline
+    );
+  }
+
   /// Build current light/dark themes (dynamic aware) given optional dynamic schemes.
   static (ThemeData light, ThemeData dark) buildThemes({
     ColorScheme? dynamicLight,
@@ -558,6 +615,14 @@ class AppTheme {
       // Use proper light/dark schemes with matching brightness
       light = _baseLight(dynamicLight ?? hackLight);
       dark = _baseDark(dynamicDark ?? hackDark);
+    }
+    // Special handling for Dracula - create Dracula color scheme (proper brightness handling)
+    else if (seedColor.value == 0xFFBD93F9) {
+      final draculaLight = _createDraculaLightScheme();
+      final draculaDark = _createDraculaDarkScheme();
+      // Use proper light/dark schemes with matching brightness
+      light = _baseLight(dynamicLight ?? draculaLight);
+      dark = _baseDark(dynamicDark ?? draculaDark);
     } else {
       // Use normal Material 3 color generation for other colors
       final seedLight = ColorScheme.fromSeed(

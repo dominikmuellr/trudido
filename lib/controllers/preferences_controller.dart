@@ -25,9 +25,11 @@ class PreferencesController {
   Future<void> toggleDynamicColor() async {
     final newDynamicColorState = !state.useDynamicColor;
 
-    // If turning off dynamic colors and hack theme is selected,
+    // If turning off dynamic colors and hack theme or Dracula theme is selected,
     // automatically switch to dark mode if currently in light or auto mode
-    if (!newDynamicColorState && state.accentColorSeed == 0xFF00FF00) {
+    if (!newDynamicColorState &&
+        (state.accentColorSeed == 0xFF00FF00 ||
+            state.accentColorSeed == 0xFFBD93F9)) {
       if (state.themeMode == 'light' || state.themeMode == 'system') {
         await _update(useDynamicColor: newDynamicColorState, themeMode: 'dark');
       } else {
@@ -45,9 +47,10 @@ class PreferencesController {
       _update(useBlackTheme: !state.useBlackTheme);
 
   Future<void> setAccentColorSeed(int colorSeed) async {
-    // If setting hack theme (0xFF00FF00) while in light or auto mode,
+    // If setting hack theme (0xFF00FF00) or Dracula theme (0xFFBD93F9) while in light or auto mode,
     // and dynamic colors are disabled, automatically switch to dark mode
-    if (colorSeed == 0xFF00FF00 && !state.useDynamicColor) {
+    if ((colorSeed == 0xFF00FF00 || colorSeed == 0xFFBD93F9) &&
+        !state.useDynamicColor) {
       if (state.themeMode == 'light' || state.themeMode == 'system') {
         await _update(accentColorSeed: colorSeed, themeMode: 'dark');
       } else {
@@ -63,6 +66,10 @@ class PreferencesController {
 
   Future<void> toggleHideGreeting() =>
       _update(hideGreeting: !state.hideGreeting);
+  Future<void> toggleRandomGreetings() =>
+      _update(randomGreetingsEnabled: !state.randomGreetingsEnabled);
+  Future<void> setFixedGreetingLanguage(int languageIndex) =>
+      _update(fixedGreetingLanguage: languageIndex);
   Future<void> setFabPosition(String pos) => _update(fabPosition: pos);
 
   Future<void> setSwipeLeftAction(String action) =>
@@ -76,6 +83,8 @@ class PreferencesController {
     bool? useBlackTheme,
     int? accentColorSeed,
     bool? hideGreeting,
+    bool? randomGreetingsEnabled,
+    int? fixedGreetingLanguage,
     String? fabPosition,
     String? swipeLeftAction,
     String? swipeRightAction,
@@ -86,6 +95,8 @@ class PreferencesController {
       useBlackTheme: useBlackTheme,
       accentColorSeed: accentColorSeed,
       hideGreeting: hideGreeting,
+      randomGreetingsEnabled: randomGreetingsEnabled,
+      fixedGreetingLanguage: fixedGreetingLanguage,
       fabPosition: fabPosition,
       swipeLeftAction: swipeLeftAction,
       swipeRightAction: swipeRightAction,
