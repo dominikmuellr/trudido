@@ -98,8 +98,7 @@ jobs:
 
       - name: Commit generated files
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add lib/l10n/
-          git diff --staged --quiet || git commit -m "chore: regenerate localization files [skip ci]"
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: regenerate localization files [skip ci]"
+          file_pattern: "lib/l10n/app_localizations*.dart"
