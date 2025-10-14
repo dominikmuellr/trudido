@@ -107,15 +107,16 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - LICENSE
+    - assets/imagefiles/
 
 # Flutter launcher icons configuration
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: false
-  image_path: "icon/1.png"
+  image_path: "assets/icon/1.png"
   min_sdk_android: 21
   adaptive_icon_background: "#ffffff"
-  adaptive_icon_foreground: "icon/1.png"
+  adaptive_icon_foreground: "assets/icon/1.png"
 
   # assets:
   #   - images/a_dot_burr.jpeg

@@ -49,6 +49,7 @@ key.properties
 # IntelliJ / Android Studio
 *.iml
 .idea/
+.metadata
 
 # macOS
 .DS_Store

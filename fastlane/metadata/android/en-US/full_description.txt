@@ -1,0 +1,15 @@
+<b>Trudido</b> is a privacy-friendly, open-source to-do list app built with Flutter. Organize your tasks, set reminders, and manage your daily life with a simple, intuitive interface. Trudido is designed for users who value transparency and control over their data—no ads, no tracking, and no unnecessary permissions.<br><br>
+
+<b>Features:</b><br>
+- Add, edit, and delete tasks quickly<br>
+- Organize tasks with categories and priorities<br>
+- Set reminders to never miss important deadlines<br>
+- Attach notes to tasks for extra details<br>
+- Customizable themes including dark mode<br>
+- Multilingual support for a global audience<br>
+- Works offline—your data stays on your device<br><br>
+
+<b>Why Trudido?</b><br>
+Trudido is lightweight, fast, and respects your privacy. All features are available without registration or cloud accounts. Perfect for students, professionals, and anyone who wants a reliable, distraction-free task manager.<br><br>
+
+Trudido is free and open-source. Get organized and stay productive—your way!

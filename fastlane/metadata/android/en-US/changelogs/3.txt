@@ -1,0 +1,12 @@
+Visual Enhancements:
+- App name now uses primary theme color
+- Themed folder dropdown dividers
+- Updated filter icon (tune → filter_alt)
+- Greeting text uses theme primary/secondary colors
+- Consistent Material Design 3 theming
+
+Bug Fixes:
+- Language mapping corrections (French/German swap fixed)
+- Template popup menu crashes resolved
+- Name clearing behavior improved
+- Greeting hint text logic enhanced
