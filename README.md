@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="imagefiles/trudiconRound.png" alt="App Icon" width="120" height="120">
+  <img src="assets/imagefiles/trudiconRound.png" alt="App Icon" width="120" height="120">
 </p>
 
 <div align="right">
