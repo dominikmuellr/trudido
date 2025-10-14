@@ -1,10 +1,17 @@
 <p align="center">
-  <img src="assets/imagefiles/trudiconRound.png" alt="App Icon" width="120" height="120">
+  <img src="assets/imagefiles/trudiconRound.png" alt="App Icon" width="130" height="130">
 </p>
 
-<div align="right">
-  Here you can help me with the translation -->
-  <a href="https://crowdin.com/project/trudido">
+<div align="center">
+
+[![Last Commit](https://img.shields.io/github/last-commit/dominikmuellr/trudido?style=flat-square&color=green)](https://github.com/dominikmuellr/trudido/commits/main) 
+[![Stars](https://img.shields.io/github/stars/dominikmuellr/trudido?style=flat-square&color=yellow)](https://github.com/dominikmuellr/trudido/stargazers) 
+[![Open Issues](https://img.shields.io/github/issues/dominikmuellr/trudido?style=flat-square&color=red)](https://github.com/dominikmuellr/trudido/issues) 
+[![Releases](https://img.shields.io/github/v/release/dominikmuellr/trudido?style=flat-square&color=orange)](https://github.com/dominikmuellr/trudido/releases) 
+[![Last Release](https://img.shields.io/github/release-date/dominikmuellr/trudido?style=flat-square&color=cyan)](https://github.com/dominikmuellr/trudido/releases) 
+[![License](https://img.shields.io/github/license/dominikmuellr/trudido?style=flat-square&color=blue)](https://github.com/dominikmuellr/trudido/blob/main/LICENSE) 
+[![Made with Flutter](https://img.shields.io/badge/Made%20with-Flutter-02569B?style=flat-square&logo=flutter&logoColor=white)](https://flutter.dev)
+<a href="https://crowdin.com/project/trudido">
     <img src="https://badges.crowdin.net/trudido/localized.svg" alt="Crowdin">
   </a>
 </div>
