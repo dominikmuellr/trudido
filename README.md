@@ -35,7 +35,7 @@
 - Material 3 interface following Google’s latest guidelines  
 - Dynamic color (Material You, Android 12+)  
 - Light/Dark modes  
-- Custom accent colors when dynamic color is off  
+- Custom accent colors when dynamic color is off like Dracula and a Hack-Theme
 - Responsive layout across devices  
 
 ### 🔒 Privacy
