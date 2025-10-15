@@ -27,7 +27,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
   DateTime? _dueDate;
   TimeOfDay? _dueTime;
   bool _isMultiDay = false;
-  String _priority = 'medium';
+  String _priority = 'none';
   String _selectedFolderId = '';
   List<int> _reminderOffsetsMinutes = [];
 
@@ -254,8 +254,8 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
         _buildQuickActionChip(
           icon: _getPriorityIcon(_priority),
           label: 'Priority: ${_priority.toUpperCase()}',
-          isSelected: _priority != 'medium',
-          onTap: _cyclePriority,
+          isSelected: _priority != 'none',
+          onTap: _showPrioritySelector,
           theme: theme,
           colorScheme: colorScheme,
         ),
@@ -428,25 +428,109 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
         return Icons.keyboard_arrow_up;
       case 'low':
         return Icons.keyboard_arrow_down;
-      default:
+      case 'medium':
         return Icons.remove;
+      default: // 'none'
+        return Icons.radio_button_unchecked;
     }
   }
 
-  void _cyclePriority() {
-    setState(() {
-      switch (_priority) {
-        case 'low':
-          _priority = 'medium';
-          break;
-        case 'medium':
-          _priority = 'high';
-          break;
-        case 'high':
-          _priority = 'low';
-          break;
-      }
-    });
+  void _showPrioritySelector() {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Select Priority',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+
+              // Priority options
+              _buildPriorityOption(
+                'none',
+                'None',
+                Icons.radio_button_unchecked,
+                colorScheme.surfaceContainerHighest,
+                colorScheme.onSurface,
+              ),
+              _buildPriorityOption(
+                'low',
+                'Low',
+                Icons.keyboard_arrow_down,
+                colorScheme.tertiaryContainer,
+                colorScheme.onTertiaryContainer,
+              ),
+              _buildPriorityOption(
+                'medium',
+                'Medium',
+                Icons.remove,
+                colorScheme.secondaryContainer,
+                colorScheme.onSecondaryContainer,
+              ),
+              _buildPriorityOption(
+                'high',
+                'High',
+                Icons.keyboard_arrow_up,
+                colorScheme.errorContainer,
+                colorScheme.onErrorContainer,
+              ),
+
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPriorityOption(
+    String value,
+    String label,
+    IconData icon,
+    Color backgroundColor,
+    Color textColor,
+  ) {
+    final isSelected = _priority == value;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: textColor, size: 20),
+      ),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+      trailing: isSelected
+          ? Icon(Icons.check, color: colorScheme.primary)
+          : null,
+      onTap: () {
+        setState(() {
+          _priority = value;
+        });
+        Navigator.pop(context);
+      },
+    );
   }
 
   Future<void> _selectDueDate() async {

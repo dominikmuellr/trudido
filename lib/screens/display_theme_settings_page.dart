@@ -107,8 +107,20 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
                 onTap: () async {
                   await showModalBottomSheet<void>(
                     context: context,
-                    showDragHandle: true,
-                    builder: (ctx) => _GreetingLanguageSheet(),
+                    isScrollControlled: true,
+                    builder: (ctx) {
+                      return DraggableScrollableSheet(
+                        initialChildSize: 0.5,
+                        minChildSize: 0.5,
+                        maxChildSize: 0.9,
+                        expand: false,
+                        builder: (context, scrollController) {
+                          return _GreetingLanguageSheet(
+                            scrollController: scrollController,
+                          );
+                        },
+                      );
+                    },
                   );
                 },
               ),
@@ -425,9 +437,20 @@ class _AccentColorSelector extends ConsumerWidget {
       onTap: () async {
         final choice = await showModalBottomSheet<int>(
           context: context,
-          showDragHandle: true,
+          isScrollControlled: true,
           builder: (ctx) {
-            return _AccentColorSheet(current: currentColorSeed);
+            return DraggableScrollableSheet(
+              initialChildSize: 0.5,
+              minChildSize: 0.5,
+              maxChildSize: 0.9,
+              expand: false,
+              builder: (context, scrollController) {
+                return _AccentColorSheet(
+                  current: currentColorSeed,
+                  scrollController: scrollController,
+                );
+              },
+            );
           },
         );
         if (choice != null) {
@@ -551,7 +574,12 @@ class _AccentColorSelector extends ConsumerWidget {
 
 class _AccentColorSheet extends StatelessWidget {
   final int current;
-  const _AccentColorSheet({required this.current});
+  final ScrollController scrollController;
+
+  const _AccentColorSheet({
+    required this.current,
+    required this.scrollController,
+  });
 
   static const List<int> accentColorSeeds = [
     // Standard Material 3 seed colors
@@ -593,13 +621,29 @@ class _AccentColorSheet extends StatelessWidget {
       );
     }
 
-    return SafeArea(
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 4),
+          // Drag handle
+          Container(
+            margin: const EdgeInsets.only(top: 12, bottom: 8),
+            width: 32,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withOpacity(0.4),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // Header
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: Text(
               'Choose Accent Color',
               style: Theme.of(
@@ -607,8 +651,11 @@ class _AccentColorSheet extends StatelessWidget {
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
+
+          // Scrollable content
           Expanded(
             child: ListView(
+              controller: scrollController,
               children: [
                 // Standard Material 3 colors section
                 Padding(
@@ -639,10 +686,11 @@ class _AccentColorSheet extends StatelessWidget {
                 ...accentColorSeeds.skip(14).map((colorValue) {
                   return buildOption(colorValue, _getColorName(colorValue));
                 }).toList(),
+
+                const SizedBox(height: 16),
               ],
             ),
           ),
-          const SizedBox(height: 8),
         ],
       ),
     );
@@ -766,7 +814,9 @@ class _AccentColorSheet extends StatelessWidget {
 }
 
 class _GreetingLanguageSheet extends ConsumerWidget {
-  const _GreetingLanguageSheet();
+  final ScrollController scrollController;
+
+  const _GreetingLanguageSheet({required this.scrollController});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -793,52 +843,63 @@ class _GreetingLanguageSheet extends ConsumerWidget {
       'Українська',
     ];
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 40,
-          height: 4,
-          margin: const EdgeInsets.only(top: 8, bottom: 16),
-          decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurfaceVariant.withOpacity(0.4),
-            borderRadius: BorderRadius.circular(2),
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        children: [
+          // Drag handle
+          Container(
+            width: 32,
+            height: 4,
+            margin: const EdgeInsets.only(top: 12, bottom: 8),
+            decoration: BoxDecoration(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withOpacity(0.4),
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            'Select Greeting Language',
-            style: Theme.of(context).textTheme.headlineSmall,
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+            child: Text(
+              'Select Greeting Language',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        Flexible(
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: languages.length,
-            itemBuilder: (context, index) {
-              final isSelected = preferences.fixedGreetingLanguage == index;
-              return ListTile(
-                title: Text(languages[index]),
-                trailing: isSelected
-                    ? Icon(
-                        Icons.check,
-                        color: Theme.of(context).colorScheme.primary,
-                      )
-                    : null,
-                onTap: () {
-                  controller.setFixedGreetingLanguage(index);
-                  Navigator.of(context).pop();
-                },
-              );
-            },
+
+          // Scrollable list
+          Expanded(
+            child: ListView.builder(
+              controller: scrollController,
+              itemCount: languages.length,
+              itemBuilder: (context, index) {
+                final isSelected = preferences.fixedGreetingLanguage == index;
+                return ListTile(
+                  title: Text(languages[index]),
+                  trailing: isSelected
+                      ? Icon(
+                          Icons.check,
+                          color: Theme.of(context).colorScheme.primary,
+                        )
+                      : null,
+                  onTap: () {
+                    controller.setFixedGreetingLanguage(index);
+                    Navigator.of(context).pop();
+                  },
+                );
+              },
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-      ],
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 }

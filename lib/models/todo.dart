@@ -47,17 +47,17 @@ class Todo extends HiveObject {
     this.isCompleted = false,
     DateTime? createdAt,
     this.dueDate,
-  this.startDate,
-    this.priority = 'medium',
+    this.startDate,
+    this.priority = 'none',
     List<String>? tags,
     this.completedAt,
     this.notes,
     this.folderId,
     List<int>? reminderOffsetsMinutes,
-  })  : id = id ?? const Uuid().v4(),
-        createdAt = createdAt ?? DateTime.now(),
-        tags = tags ?? [],
-        reminderOffsetsMinutes = reminderOffsetsMinutes ?? [];
+  }) : id = id ?? const Uuid().v4(),
+       createdAt = createdAt ?? DateTime.now(),
+       tags = tags ?? [],
+       reminderOffsetsMinutes = reminderOffsetsMinutes ?? [];
 
   // Copy with method for immutable updates
   Todo copyWith({
@@ -86,7 +86,8 @@ class Todo extends HiveObject {
       completedAt: completedAt ?? this.completedAt,
       notes: notes ?? this.notes,
       folderId: folderId ?? this.folderId,
-      reminderOffsetsMinutes: reminderOffsetsMinutes ?? this.reminderOffsetsMinutes,
+      reminderOffsetsMinutes:
+          reminderOffsetsMinutes ?? this.reminderOffsetsMinutes,
     );
   }
 
@@ -98,7 +99,7 @@ class Todo extends HiveObject {
       'isCompleted': isCompleted,
       'createdAt': createdAt.toIso8601String(),
       'dueDate': dueDate?.toIso8601String(),
-  'startDate': startDate?.toIso8601String(),
+      'startDate': startDate?.toIso8601String(),
       'priority': priority,
       'tags': tags,
       'completedAt': completedAt?.toIso8601String(),
@@ -115,13 +116,19 @@ class Todo extends HiveObject {
       isCompleted: json['isCompleted'] ?? false,
       createdAt: DateTime.parse(json['createdAt']),
       dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
-  startDate: json['startDate'] != null ? DateTime.parse(json['startDate']) : null,
+      startDate: json['startDate'] != null
+          ? DateTime.parse(json['startDate'])
+          : null,
       priority: json['priority'] ?? 'medium',
       tags: List<String>.from(json['tags'] ?? []),
-      completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt']) : null,
+      completedAt: json['completedAt'] != null
+          ? DateTime.parse(json['completedAt'])
+          : null,
       notes: json['notes'],
       folderId: json['folderId'],
-      reminderOffsetsMinutes: List<int>.from(json['reminderOffsetsMinutes'] ?? []),
+      reminderOffsetsMinutes: List<int>.from(
+        json['reminderOffsetsMinutes'] ?? [],
+      ),
     );
   }
 
@@ -131,14 +138,16 @@ class Todo extends HiveObject {
     return DateTime.now().isAfter(dueDate!);
   }
 
-  bool get isSpan => startDate != null && dueDate != null && !dueDate!.isBefore(startDate!);
+  bool get isSpan =>
+      startDate != null && dueDate != null && !dueDate!.isBefore(startDate!);
 
   bool activeOn(DateTime day) {
     if (!isSpan) return isDueOn(day);
     final s = DateTime(startDate!.year, startDate!.month, startDate!.day);
     final e = DateTime(dueDate!.year, dueDate!.month, dueDate!.day);
     final d = DateTime(day.year, day.month, day.day);
-    return (d.isAtSameMomentAs(s) || d.isAfter(s)) && (d.isAtSameMomentAs(e) || d.isBefore(e));
+    return (d.isAtSameMomentAs(s) || d.isAfter(s)) &&
+        (d.isAtSameMomentAs(e) || d.isBefore(e));
   }
 
   bool isDueOn(DateTime day) {
