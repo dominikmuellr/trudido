@@ -58,7 +58,7 @@ class _AboutScreenState extends State<AboutScreen> {
         children: [
           Text('Trudido', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 8),
-          Text('v1.0.0', style: theme.textTheme.bodyMedium),
+          Text('v1.0.4', style: theme.textTheme.bodyMedium),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             icon: const Icon(Icons.code),
@@ -78,7 +78,7 @@ class _AboutScreenState extends State<AboutScreen> {
             onPressed: () => showLicensePage(
               context: context,
               applicationName: 'Trudido',
-              applicationVersion: 'v1.0.0',
+              applicationVersion: 'v1.0.4',
             ),
           ),
         ],

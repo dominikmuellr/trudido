@@ -1,0 +1,17 @@
+New Features:
+- Smart priority system with "None" option - cleaner default state
+- Beautiful priority chips with color coding (High/Medium/Low)
+- Time display on tasks - see exact due times, not just dates
+- Priority selector bottom sheet - no more cycling through options
+- Draggable theme & language selectors - expand to see all options
+
+Visual Improvements:
+- Priority chips only show when set (less clutter)
+- Overdue tasks highlighted in red
+- Time formatting with icons (🕒 for scheduled, 📅 for dates)
+- Theme-aware color chips adapt to your selected theme
+
+TASKS_DATA_KEYechnical:
+- Improved task display architecture
+- Better Material Design 3 integration
+- Enhanced bottom sheet interactions
