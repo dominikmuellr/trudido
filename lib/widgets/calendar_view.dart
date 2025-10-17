@@ -24,6 +24,38 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
   DateTime? _selectedDay;
   CalendarFormat _calendarFormat = CalendarFormat.month;
 
+  double _heightForFormat(BuildContext context, CalendarFormat fmt) {
+    final width = MediaQuery.of(context).size.width;
+    final cellHeight = (width - 32) / 7;
+    const headerHeight = 52.0;
+    const daysOfWeekHeight = 24.0;
+    final rows = fmt == CalendarFormat.month
+        ? 6
+        : fmt == CalendarFormat.twoWeeks
+        ? 2
+        : 1;
+    // Reduce padding significantly for month view, add a bit for week view to prevent overflow
+    final extraPadding = fmt == CalendarFormat.month
+        ? -40.0
+        : fmt == CalendarFormat.week
+        ? 4.0
+        : 0.0;
+    return headerHeight + daysOfWeekHeight + rows * cellHeight + extraPadding;
+  }
+
+  Color _getColorForPriority(String priority, ColorScheme colorScheme) {
+    switch (priority.toLowerCase()) {
+      case 'high':
+        return colorScheme.error;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.blue;
+      default:
+        return colorScheme.tertiary;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -122,141 +154,332 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          // Calendar Widget - Fixed height to prevent overflow
-          Container(
-            height: 360, // Reduced height for better fit
+          // Calendar Widget - Animated height based on format
+          AnimatedContainer(
+            key: ValueKey(_calendarFormat),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            height: _heightForFormat(context, _calendarFormat) + 8,
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: colorScheme.outline.withValues(alpha: 0.2),
-              ),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: TableCalendar<Todo>(
-                firstDay: DateTime.utc(2020, 1, 1),
-                lastDay: DateTime.utc(2030, 12, 31),
-                focusedDay: _focusedDay,
-                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                calendarFormat: _calendarFormat,
-                startingDayOfWeek: StartingDayOfWeek.monday,
-                eventLoader: (day) =>
-                    _getTasksGroupedByDay()[DateTime(
-                      day.year,
-                      day.month,
-                      day.day,
-                    )] ??
-                    [],
-
-                // Material Design 3 Styling
-                headerStyle: HeaderStyle(
-                  formatButtonVisible: true,
-                  titleCentered: true,
-                  formatButtonShowsNext: false,
-                  formatButtonDecoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  formatButtonTextStyle: TextStyle(
-                    color: colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  leftChevronIcon: Icon(
-                    Icons.chevron_left,
-                    color: colorScheme.onSurface,
-                  ),
-                  rightChevronIcon: Icon(
-                    Icons.chevron_right,
-                    color: colorScheme.onSurface,
-                  ),
-                  titleTextStyle:
-                      theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.onSurface,
-                      ) ??
-                      TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.onSurface,
+              child: MediaQuery(
+                data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+                child: TableCalendar<Todo>(
+                  firstDay: DateTime.utc(2020, 1, 1),
+                  lastDay: DateTime.utc(2030, 12, 31),
+                  focusedDay: _focusedDay,
+                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                  calendarFormat: _calendarFormat,
+                  startingDayOfWeek: StartingDayOfWeek.monday,
+                  // Long-press on a day to create a new task prefilled with that date
+                  onDayLongPressed: (selectedDay, focusedDay) {
+                    final dateOnly = DateTime(
+                      selectedDay.year,
+                      selectedDay.month,
+                      selectedDay.day,
+                    );
+                    // Update provider so editor can prefill the date
+                    ref.read(selectedCalendarDateProvider.notifier).state =
+                        dateOnly;
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => TaskEditorScreen(
+                          presetDueDate: dateOnly,
+                          onSave: (t) =>
+                              ref.read(taskControllerProvider.notifier).add(t),
+                        ),
                       ),
-                ),
+                    );
+                  },
+                  eventLoader: (day) =>
+                      _getTasksGroupedByDay()[DateTime(
+                        day.year,
+                        day.month,
+                        day.day,
+                      )] ??
+                      [],
 
-                calendarStyle: CalendarStyle(
-                  // Calendar sizing - more compact
-                  tablePadding: const EdgeInsets.all(4),
-                  cellPadding: const EdgeInsets.all(2),
-                  rowDecoration: const BoxDecoration(),
-
-                  // Today styling
-                  todayDecoration: BoxDecoration(
-                    color: colorScheme.primary.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: colorScheme.primary, width: 1.5),
-                  ),
-                  todayTextStyle: TextStyle(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-
-                  // Selected day styling
-                  selectedDecoration: BoxDecoration(
-                    color: colorScheme.primary,
-                    shape: BoxShape.circle,
-                  ),
-                  selectedTextStyle: TextStyle(
-                    color: colorScheme.onPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-
-                  // Weekend styling
-                  weekendTextStyle: TextStyle(color: colorScheme.error),
-
-                  // Default styling
-                  defaultTextStyle: TextStyle(color: colorScheme.onSurface),
-                  outsideTextStyle: TextStyle(
-                    color: colorScheme.onSurface.withValues(alpha: 0.4),
+                  // Material Design 3 Styling
+                  headerStyle: HeaderStyle(
+                    formatButtonVisible: true,
+                    titleCentered: true,
+                    formatButtonShowsNext: false,
+                    formatButtonDecoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    formatButtonTextStyle: TextStyle(
+                      color: colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    leftChevronIcon: Icon(
+                      Icons.chevron_left,
+                      color: colorScheme.onSurface,
+                    ),
+                    rightChevronIcon: Icon(
+                      Icons.chevron_right,
+                      color: colorScheme.onSurface,
+                    ),
+                    titleTextStyle:
+                        theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
+                        ) ??
+                        TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
+                        ),
                   ),
 
-                  // Markers (task indicators)
-                  markerDecoration: BoxDecoration(
-                    color: colorScheme.secondary,
-                    shape: BoxShape.circle,
-                  ),
-                  markersMaxCount: 3,
-                  markerSize: 6,
-                ),
+                  calendarStyle: CalendarStyle(
+                    // Calendar sizing - more compact
+                    tablePadding: const EdgeInsets.all(4),
+                    cellPadding: const EdgeInsets.all(2),
+                    rowDecoration: const BoxDecoration(),
 
-                daysOfWeekStyle: DaysOfWeekStyle(
-                  weekdayStyle: TextStyle(
-                    color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  weekendStyle: TextStyle(
-                    color: colorScheme.error,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                    // Today styling - transparent to allow custom builder
+                    todayDecoration: const BoxDecoration(),
+                    todayTextStyle: TextStyle(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
 
-                onDaySelected: (selectedDay, focusedDay) {
-                  setState(() {
-                    _selectedDay = selectedDay;
+                    // Selected day styling - transparent to allow custom builder
+                    selectedDecoration: const BoxDecoration(),
+                    selectedTextStyle: TextStyle(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+
+                    // Weekend styling
+                    weekendTextStyle: TextStyle(color: colorScheme.error),
+
+                    // Default styling
+                    defaultTextStyle: TextStyle(color: colorScheme.onSurface),
+                    outsideTextStyle: TextStyle(
+                      color: colorScheme.onSurface.withValues(alpha: 0.4),
+                    ),
+                  ),
+
+                  calendarBuilders: CalendarBuilders<Todo>(
+                    // Custom today builder with underline
+                    todayBuilder: (context, day, focusedDay) {
+                      final isSelected = isSameDay(_selectedDay, day);
+                      // Fade out today's underline when another day is selected
+                      final opacity = isSelected ? 1.0 : 0.5;
+
+                      return GestureDetector(
+                        onDoubleTap: () {
+                          final dateOnly = DateTime(
+                            day.year,
+                            day.month,
+                            day.day,
+                          );
+                          ref
+                                  .read(selectedCalendarDateProvider.notifier)
+                                  .state =
+                              dateOnly;
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => TaskEditorScreen(
+                                presetDueDate: dateOnly,
+                                onSave: (t) => ref
+                                    .read(taskControllerProvider.notifier)
+                                    .add(t),
+                              ),
+                            ),
+                          );
+                        },
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              '${day.day}',
+                              style: TextStyle(
+                                color: colorScheme.primary.withValues(
+                                  alpha: opacity,
+                                ),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              height: 2,
+                              width: 20,
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary.withValues(
+                                  alpha: opacity,
+                                ),
+                                borderRadius: BorderRadius.circular(1),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+
+                    // Custom selected day builder with underline
+                    selectedBuilder: (context, day, focusedDay) {
+                      final isToday = isSameDay(day, DateTime.now());
+
+                      Widget content = Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '${day.day}',
+                            style: TextStyle(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            height: 2,
+                            width: 20,
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary,
+                              borderRadius: BorderRadius.circular(1),
+                            ),
+                          ),
+                        ],
+                      );
+
+                      // Today builder handles today visually, but we still add double-tap
+                      if (isToday) {
+                        // Return the same visual with gesture detector
+                      }
+
+                      return GestureDetector(
+                        onDoubleTap: () {
+                          final dateOnly = DateTime(
+                            day.year,
+                            day.month,
+                            day.day,
+                          );
+                          ref
+                                  .read(selectedCalendarDateProvider.notifier)
+                                  .state =
+                              dateOnly;
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => TaskEditorScreen(
+                                presetDueDate: dateOnly,
+                                onSave: (t) => ref
+                                    .read(taskControllerProvider.notifier)
+                                    .add(t),
+                              ),
+                            ),
+                          );
+                        },
+                        child: content,
+                      );
+                    },
+                    // Custom marker builder - left bars style
+                    markerBuilder: (context, day, events) {
+                      if (events.isEmpty) return const SizedBox.shrink();
+
+                      // Sort events by priority: high → medium → low → none
+                      final sortedEvents = events.toList()
+                        ..sort((a, b) {
+                          const priorityOrder = {
+                            'high': 0,
+                            'medium': 1,
+                            'low': 2,
+                            'none': 3,
+                          };
+                          final aPriority =
+                              priorityOrder[a.priority.toLowerCase()] ?? 4;
+                          final bPriority =
+                              priorityOrder[b.priority.toLowerCase()] ?? 4;
+                          return aPriority.compareTo(bPriority);
+                        });
+
+                      const maxBars = 2;
+                      final bars = sortedEvents.take(maxBars).toList();
+                      final extra = sortedEvents.length - bars.length;
+
+                      return Positioned(
+                        top: 4,
+                        bottom: 4,
+                        left: 4,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (var event in bars)
+                              Container(
+                                margin: const EdgeInsets.symmetric(vertical: 1),
+                                width: 4,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: _getColorForPriority(
+                                    event.priority,
+                                    colorScheme,
+                                  ),
+                                  borderRadius: BorderRadius.circular(2),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.06,
+                                      ),
+                                      blurRadius: 1,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            if (extra > 0)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  '+$extra',
+                                  style: TextStyle(
+                                    fontSize: 8,
+                                    color: theme.textTheme.bodySmall?.color,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+
+                  daysOfWeekStyle: DaysOfWeekStyle(
+                    weekdayStyle: TextStyle(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    weekendStyle: TextStyle(
+                      color: colorScheme.error,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+
+                  onDaySelected: (selectedDay, focusedDay) {
+                    setState(() {
+                      _selectedDay = selectedDay;
+                      _focusedDay = focusedDay;
+                    });
+                    // Update the provider so other widgets can access the selected date
+                    ref.read(selectedCalendarDateProvider.notifier).state =
+                        selectedDay;
+                  },
+
+                  onFormatChanged: (format) {
+                    setState(() {
+                      _calendarFormat = format;
+                    });
+                  },
+
+                  onPageChanged: (focusedDay) {
                     _focusedDay = focusedDay;
-                  });
-                  // Update the provider so other widgets can access the selected date
-                  ref.read(selectedCalendarDateProvider.notifier).state =
-                      selectedDay;
-                },
-
-                onFormatChanged: (format) {
-                  setState(() {
-                    _calendarFormat = format;
-                  });
-                },
-
-                onPageChanged: (focusedDay) {
-                  _focusedDay = focusedDay;
-                },
+                  },
+                ),
               ),
             ),
           ),
@@ -338,6 +561,34 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: () {
+              final dateOnly = _selectedDay != null
+                  ? DateTime(
+                      _selectedDay!.year,
+                      _selectedDay!.month,
+                      _selectedDay!.day,
+                    )
+                  : null;
+              // Ensure provider is set to current selected day
+              if (dateOnly != null) {
+                ref.read(selectedCalendarDateProvider.notifier).state =
+                    dateOnly;
+              }
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => TaskEditorScreen(
+                    presetDueDate: dateOnly,
+                    onSave: (t) =>
+                        ref.read(taskControllerProvider.notifier).add(t),
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Add task'),
           ),
         ],
       ),

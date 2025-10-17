@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/note.dart';
@@ -90,7 +91,7 @@ class NotePreviewCard extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  ScaledIcon(
                     actionStart == 'delete'
                         ? Icons.delete
                         : (note.isPinned
@@ -128,7 +129,7 @@ class NotePreviewCard extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  ScaledIcon(
                     actionEnd == 'delete'
                         ? Icons.delete
                         : (note.isPinned
@@ -235,7 +236,7 @@ class NotePreviewCard extends ConsumerWidget {
                     children: [
                       // Pin indicator
                       if (note.isPinned) ...[
-                        Icon(
+                        ScaledIcon(
                           Icons.push_pin,
                           size: 16,
                           color: Theme.of(context).colorScheme.primary,
@@ -247,6 +248,7 @@ class NotePreviewCard extends ConsumerWidget {
                       // CRITICAL: maxLines=1 prevents vertical overflow
                       Expanded(
                         child: RichText(
+                          textScaler: MediaQuery.textScalerOf(context),
                           maxLines: 1, // ⭐ ESSENTIAL for preventing overflow
                           overflow:
                               TextOverflow.ellipsis, // ⭐ Graceful truncation
@@ -278,6 +280,7 @@ class NotePreviewCard extends ConsumerWidget {
                     ), // Less space if subtitle exists
                     // CRITICAL: maxLines=2 prevents vertical overflow while showing content
                     RichText(
+                      textScaler: MediaQuery.textScalerOf(context),
                       maxLines: 2, // ⭐ KEY to preventing RenderFlex overflow
                       overflow: TextOverflow
                           .ellipsis, // ⭐ Essential for graceful truncation
@@ -289,7 +292,7 @@ class NotePreviewCard extends ConsumerWidget {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Icon(
+                      ScaledIcon(
                         Icons.schedule,
                         size: 14,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trudido/utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -111,13 +112,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               labelType: NavigationRailLabelType.all,
               destinations: const [
                 NavigationRailDestination(
-                  icon: Icon(Icons.checklist_outlined),
-                  selectedIcon: Icon(Icons.checklist),
+                  icon: ScaledIcon(Icons.checklist_outlined),
+                  selectedIcon: ScaledIcon(Icons.checklist),
                   label: Text('Tasks'),
                 ),
                 NavigationRailDestination(
-                  icon: Icon(Icons.note_outlined),
-                  selectedIcon: Icon(Icons.note),
+                  icon: ScaledIcon(Icons.note_outlined),
+                  selectedIcon: ScaledIcon(Icons.note),
                   label: Text('Notes'),
                 ),
               ],
@@ -176,13 +177,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         },
         items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.checklist),
-            activeIcon: Icon(Icons.checklist),
+            icon: ScaledIcon(Icons.checklist),
+            activeIcon: ScaledIcon(Icons.checklist),
             label: 'Tasks',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.note),
-            activeIcon: Icon(Icons.note),
+            icon: ScaledIcon(Icons.note),
+            activeIcon: ScaledIcon(Icons.note),
             label: 'Notes',
           ),
         ],
@@ -248,7 +249,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   /// Builds the consistent FAB icon (plus)
   Widget _buildFabIcon(int currentTab) {
-    return const Icon(
+    return const ScaledIcon(
       Icons.add, // Consistent plus icon
       size: 24,
     );
@@ -301,7 +302,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (isSearchMode && (currentTab == 0 || currentTab == 1)) {
       return AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: ScaledIcon(Icons.arrow_back),
           onPressed: () {
             ref.read(searchModeProvider.notifier).state = false;
             _searchController.clear();
@@ -330,7 +331,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         actions: [
           if (_searchController.text.isNotEmpty)
             IconButton(
-              icon: Icon(Icons.close),
+              icon: ScaledIcon(Icons.close),
               onPressed: () {
                 _searchController.clear();
                 if (currentTab == 0) {
@@ -363,7 +364,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 alignment: Alignment.centerLeft,
                 child: multiMode
                     ? IconButton(
-                        icon: Icon(Icons.close),
+                        icon: ScaledIcon(Icons.close),
                         onPressed: () {
                           ref.read(multiSelectModeProvider.notifier).state =
                               false;
@@ -431,7 +432,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   children: [
                     if (currentTab == 0 && multiMode) ...[
                       IconButton(
-                        icon: Icon(Icons.check_circle),
+                        icon: ScaledIcon(Icons.check_circle),
                         tooltip: 'Mark complete',
                         onPressed: selectedIds.isEmpty
                             ? null
@@ -453,7 +454,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               },
                       ),
                       IconButton(
-                        icon: Icon(Icons.radio_button_unchecked),
+                        icon: ScaledIcon(Icons.radio_button_unchecked),
                         tooltip: 'Mark incomplete',
                         onPressed: selectedIds.isEmpty
                             ? null
@@ -475,7 +476,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               },
                       ),
                       IconButton(
-                        icon: Icon(Icons.delete),
+                        icon: ScaledIcon(Icons.delete),
                         tooltip: 'Delete',
                         onPressed: selectedIds.isEmpty
                             ? null
@@ -498,7 +499,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                     // Global overflow menu
                     PopupMenuButton<String>(
-                      icon: Icon(
+                      icon: ScaledIcon(
                         Icons.more_vert,
                         color: Theme.of(context).colorScheme.primary,
                       ),
@@ -522,7 +523,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           PopupMenuItem(
                             value: 'search',
                             child: ListTile(
-                              leading: Icon(Icons.search),
+                              leading: ScaledIcon(Icons.search),
                               title: const Text('Search'),
                               dense: true,
                             ),
@@ -531,7 +532,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         PopupMenuItem(
                           value: 'settings',
                           child: ListTile(
-                            leading: Icon(Icons.settings),
+                            leading: ScaledIcon(Icons.settings),
                             title: const Text('Settings'),
                             dense: true,
                           ),
@@ -607,7 +608,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ? Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
+                      ScaledIcon(
                         selectedFolder != null
                             ? _getIconData(selectedFolder.icon)
                             : Icons.folder,
@@ -617,7 +618,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             : Theme.of(context).colorScheme.onSurface,
                       ),
                       const SizedBox(width: 6),
-                      Icon(
+                      ScaledIcon(
                         Icons.expand_more,
                         size: 14,
                         color: Theme.of(context).colorScheme.onSurface,
@@ -633,7 +634,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
+                        ScaledIcon(
                           selectedFolder != null
                               ? _getIconData(selectedFolder.icon)
                               : Icons.folder,
@@ -658,7 +659,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Icon(
+                        ScaledIcon(
                           Icons.expand_more,
                           // slightly larger caret
                           size: 16,
@@ -675,7 +676,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 value: '_ALL_FOLDERS_',
                 child: Row(
                   children: [
-                    Icon(
+                    ScaledIcon(
                       Icons.folder,
                       size: 18,
                       color: selectedFolderId == null
@@ -704,7 +705,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       value: folder.id,
                       child: Row(
                         children: [
-                          Icon(
+                          ScaledIcon(
                             _getIconData(folder.icon),
                             size: 18,
                             color: selectedFolderId == folder.id
@@ -737,7 +738,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 value: '_CREATE_FOLDER_',
                 child: Row(
                   children: [
-                    Icon(
+                    ScaledIcon(
                       Icons.create_new_folder,
                       size: 18,
                       color: Theme.of(context).colorScheme.primary,
@@ -792,7 +793,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Icon(
+                  ScaledIcon(
                     Icons.expand_more,
                     size: 14,
                     color: Theme.of(context).colorScheme.onSurface,
@@ -844,13 +845,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ? Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  ScaledIcon(
                     Icons.folder,
                     size: 18,
                     color: Theme.of(context).colorScheme.error,
                   ),
                   const SizedBox(width: 6),
-                  Icon(
+                  ScaledIcon(
                     Icons.expand_more,
                     size: 14,
                     color: Theme.of(context).colorScheme.onSurface,
@@ -864,7 +865,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    ScaledIcon(
                       Icons.folder,
                       size: 20,
                       color: Theme.of(context).colorScheme.error,
@@ -1229,7 +1230,7 @@ class _ViewToggleButton extends StatelessWidget {
             // Slightly smaller corner radius for a tighter look
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(
+          child: ScaledIcon(
             icon,
             // Slightly smaller icon so the control isn't overly prominent
             size: 18,

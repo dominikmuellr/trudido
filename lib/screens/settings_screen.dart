@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
 import '../controllers/task_controller.dart';
+import '../utils/responsive_size.dart';
 import 'backup_settings_page.dart';
 import 'about_screen.dart';
 import 'display_theme_settings_page.dart';
 import 'comprehensive_notification_settings.dart';
 import 'template_management_screen.dart';
+import 'font_size_settings_screen.dart';
 import '../controllers/preferences_controller.dart';
 
 // Moved _SwipeActionSheet and _getSwipeActionName outside the class
@@ -40,7 +42,7 @@ class _SwipeActionSheet extends ConsumerWidget {
       VoidCallback onTap,
     ) {
       return ListTile(
-        leading: Icon(
+        leading: ScaledIcon(
           icon,
           color: isSelected ? cs.primary : cs.onSurfaceVariant,
         ),
@@ -48,7 +50,9 @@ class _SwipeActionSheet extends ConsumerWidget {
           label,
           style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : null),
         ),
-        trailing: isSelected ? Icon(Icons.check, color: cs.primary) : null,
+        trailing: isSelected
+            ? ScaledIcon(Icons.check, color: cs.primary)
+            : null,
         onTap: onTap,
       );
     }
@@ -168,7 +172,7 @@ class _DangerZoneSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           ListTile(
-            leading: Icon(Icons.delete_outline, color: cs.error),
+            leading: ScaledIcon(Icons.delete_outline, color: cs.error),
             title: Text(
               'Clear Completed Tasks',
               style: TextStyle(color: cs.error),
@@ -182,7 +186,7 @@ class _DangerZoneSheet extends ConsumerWidget {
             },
           ),
           ListTile(
-            leading: Icon(Icons.warning_amber_outlined, color: cs.error),
+            leading: ScaledIcon(Icons.warning_amber_outlined, color: cs.error),
             title: Text('Clear All Data', style: TextStyle(color: cs.error)),
             subtitle: const Text('Delete all tasks and categories'),
             onTap: () {
@@ -283,10 +287,10 @@ class SettingsScreen extends ConsumerWidget {
           // Display & Theme Section
           _buildSectionHeader(context, 'Display & Theme'),
           ListTile(
-            leading: Icon(Icons.palette_outlined),
+            leading: ScaledIcon(Icons.palette_outlined),
             title: const Text('Display & Theme'),
             subtitle: const Text('Colors, layout, and visual preferences'),
-            trailing: Icon(Icons.arrow_forward_ios),
+            trailing: ScaledIcon(Icons.arrow_forward_ios),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -295,14 +299,27 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
+          ListTile(
+            leading: ScaledIcon(Icons.text_fields),
+            title: const Text('Font Size'),
+            subtitle: const Text('Adjust text size for the entire app'),
+            trailing: ScaledIcon(Icons.arrow_forward_ios),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const FontSizeSettingsScreen(),
+                ),
+              );
+            },
+          ),
 
           // Templates & Workflows Section
           _buildSectionHeader(context, 'Templates & Workflows'),
           ListTile(
-            leading: Icon(Icons.widgets_outlined),
+            leading: ScaledIcon(Icons.widgets_outlined),
             title: const Text('Folder Templates'),
             subtitle: const Text('Manage templates for smart folder creation'),
-            trailing: Icon(Icons.arrow_forward_ios),
+            trailing: ScaledIcon(Icons.arrow_forward_ios),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -317,10 +334,10 @@ class SettingsScreen extends ConsumerWidget {
           // Notifications Section
           _buildSectionHeader(context, 'Notifications'),
           ListTile(
-            leading: Icon(Icons.notifications_outlined),
+            leading: ScaledIcon(Icons.notifications_outlined),
             title: const Text('Notifications'),
             subtitle: const Text('Permissions, settings, and reliability'),
-            trailing: Icon(Icons.arrow_forward_ios),
+            trailing: ScaledIcon(Icons.arrow_forward_ios),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -334,10 +351,10 @@ class SettingsScreen extends ConsumerWidget {
           // Data & Storage Section
           _buildSectionHeader(context, 'Data & Storage'),
           ListTile(
-            leading: Icon(Icons.save_alt),
+            leading: ScaledIcon(Icons.save_alt),
             title: const Text('Backup & Data'),
             subtitle: const Text('Export, import and automatic backups'),
-            trailing: Icon(Icons.arrow_forward_ios),
+            trailing: ScaledIcon(Icons.arrow_forward_ios),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -347,7 +364,7 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
           ListTile(
-            leading: Icon(
+            leading: ScaledIcon(
               Icons.warning_amber_outlined,
               color: theme.colorScheme.error,
             ),
@@ -356,19 +373,19 @@ class SettingsScreen extends ConsumerWidget {
               style: TextStyle(color: theme.colorScheme.error),
             ),
             subtitle: const Text('Clear tasks and reset data'),
-            trailing: Icon(Icons.arrow_forward_ios),
+            trailing: ScaledIcon(Icons.arrow_forward_ios),
             onTap: () => _showDangerZoneSheet(context, ref, statistics),
           ),
 
           // About Section
           _buildSectionHeader(context, 'About'),
           ListTile(
-            leading: Icon(Icons.info_outline),
+            leading: ScaledIcon(Icons.info_outline),
             title: const Text('About & Licenses'),
             subtitle: const Text(
               'App license, package licenses and repository',
             ),
-            trailing: Icon(Icons.arrow_forward_ios),
+            trailing: ScaledIcon(Icons.arrow_forward_ios),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const AboutScreen()),
@@ -397,12 +414,12 @@ class SettingsScreen extends ConsumerWidget {
     final preferences = ref.watch(preferencesStateProvider);
 
     return ListTile(
-      leading: const Icon(Icons.swipe),
+      leading: const ScaledIcon(Icons.swipe),
       title: const Text('Swipe Actions'),
       subtitle: Text(
         'Left: ${_getSwipeActionName(preferences.swipeLeftAction)}, Right: ${_getSwipeActionName(preferences.swipeRightAction)}',
       ),
-      trailing: Icon(Icons.arrow_forward_ios),
+      trailing: ScaledIcon(Icons.arrow_forward_ios),
       onTap: () async {
         await showModalBottomSheet<void>(
           context: context,

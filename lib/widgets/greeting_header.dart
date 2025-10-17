@@ -5,6 +5,7 @@ import 'dart:math';
 import '../services/theme_service.dart';
 import '../providers/app_providers.dart';
 import '../services/storage_service.dart';
+import '../utils/responsive_size.dart';
 import 'filters_sheet.dart';
 
 // Matrix Rain Animation Widget for Hack Theme
@@ -420,7 +421,7 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
                       button: true,
                       child: IconButton(
                         onPressed: _changeGreeting,
-                        icon: const Icon(Icons.language),
+                        icon: const ScaledIcon(Icons.language),
                         color: theme.colorScheme.primary,
                         tooltip: 'Change language',
                       ),
@@ -431,7 +432,7 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
                     button: true,
                     child: IconButton(
                       onPressed: () => showFiltersSheet(context),
-                      icon: const Icon(Icons.filter_alt),
+                      icon: const ScaledIcon(Icons.filter_alt),
                       color: theme.colorScheme.primary,
                       tooltip: 'Filters',
                     ),

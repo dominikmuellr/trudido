@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trudido/utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/note.dart';
 import '../controllers/notes_controller.dart';
@@ -31,7 +32,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            ScaledIcon(
               Icons.warning,
               size: 64,
               color: Theme.of(context).colorScheme.error,
@@ -67,7 +68,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            ScaledIcon(
               isSearchMode ? Icons.search : Icons.note_add,
               size: 64,
               color: Theme.of(context).colorScheme.onSurfaceVariant,

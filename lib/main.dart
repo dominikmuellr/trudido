@@ -11,14 +11,18 @@ import 'l10n/app_localizations.dart';
 import 'services/storage_service.dart';
 import 'services/permissions_channel.dart';
 import 'services/theme_service.dart';
+import 'services/text_scale_service.dart';
 import 'providers/app_providers.dart';
 import 'services/navigation_service.dart';
 import 'services/system_settings_service.dart';
 import 'widgets/system_permission_dialogs.dart';
 import 'screens/home_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize text scale settings
+  await initTextScale();
 
   // Set initial system UI overlay style before app starts
   // This prevents the colored band issue on Samsung Galaxy devices
@@ -296,67 +300,87 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
     final darkThemeEffective = useBlack
         ? AppTheme.blackify(themes.$2)
         : themes.$2;
-    return MaterialApp(
-      title: 'Trudido',
-      debugShowCheckedModeBanner: false,
-      navigatorKey: NavigationService.navigatorKey,
-      theme: themes.$1,
-      darkTheme: darkThemeEffective,
-      themeMode: themeMode,
-      // Ensure MaterialApp uses theme background color to prevent visual gaps
-      // This helps eliminate the colored band issue on Samsung Galaxy devices
-      builder: (context, child) {
-        // Apply system UI overlay style that matches the current theme
-        final currentTheme = Theme.of(context);
-        final overlayStyle = _createSystemUIOverlayStyle(
-          currentTheme.brightness,
-          backgroundColor: currentTheme.scaffoldBackgroundColor,
-        );
-        SystemChrome.setSystemUIOverlayStyle(overlayStyle);
 
-        return child ?? const SizedBox.shrink();
+    return ValueListenableBuilder<double>(
+      valueListenable: textScaleNotifier,
+      builder: (context, scale, _) {
+        return ValueListenableBuilder<bool>(
+          valueListenable: ignoreSystemNotifier,
+          builder: (context, ignoreSystem, __) {
+            return MaterialApp(
+              title: 'Trudido',
+              debugShowCheckedModeBanner: false,
+              navigatorKey: NavigationService.navigatorKey,
+              theme: themes.$1,
+              darkTheme: darkThemeEffective,
+              themeMode: themeMode,
+              // Ensure MaterialApp uses theme background color to prevent visual gaps
+              // This helps eliminate the colored band issue on Samsung Galaxy devices
+              builder: (context, child) {
+                // Apply system UI overlay style that matches the current theme
+                final currentTheme = Theme.of(context);
+                final overlayStyle = _createSystemUIOverlayStyle(
+                  currentTheme.brightness,
+                  backgroundColor: currentTheme.scaffoldBackgroundColor,
+                );
+                SystemChrome.setSystemUIOverlayStyle(overlayStyle);
+
+                // Apply text scale factor
+                final mq = MediaQuery.of(context);
+                final effective = ignoreSystem
+                    ? scale
+                    : mq.textScaleFactor * scale;
+
+                return MediaQuery(
+                  data: mq.copyWith(textScaleFactor: effective),
+                  child: child ?? const SizedBox.shrink(),
+                );
+              },
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: const [
+                Locale('en'), // English
+                Locale('de'), // German
+                Locale('fr'), // French
+                Locale('es'), // Spanish
+                Locale('it'), // Italian
+                Locale('nl'), // Dutch
+                Locale('pt'), // Portuguese
+                Locale('pl'), // Polish
+                Locale('uk'), // Ukrainian
+                Locale('da'), // Danish
+                Locale('ro'), // Romanian
+                Locale('cs'), // Czech
+              ],
+              // Let the system determine locale, but prefer European format
+              localeResolutionCallback: (locale, supportedLocales) {
+                // If system locale is supported, use it
+                if (locale != null) {
+                  for (var supportedLocale in supportedLocales) {
+                    if (supportedLocale.languageCode == locale.languageCode &&
+                        supportedLocale.countryCode == locale.countryCode) {
+                      return supportedLocale;
+                    }
+                  }
+                  // If only language matches, find the best European match
+                  for (var supportedLocale in supportedLocales) {
+                    if (supportedLocale.languageCode == locale.languageCode) {
+                      return supportedLocale;
+                    }
+                  }
+                }
+                // Default to British English (European format)
+                return const Locale('en', 'GB');
+              },
+              home: const SystemNavigationBarHandler(child: AppBootstrap()),
+            );
+          },
+        );
       },
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('en'), // English
-        Locale('de'), // German
-        Locale('fr'), // French
-        Locale('es'), // Spanish
-        Locale('it'), // Italian
-        Locale('nl'), // Dutch
-        Locale('pt'), // Portuguese
-        Locale('pl'), // Polish
-        Locale('uk'), // Ukrainian
-        Locale('da'), // Danish
-        Locale('ro'), // Romanian
-        Locale('cs'), // Czech
-      ],
-      // Let the system determine locale, but prefer European format
-      localeResolutionCallback: (locale, supportedLocales) {
-        // If system locale is supported, use it
-        if (locale != null) {
-          for (var supportedLocale in supportedLocales) {
-            if (supportedLocale.languageCode == locale.languageCode &&
-                supportedLocale.countryCode == locale.countryCode) {
-              return supportedLocale;
-            }
-          }
-          // If only language matches, find the best European match
-          for (var supportedLocale in supportedLocales) {
-            if (supportedLocale.languageCode == locale.languageCode) {
-              return supportedLocale;
-            }
-          }
-        }
-        // Default to British English (European format)
-        return const Locale('en', 'GB');
-      },
-      home: const SystemNavigationBarHandler(child: AppBootstrap()),
     );
   }
 }

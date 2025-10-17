@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trudido/utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/todo.dart';
@@ -165,7 +166,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         hintText: 'What needs to be done?',
         filled: true,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-        prefixIcon: Icon(Icons.title),
+        prefixIcon: ScaledIcon(Icons.title),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
@@ -297,7 +298,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              ScaledIcon(
                 icon,
                 size: 18,
                 color: isSelected
@@ -347,7 +348,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
             hintText: 'Add details...',
             filled: true,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-            prefixIcon: Icon(Icons.notes),
+            prefixIcon: ScaledIcon(Icons.notes),
           ),
           maxLines: 3,
           textCapitalization: TextCapitalization.sentences,
@@ -431,7 +432,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                       label: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.add, size: 14, color: colorScheme.primary),
+                          ScaledIcon(Icons.add, size: 14, color: colorScheme.primary),
                           const SizedBox(width: 4),
                           Text('ADD FOLDER'),
                         ],
@@ -577,7 +578,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           color: backgroundColor,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: textColor, size: 20),
+        child: ScaledIcon(icon, color: textColor, size: 20),
       ),
       title: Text(
         label,
@@ -586,7 +587,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         ),
       ),
       trailing: isSelected
-          ? Icon(Icons.check, color: colorScheme.primary)
+          ? ScaledIcon(Icons.check, color: colorScheme.primary)
           : null,
       onTap: () {
         setState(() {

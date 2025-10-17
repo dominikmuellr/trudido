@@ -1,0 +1,11 @@
+Calendar Enhancements:
+- Long-press or double-tap any calendar day to create a task with that date
+- Date is now automatically prefilled when creating tasks from calendar
+- "Add task" button in empty calendar days
+- Optimized priority indicators (2 bars max to prevent overflow)
+- Individual task bars sorted by priority (high → medium → low → none)
+
+User Experience:
+- Improved calendar interaction with intuitive gestures
+- Better visual hierarchy in calendar view
+- Cleaner date selection workflow

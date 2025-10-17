@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trudido/utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'dart:async';
@@ -74,7 +75,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   /// Helper for toolbar buttons
   Widget _toolbarButton(IconData icon, String markdown, {String? tooltip}) {
     return IconButton(
-      icon: Icon(icon),
+      icon: ScaledIcon(icon),
       tooltip: tooltip,
       onPressed: () => _insertMarkdown(markdown),
       splashRadius: 24,
@@ -248,15 +249,15 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
           bottom: TabBar(
             controller: _tabController,
             tabs: [
-              Tab(icon: Icon(Icons.edit), text: 'Editor'),
-              Tab(icon: Icon(Icons.preview), text: 'Preview'),
+              Tab(icon: ScaledIcon(Icons.edit), text: 'Editor'),
+              Tab(icon: ScaledIcon(Icons.preview), text: 'Preview'),
             ],
           ),
           actions: [
             if (_saveStatus.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(right: 12.0),
-                child: Icon(
+                child: ScaledIcon(
                   _getStatusIcon(),
                   size: 20,
                   color: _getStatusColor(),
@@ -363,7 +364,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            ScaledIcon(
               Icons.description,
               size: 64,
               color: Theme.of(context).colorScheme.onSurfaceVariant,

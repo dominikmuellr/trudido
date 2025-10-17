@@ -36,6 +36,26 @@ class MainActivity : FlutterActivity() {
     val notificationChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.trudido.app/notifications")
         methodChannel = notificationChannel
 
+        // Text scale channel for widget font size updates
+        val textScaleChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "trudido/text_scale")
+        textScaleChannel.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "updateWidgetTextSize" -> {
+                    val scale = (call.argument<Double>("scale") ?: 1.0).toFloat()
+                    val ignoreSystem = call.argument<Boolean>("ignoreSystem") ?: false
+                    // Store preferences for future widget updates
+                    getSharedPreferences("flutter", MODE_PRIVATE)
+                        .edit()
+                        .putFloat("flutter.textScale", scale)
+                        .putBoolean("flutter.ignoreSystemTextScale", ignoreSystem)
+                        .apply()
+                    // Widget update would go here when widget is implemented
+                    result.success(true)
+                }
+                else -> result.notImplemented()
+            }
+        }
+
         // Unified permissions/system settings channel
         val permsChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "app.perms")
 
