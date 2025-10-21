@@ -310,6 +310,7 @@ class _EditFolderDialogState extends ConsumerState<EditFolderDialog> {
                 : _descriptionController.text.trim(),
             color: _selectedColor,
             icon: _selectedIcon,
+            isVault: false, // Todo folders don't support vault encryption
           );
 
       if (mounted) {

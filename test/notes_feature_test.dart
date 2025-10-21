@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:trudido/repositories/notes_repository.dart';
+import 'package:trudido/repositories/note_folder_repository.dart';
 import 'package:trudido/services/storage_service.dart';
 
 void main() {
@@ -11,36 +12,34 @@ void main() {
   const String testPathChannel = 'plugins.flutter.io/path_provider';
   const MethodChannel channel = MethodChannel(testPathChannel);
 
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-    channel,
-    (call) async {
-      if (call.method == 'getApplicationDocumentsDirectory') {
-        // Return a fake path for tests.
-        return 'test_documents';
-      }
-      return null;
-    },
-  );
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'getApplicationDocumentsDirectory') {
+          // Return a fake path for tests.
+          return 'test_documents';
+        }
+        return null;
+      });
 
   // Mock shared_preferences
-  const MethodChannel spChannel = MethodChannel('plugins.flutter.io/shared_preferences');
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-    spChannel,
-    (call) async {
-      switch (call.method) {
-        case 'getAll':
-          return <String, Object?>{};
-        case 'setBool':
-        case 'setString':
-        case 'setInt':
-        case 'setDouble':
-        case 'setStringList':
-          return true;
-        default:
-          return null;
-      }
-    },
+  const MethodChannel spChannel = MethodChannel(
+    'plugins.flutter.io/shared_preferences',
   );
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(spChannel, (call) async {
+        switch (call.method) {
+          case 'getAll':
+            return <String, Object?>{};
+          case 'setBool':
+          case 'setString':
+          case 'setInt':
+          case 'setDouble':
+          case 'setStringList':
+            return true;
+          default:
+            return null;
+        }
+      });
 
   group('Notes Feature Tests', () {
     final testPath = '${Directory.current.path}/test/test_documents';
@@ -63,7 +62,7 @@ void main() {
     });
 
     test('NotesRepository should create and manage notes', () async {
-      final repository = NotesRepository();
+      final repository = NotesRepository(NoteFolderRepository());
 
       // Test creating a note
       final note = await repository.createNote(
@@ -130,7 +129,10 @@ void main() {
 
       expect(updatedNote, isNotNull);
       final notesAfterUpdate = await container.read(notesProvider.future);
-      expect(notesAfterUpdate.any((note) => note.title == 'Updated State Note'), isTrue);
+      expect(
+        notesAfterUpdate.any((note) => note.title == 'Updated State Note'),
+        isTrue,
+      );
 
       // Test deletion
       final deleted = await notifier.deleteNote(newNote.id);
@@ -142,7 +144,7 @@ void main() {
     });
 
     test('Search functionality should work correctly', () async {
-      final repository = NotesRepository();
+      final repository = NotesRepository(NoteFolderRepository());
 
       // Create test notes
       await repository.createNote(
@@ -165,7 +167,9 @@ void main() {
 
       // Test title search
       var results = await repository.searchNotes('Flutter');
-      print('Search results for "Flutter": ${results.map((n) => n.title).toList()}');
+      print(
+        'Search results for "Flutter": ${results.map((n) => n.title).toList()}',
+      );
       expect(results.length, 2);
 
       // Test content search (more specific term)

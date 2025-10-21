@@ -1,6 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/note.dart';
 import '../repositories/notes_repository.dart';
+import '../repositories/note_folder_repository.dart';
+
+/// Provider for selected folder filter (null = all notes)
+final selectedNoteFolderProvider = StateProvider<String?>((ref) => null);
 
 /// Controller for handling notes business logic
 class NotesController extends StateNotifier<AsyncValue<void>> {
@@ -12,6 +16,7 @@ class NotesController extends StateNotifier<AsyncValue<void>> {
   Future<Note?> createNote({
     required String title,
     required String content,
+    String? folderId,
   }) async {
     // Validate input
     if (title.trim().isEmpty) {
@@ -21,9 +26,10 @@ class NotesController extends StateNotifier<AsyncValue<void>> {
 
     try {
       state = const AsyncValue.loading();
-      final note = _notesNotifier.createNote(
+      final note = await _notesNotifier.createNote(
         title: title.trim(),
         content: content,
+        folderId: folderId,
       );
       state = const AsyncValue.data(null);
       return note;
@@ -57,6 +63,19 @@ class NotesController extends StateNotifier<AsyncValue<void>> {
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
       return null;
+    }
+  }
+
+  /// Updates a note's folder assignment
+  Future<bool> updateNoteFolder(String noteId, String? folderId) async {
+    try {
+      state = const AsyncValue.loading();
+      final note = await _notesNotifier.updateNoteFolder(noteId, folderId);
+      state = const AsyncValue.data(null);
+      return note != null;
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+      return false;
     }
   }
 
@@ -98,10 +117,11 @@ class NotesController extends StateNotifier<AsyncValue<void>> {
 }
 
 /// Provider for the notes controller
-final notesControllerProvider = StateNotifierProvider<NotesController, AsyncValue<void>>((ref) {
-  final notesNotifier = ref.watch(notesProvider.notifier);
-  return NotesController(notesNotifier);
-});
+final notesControllerProvider =
+    StateNotifierProvider<NotesController, AsyncValue<void>>((ref) {
+      final notesNotifier = ref.watch(notesProvider.notifier);
+      return NotesController(notesNotifier);
+    });
 
 /// Provider for search functionality
 final notesSearchQueryProvider = StateProvider<String>((ref) => '');
@@ -109,19 +129,52 @@ final notesSearchQueryProvider = StateProvider<String>((ref) => '');
 /// Provider for filtered/searched notes
 final filteredNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
   final searchQuery = ref.watch(notesSearchQueryProvider);
+  final selectedFolderId = ref.watch(selectedNoteFolderProvider);
   final allNotesAsync = ref.watch(notesProvider);
-  
+  final foldersAsync = ref.watch(noteFoldersProvider);
+
+  // If folders are still loading, show loading state
+  if (foldersAsync.isLoading) {
+    return const AsyncValue.loading();
+  }
+
   return allNotesAsync.when(
     data: (allNotes) {
-      if (searchQuery.isEmpty) {
-        return AsyncValue.data(allNotes);
+      var filtered = allNotes;
+
+      // Filter by folder if one is selected
+      if (selectedFolderId != null) {
+        filtered = filtered
+            .where((note) => note.folderId == selectedFolderId)
+            .toList();
+      } else {
+        // When viewing "All Notes", exclude notes from vault folders
+        foldersAsync.whenData((folders) {
+          final vaultFolderIds = folders
+              .where((folder) => folder.isVault)
+              .map((folder) => folder.id)
+              .toSet();
+
+          filtered = filtered.where((note) {
+            // Exclude notes that belong to vault folders
+            return note.folderId == null ||
+                !vaultFolderIds.contains(note.folderId);
+          }).toList();
+        });
       }
-      
-      final lowerQuery = searchQuery.toLowerCase();
-      final filtered = allNotes.where((note) =>
-        note.title.toLowerCase().contains(lowerQuery) ||
-        note.content.toLowerCase().contains(lowerQuery)
-      ).toList();
+
+      // Filter by search query if provided
+      if (searchQuery.isNotEmpty) {
+        final lowerQuery = searchQuery.toLowerCase();
+        filtered = filtered
+            .where(
+              (note) =>
+                  note.title.toLowerCase().contains(lowerQuery) ||
+                  note.content.toLowerCase().contains(lowerQuery),
+            )
+            .toList();
+      }
+
       return AsyncValue.data(filtered);
     },
     loading: () => const AsyncValue.loading(),

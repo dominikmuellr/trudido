@@ -25,13 +25,17 @@ class CreateFolderUseCase {
     }
 
     if (params.name.trim().length > 50) {
-      return FolderCreationResult.failure('Folder name cannot exceed 50 characters');
+      return FolderCreationResult.failure(
+        'Folder name cannot exceed 50 characters',
+      );
     }
 
     // Check if name already exists
     final nameExists = await _repository.folderNameExists(params.name.trim());
     if (nameExists) {
-      return FolderCreationResult.failure('A folder with this name already exists');
+      return FolderCreationResult.failure(
+        'A folder with this name already exists',
+      );
     }
 
     final folder = Folder(
@@ -39,13 +43,16 @@ class CreateFolderUseCase {
       description: params.description?.trim(),
       color: params.color,
       icon: params.icon,
+      isVault: params.isVault,
     );
 
     try {
       await _repository.createFolder(folder);
       return FolderCreationResult.success(folder);
     } catch (e) {
-      return FolderCreationResult.failure('Failed to create folder: ${e.toString()}');
+      return FolderCreationResult.failure(
+        'Failed to create folder: ${e.toString()}',
+      );
     }
   }
 }
@@ -63,7 +70,9 @@ class UpdateFolderUseCase {
     }
 
     if (params.name.trim().length > 50) {
-      return FolderUpdateResult.failure('Folder name cannot exceed 50 characters');
+      return FolderUpdateResult.failure(
+        'Folder name cannot exceed 50 characters',
+      );
     }
 
     // Check if name already exists (excluding current folder)
@@ -72,7 +81,9 @@ class UpdateFolderUseCase {
       excludeId: params.folderId,
     );
     if (nameExists) {
-      return FolderUpdateResult.failure('A folder with this name already exists');
+      return FolderUpdateResult.failure(
+        'A folder with this name already exists',
+      );
     }
 
     // Get existing folder
@@ -86,13 +97,16 @@ class UpdateFolderUseCase {
       description: params.description?.trim(),
       color: params.color,
       icon: params.icon,
+      isVault: params.isVault,
     );
 
     try {
       await _repository.updateFolder(updatedFolder);
       return FolderUpdateResult.success(updatedFolder);
     } catch (e) {
-      return FolderUpdateResult.failure('Failed to update folder: ${e.toString()}');
+      return FolderUpdateResult.failure(
+        'Failed to update folder: ${e.toString()}',
+      );
     }
   }
 }
@@ -118,7 +132,9 @@ class DeleteFolderUseCase {
       await _repository.deleteFolder(folderId);
       return FolderDeletionResult.success();
     } catch (e) {
-      return FolderDeletionResult.failure('Failed to delete folder: ${e.toString()}');
+      return FolderDeletionResult.failure(
+        'Failed to delete folder: ${e.toString()}',
+      );
     }
   }
 }
@@ -172,12 +188,14 @@ class CreateFolderParams {
   final String? description;
   final int color;
   final String? icon;
+  final bool isVault;
 
   CreateFolderParams({
     required this.name,
     this.description,
     required this.color,
     this.icon,
+    this.isVault = false,
   });
 }
 
@@ -187,6 +205,7 @@ class UpdateFolderParams {
   final String? description;
   final int color;
   final String? icon;
+  final bool? isVault;
 
   UpdateFolderParams({
     required this.folderId,
@@ -194,6 +213,7 @@ class UpdateFolderParams {
     this.description,
     required this.color,
     this.icon,
+    this.isVault,
   });
 }
 
@@ -201,17 +221,16 @@ class FolderWithTaskCount {
   final Folder folder;
   final int taskCount;
 
-  FolderWithTaskCount({
-    required this.folder,
-    required this.taskCount,
-  });
+  FolderWithTaskCount({required this.folder, required this.taskCount});
 }
 
 // Result classes
 
 abstract class FolderCreationResult {
-  static FolderCreationResult success(Folder folder) => FolderCreationSuccess(folder);
-  static FolderCreationResult failure(String message) => FolderCreationFailure(message);
+  static FolderCreationResult success(Folder folder) =>
+      FolderCreationSuccess(folder);
+  static FolderCreationResult failure(String message) =>
+      FolderCreationFailure(message);
 }
 
 class FolderCreationSuccess extends FolderCreationResult {
@@ -225,8 +244,10 @@ class FolderCreationFailure extends FolderCreationResult {
 }
 
 abstract class FolderUpdateResult {
-  static FolderUpdateResult success(Folder folder) => FolderUpdateSuccess(folder);
-  static FolderUpdateResult failure(String message) => FolderUpdateFailure(message);
+  static FolderUpdateResult success(Folder folder) =>
+      FolderUpdateSuccess(folder);
+  static FolderUpdateResult failure(String message) =>
+      FolderUpdateFailure(message);
 }
 
 class FolderUpdateSuccess extends FolderUpdateResult {
@@ -241,7 +262,8 @@ class FolderUpdateFailure extends FolderUpdateResult {
 
 abstract class FolderDeletionResult {
   static FolderDeletionResult success() => FolderDeletionSuccess();
-  static FolderDeletionResult failure(String message) => FolderDeletionFailure(message);
+  static FolderDeletionResult failure(String message) =>
+      FolderDeletionFailure(message);
 }
 
 class FolderDeletionSuccess extends FolderDeletionResult {}

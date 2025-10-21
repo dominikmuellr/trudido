@@ -321,6 +321,7 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
               : _descriptionController.text.trim(),
           color: _selectedColor!,
           icon: _selectedIcon,
+          isVault: false, // Todo folders don't support vault encryption
         );
 
     if (mounted) {
@@ -356,6 +357,7 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
               : _descriptionController.text.trim(),
           color: _selectedColor!,
           icon: _selectedIcon,
+          isVault: false, // Todo folders don't support vault encryption
         );
 
     if (result is FolderCreationSuccess) {

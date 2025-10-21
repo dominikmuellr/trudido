@@ -1,40 +1,38 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'folder.dart';
+part of 'note_folder.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class FolderAdapter extends TypeAdapter<Folder> {
+class NoteFolderAdapter extends TypeAdapter<NoteFolder> {
   @override
-  final int typeId = 2;
+  final int typeId = 7;
 
   @override
-  Folder read(BinaryReader reader) {
+  NoteFolder read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return Folder(
+    return NoteFolder(
       id: fields[0] as String?,
       name: fields[1] as String,
       description: fields[2] as String?,
-      color: fields[3] as int,
-      icon: fields[4] as String?,
-      createdAt: fields[5] as DateTime?,
-      updatedAt: fields[6] as DateTime?,
-      sortOrder: fields[7] as int,
-      isDefault: fields[8] as bool,
-      parentId: fields[9] as String?,
-      isVault: fields[10] == null ? false : fields[10] as bool,
+      createdAt: fields[3] as DateTime?,
+      updatedAt: fields[4] as DateTime?,
+      isVault: fields[5] == null ? false : fields[5] as bool,
+      sortOrder: fields[6] as int,
+      hasPassword: fields[7] == null ? false : fields[7] as bool,
+      useBiometric: fields[8] == null ? true : fields[8] as bool,
     );
   }
 
   @override
-  void write(BinaryWriter writer, Folder obj) {
+  void write(BinaryWriter writer, NoteFolder obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -42,21 +40,17 @@ class FolderAdapter extends TypeAdapter<Folder> {
       ..writeByte(2)
       ..write(obj.description)
       ..writeByte(3)
-      ..write(obj.color)
-      ..writeByte(4)
-      ..write(obj.icon)
-      ..writeByte(5)
       ..write(obj.createdAt)
-      ..writeByte(6)
+      ..writeByte(4)
       ..write(obj.updatedAt)
-      ..writeByte(7)
+      ..writeByte(5)
+      ..write(obj.isVault)
+      ..writeByte(6)
       ..write(obj.sortOrder)
+      ..writeByte(7)
+      ..write(obj.hasPassword)
       ..writeByte(8)
-      ..write(obj.isDefault)
-      ..writeByte(9)
-      ..write(obj.parentId)
-      ..writeByte(10)
-      ..write(obj.isVault);
+      ..write(obj.useBiometric);
   }
 
   @override
@@ -65,7 +59,7 @@ class FolderAdapter extends TypeAdapter<Folder> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is FolderAdapter &&
+      other is NoteFolderAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

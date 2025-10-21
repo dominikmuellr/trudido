@@ -12,8 +12,9 @@ import '../services/theme_service.dart';
 /// Screen for creating and editing markdown notes
 class NoteEditorScreen extends ConsumerStatefulWidget {
   final String? noteId; // null for new note, ID for editing existing note
+  final String? initialFolderId; // folder to save new note in
 
-  const NoteEditorScreen({super.key, this.noteId});
+  const NoteEditorScreen({super.key, this.noteId, this.initialFolderId});
 
   @override
   ConsumerState<NoteEditorScreen> createState() => _NoteEditorScreenState();
@@ -117,7 +118,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     // can return null which previously caused the editor to treat an
     // existing note as new and create duplicates on autosave. Wait for the
     // notes box to be ready and try again to reliably load the note.
-    Note? note = repository.getNoteById(widget.noteId!);
+    Note? note = await repository.getNoteById(widget.noteId!);
 
     _originalNote = note;
     // When editing, put title and content together with title as first line
@@ -492,6 +493,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       savedNote = await controller.createNote(
         title: title,
         content: formattedContent,
+        folderId: widget.initialFolderId, // Save to selected folder
       );
       // After creating, mark as editing so future autosaves update this note
       _isEditing = true;

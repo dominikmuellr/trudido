@@ -11,12 +11,18 @@ import '../controllers/notes_controller.dart';
 import '../providers/app_providers.dart';
 import '../services/default_tab_service.dart';
 import '../services/folder_provider.dart';
+import '../services/vault_auth_service.dart';
+import '../services/vault_password_service.dart';
+import '../services/biometric_auth_service.dart';
+import '../repositories/note_folder_repository.dart';
+import '../models/note_folder.dart';
 import '../screens/task_editor_screen.dart';
 import '../widgets/todo_list_tab.dart';
 import '../widgets/create_folder_dialog.dart';
 import 'settings_screen.dart';
 import 'notes_screen.dart';
 import 'note_editor_screen.dart';
+import 'notes_folder_management_screen.dart';
 
 // Provider for tracking search mode state
 final searchModeProvider = StateProvider<bool>((ref) => false);
@@ -64,13 +70,39 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   final _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    // Register lifecycle observer to detect app state changes
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    // Unregister lifecycle observer
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    // Security: Clear vault selection when app goes to background
+    // Only lock when app is truly backgrounded, not just temporarily inactive
+    // (inactive = notification panel, PiP still visible)
+    if (state ==
+            AppLifecycleState
+                .paused || // App in background (home button, app switcher)
+        state == AppLifecycleState.hidden) {
+      // App completely hidden (iOS)
+      _clearVaultSelectionIfNeeded();
+    }
   }
 
   @override
@@ -96,6 +128,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               selectedIndex: currentTab,
               onDestinationSelected: (index) {
                 final previousTab = ref.read(currentTabProvider);
+
+                // Security: Clear vault folder selection when leaving Notes tab
+                if (previousTab == 1 && index != 1) {
+                  _clearVaultSelectionIfNeeded();
+                }
+
                 ref.read(currentTabProvider.notifier).setTab(index);
                 // Exit search mode when switching tabs
                 final isSearchMode = ref.read(searchModeProvider);
@@ -162,6 +200,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         currentIndex: currentTab,
         onTap: (index) {
           final previousTab = ref.read(currentTabProvider);
+
+          // Security: Clear vault folder selection when leaving Notes tab
+          if (previousTab == 1 && index != 1) {
+            _clearVaultSelectionIfNeeded();
+          }
+
           ref.read(currentTabProvider.notifier).setTab(index);
           // Exit search mode when switching tabs
           final isSearchMode = ref.read(searchModeProvider);
@@ -219,6 +263,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  /// Security: Clear vault folder selection if currently viewing a vault
+  void _clearVaultSelectionIfNeeded() {
+    final selectedFolderId = ref.read(selectedNoteFolderProvider);
+    if (selectedFolderId != null) {
+      final foldersAsync = ref.read(noteFoldersProvider);
+      final folders = foldersAsync.valueOrNull ?? [];
+      final folder = folders.where((f) => f.id == selectedFolderId).firstOrNull;
+
+      // Clear selection if it's a vault folder
+      if (folder != null && folder.isVault) {
+        ref.read(selectedNoteFolderProvider.notifier).state = null;
+      }
+    }
+  }
+
   void _showAddTaskDialog() {
     final viewType = ref.read(taskViewTypeProvider);
     final selectedDate = ref.read(selectedCalendarDateProvider);
@@ -242,9 +301,71 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _createNewNote() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (context) => const NoteEditorScreen()));
+    // Get the currently selected folder to create note in
+    final selectedFolderId = ref.read(selectedNoteFolderProvider);
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            NoteEditorScreen(initialFolderId: selectedFolderId),
+      ),
+    );
+  }
+
+  /// Shows vault setup dialog for first-time vault access
+  Future<bool> _showVaultSetupDialog(
+    BuildContext context,
+    NoteFolder folder,
+  ) async {
+    // Check if biometric is available
+    final biometricAvailable =
+        await BiometricAuthService.isBiometricsAvailable();
+
+    // Show the dialog using a separate stateful widget
+    final result = await Navigator.of(context).push<Map<String, dynamic>?>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => _VaultSetupScreen(
+          folderName: folder.name,
+          biometricAvailable: biometricAvailable,
+        ),
+      ),
+    );
+
+    // Process the result outside the dialog
+    if (result != null) {
+      try {
+        // Save the password
+        await VaultPasswordService.setVaultPassword(
+          folder.id,
+          result['password'] as String,
+        );
+
+        // Update the folder to mark it has a password
+        final updatedFolder = folder.copyWith(
+          hasPassword: true,
+          useBiometric: result['useBiometric'] as bool,
+        );
+
+        await ref
+            .read(noteFoldersProvider.notifier)
+            .updateFolder(updatedFolder);
+
+        return true;
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to setup vault: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return false;
+      }
+    }
+
+    return false;
   }
 
   /// Builds the consistent FAB icon (plus)
@@ -414,6 +535,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               isLeading: false,
                               asTitle: true,
                             )
+                          : currentTab == 1
+                          ? _buildNoteFolderDropdown(
+                              isLeading: false,
+                              asTitle: true,
+                            )
                           : _buildAppBarTitle(currentTab)),
               ),
               // Positioned view toggle: placed between center and right area
@@ -495,7 +621,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               },
                       ),
                     ],
-                    // Quick Filters icon (keeps chips below AppBar but provides fast access)
 
                     // Global overflow menu
                     PopupMenuButton<String>(
@@ -510,6 +635,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ref.read(searchModeProvider.notifier).state = true;
                             break;
                           case 'settings':
+                            // Security: Clear vault selection before navigating away
+                            _clearVaultSelectionIfNeeded();
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (context) => const SettingsScreen(),
@@ -888,6 +1015,324 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  /// Build the folder dropdown for note folder selection
+  Widget _buildNoteFolderDropdown({
+    bool isLeading = false,
+    bool asTitle = false,
+  }) {
+    final foldersAsync = ref.watch(noteFoldersProvider);
+    final selectedFolderId = ref.watch(selectedNoteFolderProvider);
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final reserved = 180.0;
+    final computedMax = ((screenWidth / 2) - reserved).clamp(140.0, 420.0);
+
+    return foldersAsync.when(
+      data: (folders) {
+        final selectedFolder = selectedFolderId != null
+            ? folders
+                  .where((folder) => folder.id == selectedFolderId)
+                  .firstOrNull
+            : null;
+
+        return PopupMenuButton<String>(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            margin: isLeading
+                ? const EdgeInsets.only(left: 16)
+                : (asTitle
+                      ? const EdgeInsets.symmetric(horizontal: 0)
+                      : const EdgeInsets.only(right: 8)),
+            decoration: BoxDecoration(
+              color: asTitle
+                  ? Colors.transparent
+                  : Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: isLeading
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ScaledIcon(
+                        selectedFolder != null && selectedFolder.isVault
+                            ? Icons.lock_open
+                            : Icons.folder,
+                        size: 18,
+                        color: selectedFolder != null && selectedFolder.isVault
+                            ? Colors.amber
+                            : Theme.of(context).colorScheme.onSurface,
+                      ),
+                      const SizedBox(width: 6),
+                      ScaledIcon(
+                        Icons.expand_more,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ],
+                  )
+                : ConstrainedBox(
+                    constraints: asTitle
+                        ? BoxConstraints(maxWidth: computedMax)
+                        : const BoxConstraints(),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ScaledIcon(
+                          selectedFolder != null && selectedFolder.isVault
+                              ? Icons.lock_open
+                              : Icons.folder,
+                          size: 20,
+                          color:
+                              selectedFolder != null && selectedFolder.isVault
+                              ? Colors.amber
+                              : Theme.of(context).colorScheme.onSurface,
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            selectedFolder?.name ?? 'All Notes',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        ScaledIcon(
+                          Icons.expand_more,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+          itemBuilder: (context) {
+            return [
+              // "All Notes" option
+              PopupMenuItem<String>(
+                value: '_ALL_NOTES_',
+                child: Row(
+                  children: [
+                    ScaledIcon(
+                      Icons.folder,
+                      size: 18,
+                      color: selectedFolderId == null
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurface,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'All Notes',
+                      style: TextStyle(
+                        color: selectedFolderId == null
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurface,
+                        fontWeight: selectedFolderId == null
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Individual folders
+              ...folders
+                  .map(
+                    (folder) => PopupMenuItem<String>(
+                      value: folder.id,
+                      child: Row(
+                        children: [
+                          ScaledIcon(
+                            folder.isVault
+                                ? (selectedFolderId == folder.id
+                                      ? Icons.lock_open
+                                      : Icons.lock)
+                                : Icons.folder,
+                            size: 18,
+                            color: selectedFolderId == folder.id
+                                ? Theme.of(context).colorScheme.primary
+                                : (folder.isVault
+                                      ? Colors.amber
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.onSurface),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            folder.name,
+                            style: TextStyle(
+                              color: selectedFolderId == folder.id
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurface,
+                              fontWeight: selectedFolderId == folder.id
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(),
+              // Divider + manage folders option
+              PopupMenuDivider(
+                height: 1,
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+              ),
+              PopupMenuItem<String>(
+                value: '_MANAGE_FOLDERS_',
+                child: Row(
+                  children: [
+                    ScaledIcon(
+                      Icons.settings,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text('Manage folders'),
+                  ],
+                ),
+              ),
+            ];
+          },
+          onSelected: (String folderId) async {
+            if (folderId == '_MANAGE_FOLDERS_') {
+              // Security: Clear vault selection before navigating away
+              _clearVaultSelectionIfNeeded();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const NotesFolderManagementScreen(),
+                ),
+              );
+            } else if (folderId == '_ALL_NOTES_') {
+              ref.read(selectedNoteFolderProvider.notifier).state = null;
+            } else {
+              // Check if this is a vault folder and require authentication
+              final foldersAsync = ref.read(noteFoldersProvider);
+              final folders = foldersAsync.valueOrNull ?? [];
+              final folder = folders.where((f) => f.id == folderId).firstOrNull;
+
+              if (folder != null && folder.isVault) {
+                // If vault has no password yet, prompt to set it up
+                if (!folder.hasPassword) {
+                  final setupResult = await _showVaultSetupDialog(
+                    context,
+                    folder,
+                  );
+
+                  if (!setupResult) {
+                    // User cancelled setup
+                    return;
+                  }
+                  // Password is now set, proceed to select folder
+                } else {
+                  // Require authentication for vault folders with password
+                  final authenticated = await VaultAuthService.authenticate(
+                    context: context,
+                    folderId: folder.id,
+                    folderName: folder.name,
+                    useBiometric: folder.useBiometric,
+                    hasPassword: folder.hasPassword,
+                  );
+
+                  if (!authenticated) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Authentication required to access vault folder',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                    return;
+                  }
+                }
+              }
+
+              ref.read(selectedNoteFolderProvider.notifier).state = folderId;
+            }
+          },
+        );
+      },
+      loading: () => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: isLeading
+            ? const EdgeInsets.only(left: 8)
+            : const EdgeInsets.only(right: 8),
+        decoration: BoxDecoration(
+          color: asTitle
+              ? Colors.transparent
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: isLeading
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  ScaledIcon(
+                    Icons.expand_more,
+                    size: 14,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ],
+              )
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Text('Loading...'),
+                ],
+              ),
+      ),
+      error: (error, stackTrace) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: isLeading
+            ? const EdgeInsets.only(left: 8)
+            : const EdgeInsets.only(right: 8),
+        decoration: BoxDecoration(
+          color: asTitle
+              ? Colors.transparent
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ScaledIcon(
+              Icons.folder,
+              size: 18,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(width: 6),
+            const Text('Error'),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Build the view toggle for switching between list and calendar views
   Widget _buildViewToggle() {
     final viewType = ref.watch(taskViewTypeProvider);
@@ -1260,4 +1705,144 @@ class SelectedTodoIdsNotifier extends StateNotifier<Set<String>> {
   }
 
   void clear() => state = <String>{};
+}
+
+/// Separate screen for vault password setup to avoid dialog context issues
+class _VaultSetupScreen extends StatefulWidget {
+  final String folderName;
+  final bool biometricAvailable;
+
+  const _VaultSetupScreen({
+    required this.folderName,
+    required this.biometricAvailable,
+  });
+
+  @override
+  State<_VaultSetupScreen> createState() => _VaultSetupScreenState();
+}
+
+class _VaultSetupScreenState extends State<_VaultSetupScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
+  bool _useBiometric = true;
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_formKey.currentState!.validate()) {
+      Navigator.of(context).pop({
+        'password': _passwordController.text,
+        'useBiometric': _useBiometric,
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Setup ${widget.folderName}'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(null),
+        ),
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text(
+              'Create a password/PIN to protect this vault folder',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 24),
+            TextFormField(
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                labelText: 'Password/PIN',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                ),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a password';
+                }
+                if (value.length < 4) {
+                  return 'Password must be at least 4 characters';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _confirmPasswordController,
+              obscureText: _obscureConfirm,
+              decoration: InputDecoration(
+                labelText: 'Confirm Password',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureConfirm ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureConfirm = !_obscureConfirm;
+                    });
+                  },
+                ),
+              ),
+              validator: (value) {
+                if (value != _passwordController.text) {
+                  return 'Passwords do not match';
+                }
+                return null;
+              },
+            ),
+            if (widget.biometricAvailable) ...[
+              const SizedBox(height: 16),
+              CheckboxListTile(
+                title: const Text('Use biometric authentication'),
+                subtitle: const Text(
+                  'Use fingerprint/face ID for quick access',
+                ),
+                value: _useBiometric,
+                onChanged: (value) {
+                  setState(() {
+                    _useBiometric = value ?? true;
+                  });
+                },
+              ),
+            ],
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _submit,
+              child: const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('Setup Vault'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

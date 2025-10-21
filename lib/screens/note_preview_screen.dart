@@ -3,6 +3,8 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../models/note.dart';
 import '../utils/smart_markdown_helper.dart';
 import '../services/theme_service.dart';
+import '../services/vault_auth_service.dart';
+import '../repositories/note_folder_repository.dart';
 import 'note_editor_screen.dart';
 
 /// Full-screen note preview that renders complete markdown
@@ -100,13 +102,46 @@ class NotePreviewScreen extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
+        onPressed: () async {
+          // Check if note belongs to vault folder and require auth
+          if (note.folderId != null) {
+            final folderRepo = NoteFolderRepository();
+            final folder = folderRepo.getNoteFolderById(note.folderId!);
+
+            if (folder != null && folder.isVault) {
+              // Require authentication for vault note editing
+              final authenticated = await VaultAuthService.authenticate(
+                context: context,
+                folderId: folder.id,
+                folderName: folder.name,
+                useBiometric: folder.useBiometric,
+                hasPassword: folder.hasPassword,
+              );
+
+              if (!authenticated) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Authentication required to edit vault notes',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+                return;
+              }
+            }
+          }
+
           // Navigate to edit mode using existing editor
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => NoteEditorScreen(noteId: note.id),
-            ),
-          );
+          if (context.mounted) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => NoteEditorScreen(noteId: note.id),
+              ),
+            );
+          }
         },
         child: Icon(Icons.edit),
       ),

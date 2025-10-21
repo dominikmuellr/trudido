@@ -38,10 +38,33 @@ class FolderItem extends StatelessWidget {
                   color: Color(folder.color).withAlpha(51),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  _getIconData(folder.icon),
-                  color: Color(folder.color),
-                  size: 24,
+                child: Stack(
+                  children: [
+                    Center(
+                      child: Icon(
+                        _getIconData(folder.icon),
+                        color: Color(folder.color),
+                        size: 24,
+                      ),
+                    ),
+                    if (folder.isVault)
+                      Positioned(
+                        bottom: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.amber,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.lock,
+                            color: Colors.white,
+                            size: 12,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
 
@@ -63,6 +86,37 @@ class FolderItem extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        if (folder.isVault) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withAlpha(51),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.lock,
+                                  size: 12,
+                                  color: Colors.amber.shade700,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Vault',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.amber.shade700,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         if (folder.isDefault) ...[
                           const SizedBox(width: 8),
                           Container(

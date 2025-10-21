@@ -30,9 +30,12 @@ final reorderFoldersUseCaseProvider = Provider<ReorderFoldersUseCase>((ref) {
   return ReorderFoldersUseCase(ref.read(folderRepositoryProvider));
 });
 
-final getFoldersWithTaskCountsUseCaseProvider = Provider<GetFoldersWithTaskCountsUseCase>((ref) {
-  return GetFoldersWithTaskCountsUseCase(ref.read(folderRepositoryProvider));
-});
+final getFoldersWithTaskCountsUseCaseProvider =
+    Provider<GetFoldersWithTaskCountsUseCase>((ref) {
+      return GetFoldersWithTaskCountsUseCase(
+        ref.read(folderRepositoryProvider),
+      );
+    });
 
 final searchFoldersUseCaseProvider = Provider<SearchFoldersUseCase>((ref) {
   return SearchFoldersUseCase(ref.read(folderRepositoryProvider));
@@ -73,13 +76,17 @@ class FolderNotifier extends StateNotifier<AsyncValue<List<Folder>>> {
     String? description,
     required int color,
     String? icon,
+    bool isVault = false,
   }) async {
-    final result = await _createFolderUseCase(CreateFolderParams(
-      name: name,
-      description: description,
-      color: color,
-      icon: icon,
-    ));
+    final result = await _createFolderUseCase(
+      CreateFolderParams(
+        name: name,
+        description: description,
+        color: color,
+        icon: icon,
+        isVault: isVault,
+      ),
+    );
 
     if (result is FolderCreationSuccess) {
       // Reload folders to update the state
@@ -96,14 +103,18 @@ class FolderNotifier extends StateNotifier<AsyncValue<List<Folder>>> {
     String? description,
     required int color,
     String? icon,
+    bool? isVault,
   }) async {
-    final result = await _updateFolderUseCase(UpdateFolderParams(
-      folderId: folderId,
-      name: name,
-      description: description,
-      color: color,
-      icon: icon,
-    ));
+    final result = await _updateFolderUseCase(
+      UpdateFolderParams(
+        folderId: folderId,
+        name: name,
+        description: description,
+        color: color,
+        icon: icon,
+        isVault: isVault,
+      ),
+    );
 
     if (result is FolderUpdateSuccess) {
       // Reload folders to update the state
@@ -144,21 +155,24 @@ class FolderNotifier extends StateNotifier<AsyncValue<List<Folder>>> {
 }
 
 // State notifier provider for folders
-final folderNotifierProvider = StateNotifierProvider<FolderNotifier, AsyncValue<List<Folder>>>((ref) {
-  return FolderNotifier(
-    ref.read(getFoldersUseCaseProvider),
-    ref.read(createFolderUseCaseProvider),
-    ref.read(updateFolderUseCaseProvider),
-    ref.read(deleteFolderUseCaseProvider),
-    ref.read(reorderFoldersUseCaseProvider),
-  );
-});
+final folderNotifierProvider =
+    StateNotifierProvider<FolderNotifier, AsyncValue<List<Folder>>>((ref) {
+      return FolderNotifier(
+        ref.read(getFoldersUseCaseProvider),
+        ref.read(createFolderUseCaseProvider),
+        ref.read(updateFolderUseCaseProvider),
+        ref.read(deleteFolderUseCaseProvider),
+        ref.read(reorderFoldersUseCaseProvider),
+      );
+    });
 
 // Provider for folders with task counts
-final foldersWithTaskCountsProvider = FutureProvider<List<FolderWithTaskCount>>((ref) {
-  final useCase = ref.read(getFoldersWithTaskCountsUseCaseProvider);
-  return useCase();
-});
+final foldersWithTaskCountsProvider = FutureProvider<List<FolderWithTaskCount>>(
+  (ref) {
+    final useCase = ref.read(getFoldersWithTaskCountsUseCaseProvider);
+    return useCase();
+  },
+);
 
 // Provider for selected folder
 final selectedFolderProvider = StateProvider<String?>((ref) => null);
@@ -176,14 +190,15 @@ final filteredFoldersProvider = Provider<AsyncValue<List<Folder>>>((ref) {
       if (searchQuery.trim().isEmpty) {
         return AsyncValue.data(folders);
       }
-      
+
       final lowercaseQuery = searchQuery.toLowerCase();
       final filteredFolders = folders.where((folder) {
         final nameMatch = folder.name.toLowerCase().contains(lowercaseQuery);
-        final descriptionMatch = folder.description?.toLowerCase().contains(lowercaseQuery) ?? false;
+        final descriptionMatch =
+            folder.description?.toLowerCase().contains(lowercaseQuery) ?? false;
         return nameMatch || descriptionMatch;
       }).toList();
-      
+
       return AsyncValue.data(filteredFolders);
     },
     loading: () => const AsyncValue.loading(),

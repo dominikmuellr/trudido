@@ -6,16 +6,19 @@ import '../models/todo.dart';
 import '../models/folder.dart';
 import '../models/folder_template.dart';
 import '../models/note.dart';
+import '../models/note_folder.dart';
 import '../repositories/hive_folder_repository.dart';
 import '../repositories/hive_folder_template_repository.dart';
 
 class StorageService {
   static const String _todosBoxName = 'todos';
   static const String _notesBoxName = 'notes';
+  static const String _noteFoldersBoxName = 'note_folders';
 
   // Deferred / lazy boxes
   static LazyBox<Todo>? _todosLazyBox; // large dataset
   static Box<Note>? _notesBox; // notes storage
+  static Box<NoteFolder>? _noteFoldersBox; // note folders storage
   static SharedPreferences? _prefs;
   static Completer<void>? _prefsCompleter; // separate fast prefs init
   // Exposed readiness flag so preference notifiers can avoid redundant async reloads.
@@ -30,6 +33,8 @@ class StorageService {
   _initCompleter; // completion for initial (settings only) init
   static Completer<void>? _todosCompleter; // completion for todos lazy box open
   static Completer<void>? _notesCompleter; // completion for notes box open
+  static Completer<void>?
+  _noteFoldersCompleter; // completion for note folders box open
 
   // Initialize Hive and boxes
   static Future<void> init() async {
@@ -45,6 +50,7 @@ class StorageService {
     // CategoryAdapter removed - categories system eliminated
     Hive.registerAdapter(FolderAdapter());
     Hive.registerAdapter(NoteAdapter());
+    Hive.registerAdapter(NoteFolderAdapter());
     // Register template adapters if they exist
     try {
       if (!Hive.isAdapterRegistered(4)) {
@@ -67,7 +73,44 @@ class StorageService {
 
     // Schedule deferred opens (todos and notes) without blocking UI.
     Future(() async {
-      // Notes box (small to medium)
+      // Note folders box MUST open first (needed for note encryption/decryption)
+      _noteFoldersCompleter ??= Completer<void>();
+      try {
+        _noteFoldersBox = await Hive.openBox<NoteFolder>(_noteFoldersBoxName);
+        // Initialize default vault folder if this is first run
+        await _initializeDefaultVaultFolder();
+        _noteFoldersCompleter?.complete();
+        if (enableLogging) {
+          debugPrint('[StorageService] Note folders box opened successfully');
+        }
+      } catch (e) {
+        if (enableLogging) {
+          debugPrint(
+            '[StorageService] Failed to initialize note folders box: $e',
+          );
+        }
+        // Attempt recovery by deleting and recreating the box
+        try {
+          await Hive.deleteBoxFromDisk(_noteFoldersBoxName);
+          _noteFoldersBox = await Hive.openBox<NoteFolder>(_noteFoldersBoxName);
+          await _initializeDefaultVaultFolder();
+          _noteFoldersCompleter?.complete();
+          if (enableLogging) {
+            debugPrint(
+              '[StorageService] Successfully recovered note folders box',
+            );
+          }
+        } catch (recoveryError) {
+          _noteFoldersCompleter?.completeError(recoveryError);
+          if (enableLogging) {
+            debugPrint(
+              '[StorageService] Failed to recover note folders box: $recoveryError',
+            );
+          }
+        }
+      }
+
+      // Notes box (small to medium) - opened AFTER folders
       _notesCompleter ??= Completer<void>();
       try {
         _notesBox = await Hive.openBox<Note>(_notesBoxName);
@@ -230,6 +273,28 @@ Enjoy taking notes! 📝''',
     await _notesBox!.put(welcomeNote.id, welcomeNote);
   }
 
+  static Future<void> _initializeDefaultVaultFolder() async {
+    if (_noteFoldersBox == null) return;
+
+    // Check if we already have folders
+    if (_noteFoldersBox!.isNotEmpty) return;
+
+    // Create the default Vault folder
+    final vaultFolder = NoteFolder(
+      name: 'Vault',
+      description: 'Secure encrypted folder for private notes',
+      isVault: true,
+      hasPassword: false, // No password set initially
+      useBiometric: true,
+      sortOrder: 0,
+    );
+    await _noteFoldersBox!.put(vaultFolder.id, vaultFolder);
+
+    if (enableLogging) {
+      debugPrint('[StorageService] Created default Vault folder');
+    }
+  }
+
   // Todo operations
   static Future<void> saveTodo(Todo todo) async {
     await waitTodosReady();
@@ -356,6 +421,43 @@ Enjoy taking notes! 📝''',
   static Future<void> clearAllNotes() async {
     if (_notesBox == null) return;
     await _notesBox!.clear();
+  }
+
+  // Note folders operations
+  static Future<void> saveNoteFolder(NoteFolder folder) async {
+    if (_noteFoldersBox == null) return;
+    await _noteFoldersBox!.put(folder.id, folder);
+  }
+
+  static Future<void> deleteNoteFolder(String id) async {
+    if (_noteFoldersBox == null) return;
+    await _noteFoldersBox!.delete(id);
+  }
+
+  static List<NoteFolder> getAllNoteFolders() {
+    if (_noteFoldersBox == null) return const [];
+    return _noteFoldersBox!.values.toList();
+  }
+
+  static NoteFolder? getNoteFolder(String id) {
+    if (_noteFoldersBox == null) return null;
+    return _noteFoldersBox!.get(id);
+  }
+
+  static Future<void> waitNoteFoldersReady() async {
+    // Wait specifically for note folders completer
+    _noteFoldersCompleter ??= Completer<void>();
+    return _noteFoldersCompleter!.future.timeout(
+      const Duration(seconds: 30),
+      onTimeout: () {
+        throw TimeoutException('Note folders box failed to open in time');
+      },
+    );
+  }
+
+  static Future<void> clearAllNoteFolders() async {
+    if (_noteFoldersBox == null) return;
+    await _noteFoldersBox!.clear();
   }
 
   // Theme and preferences operations

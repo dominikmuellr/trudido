@@ -32,6 +32,8 @@ class NotePreviewCard extends ConsumerWidget {
   final VoidCallback? onDelete;
   final VoidCallback?
   onDeleteConfirmed; // For direct deletion without confirmation
+  final VoidCallback? onMoveToFolder; // Move to different folder
+  final bool isInVault; // Whether note is in a vault folder
 
   const NotePreviewCard({
     super.key,
@@ -41,6 +43,8 @@ class NotePreviewCard extends ConsumerWidget {
     this.onPin,
     this.onDelete,
     this.onDeleteConfirmed,
+    this.onMoveToFolder,
+    this.isInVault = false, // Default to not in vault
   });
 
   @override
@@ -255,6 +259,41 @@ class NotePreviewCard extends ConsumerWidget {
                           text: titleSpan,
                         ),
                       ),
+
+                      // Three-dot menu for moving notes (only if NOT in vault)
+                      if (!isInVault && onMoveToFolder != null)
+                        PopupMenuButton<String>(
+                          icon: Icon(
+                            Icons.more_vert,
+                            size: 20,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                          itemBuilder: (context) => [
+                            PopupMenuItem<String>(
+                              value: 'move',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.drive_file_move_outline,
+                                    size: 20,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text('Move to Folder'),
+                                ],
+                              ),
+                            ),
+                          ],
+                          onSelected: (value) {
+                            if (value == 'move' && onMoveToFolder != null) {
+                              onMoveToFolder!();
+                            }
+                          },
+                        ),
                     ],
                   ),
 

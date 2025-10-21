@@ -35,6 +35,9 @@ class Folder extends HiveObject {
   @HiveField(9)
   String? parentId; // For nested folders (optional feature)
 
+  @HiveField(10, defaultValue: false)
+  bool isVault; // Mark as encrypted vault folder
+
   Folder({
     String? id,
     required this.name,
@@ -46,9 +49,10 @@ class Folder extends HiveObject {
     this.sortOrder = 0,
     this.isDefault = false,
     this.parentId,
-  })  : id = id ?? const Uuid().v4(),
-        createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+    this.isVault = false,
+  }) : id = id ?? const Uuid().v4(),
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   Folder copyWith({
     String? id,
@@ -61,6 +65,7 @@ class Folder extends HiveObject {
     int? sortOrder,
     bool? isDefault,
     String? parentId,
+    bool? isVault,
   }) {
     return Folder(
       id: id ?? this.id,
@@ -73,6 +78,7 @@ class Folder extends HiveObject {
       sortOrder: sortOrder ?? this.sortOrder,
       isDefault: isDefault ?? this.isDefault,
       parentId: parentId ?? this.parentId,
+      isVault: isVault ?? this.isVault,
     );
   }
 
@@ -80,7 +86,7 @@ class Folder extends HiveObject {
   String toString() {
     return 'Folder(id: $id, name: $name, description: $description, color: $color, '
         'icon: $icon, createdAt: $createdAt, updatedAt: $updatedAt, '
-        'sortOrder: $sortOrder, isDefault: $isDefault, parentId: $parentId)';
+        'sortOrder: $sortOrder, isDefault: $isDefault, parentId: $parentId, isVault: $isVault)';
   }
 
   /// Convert to JSON for export
@@ -96,6 +102,7 @@ class Folder extends HiveObject {
       'sortOrder': sortOrder,
       'isDefault': isDefault,
       'parentId': parentId,
+      'isVault': isVault,
     };
   }
 
@@ -112,6 +119,7 @@ class Folder extends HiveObject {
       sortOrder: json['sortOrder'] ?? 0,
       isDefault: json['isDefault'] ?? false,
       parentId: json['parentId'],
+      isVault: json['isVault'] ?? false,
     );
   }
 
@@ -128,7 +136,8 @@ class Folder extends HiveObject {
         other.updatedAt == updatedAt &&
         other.sortOrder == sortOrder &&
         other.isDefault == isDefault &&
-        other.parentId == parentId;
+        other.parentId == parentId &&
+        other.isVault == isVault;
   }
 
   @override
@@ -144,6 +153,7 @@ class Folder extends HiveObject {
       sortOrder,
       isDefault,
       parentId,
+      isVault,
     );
   }
 }

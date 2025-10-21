@@ -24,6 +24,9 @@ class Note extends HiveObject {
   @HiveField(5, defaultValue: false)
   bool isPinned;
 
+  @HiveField(6)
+  String? folderId; // Reference to folder (including vault folders)
+
   Note({
     String? id,
     required this.title,
@@ -31,9 +34,10 @@ class Note extends HiveObject {
     DateTime? createdAt,
     DateTime? updatedAt,
     this.isPinned = false,
-  })  : id = id ?? const Uuid().v4(),
-        createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+    this.folderId,
+  }) : id = id ?? const Uuid().v4(),
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   /// Creates a copy of this note with updated fields
   Note copyWith({
@@ -43,6 +47,7 @@ class Note extends HiveObject {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isPinned,
+    String? folderId,
   }) {
     return Note(
       id: id ?? this.id,
@@ -51,6 +56,7 @@ class Note extends HiveObject {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isPinned: isPinned ?? this.isPinned,
+      folderId: folderId ?? this.folderId,
     );
   }
 
@@ -65,7 +71,7 @@ class Note extends HiveObject {
 
   @override
   String toString() {
-    return 'Note(id: $id, title: $title, isPinned: $isPinned, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'Note(id: $id, title: $title, isPinned: $isPinned, folderId: $folderId, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   /// Converts the note to a JSON map for export/import
@@ -77,6 +83,7 @@ class Note extends HiveObject {
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'isPinned': isPinned,
+      'folderId': folderId,
     };
   }
 
@@ -89,6 +96,7 @@ class Note extends HiveObject {
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
       isPinned: json['isPinned'] as bool? ?? false,
+      folderId: json['folderId'] as String?,
     );
   }
 }
