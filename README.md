@@ -36,7 +36,8 @@
 - Quick actions: swipe to edit/delete, multi-select for batch operations  
 
 ### 📝 Notes
-- Markdown support with live preview  
+- Markdown support with live preview
+- Lock your Notes in a SHA-256 encrypted Vault
 
 ### 🎨 Design
 - Material 3 interface following Google’s latest guidelines  
