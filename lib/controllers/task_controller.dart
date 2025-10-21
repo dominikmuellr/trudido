@@ -5,9 +5,10 @@ import '../providers/app_providers.dart';
 import '../services/notification_service.dart';
 import '../models/app_error.dart';
 
-final taskControllerProvider = StateNotifierProvider<TaskController, AsyncValue<void>>(
-  (ref) => TaskController(ref),
-);
+final taskControllerProvider =
+    StateNotifierProvider<TaskController, AsyncValue<void>>(
+      (ref) => TaskController(ref),
+    );
 
 class TaskController extends StateNotifier<AsyncValue<void>> {
   final Ref ref;
@@ -32,7 +33,11 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
   Future<void> update(Todo updated) async {
     state = const AsyncLoading();
     try {
-      final existing = tasks.firstWhere((t) => t.id == updated.id, orElse: () => throw const AppError(AppErrorType.notFound, 'Task not found'));
+      final existing = tasks.firstWhere(
+        (t) => t.id == updated.id,
+        orElse: () =>
+            throw const AppError(AppErrorType.notFound, 'Task not found'),
+      );
       await _cancelNotifications(existing);
       await _repo.update(updated);
       if (!updated.isCompleted) await _scheduleNotifications(updated);
@@ -44,18 +49,122 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<void> toggleComplete(String id) async {
-    final task = tasks.firstWhere((t) => t.id == id, orElse: () => throw const AppError(AppErrorType.notFound, 'Task not found'));
-    final updated = task.copyWith(
-      isCompleted: !task.isCompleted,
-      completedAt: task.isCompleted ? null : DateTime.now(),
+    final task = tasks.firstWhere(
+      (t) => t.id == id,
+      orElse: () =>
+          throw const AppError(AppErrorType.notFound, 'Task not found'),
     );
-    await update(updated);
+
+    if (!task.isCompleted && task.isRecurring) {
+      // Task is being marked complete and it's recurring
+      // Check if there's a next occurrence
+      final nextOccurrence = _calculateNextOccurrence(task);
+
+      if (nextOccurrence != null) {
+        // Create a new task for the next occurrence
+        final newTask = task.copyWith(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          dueDate: nextOccurrence,
+          isCompleted: false,
+          completedAt: null,
+          createdAt: DateTime.now(),
+        );
+        await add(newTask);
+      }
+
+      // Mark the current task as completed
+      final updated = task.copyWith(
+        isCompleted: true,
+        completedAt: DateTime.now(),
+      );
+      await update(updated);
+    } else {
+      // Non-recurring task or uncompleting a task
+      final updated = task.copyWith(
+        isCompleted: !task.isCompleted,
+        completedAt: task.isCompleted ? null : DateTime.now(),
+      );
+      await update(updated);
+    }
+  }
+
+  DateTime? _calculateNextOccurrence(Todo todo) {
+    if (!todo.isRecurring || todo.dueDate == null) return null;
+
+    final now = DateTime.now();
+    final currentDue = todo.dueDate!;
+
+    // Check if recurrence has ended
+    if (todo.repeatEndDate != null && now.isAfter(todo.repeatEndDate!)) {
+      return null;
+    }
+
+    DateTime nextDate = currentDue;
+
+    switch (todo.repeatType) {
+      case 'daily':
+        final interval = todo.repeatInterval ?? 1;
+        nextDate = currentDue.add(Duration(days: interval));
+        break;
+
+      case 'weekly':
+        final interval = todo.repeatInterval ?? 1;
+        nextDate = currentDue.add(Duration(days: 7 * interval));
+        break;
+
+      case 'monthly':
+        final interval = todo.repeatInterval ?? 1;
+        final newMonth = currentDue.month + interval;
+        final newYear = currentDue.year + (newMonth - 1) ~/ 12;
+        final actualMonth = ((newMonth - 1) % 12) + 1;
+
+        // Handle edge case: if day doesn't exist in target month, use last day
+        final daysInMonth = DateTime(newYear, actualMonth + 1, 0).day;
+        final actualDay = currentDue.day > daysInMonth
+            ? daysInMonth
+            : currentDue.day;
+
+        nextDate = DateTime(
+          newYear,
+          actualMonth,
+          actualDay,
+          currentDue.hour,
+          currentDue.minute,
+        );
+        break;
+
+      case 'custom':
+        // For custom with specific days (weekly pattern)
+        if (todo.repeatDays != null && todo.repeatDays!.isNotEmpty) {
+          final interval = todo.repeatInterval ?? 1;
+          nextDate = currentDue.add(Duration(days: 7 * interval));
+        } else {
+          // Custom daily pattern
+          final interval = todo.repeatInterval ?? 1;
+          nextDate = currentDue.add(Duration(days: interval));
+        }
+        break;
+
+      default:
+        return null;
+    }
+
+    // Check if next occurrence exceeds end date
+    if (todo.repeatEndDate != null && nextDate.isAfter(todo.repeatEndDate!)) {
+      return null;
+    }
+
+    return nextDate;
   }
 
   Future<void> delete(String id) async {
     state = const AsyncLoading();
     try {
-      final existing = tasks.firstWhere((t) => t.id == id, orElse: () => throw const AppError(AppErrorType.notFound, 'Task not found'));
+      final existing = tasks.firstWhere(
+        (t) => t.id == id,
+        orElse: () =>
+            throw const AppError(AppErrorType.notFound, 'Task not found'),
+      );
       await _cancelNotifications(existing);
       await _repo.delete(id);
       await ref.read(tasksProvider.notifier).refresh();
@@ -84,11 +193,15 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  Future<void> reorder(int oldIndex, int newIndex, List<Todo> listInView) async {
-  final updated = computeReordered(tasks, listInView, oldIndex, newIndex);
-  if (updated == null) return;
-  await _repo.saveOrder(updated);
-  await ref.read(tasksProvider.notifier).refresh();
+  Future<void> reorder(
+    int oldIndex,
+    int newIndex,
+    List<Todo> listInView,
+  ) async {
+    final updated = computeReordered(tasks, listInView, oldIndex, newIndex);
+    if (updated == null) return;
+    await _repo.saveOrder(updated);
+    await ref.read(tasksProvider.notifier).refresh();
   }
 
   Future<void> clearCompleted() async {
@@ -102,7 +215,11 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
 
   Future<void> _scheduleNotifications(Todo todo) async {
     if (todo.dueDate == null) return;
-    final times = computeReminderTimes(todo.dueDate!, todo.reminderOffsetsMinutes, DateTime.now());
+    final times = computeReminderTimes(
+      todo.dueDate!,
+      todo.reminderOffsetsMinutes,
+      DateTime.now(),
+    );
     for (final entry in times.entries) {
       await _notifications.scheduleTaskNotification(
         taskId: todo.id,
@@ -132,7 +249,7 @@ class TaskStatistics {
   final double completionRate;
   final int streakDays;
   final DateTime? lastCompleted;
-  final Map<String,int> byPriority;
+  final Map<String, int> byPriority;
   const TaskStatistics({
     required this.total,
     required this.completed,
@@ -163,12 +280,19 @@ class TaskStatistics {
 
 /// Exposed indirection for statistics & derived selectors. Override in tests
 /// instead of overriding the private tasks notifier.
-final rawTasksProvider = Provider<List<Todo>>((ref) => ref.watch(tasksProvider));
+final rawTasksProvider = Provider<List<Todo>>(
+  (ref) => ref.watch(tasksProvider),
+);
 
 /// Pure helper to compute a new ordered list given the full task list, a
 /// visible subset (in the same order), and the drag indices from that view.
 /// Returns null if indices are invalid.
-List<Todo>? computeReordered(List<Todo> full, List<Todo> view, int oldIndex, int newIndex) {
+List<Todo>? computeReordered(
+  List<Todo> full,
+  List<Todo> view,
+  int oldIndex,
+  int newIndex,
+) {
   if (oldIndex < 0 || oldIndex >= view.length) return null;
   // ReorderableListView gives newIndex that is the target position accounting for removal.
   // If dragged to the end, newIndex can equal view.length.
@@ -184,7 +308,10 @@ List<Todo>? computeReordered(List<Todo> full, List<Todo> view, int oldIndex, int
     // Move to end of sequence.
     insertPos = fullCopy.length;
   } else {
-    final target = view[adjustedNewIndex >= view.length ? view.length - 1 : adjustedNewIndex];
+    final target =
+        view[adjustedNewIndex >= view.length
+            ? view.length - 1
+            : adjustedNewIndex];
     // After removal, find the target position in the shrunk list.
     insertPos = fullCopy.indexWhere((t) => t.id == target.id);
     if (insertPos == -1) insertPos = fullCopy.length;
@@ -196,7 +323,11 @@ List<Todo>? computeReordered(List<Todo> full, List<Todo> view, int oldIndex, int
 /// Returns a map of offsetMinutes -> scheduled DateTime for future reminders.
 /// Filters out any times that would be in the past relative to [now] and
 /// de-duplicates offsets. Result is sorted by scheduled time ascending.
-Map<int, DateTime> computeReminderTimes(DateTime due, Iterable<int> offsetsMinutes, DateTime now) {
+Map<int, DateTime> computeReminderTimes(
+  DateTime due,
+  Iterable<int> offsetsMinutes,
+  DateTime now,
+) {
   final map = <int, DateTime>{};
   for (final raw in offsetsMinutes.toSet()) {
     if (raw < 0) continue; // ignore negative offsets
@@ -224,19 +355,29 @@ final taskStatisticsProvider = Provider<TaskStatistics>((ref) {
     }
     if (now.isAfter(due)) {
       overdue++;
-    } else if (due.year == now.year && due.month == now.month && due.day == now.day) {
+    } else if (due.year == now.year &&
+        due.month == now.month &&
+        due.day == now.day) {
       dueToday++;
-    } else if (due.difference(now).inDays >= 0 && due.difference(now).inDays <= 3) {
+    } else if (due.difference(now).inDays >= 0 &&
+        due.difference(now).inDays <= 3) {
       dueSoon++;
     }
   }
   final completionRate = total == 0 ? 0.0 : completed / total;
-  final completedDates = tasks
-      .where((t) => t.isCompleted && t.completedAt != null)
-      .map((t) => DateTime(t.completedAt!.year, t.completedAt!.month, t.completedAt!.day))
-      .toSet()
-      .toList()
-    ..sort((a, b) => b.compareTo(a));
+  final completedDates =
+      tasks
+          .where((t) => t.isCompleted && t.completedAt != null)
+          .map(
+            (t) => DateTime(
+              t.completedAt!.year,
+              t.completedAt!.month,
+              t.completedAt!.day,
+            ),
+          )
+          .toSet()
+          .toList()
+        ..sort((a, b) => b.compareTo(a));
   int streak = 0;
   DateTime cursor = DateTime(now.year, now.month, now.day);
   for (final d in completedDates) {
@@ -250,8 +391,11 @@ final taskStatisticsProvider = Provider<TaskStatistics>((ref) {
   final lastCompleted = tasks
       .where((t) => t.completedAt != null)
       .map((t) => t.completedAt!)
-      .fold<DateTime?>(null, (prev, e) => prev == null || e.isAfter(prev) ? e : prev);
-  final pri = <String,int>{};
+      .fold<DateTime?>(
+        null,
+        (prev, e) => prev == null || e.isAfter(prev) ? e : prev,
+      );
+  final pri = <String, int>{};
   for (final t in tasks) {
     pri[t.priority] = (pri[t.priority] ?? 0) + 1;
   }

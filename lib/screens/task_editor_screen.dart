@@ -41,6 +41,12 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   String _selectedFolderId = '';
   List<int> _reminderOffsetsMinutes = [];
 
+  // Repeat settings
+  String _repeatType = 'none';
+  int _repeatInterval = 1;
+  List<int> _repeatDays = [];
+  DateTime? _repeatEndDate;
+
   // UI state
   bool _isLoading = false;
 
@@ -62,6 +68,12 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       _reminderOffsetsMinutes = List<int>.from(
         widget.todo!.reminderOffsetsMinutes,
       );
+      _repeatType = widget.todo!.repeatType;
+      _repeatInterval = widget.todo!.repeatInterval ?? 1;
+      _repeatDays = widget.todo!.repeatDays != null
+          ? List<int>.from(widget.todo!.repeatDays!)
+          : [];
+      _repeatEndDate = widget.todo!.repeatEndDate;
     } else if (widget.presetDueDate != null) {
       // If creating a new task with a preset due date (from calendar)
       // Only set the date, not the time (let user choose time if needed)
@@ -235,6 +247,18 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           theme: theme,
           colorScheme: colorScheme,
         ),
+        const SizedBox(height: 12),
+
+        // Repeat selection (disabled if no due date)
+        _buildQuickActionChip(
+          icon: Icons.repeat,
+          label: _getRepeatLabel(),
+          isSelected: _repeatType != 'none',
+          onTap: _dueDate != null ? _showRepeatSelector : null,
+          theme: theme,
+          colorScheme: colorScheme,
+          isDisabled: _dueDate == null,
+        ),
       ],
     );
   }
@@ -269,58 +293,87 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     }
   }
 
+  String _getRepeatLabel() {
+    if (_dueDate == null) {
+      return 'Set due date to enable repeat';
+    }
+
+    switch (_repeatType) {
+      case 'daily':
+        if (_repeatInterval == 1) return 'Repeats daily';
+        return 'Repeats every $_repeatInterval days';
+      case 'weekly':
+        if (_repeatInterval == 1) {
+          if (_repeatDays.isEmpty) return 'Repeats weekly';
+          return 'Repeats weekly';
+        }
+        return 'Repeats every $_repeatInterval weeks';
+      case 'monthly':
+        if (_repeatInterval == 1) return 'Repeats monthly';
+        return 'Repeats every $_repeatInterval months';
+      case 'custom':
+        return 'Custom repeat';
+      default:
+        return 'Does not repeat';
+    }
+  }
+
   Widget _buildQuickActionChip({
     required IconData icon,
     required String label,
     required bool isSelected,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
     required ThemeData theme,
     required ColorScheme colorScheme,
+    bool isDisabled = false,
   }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: isDisabled ? null : onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? colorScheme.primaryContainer
-                : colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
+        child: Opacity(
+          opacity: isDisabled ? 0.5 : 1.0,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
               color: isSelected
-                  ? colorScheme.primary.withValues(alpha: 0.3)
-                  : colorScheme.outline.withValues(alpha: 0.2),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ScaledIcon(
-                icon,
-                size: 18,
+                  ? colorScheme.primaryContainer
+                  : colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
                 color: isSelected
-                    ? colorScheme.onPrimaryContainer
-                    : colorScheme.onSurfaceVariant,
+                    ? colorScheme.primary.withValues(alpha: 0.3)
+                    : colorScheme.outline.withValues(alpha: 0.2),
               ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  label,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isSelected
-                        ? colorScheme.onPrimaryContainer
-                        : colorScheme.onSurfaceVariant,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ScaledIcon(
+                  icon,
+                  size: 18,
+                  color: isSelected
+                      ? colorScheme.onPrimaryContainer
+                      : colorScheme.onSurfaceVariant,
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: isSelected
+                          ? colorScheme.onPrimaryContainer
+                          : colorScheme.onSurfaceVariant,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -432,7 +485,11 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                       label: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          ScaledIcon(Icons.add, size: 14, color: colorScheme.primary),
+                          ScaledIcon(
+                            Icons.add,
+                            size: 14,
+                            color: colorScheme.primary,
+                          ),
                           const SizedBox(width: 4),
                           Text('ADD FOLDER'),
                         ],
@@ -497,6 +554,324 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         return Icons.remove;
       default: // 'none'
         return Icons.radio_button_unchecked;
+    }
+  }
+
+  void _showRepeatSelector() {
+    // Ensure there's a due date before showing repeat options
+    if (_dueDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a due date before setting up repeat'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    final colorScheme = Theme.of(context).colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'Repeat',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const Divider(height: 1),
+
+                      // Repeat options
+                      _buildRepeatOption(
+                        'none',
+                        'Does not repeat',
+                        Icons.block,
+                        setModalState,
+                      ),
+                      _buildRepeatOption(
+                        'daily',
+                        'Daily',
+                        Icons.today,
+                        setModalState,
+                      ),
+                      _buildRepeatOption(
+                        'weekly',
+                        'Weekly',
+                        Icons.view_week,
+                        setModalState,
+                      ),
+                      _buildRepeatOption(
+                        'monthly',
+                        'Monthly',
+                        Icons.calendar_month,
+                        setModalState,
+                      ),
+                      _buildRepeatOption(
+                        'custom',
+                        'Custom...',
+                        Icons.tune,
+                        setModalState,
+                      ),
+
+                      // Show custom options if custom is selected
+                      if (_repeatType == 'custom') ...[
+                        const Divider(height: 1),
+                        _buildCustomRepeatOptions(setModalState, colorScheme),
+                      ],
+
+                      // End date option (for all repeat types except 'none')
+                      if (_repeatType != 'none') ...[
+                        const Divider(height: 1),
+                        ListTile(
+                          leading: ScaledIcon(Icons.event_busy, size: 20),
+                          title: Text(
+                            _repeatEndDate == null
+                                ? 'No end date'
+                                : 'Ends ${DateFormat('MMM d, yyyy').format(_repeatEndDate!)}',
+                          ),
+                          trailing: _repeatEndDate != null
+                              ? IconButton(
+                                  icon: ScaledIcon(Icons.clear, size: 18),
+                                  onPressed: () {
+                                    setModalState(() => _repeatEndDate = null);
+                                    setState(() => _repeatEndDate = null);
+                                  },
+                                )
+                              : null,
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate:
+                                  _repeatEndDate ??
+                                  DateTime.now().add(const Duration(days: 30)),
+                              firstDate: _dueDate ?? DateTime.now(),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 1825),
+                              ),
+                              helpText: 'Select end date',
+                            );
+                            if (picked != null) {
+                              setModalState(() => _repeatEndDate = picked);
+                              setState(() => _repeatEndDate = picked);
+                            }
+                          },
+                        ),
+                      ],
+
+                      const SizedBox(height: 16),
+
+                      // Done button
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Done'),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildRepeatOption(
+    String value,
+    String label,
+    IconData icon,
+    StateSetter setModalState,
+  ) {
+    final isSelected = _repeatType == value;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return ListTile(
+      leading: ScaledIcon(icon, size: 20),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+      trailing: isSelected
+          ? ScaledIcon(Icons.check, color: colorScheme.primary)
+          : null,
+      onTap: () {
+        setModalState(() => _repeatType = value);
+        setState(() {
+          _repeatType = value;
+          // Reset to defaults when changing type
+          if (value != 'custom') {
+            _repeatInterval = 1;
+            _repeatDays = [];
+          }
+        });
+      },
+    );
+  }
+
+  Widget _buildCustomRepeatOptions(
+    StateSetter setModalState,
+    ColorScheme colorScheme,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Custom Repeat Options',
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 16),
+
+          // Interval selector
+          Row(
+            children: [
+              Text('Repeat every'),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 70,
+                child: TextField(
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
+                  ),
+                  controller:
+                      TextEditingController(text: _repeatInterval.toString())
+                        ..selection = TextSelection.fromPosition(
+                          TextPosition(
+                            offset: _repeatInterval.toString().length,
+                          ),
+                        ),
+                  onChanged: (value) {
+                    final parsed = int.tryParse(value);
+                    if (parsed != null && parsed > 0) {
+                      setModalState(() => _repeatInterval = parsed);
+                      setState(() => _repeatInterval = parsed);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              DropdownButton<String>(
+                value: _repeatDays.isEmpty ? 'days' : 'weeks',
+                items: const [
+                  DropdownMenuItem(value: 'days', child: Text('days')),
+                  DropdownMenuItem(value: 'weeks', child: Text('weeks')),
+                ],
+                onChanged: (value) {
+                  // Switching between days and weeks mode
+                  if (value == 'days') {
+                    setModalState(() => _repeatDays = []);
+                    setState(() => _repeatDays = []);
+                  } else if (value == 'weeks' && _repeatDays.isEmpty) {
+                    // Default to current day of week if switching to weekly
+                    final currentDay =
+                        _dueDate?.weekday ?? DateTime.now().weekday;
+                    setModalState(() => _repeatDays = [currentDay]);
+                    setState(() => _repeatDays = [currentDay]);
+                  }
+                },
+              ),
+            ],
+          ),
+
+          // Day selection for weekly custom repeat
+          if (_repeatDays.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              'Repeat on',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (int i = 1; i <= 7; i++)
+                  FilterChip(
+                    label: Text(_getDayAbbreviation(i)),
+                    selected: _repeatDays.contains(i),
+                    onSelected: (selected) {
+                      setModalState(() {
+                        if (selected) {
+                          _repeatDays.add(i);
+                          _repeatDays.sort();
+                        } else {
+                          _repeatDays.remove(i);
+                        }
+                      });
+                      setState(() {
+                        if (selected) {
+                          _repeatDays.add(i);
+                          _repeatDays.sort();
+                        } else {
+                          _repeatDays.remove(i);
+                        }
+                      });
+                    },
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _getDayAbbreviation(int weekday) {
+    switch (weekday) {
+      case 1:
+        return 'Mon';
+      case 2:
+        return 'Tue';
+      case 3:
+        return 'Wed';
+      case 4:
+        return 'Thu';
+      case 5:
+        return 'Fri';
+      case 6:
+        return 'Sat';
+      case 7:
+        return 'Sun';
+      default:
+        return '';
     }
   }
 
@@ -669,6 +1044,10 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         priority: _priority,
         folderId: _selectedFolderId.isEmpty ? null : _selectedFolderId,
         reminderOffsetsMinutes: _reminderOffsetsMinutes,
+        repeatType: _repeatType,
+        repeatInterval: _repeatType != 'none' ? _repeatInterval : null,
+        repeatDays: _repeatDays.isNotEmpty ? _repeatDays : null,
+        repeatEndDate: _repeatEndDate,
         isCompleted: widget.todo?.isCompleted ?? false,
         createdAt: widget.todo?.createdAt ?? DateTime.now(),
         completedAt: widget.todo?.completedAt,

@@ -56,6 +56,84 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     }
   }
 
+  /// Check if a recurring task should appear on a specific date
+  bool _shouldRecurringTaskAppearOnDate(Todo task, DateTime date) {
+    if (!task.isRecurring || task.dueDate == null) return false;
+
+    final targetDate = DateTime(date.year, date.month, date.day);
+    final startDate = DateTime(
+      task.dueDate!.year,
+      task.dueDate!.month,
+      task.dueDate!.day,
+    );
+
+    // Don't show before the start date
+    if (targetDate.isBefore(startDate)) return false;
+
+    // Don't show after the end date
+    if (task.repeatEndDate != null) {
+      final endDate = DateTime(
+        task.repeatEndDate!.year,
+        task.repeatEndDate!.month,
+        task.repeatEndDate!.day,
+      );
+      if (targetDate.isAfter(endDate)) return false;
+    }
+
+    switch (task.repeatType) {
+      case 'daily':
+        final interval = task.repeatInterval ?? 1;
+        final daysDiff = targetDate.difference(startDate).inDays;
+        return daysDiff >= 0 && daysDiff % interval == 0;
+
+      case 'weekly':
+        final interval = task.repeatInterval ?? 1;
+        final daysOfWeek = task.repeatDays ?? [task.dueDate!.weekday];
+
+        // Check if this day of week matches
+        if (!daysOfWeek.contains(targetDate.weekday)) return false;
+
+        // Check if we're in the correct week interval
+        final weeksDiff = targetDate.difference(startDate).inDays ~/ 7;
+        return weeksDiff % interval == 0;
+
+      case 'monthly':
+        final interval = task.repeatInterval ?? 1;
+        final monthsDiff =
+            (targetDate.year - startDate.year) * 12 +
+            (targetDate.month - startDate.month);
+
+        // Check if we're in the correct month interval
+        if (monthsDiff < 0 || monthsDiff % interval != 0) return false;
+
+        // Check if the day matches (or is last day of month)
+        return targetDate.day == startDate.day ||
+            (targetDate.day ==
+                    DateTime(targetDate.year, targetDate.month + 1, 0).day &&
+                startDate.day > targetDate.day);
+
+      case 'custom':
+        // Custom with specific days (weekly pattern)
+        if (task.repeatDays != null && task.repeatDays!.isNotEmpty) {
+          final interval = task.repeatInterval ?? 1;
+          final daysOfWeek = task.repeatDays!;
+
+          if (!daysOfWeek.contains(targetDate.weekday)) return false;
+
+          final weeksDiff = targetDate.difference(startDate).inDays ~/ 7;
+          return weeksDiff % interval == 0;
+        } else {
+          // Custom daily pattern
+          final interval = task.repeatInterval ?? 1;
+          final daysDiff = targetDate.difference(startDate).inDays;
+          return daysDiff >= 0 && daysDiff % interval == 0;
+        }
+
+      default:
+        return false;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -70,6 +148,11 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
   List<Todo> _getTasksForDay(DateTime day) {
     return widget.tasks.where((task) {
       if (task.dueDate == null) return false;
+
+      // For recurring tasks, check if they should appear on this day
+      if (task.isRecurring && !task.isCompleted) {
+        return _shouldRecurringTaskAppearOnDate(task, day);
+      }
 
       // For multi-day tasks, check if day falls within range
       if (task.startDate != null) {
@@ -104,10 +187,33 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
   Map<DateTime, List<Todo>> _getTasksGroupedByDay() {
     final Map<DateTime, List<Todo>> taskMap = {};
 
+    // Get the visible date range from the calendar
+    final startOfMonth = DateTime(_focusedDay.year, _focusedDay.month, 1);
+    final endOfMonth = DateTime(_focusedDay.year, _focusedDay.month + 1, 0);
+
+    // Extend to show full weeks
+    final calendarStart = startOfMonth.subtract(
+      Duration(days: startOfMonth.weekday - 1),
+    );
+    final calendarEnd = endOfMonth.add(Duration(days: 7 - endOfMonth.weekday));
+
     for (final task in widget.tasks) {
       if (task.dueDate == null) continue;
 
-      if (task.startDate != null) {
+      // Handle recurring tasks
+      if (task.isRecurring && !task.isCompleted) {
+        // Add task to all days in the visible range where it should appear
+        for (
+          DateTime date = calendarStart;
+          date.isBefore(calendarEnd.add(const Duration(days: 1)));
+          date = date.add(const Duration(days: 1))
+        ) {
+          if (_shouldRecurringTaskAppearOnDate(task, date)) {
+            taskMap[date] = taskMap[date] ?? [];
+            taskMap[date]!.add(task);
+          }
+        }
+      } else if (task.startDate != null) {
         // Multi-day task - add to all days in range
         final startDate = DateTime(
           task.startDate!.year,
@@ -477,7 +583,9 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                   },
 
                   onPageChanged: (focusedDay) {
-                    _focusedDay = focusedDay;
+                    setState(() {
+                      _focusedDay = focusedDay;
+                    });
                   },
                 ),
               ),

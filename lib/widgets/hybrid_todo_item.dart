@@ -115,6 +115,8 @@ class HybridTodoItem extends ConsumerWidget {
                             _buildPriorityChip(context),
                           // Due date and time
                           if (todo.dueDate != null) _buildDueDateChip(context),
+                          // Repeat indicator
+                          if (todo.isRecurring) _buildRepeatChip(context),
                         ],
                       ),
                     ],
@@ -228,6 +230,51 @@ class HybridTodoItem extends ConsumerWidget {
               color: isOverdue
                   ? colorScheme.error
                   : colorScheme.onPrimaryContainer,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRepeatChip(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    String repeatText;
+    switch (todo.repeatType) {
+      case 'daily':
+        repeatText = 'Daily';
+        break;
+      case 'weekly':
+        repeatText = 'Weekly';
+        break;
+      case 'monthly':
+        repeatText = 'Monthly';
+        break;
+      case 'custom':
+        repeatText = 'Repeats';
+        break;
+      default:
+        repeatText = 'Repeats';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: colorScheme.secondaryContainer.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.repeat, size: 14, color: colorScheme.onSecondaryContainer),
+          const SizedBox(width: 4),
+          Text(
+            repeatText,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: colorScheme.onSecondaryContainer,
             ),
           ),
         ],

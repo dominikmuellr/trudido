@@ -41,6 +41,21 @@ class Todo extends HiveObject {
   @HiveField(12)
   DateTime? startDate; // Optional start for multi-day span (end = dueDate)
 
+  @HiveField(13, defaultValue: 'none')
+  String repeatType; // 'none', 'daily', 'weekly', 'monthly', 'custom'
+
+  @HiveField(14)
+  int? repeatInterval; // e.g., every 2 days/weeks/months (for custom)
+
+  @HiveField(15)
+  List<int>? repeatDays; // e.g., [1, 3, 5] for Mon/Wed/Fri (1=Mon, 7=Sun)
+
+  @HiveField(16)
+  DateTime? repeatEndDate; // Optional: when recurrence stops
+
+  @HiveField(17)
+  String? parentRecurringTaskId; // Reference to the original recurring task
+
   Todo({
     String? id,
     required this.text,
@@ -54,6 +69,11 @@ class Todo extends HiveObject {
     this.notes,
     this.folderId,
     List<int>? reminderOffsetsMinutes,
+    this.repeatType = 'none',
+    this.repeatInterval,
+    this.repeatDays,
+    this.repeatEndDate,
+    this.parentRecurringTaskId,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
        tags = tags ?? [],
@@ -73,6 +93,11 @@ class Todo extends HiveObject {
     String? notes,
     String? folderId,
     List<int>? reminderOffsetsMinutes,
+    String? repeatType,
+    int? repeatInterval,
+    List<int>? repeatDays,
+    DateTime? repeatEndDate,
+    String? parentRecurringTaskId,
   }) {
     return Todo(
       id: id ?? this.id,
@@ -88,6 +113,12 @@ class Todo extends HiveObject {
       folderId: folderId ?? this.folderId,
       reminderOffsetsMinutes:
           reminderOffsetsMinutes ?? this.reminderOffsetsMinutes,
+      repeatType: repeatType ?? this.repeatType,
+      repeatInterval: repeatInterval ?? this.repeatInterval,
+      repeatDays: repeatDays ?? this.repeatDays,
+      repeatEndDate: repeatEndDate ?? this.repeatEndDate,
+      parentRecurringTaskId:
+          parentRecurringTaskId ?? this.parentRecurringTaskId,
     );
   }
 
@@ -106,6 +137,11 @@ class Todo extends HiveObject {
       'notes': notes,
       'folderId': folderId,
       'reminderOffsetsMinutes': reminderOffsetsMinutes,
+      'repeatType': repeatType,
+      'repeatInterval': repeatInterval,
+      'repeatDays': repeatDays,
+      'repeatEndDate': repeatEndDate?.toIso8601String(),
+      'parentRecurringTaskId': parentRecurringTaskId,
     };
   }
 
@@ -129,6 +165,15 @@ class Todo extends HiveObject {
       reminderOffsetsMinutes: List<int>.from(
         json['reminderOffsetsMinutes'] ?? [],
       ),
+      repeatType: json['repeatType'] ?? 'none',
+      repeatInterval: json['repeatInterval'],
+      repeatDays: json['repeatDays'] != null
+          ? List<int>.from(json['repeatDays'])
+          : null,
+      repeatEndDate: json['repeatEndDate'] != null
+          ? DateTime.parse(json['repeatEndDate'])
+          : null,
+      parentRecurringTaskId: json['parentRecurringTaskId'],
     );
   }
 
@@ -170,8 +215,11 @@ class Todo extends HiveObject {
     return difference >= 0 && difference <= 3;
   }
 
+  // Check if this task is recurring
+  bool get isRecurring => repeatType != 'none';
+
   @override
   String toString() {
-    return 'Todo(id: $id, text: $text, isCompleted: $isCompleted, priority: $priority, folderId: $folderId)';
+    return 'Todo(id: $id, text: $text, isCompleted: $isCompleted, priority: $priority, folderId: $folderId, repeatType: $repeatType)';
   }
 }

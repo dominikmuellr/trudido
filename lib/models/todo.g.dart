@@ -29,13 +29,18 @@ class TodoAdapter extends TypeAdapter<Todo> {
       notes: fields[9] as String?,
       folderId: fields[10] as String?,
       reminderOffsetsMinutes: (fields[11] as List?)?.cast<int>(),
+      repeatType: fields[13] == null ? 'none' : fields[13] as String,
+      repeatInterval: fields[14] as int?,
+      repeatDays: (fields[15] as List?)?.cast<int>(),
+      repeatEndDate: fields[16] as DateTime?,
+      parentRecurringTaskId: fields[17] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Todo obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(17)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -59,7 +64,17 @@ class TodoAdapter extends TypeAdapter<Todo> {
       ..writeByte(11)
       ..write(obj.reminderOffsetsMinutes)
       ..writeByte(12)
-      ..write(obj.startDate);
+      ..write(obj.startDate)
+      ..writeByte(13)
+      ..write(obj.repeatType)
+      ..writeByte(14)
+      ..write(obj.repeatInterval)
+      ..writeByte(15)
+      ..write(obj.repeatDays)
+      ..writeByte(16)
+      ..write(obj.repeatEndDate)
+      ..writeByte(17)
+      ..write(obj.parentRecurringTaskId);
   }
 
   @override
