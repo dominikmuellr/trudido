@@ -1,0 +1,4 @@
+Version 1.0.7 (build 7):
+- Bumped app version from 1.0.6 to 1.0.7 (build 7)
+- Minor fixes and translations updates
+- See full changelog in app release notes
