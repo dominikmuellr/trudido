@@ -78,6 +78,7 @@ class AppTheme {
     0xFF757575, // Grey (grey accents)
     0xFF00FF00, // Hack (Matrix green, dark mode only)
     0xFFBD93F9, // Dracula (authentic Dracula colors, dark mode only)
+    0xFF268BD2, // Solarized (authentic Solarized colors with proper light/dark modes)
   ];
 
   static String getAccentColorName(int colorValue) {
@@ -116,6 +117,8 @@ class AppTheme {
         return 'Hack';
       case 0xFFBD93F9:
         return 'Dracula';
+      case 0xFF268BD2:
+        return 'Solarized';
       case 0xFF607D8B:
         return 'Blue Grey';
       default:
@@ -580,6 +583,66 @@ class AppTheme {
     );
   }
 
+  /// Creates a Solarized light color scheme with authentic Solarized colors
+  /// Based on https://github.com/altercation/solarized
+  static ColorScheme _createSolarizedLightScheme() {
+    return const ColorScheme.light(
+      primary: Color(0xFF268BD2), // Solarized Blue
+      onPrimary: Color(0xFFFDF6E3), // base3 (light background)
+      primaryContainer: Color(0xFFEEE8D5), // base2
+      onPrimaryContainer: Color(0xFF586E75), // base01
+      secondary: Color(0xFF2AA198), // Solarized Cyan
+      onSecondary: Color(0xFFFDF6E3), // base3
+      secondaryContainer: Color(0xFFEEE8D5), // base2
+      onSecondaryContainer: Color(0xFF586E75), // base01
+      tertiary: Color(0xFF859900), // Solarized Green
+      onTertiary: Color(0xFFFDF6E3), // base3
+      tertiaryContainer: Color(0xFFEEE8D5), // base2
+      onTertiaryContainer: Color(0xFF586E75), // base01
+      error: Color(0xFFDC322F), // Solarized Red
+      onError: Color(0xFFFDF6E3), // base3
+      surface: Color(0xFFFDF6E3), // base3 (light background)
+      onSurface: Color(0xFF657B83), // base00 (emphasized content)
+      surfaceContainerHighest: Color(
+        0xFFEEE8D5,
+      ), // base2 (background highlights)
+      onSurfaceVariant: Color(
+        0xFF586E75,
+      ), // base01 (optional emphasized content)
+      outline: Color(0xFF93A1A1), // base1 (comments / secondary content)
+    );
+  }
+
+  /// Creates a Solarized dark color scheme with authentic Solarized colors
+  /// Based on https://github.com/altercation/solarized
+  static ColorScheme _createSolarizedDarkScheme() {
+    return const ColorScheme.dark(
+      primary: Color(0xFF268BD2), // Solarized Blue
+      onPrimary: Color(0xFF002B36), // base03 (dark background)
+      primaryContainer: Color(0xFF073642), // base02
+      onPrimaryContainer: Color(0xFF93A1A1), // base1
+      secondary: Color(0xFF2AA198), // Solarized Cyan
+      onSecondary: Color(0xFF002B36), // base03
+      secondaryContainer: Color(0xFF073642), // base02
+      onSecondaryContainer: Color(0xFF93A1A1), // base1
+      tertiary: Color(0xFF859900), // Solarized Green
+      onTertiary: Color(0xFF002B36), // base03
+      tertiaryContainer: Color(0xFF073642), // base02
+      onTertiaryContainer: Color(0xFF93A1A1), // base1
+      error: Color(0xFFDC322F), // Solarized Red
+      onError: Color(0xFF002B36), // base03
+      surface: Color(0xFF002B36), // base03 (dark background)
+      onSurface: Color(0xFF839496), // base0 (emphasized content)
+      surfaceContainerHighest: Color(
+        0xFF073642,
+      ), // base02 (background highlights)
+      onSurfaceVariant: Color(
+        0xFF93A1A1,
+      ), // base1 (optional emphasized content)
+      outline: Color(0xFF586E75), // base01 (comments / secondary content)
+    );
+  }
+
   /// Build current light/dark themes (dynamic aware) given optional dynamic schemes.
   static (ThemeData light, ThemeData dark) buildThemes({
     ColorScheme? dynamicLight,
@@ -623,6 +686,14 @@ class AppTheme {
       // Use proper light/dark schemes with matching brightness
       light = _baseLight(dynamicLight ?? draculaLight);
       dark = _baseDark(dynamicDark ?? draculaDark);
+    }
+    // Special handling for Solarized - create authentic Solarized color scheme
+    else if (seedColor.value == 0xFF268BD2) {
+      final solarizedLight = _createSolarizedLightScheme();
+      final solarizedDark = _createSolarizedDarkScheme();
+      // Use proper light/dark schemes with matching brightness
+      light = _baseLight(dynamicLight ?? solarizedLight);
+      dark = _baseDark(dynamicDark ?? solarizedDark);
     } else {
       // Use normal Material 3 color generation for other colors
       final seedLight = ColorScheme.fromSeed(

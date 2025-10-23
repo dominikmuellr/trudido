@@ -297,7 +297,10 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
       highContrast: highContrast,
     );
     final useBlack = ref.watch(blackThemeEnabledProvider);
-    final darkThemeEffective = useBlack
+    // Don't apply black theme to Solarized (or other incompatible themes)
+    final isSolarized =
+        prefs.accentColorSeed == 0xFF268BD2 && !prefs.useDynamicColor;
+    final darkThemeEffective = (useBlack && !isSolarized)
         ? AppTheme.blackify(themes.$2)
         : themes.$2;
 

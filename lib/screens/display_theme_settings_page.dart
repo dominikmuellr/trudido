@@ -220,10 +220,12 @@ class _ThemeModeSheet extends ConsumerWidget {
     final useDynamicColor = ref.watch(preferencesStateProvider).useDynamicColor;
     final controller = ref.read(preferencesControllerProvider);
 
-    // Check if Hack or Dracula theme is selected and dynamic colors are disabled
+    // Check if Hack, Dracula, or Solarized theme is selected and dynamic colors are disabled
     final isHackTheme = accentColorSeed == 0xFF00FF00 && !useDynamicColor;
     final isDraculaTheme = accentColorSeed == 0xFFBD93F9 && !useDynamicColor;
+    final isSolarizedTheme = accentColorSeed == 0xFF268BD2 && !useDynamicColor;
     final isDarkOnlyTheme = isHackTheme || isDraculaTheme;
+    final isBlackIncompatibleTheme = isDarkOnlyTheme || isSolarizedTheme;
 
     Widget buildOption(
       ThemeMode mode,
@@ -245,6 +247,7 @@ class _ThemeModeSheet extends ConsumerWidget {
       String getUnavailableMessage() {
         if (isHackTheme) return 'Not available for Hack theme';
         if (isDraculaTheme) return 'Not available for Dracula theme';
+        if (isSolarizedTheme) return 'Not available for Solarized theme';
         return desc;
       }
 
@@ -296,17 +299,41 @@ class _ThemeModeSheet extends ConsumerWidget {
             Icons.auto_mode_outlined,
           ),
           ListTile(
-            leading: Icon(Icons.contrast, color: cs.onSurfaceVariant),
-            title: const Text('Black (AMOLED)'),
+            enabled: !isBlackIncompatibleTheme && current != ThemeMode.light,
+            leading: Icon(
+              Icons.contrast,
+              color: (isBlackIncompatibleTheme || current == ThemeMode.light)
+                  ? cs.onSurfaceVariant.withOpacity(0.4)
+                  : cs.onSurfaceVariant,
+            ),
+            title: Text(
+              'Black (AMOLED)',
+              style: TextStyle(
+                color: (isBlackIncompatibleTheme || current == ThemeMode.light)
+                    ? cs.onSurfaceVariant.withOpacity(0.4)
+                    : null,
+              ),
+            ),
+            subtitle: isBlackIncompatibleTheme
+                ? Text(
+                    isSolarizedTheme
+                        ? 'Not compatible with Solarized theme'
+                        : 'Not compatible with this theme',
+                    style: TextStyle(
+                      color: cs.onSurfaceVariant.withOpacity(0.4),
+                    ),
+                  )
+                : null,
             trailing: Switch(
               value: useBlackTheme,
-              onChanged: (current == ThemeMode.light)
+              onChanged:
+                  (current == ThemeMode.light || isBlackIncompatibleTheme)
                   ? null
                   : (v) {
                       controller.toggleBlackTheme();
                     },
             ),
-            onTap: (current == ThemeMode.light)
+            onTap: (current == ThemeMode.light || isBlackIncompatibleTheme)
                 ? null
                 : () {
                     controller.toggleBlackTheme();
@@ -511,6 +538,31 @@ class _AccentColorSelector extends ConsumerWidget {
           size: 12,
         ),
       );
+    } else if (colorValue == 0xFF268BD2) {
+      // Special Solarized icon showing light/dark split
+      return Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: ClipOval(
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(color: const Color(0xFFFDF6E3)),
+              ), // Solarized light
+              Expanded(
+                child: Container(color: const Color(0xFF002B36)),
+              ), // Solarized dark
+            ],
+          ),
+        ),
+      );
     } else {
       // Regular solid color circle for other colors
       return Container(
@@ -564,6 +616,8 @@ class _AccentColorSelector extends ConsumerWidget {
         return 'Hack';
       case 0xFFBD93F9:
         return 'Dracula';
+      case 0xFF268BD2:
+        return 'Solarized';
       case 0xFF607D8B:
         return 'Blue Grey';
       default:
@@ -602,6 +656,7 @@ class _AccentColorSheet extends StatelessWidget {
     0xFF757575, // Grey (grey accents)
     0xFF00FF00, // Hack (Matrix green, dark mode only)
     0xFFBD93F9, // Dracula (authentic Dracula colors, dark mode only)
+    0xFF268BD2, // Solarized (authentic Solarized colors with proper light/dark modes)
   ];
 
   @override
@@ -752,6 +807,31 @@ class _AccentColorSheet extends StatelessWidget {
           size: 16,
         ),
       );
+    } else if (colorValue == 0xFF268BD2) {
+      // Special Solarized icon showing light/dark split
+      return Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected ? cs.primary : cs.outline.withOpacity(0.3),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: ClipOval(
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(color: const Color(0xFFFDF6E3)),
+              ), // Solarized light
+              Expanded(
+                child: Container(color: const Color(0xFF002B36)),
+              ), // Solarized dark
+            ],
+          ),
+        ),
+      );
     } else {
       // Regular solid color circle for other colors
       return Container(
@@ -805,6 +885,8 @@ class _AccentColorSheet extends StatelessWidget {
         return 'Hack';
       case 0xFFBD93F9:
         return 'Dracula';
+      case 0xFF268BD2:
+        return 'Solarized';
       case 0xFF607D8B:
         return 'Blue Grey';
       default:

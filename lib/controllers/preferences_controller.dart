@@ -56,6 +56,13 @@ class PreferencesController {
       } else {
         await _update(accentColorSeed: colorSeed);
       }
+    }
+    // If setting Solarized theme (0xFF268BD2) and black theme is enabled,
+    // automatically turn off black theme as Solarized is not compatible with AMOLED black
+    else if (colorSeed == 0xFF268BD2 &&
+        state.useBlackTheme &&
+        !state.useDynamicColor) {
+      await _update(accentColorSeed: colorSeed, useBlackTheme: false);
     } else {
       await _update(accentColorSeed: colorSeed);
     }
