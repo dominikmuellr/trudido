@@ -1,12 +1,13 @@
-import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:trudido/main.dart';
 import 'package:trudido/services/storage_service.dart';
 import 'package:trudido/repositories/task_repository.dart';
 import 'package:trudido/providers/app_providers.dart';
+import 'package:trudido/screens/task_editor_screen.dart';
 import 'package:flutter/services.dart';
 
 class _TestRepo extends TaskRepository {
@@ -19,6 +20,14 @@ class _TestRepo extends TaskRepository {
 void main() {
   setUpAll(() {
     WidgetsFlutterBinding.ensureInitialized();
+    // Prevent google_fonts from trying to fetch fonts from the network
+    // during widget tests which run with TestWidgetsFlutterBinding.
+    GoogleFonts.config.allowRuntimeFetching = false;
+    // We rely on bundled fonts, so don't disable AppTheme GoogleFonts usage here.
+    // AppTheme.disableGoogleFonts = true; // no longer needed when fonts are bundled
+    // Run storage deferred opens synchronously in tests to avoid background
+    // timers that the test harness treats as pending.
+    StorageService.performDeferredSynchronously = true;
     const String testPathChannel = 'plugins.flutter.io/path_provider';
     const MethodChannel channel = MethodChannel(testPathChannel);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -59,47 +68,48 @@ void main() {
   });
 
   testWidgets('TodoApp basic elements render', (WidgetTester tester) async {
-    await fakeAsync((async) async {
-      final repo = _TestRepo();
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [taskRepositoryProvider.overrideWithValue(repo)],
-          child: const TodoApp(disableSideEffects: true),
-        ),
-      );
+    final repo = _TestRepo();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [taskRepositoryProvider.overrideWithValue(repo)],
+        child: const TodoApp(disableSideEffects: true),
+      ),
+    );
 
-      async.elapse(const Duration(seconds: 10));
-      await tester.pump();
+    // Use a fixed pump to advance frames without waiting for full quiescence.
+    // Some widgets use repeating timers/animations which prevent pumpAndSettle
+    // from completing in the test environment.
+    await tester.pump(const Duration(milliseconds: 500));
 
-      final hasYet = find.text('No tasks yet').evaluate().isNotEmpty;
-      final hasFound = find.text('No todos found').evaluate().isNotEmpty;
-      expect(
-        hasYet || hasFound,
-        isTrue,
-        reason: 'Expected an empty state message but none appeared',
-      );
-      expect(find.byType(FloatingActionButton), findsOneWidget);
-    });
+    final hasYet = find.text('No tasks yet').evaluate().isNotEmpty;
+    final hasFound = find.text('No todos found').evaluate().isNotEmpty;
+    expect(
+      hasYet || hasFound,
+      isTrue,
+      reason: 'Expected an empty state message but none appeared',
+    );
+    expect(find.byType(FloatingActionButton), findsOneWidget);
   });
 
   testWidgets('Can open add todo dialog', (WidgetTester tester) async {
-    await fakeAsync((async) async {
-      final repo = _TestRepo();
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [taskRepositoryProvider.overrideWithValue(repo)],
-          child: const TodoApp(disableSideEffects: true),
-        ),
-      );
-      async.elapse(const Duration(seconds: 10));
-      await tester.pump();
+    final repo = _TestRepo();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [taskRepositoryProvider.overrideWithValue(repo)],
+        child: const TodoApp(disableSideEffects: true),
+      ),
+    );
+    // Advance frames after navigation without waiting indefinitely.
+    await tester.pump(const Duration(milliseconds: 500));
 
-      // Tap FAB
-      await tester.tap(find.byType(FloatingActionButton));
-      async.elapse(const Duration(seconds: 1));
-      await tester.pump();
+    // Tap FAB
+    await tester.tap(find.byType(FloatingActionButton));
+    // Let the navigation animation run (advance several frames)
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
 
-      expect(find.text('Add Todo'), findsOneWidget);
-    });
+    // Expect the TaskEditorScreen to be present after navigation
+    expect(find.byType(TaskEditorScreen), findsOneWidget);
   });
 }

@@ -28,6 +28,13 @@ class StorageService {
   // Toggle for console logging (timings, deferred open). Disable in tests for cleaner output.
   static bool enableLogging = true;
 
+  /// When true, deferred opens (notes/todos/folders) will run synchronously
+  /// inside `init()` instead of being scheduled in a microtask. This helps
+  /// widget tests avoid background timers and pending futures. Tests should
+  /// set `StorageService.performDeferredSynchronously = true` in setUpAll if
+  /// they call `StorageService.init()` and expect no background timers.
+  static bool performDeferredSynchronously = false;
+
   static bool _initialized = false; // core (prefs + hive init) ready
   static Completer<void>?
   _initCompleter; // completion for initial (settings only) init
@@ -71,8 +78,8 @@ class StorageService {
     await _ensurePrefs();
     final afterPrefs = DateTime.now();
 
-    // Schedule deferred opens (todos and notes) without blocking UI.
-    Future(() async {
+    // Schedule or run deferred opens (todos and notes) without blocking UI.
+    FutureOr<void> runDeferred() async {
       // Note folders box MUST open first (needed for note encryption/decryption)
       _noteFoldersCompleter ??= Completer<void>();
       try {
@@ -180,7 +187,15 @@ class StorageService {
           debugPrint('[StorageService.deferred] repo init error $e');
         }
       }
-    });
+    }
+
+    if (performDeferredSynchronously) {
+      // Run inline for tests to avoid scheduling background timers that
+      // the test harness will complain about.
+      await runDeferred();
+    } else {
+      Future(() async => await runDeferred());
+    }
     final afterRepo = DateTime.now(); // only scheduling, not actual work
 
     // Lightweight timing log (debug only)

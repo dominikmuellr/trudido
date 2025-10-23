@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:trudido/utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/theme_service.dart';
 import 'package:intl/intl.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'dart:math';
 import 'dart:async';
 import '../providers/filter_providers.dart';
@@ -510,12 +510,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   : null,
                               child: Text(
                                 'trudido',
-                                style: GoogleFonts.montserrat(
-                                  // Slightly larger app name for improved presence
+                                style: AppTheme.safeMontserrat(
+                                  context,
                                   fontSize: 18,
-                                  // Lighter weight for subtle brand presence
                                   fontWeight: FontWeight.w500,
-                                  // Small letter spacing for a refined look
                                   letterSpacing: 0.4,
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
