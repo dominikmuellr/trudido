@@ -21,6 +21,14 @@ version: 1.0.7+0 # Release tag for v1.0.7
 environment:
   sdk: ^3.8.1
 
+# Build metadata (helpful for reproducible builds and support requests)
+build_info:
+  commit: 39c4217ce576487945d98f0013d055e1bf82b60e
+  tag: v1.0.7
+  flutter: "3.35.5"
+  flutter_path: "/c/dev/flutter/bin/flutter"
+  build_command: "flutter build apk --release --build-name=1.0.7 --build-number=7"
+
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
 # consider running `flutter pub upgrade --major-versions`. Alternatively,
