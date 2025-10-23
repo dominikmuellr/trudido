@@ -157,3 +157,39 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# Documentation
+docs/
+test_cache/
+web/.dart_tool/
+web/build/
+android/.gradle/
+android/local.properties
+ios/Pods/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/App.framework
+ios/Flutter/engine/
+ios/Flutter/ephemeral/
+macos/Pods/
+*.tmp
+*.bak
+*.orig
+*.class
+*.pyc
+*.pyo
+*.exe
+*.dll
+*.so
+*.dylib
+*.key
+*.lock
+*.pem
+*.jks
+*.log
+*.DS_Store
+*.swp
+*.pyo
+*.env
+*.env.*

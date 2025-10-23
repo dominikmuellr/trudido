@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:trudido/utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/theme_service.dart';
-import 'package:intl/intl.dart';
 import 'dart:math';
 import 'dart:async';
 import '../providers/filter_providers.dart';
@@ -19,6 +18,8 @@ import '../models/note_folder.dart';
 import '../screens/task_editor_screen.dart';
 import '../widgets/todo_list_tab.dart';
 import '../widgets/create_folder_dialog.dart';
+import '../widgets/animated_widgets.dart';
+import '../utils/animated_navigation.dart';
 import 'settings_screen.dart';
 import 'notes_screen.dart';
 import 'note_editor_screen.dart';
@@ -166,24 +167,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             Expanded(
               child: Scaffold(
                 appBar: _buildAppBar(context),
-                body: IndexedStack(index: currentTab, children: tabs),
+                body: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  switchInCurve: Curves.easeInOut,
+                  switchOutCurve: Curves.easeInOut,
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(opacity: animation, child: child);
+                  },
+                  child: IndexedStack(
+                    key: ValueKey<int>(currentTab),
+                    index: currentTab,
+                    children: tabs,
+                  ),
+                ),
                 floatingActionButtonLocation: fabLocation,
-                floatingActionButton: AnimatedContainer(
-                  duration: const Duration(
-                    milliseconds: 300,
-                  ), // Material 3 standard
-                  child: FloatingActionButton(
-                    heroTag: "main_fab", // Unique hero tag
-                    onPressed: () => _onFabPressed(currentTab),
-                    backgroundColor: _getFabColor(
-                      currentTab,
-                      Theme.of(context).colorScheme,
-                    ),
-                    elevation: 3.0, // Material 3 standard elevation
-                    highlightElevation: 6.0, // Subtle interaction feedback
-                    shape: const CircleBorder(), // Explicit Material 3 shape
-                    tooltip: _getFabTooltip(currentTab),
-                    child: _buildFabIcon(currentTab),
+                floatingActionButton: AnimatedFAB(
+                  heroTag: "main_fab",
+                  visible: true,
+                  icon: _buildFabIcon(currentTab),
+                  onPressed: () => _onFabPressed(currentTab),
+                  backgroundColor: _getFabColor(
+                    currentTab,
+                    Theme.of(context).colorScheme,
                   ),
                 ),
               ),
@@ -195,7 +200,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     return Scaffold(
       appBar: _buildAppBar(context),
-      body: IndexedStack(index: currentTab, children: tabs),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeInOut,
+        switchOutCurve: Curves.easeInOut,
+        transitionBuilder: (child, animation) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        child: IndexedStack(
+          key: ValueKey<int>(currentTab),
+          index: currentTab,
+          children: tabs,
+        ),
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentTab,
         onTap: (index) {
@@ -233,20 +250,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ],
       ),
       floatingActionButtonLocation: fabLocation,
-      floatingActionButton: AnimatedContainer(
-        duration: const Duration(milliseconds: 300), // Material 3 standard
-        child: FloatingActionButton(
-          heroTag: "main_fab", // Unique hero tag
-          onPressed: () => _onFabPressed(currentTab),
-          backgroundColor: _getFabColor(
-            currentTab,
-            Theme.of(context).colorScheme,
-          ),
-          elevation: 3.0, // Material 3 standard elevation
-          highlightElevation: 6.0, // Subtle interaction feedback
-          shape: const CircleBorder(), // Explicit Material 3 shape
-          tooltip: _getFabTooltip(currentTab),
-          child: _buildFabIcon(currentTab),
+      floatingActionButton: AnimatedFAB(
+        heroTag: "main_fab",
+        visible: true,
+        icon: _buildFabIcon(currentTab),
+        onPressed: () => _onFabPressed(currentTab),
+        backgroundColor: _getFabColor(
+          currentTab,
+          Theme.of(context).colorScheme,
         ),
       ),
     );
@@ -288,14 +299,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ? selectedDate
         : null;
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => TaskEditorScreen(
-          presetDueDate: preset,
-          onSave: (todo) {
-            ref.read(taskControllerProvider.notifier).add(todo);
-          },
-        ),
+    AnimatedNavigation.pushContainerTransform(
+      context,
+      TaskEditorScreen(
+        presetDueDate: preset,
+        onSave: (todo) {
+          ref.read(taskControllerProvider.notifier).add(todo);
+        },
       ),
     );
   }
@@ -304,11 +314,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Get the currently selected folder to create note in
     final selectedFolderId = ref.read(selectedNoteFolderProvider);
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) =>
-            NoteEditorScreen(initialFolderId: selectedFolderId),
-      ),
+    AnimatedNavigation.pushContainerTransform(
+      context,
+      NoteEditorScreen(initialFolderId: selectedFolderId),
     );
   }
 
@@ -377,24 +385,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   /// Returns the appropriate tooltip for the current tab and context
-  String _getFabTooltip(int currentTab) {
-    switch (currentTab) {
-      case 0: // Tasks tab
-        final viewType = ref.watch(taskViewTypeProvider);
-        final selectedDate = ref.watch(selectedCalendarDateProvider);
-
-        if (viewType == TaskViewType.calendar && selectedDate != null) {
-          final dateStr = DateFormat('MMM d').format(selectedDate);
-          return 'Add task for $dateStr';
-        }
-        return 'Add task';
-      case 1: // Notes tab
-        return 'Create note';
-      default:
-        return 'Add';
-    }
-  }
-
   /// Returns context-aware color for the FAB
   Color? _getFabColor(int currentTab, ColorScheme colorScheme) {
     // Use theme-aware colors that work in both light and dark mode
@@ -635,10 +625,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           case 'settings':
                             // Security: Clear vault selection before navigating away
                             _clearVaultSelectionIfNeeded();
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const SettingsScreen(),
-                              ),
+                            AnimatedNavigation.push(
+                              context,
+                              const SettingsScreen(),
                             );
                             break;
                         }
