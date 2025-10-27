@@ -316,8 +316,8 @@ class _AnimationShowcaseScreenState extends State<AnimationShowcaseScreen>
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton(
-                    onPressed: () =>
-                        setState(() => _counter = (_counter - 1).clamp(0, 999)),
+                    onPressed: () => setState(() =>
+                        _counter = (_counter - 1) < 0 ? 0 : _counter - 1),
                     child: const Text('Decrement'),
                   ),
                 ],
@@ -567,7 +567,7 @@ class _AnimationShowcaseScreenState extends State<AnimationShowcaseScreen>
 class _DemoScreen extends StatelessWidget {
   final String title;
 
-  const _DemoScreen({required this.title});
+  const _DemoScreen({Key? key, required this.title}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
