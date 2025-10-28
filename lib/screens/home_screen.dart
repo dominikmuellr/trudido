@@ -149,16 +149,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 }
               },
               labelType: NavigationRailLabelType.all,
-              destinations: const [
+              destinations: [
                 NavigationRailDestination(
-                  icon: ScaledIcon(Icons.checklist_outlined),
-                  selectedIcon: ScaledIcon(Icons.checklist),
-                  label: Text('Tasks'),
+                  icon: _buildNavigationIcon(Icons.checklist_outlined, 0),
+                  selectedIcon: _buildNavigationIcon(Icons.checklist, 0),
+                  label: const Text('Tasks'),
                 ),
                 NavigationRailDestination(
-                  icon: ScaledIcon(Icons.note_outlined),
-                  selectedIcon: ScaledIcon(Icons.note),
-                  label: Text('Notes'),
+                  icon: _buildNavigationIcon(Icons.note_outlined, 1),
+                  selectedIcon: _buildNavigationIcon(Icons.note, 1),
+                  label: const Text('Notes'),
                 ),
               ],
             ),
@@ -213,9 +213,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           children: tabs,
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentTab,
-        onTap: (index) {
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: currentTab,
+        onDestinationSelected: (index) {
           final previousTab = ref.read(currentTabProvider);
 
           // Security: Clear vault folder selection when leaving Notes tab
@@ -236,15 +236,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             }
           }
         },
-        items: [
-          BottomNavigationBarItem(
-            icon: ScaledIcon(Icons.checklist),
-            activeIcon: ScaledIcon(Icons.checklist),
+        destinations: [
+          NavigationDestination(
+            icon: _buildNavigationIcon(Icons.checklist_outlined, 0),
+            selectedIcon: _buildNavigationIcon(Icons.checklist, 0),
             label: 'Tasks',
           ),
-          BottomNavigationBarItem(
-            icon: ScaledIcon(Icons.note),
-            activeIcon: ScaledIcon(Icons.note),
+          NavigationDestination(
+            icon: _buildNavigationIcon(Icons.note_outlined, 1),
+            selectedIcon: _buildNavigationIcon(Icons.note, 1),
             label: 'Notes',
           ),
         ],
@@ -384,6 +384,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+  /// Builds navigation icon with optional badge for notification counts
+  Widget _buildNavigationIcon(IconData icon, int tabIndex) {
+    // Get counts for badges
+    int? badgeCount;
+
+    if (tabIndex == 0) {
+      // Tasks tab - show overdue count
+      final taskStats = ref.watch(taskStatisticsProvider);
+      if (taskStats.overdue > 0) {
+        badgeCount = taskStats.overdue;
+      }
+    } else if (tabIndex == 1) {
+      // Notes tab - could show unread count (if implemented)
+      // For now, no badge
+      badgeCount = null;
+    }
+
+    final iconWidget = Icon(icon);
+
+    if (badgeCount != null && badgeCount > 0) {
+      return Badge(
+        label: Text(badgeCount > 99 ? '99+' : '$badgeCount'),
+        backgroundColor: Theme.of(context).colorScheme.error,
+        textColor: Theme.of(context).colorScheme.onError,
+        child: iconWidget,
+      );
+    }
+
+    return iconWidget;
+  }
+
   /// Returns the appropriate tooltip for the current tab and context
   /// Returns context-aware color for the FAB
   Color? _getFabColor(int currentTab, ColorScheme colorScheme) {
@@ -411,9 +442,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final currentTab = ref.watch(currentTabProvider);
 
     if (isSearchMode && (currentTab == 0 || currentTab == 1)) {
+      // Material 3 compliant search AppBar
+      final theme = Theme.of(context);
+      final colorScheme = theme.colorScheme;
+
       return AppBar(
+        backgroundColor: colorScheme.surface,
+        surfaceTintColor: colorScheme.surfaceTint,
         leading: IconButton(
-          icon: ScaledIcon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
           onPressed: () {
             ref.read(searchModeProvider.notifier).state = false;
             _searchController.clear();
@@ -427,9 +464,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         title: TextField(
           controller: _searchController,
           autofocus: true,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: colorScheme.onSurface,
+          ),
           decoration: InputDecoration(
             hintText: currentTab == 0 ? 'Search tasks...' : 'Search notes...',
+            hintStyle: theme.textTheme.bodyLarge?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
             border: InputBorder.none,
+            filled: false,
+            contentPadding: EdgeInsets.zero,
           ),
           onChanged: (value) {
             if (currentTab == 0) {
@@ -442,7 +487,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         actions: [
           if (_searchController.text.isNotEmpty)
             IconButton(
-              icon: ScaledIcon(Icons.close),
+              icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
+              tooltip: 'Clear search',
               onPressed: () {
                 _searchController.clear();
                 if (currentTab == 0) {
@@ -546,7 +592,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   children: [
                     if (currentTab == 0 && multiMode) ...[
                       IconButton(
-                        icon: ScaledIcon(Icons.check_circle),
+                        icon: ScaledIcon(Icons.check_circle_outline),
                         tooltip: 'Mark complete',
                         onPressed: selectedIds.isEmpty
                             ? null
@@ -590,7 +636,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               },
                       ),
                       IconButton(
-                        icon: ScaledIcon(Icons.delete),
+                        icon: ScaledIcon(Icons.delete_outline),
                         tooltip: 'Delete',
                         onPressed: selectedIds.isEmpty
                             ? null
@@ -637,18 +683,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           PopupMenuItem(
                             value: 'search',
                             child: ListTile(
-                              leading: ScaledIcon(Icons.search),
+                              leading: const Icon(Icons.search, size: 20),
                               title: const Text('Search'),
                               dense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
                             ),
                           ),
 
                         PopupMenuItem(
                           value: 'settings',
                           child: ListTile(
-                            leading: ScaledIcon(Icons.settings),
+                            leading: const Icon(
+                              Icons.settings_outlined,
+                              size: 20,
+                            ),
                             title: const Text('Settings'),
                             dense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                            ),
                           ),
                         ),
                         // Help & About entries removed: About and Help moved to Settings -> About & Licenses
@@ -725,7 +780,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ScaledIcon(
                         selectedFolder != null
                             ? _getIconData(selectedFolder.icon)
-                            : Icons.folder,
+                            : Icons.folder_outlined,
                         size: 18,
                         color: selectedFolder != null
                             ? Color(selectedFolder.color)
@@ -751,7 +806,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         ScaledIcon(
                           selectedFolder != null
                               ? _getIconData(selectedFolder.icon)
-                              : Icons.folder,
+                              : Icons.folder_outlined,
                           // larger icon for the centered title state
                           size: 20,
                           color: selectedFolder != null
@@ -791,7 +846,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 child: Row(
                   children: [
                     ScaledIcon(
-                      Icons.folder,
+                      Icons.folder_outlined,
                       size: 18,
                       color: selectedFolderId == null
                           ? Theme.of(context).colorScheme.primary
@@ -960,7 +1015,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ScaledIcon(
-                    Icons.folder,
+                    Icons.folder_outlined,
                     size: 18,
                     color: Theme.of(context).colorScheme.error,
                   ),
@@ -980,7 +1035,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     ScaledIcon(
-                      Icons.folder,
+                      Icons.folder_outlined,
                       size: 20,
                       color: Theme.of(context).colorScheme.error,
                     ),

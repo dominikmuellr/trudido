@@ -6,6 +6,7 @@ import '../models/todo.dart';
 import '../screens/task_editor_screen.dart';
 import '../controllers/task_controller.dart';
 import '../providers/filter_providers.dart';
+import '../providers/clock.dart';
 import 'hybrid_todo_item.dart';
 
 /// Material Design 3 Calendar View for Tasks
@@ -20,7 +21,7 @@ class CalendarView extends ConsumerStatefulWidget {
 }
 
 class _CalendarViewState extends ConsumerState<CalendarView> {
-  DateTime _focusedDay = DateTime.now();
+  late DateTime _focusedDay;
   DateTime? _selectedDay;
   CalendarFormat _calendarFormat = CalendarFormat.month;
 
@@ -137,7 +138,9 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
   @override
   void initState() {
     super.initState();
-    _selectedDay = DateTime.now();
+    final now = ref.read(clockProvider).now();
+    _focusedDay = now;
+    _selectedDay = now;
     // Initialize the provider with today's date
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(selectedCalendarDateProvider.notifier).state = _selectedDay;
@@ -431,7 +434,10 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
 
                     // Custom selected day builder with underline
                     selectedBuilder: (context, day, focusedDay) {
-                      final isToday = isSameDay(day, DateTime.now());
+                      final isToday = isSameDay(
+                        day,
+                        ref.read(clockProvider).now(),
+                      );
 
                       Widget content = Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -598,7 +604,11 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
               margin: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  Icon(Icons.event, size: 20, color: colorScheme.primary),
+                  Icon(
+                    Icons.event_outlined,
+                    size: 20,
+                    color: colorScheme.primary,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     DateFormat('EEEE, MMMM d').format(_selectedDay!),
@@ -659,7 +669,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.event,
+            Icons.event_outlined,
             size: 64,
             color: colorScheme.onSurface.withValues(alpha: 0.4),
           ),

@@ -3,9 +3,12 @@ import '../models/preferences_state.dart';
 import '../models/todo.dart';
 import '../repositories/task_repository.dart';
 import '../services/preferences_service.dart';
+import 'clock.dart';
 
 /// Singleton preferences service provider.
-final preferencesServiceProvider = Provider<PreferencesService>((ref) => PreferencesService());
+final preferencesServiceProvider = Provider<PreferencesService>(
+  (ref) => PreferencesService(),
+);
 
 /// Reactive preferences state for quick rebuilds.
 final preferencesStateProvider = StateProvider<PreferencesState>((ref) {
@@ -14,7 +17,9 @@ final preferencesStateProvider = StateProvider<PreferencesState>((ref) {
 });
 
 /// Task repository provider (lazy load). Use [tasksProvider] for list.
-final taskRepositoryProvider = Provider<TaskRepository>((ref) => TaskRepository());
+final taskRepositoryProvider = Provider<TaskRepository>(
+  (ref) => TaskRepository(),
+);
 
 class _TasksNotifier extends StateNotifier<List<Todo>> {
   final TaskRepository repo;
@@ -25,6 +30,7 @@ class _TasksNotifier extends StateNotifier<List<Todo>> {
     await repo.load();
     state = repo.tasks;
   }
+
   Future<void> refresh() async {
     await repo.load();
     state = repo.tasks;
@@ -45,7 +51,7 @@ final incompleteTasksProvider = Provider<List<Todo>>((ref) {
 /// Tasks active today (due today OR spanning including today).
 final todayActiveTasksProvider = Provider<List<Todo>>((ref) {
   final all = ref.watch(tasksProvider);
-  final today = DateTime.now();
+  final today = ref.watch(clockProvider).now();
   return all.where((t) => t.activeOn(today)).toList();
 });
 

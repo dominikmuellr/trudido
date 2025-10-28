@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:trudido/utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../models/todo.dart';
 import '../services/storage_service.dart';
 import '../services/folder_provider.dart';
+import '../providers/clock.dart';
 import '../widgets/add_reminder_dialog.dart';
 import '../widgets/create_folder_dialog.dart';
+import '../utils/date_formatters.dart';
 
 /// Unified Task Editor Screen
 /// Handles both creating new tasks and editing existing ones
@@ -205,7 +206,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         const SizedBox(height: 12),
         // Date selection (full width for better display of ranges)
         _buildQuickActionChip(
-          icon: Icons.event,
+          icon: Icons.event_outlined,
           label: _getDueDateLabel(),
           isSelected: _dueDate != null,
           onTap: _selectDueDate,
@@ -217,7 +218,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         // Time selection (only show if date is selected)
         if (_dueDate != null) ...[
           _buildQuickActionChip(
-            icon: Icons.schedule,
+            icon: Icons.schedule_outlined,
             label: _getTimeLabel(),
             isSelected: _dueTime != null,
             onTap: _selectTime,
@@ -240,7 +241,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
 
         // Reminder selection
         _buildQuickActionChip(
-          icon: Icons.notifications,
+          icon: Icons.notifications_outlined,
           label: _getReminderLabel(),
           isSelected: _reminderOffsetsMinutes.isNotEmpty,
           onTap: _showAddReminderDialog,
@@ -251,7 +252,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
 
         // Repeat selection (disabled if no due date)
         _buildQuickActionChip(
-          icon: Icons.repeat,
+          icon: Icons.repeat_outlined,
           label: _getRepeatLabel(),
           isSelected: _repeatType != 'none',
           onTap: _dueDate != null ? _showRepeatSelector : null,
@@ -264,14 +265,19 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   }
 
   String _getDueDateLabel() {
+    final now = ref.read(clockProvider).now();
     if (_dueDate == null) {
       return 'Select date or date range';
     } else if (_isMultiDay && _startDate != null && _startDate != _dueDate) {
-      // Multi-day: show date range only if start and end are different
-      return '${DateFormat('MMM d').format(_startDate!)} - ${DateFormat('MMM d').format(_dueDate!)}';
+      // Multi-day: show smart date range
+      return DateFormatters.formatSmartRange(_startDate!, _dueDate!, now: now);
     } else {
-      // Single day: show just the date (even if _isMultiDay is true but dates are same)
-      return DateFormat('MMM d, yyyy').format(_dueDate!);
+      // Single day: show smart date
+      return DateFormatters.formatSmart(
+        _dueDate!,
+        now: now,
+        includeTime: false,
+      );
     }
   }
 
@@ -401,7 +407,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
             hintText: 'Add details...',
             filled: true,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-            prefixIcon: ScaledIcon(Icons.notes),
+            prefixIcon: ScaledIcon(Icons.notes_outlined),
           ),
           maxLines: 3,
           textCapitalization: TextCapitalization.sentences,
@@ -644,7 +650,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                           title: Text(
                             _repeatEndDate == null
                                 ? 'No end date'
-                                : 'Ends ${DateFormat('MMM d, yyyy').format(_repeatEndDate!)}',
+                                : 'Ends ${DateFormatters.formatSmart(_repeatEndDate!, now: ref.read(clockProvider).now(), includeTime: false)}',
                           ),
                           trailing: _repeatEndDate != null
                               ? IconButton(
@@ -656,15 +662,14 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                                 )
                               : null,
                           onTap: () async {
+                            final now = ref.read(clockProvider).now();
                             final picked = await showDatePicker(
                               context: context,
                               initialDate:
                                   _repeatEndDate ??
-                                  DateTime.now().add(const Duration(days: 30)),
-                              firstDate: _dueDate ?? DateTime.now(),
-                              lastDate: DateTime.now().add(
-                                const Duration(days: 1825),
-                              ),
+                                  now.add(const Duration(days: 30)),
+                              firstDate: _dueDate ?? now,
+                              lastDate: now.add(const Duration(days: 1825)),
                               helpText: 'Select end date',
                             );
                             if (picked != null) {
@@ -801,7 +806,8 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                   } else if (value == 'weeks' && _repeatDays.isEmpty) {
                     // Default to current day of week if switching to weekly
                     final currentDay =
-                        _dueDate?.weekday ?? DateTime.now().weekday;
+                        _dueDate?.weekday ??
+                        ref.read(clockProvider).now().weekday;
                     setModalState(() => _repeatDays = [currentDay]);
                     setState(() => _repeatDays = [currentDay]);
                   }
@@ -974,11 +980,12 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   }
 
   Future<void> _selectDueDate() async {
+    final now = ref.read(clockProvider).now();
     // Show Material's built-in date range picker
     final picked = await showDateRangePicker(
       context: context,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
       initialDateRange: _startDate != null && _dueDate != null
           ? DateTimeRange(start: _startDate!, end: _dueDate!)
           : null,
@@ -1034,7 +1041,9 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       }
 
       final todo = Todo(
-        id: widget.todo?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        id:
+            widget.todo?.id ??
+            ref.read(clockProvider).now().millisecondsSinceEpoch.toString(),
         text: _titleController.text.trim(),
         notes: _notesController.text.trim().isEmpty
             ? null
@@ -1049,7 +1058,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         repeatDays: _repeatDays.isNotEmpty ? _repeatDays : null,
         repeatEndDate: _repeatEndDate,
         isCompleted: widget.todo?.isCompleted ?? false,
-        createdAt: widget.todo?.createdAt ?? DateTime.now(),
+        createdAt: widget.todo?.createdAt ?? ref.read(clockProvider).now(),
         completedAt: widget.todo?.completedAt,
       );
 

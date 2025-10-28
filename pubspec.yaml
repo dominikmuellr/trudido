@@ -89,6 +89,7 @@ dependencies:
 
   # Cryptographic hashing for secure password storage
   crypto: ^3.0.3
+  lottie: ^3.3.2
 
 dev_dependencies:
   flutter_test:

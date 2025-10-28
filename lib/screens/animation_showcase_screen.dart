@@ -316,8 +316,9 @@ class _AnimationShowcaseScreenState extends State<AnimationShowcaseScreen>
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton(
-                    onPressed: () => setState(() =>
-                        _counter = (_counter - 1) < 0 ? 0 : _counter - 1),
+                    onPressed: () => setState(
+                      () => _counter = (_counter - 1) < 0 ? 0 : _counter - 1,
+                    ),
                     child: const Text('Decrement'),
                   ),
                 ],

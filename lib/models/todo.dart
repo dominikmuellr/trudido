@@ -178,10 +178,18 @@ class Todo extends HiveObject {
   }
 
   // Helper methods
-  bool get isOverdue {
+
+  /// Checks if the task is overdue based on the provided time.
+  ///
+  /// [now] - The current time to compare against (defaults to DateTime.now())
+  bool isOverdueAt([DateTime? now]) {
     if (dueDate == null || isCompleted) return false;
-    return DateTime.now().isAfter(dueDate!);
+    final currentTime = now ?? DateTime.now();
+    return currentTime.isAfter(dueDate!);
   }
+
+  /// Legacy getter for backward compatibility. Prefer isOverdueAt() for testability.
+  bool get isOverdue => isOverdueAt();
 
   bool get isSpan =>
       startDate != null && dueDate != null && !dueDate!.isBefore(startDate!);
@@ -201,19 +209,33 @@ class Todo extends HiveObject {
     return d.year == day.year && d.month == day.month && d.day == day.day;
   }
 
-  bool get isDueToday {
+  /// Checks if the task is due today based on the provided time.
+  ///
+  /// [now] - The current time to compare against (defaults to DateTime.now())
+  bool isDueTodayAt([DateTime? now]) {
     if (dueDate == null) return false;
-    final now = DateTime.now();
+    final currentTime = now ?? DateTime.now();
     final due = dueDate!;
-    return now.year == due.year && now.month == due.month && now.day == due.day;
+    return currentTime.year == due.year &&
+        currentTime.month == due.month &&
+        currentTime.day == due.day;
   }
 
-  bool get isDueSoon {
+  /// Legacy getter for backward compatibility. Prefer isDueTodayAt() for testability.
+  bool get isDueToday => isDueTodayAt();
+
+  /// Checks if the task is due soon (within 3 days) based on the provided time.
+  ///
+  /// [now] - The current time to compare against (defaults to DateTime.now())
+  bool isDueSoonAt([DateTime? now]) {
     if (dueDate == null || isCompleted) return false;
-    final now = DateTime.now();
-    final difference = dueDate!.difference(now).inDays;
+    final currentTime = now ?? DateTime.now();
+    final difference = dueDate!.difference(currentTime).inDays;
     return difference >= 0 && difference <= 3;
   }
+
+  /// Legacy getter for backward compatibility. Prefer isDueSoonAt() for testability.
+  bool get isDueSoon => isDueSoonAt();
 
   // Check if this task is recurring
   bool get isRecurring => repeatType != 'none';

@@ -104,7 +104,6 @@ class _AnimatedFABState extends State<AnimatedFAB>
     if (widget.enableHaptic) {
       HapticFeedbackService.heavyImpact();
     }
-    widget.onPressed();
   }
 
   void _handleTapCancel() {
@@ -122,7 +121,7 @@ class _AnimatedFABState extends State<AnimatedFAB>
           child: widget.label != null
               ? FloatingActionButton.extended(
                   heroTag: widget.heroTag,
-                  onPressed: null, // Handled by GestureDetector
+                  onPressed: widget.onPressed,
                   icon: widget.icon,
                   label: Text(widget.label!),
                   backgroundColor: widget.backgroundColor,
@@ -134,7 +133,7 @@ class _AnimatedFABState extends State<AnimatedFAB>
                   onTapCancel: _handleTapCancel,
                   child: FloatingActionButton(
                     heroTag: widget.heroTag,
-                    onPressed: null, // Handled by GestureDetector
+                    onPressed: widget.onPressed,
                     backgroundColor: widget.backgroundColor,
                     foregroundColor: widget.foregroundColor,
                     child: widget.icon,

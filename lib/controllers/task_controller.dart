@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/todo.dart';
 import '../repositories/task_repository.dart';
 import '../providers/app_providers.dart';
+import '../providers/clock.dart';
 import '../services/notification_service.dart';
 import '../models/app_error.dart';
 
@@ -62,12 +63,13 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
 
       if (nextOccurrence != null) {
         // Create a new task for the next occurrence
+        final now = ref.read(clockProvider).now();
         final newTask = task.copyWith(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: now.millisecondsSinceEpoch.toString(),
           dueDate: nextOccurrence,
           isCompleted: false,
           completedAt: null,
-          createdAt: DateTime.now(),
+          createdAt: now,
         );
         await add(newTask);
       }
@@ -75,14 +77,15 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
       // Mark the current task as completed
       final updated = task.copyWith(
         isCompleted: true,
-        completedAt: DateTime.now(),
+        completedAt: ref.read(clockProvider).now(),
       );
       await update(updated);
     } else {
       // Non-recurring task or uncompleting a task
+      final now = ref.read(clockProvider).now();
       final updated = task.copyWith(
         isCompleted: !task.isCompleted,
-        completedAt: task.isCompleted ? null : DateTime.now(),
+        completedAt: task.isCompleted ? null : now,
       );
       await update(updated);
     }
@@ -91,7 +94,7 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
   DateTime? _calculateNextOccurrence(Todo todo) {
     if (!todo.isRecurring || todo.dueDate == null) return null;
 
-    final now = DateTime.now();
+    final now = ref.read(clockProvider).now();
     final currentDue = todo.dueDate!;
 
     // Check if recurrence has ended
@@ -215,10 +218,11 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
 
   Future<void> _scheduleNotifications(Todo todo) async {
     if (todo.dueDate == null) return;
+    final now = ref.read(clockProvider).now();
     final times = computeReminderTimes(
       todo.dueDate!,
       todo.reminderOffsetsMinutes,
-      DateTime.now(),
+      now,
     );
     for (final entry in times.entries) {
       await _notifications.scheduleTaskNotification(
@@ -346,7 +350,7 @@ final taskStatisticsProvider = Provider<TaskStatistics>((ref) {
   final total = tasks.length;
   final completed = tasks.where((t) => t.isCompleted).length;
   final pending = total - completed;
-  final now = DateTime.now();
+  final now = ref.watch(clockProvider).now();
   int overdue = 0, dueToday = 0, dueSoon = 0;
   for (final t in tasks) {
     final due = t.dueDate;
@@ -365,28 +369,27 @@ final taskStatisticsProvider = Provider<TaskStatistics>((ref) {
     }
   }
   final completionRate = total == 0 ? 0.0 : completed / total;
-  final completedDates =
-      tasks
-          .where((t) => t.isCompleted && t.completedAt != null)
-          .map(
-            (t) => DateTime(
-              t.completedAt!.year,
-              t.completedAt!.month,
-              t.completedAt!.day,
-            ),
-          )
-          .toSet()
-          .toList()
-        ..sort((a, b) => b.compareTo(a));
+  // Build a set of completed dates (normalized to year/month/day) and then
+  // count consecutive days starting from today. Using a set + while loop is
+  // more robust than relying on ordering and avoids subtle off-by-one issues.
+  // Normalize dates to UTC midnight before forming the set. Using UTC avoids
+  // DST-related issues when subtracting days across daylight saving changes.
+  final completedDays = tasks
+      .where((t) => t.isCompleted && t.completedAt != null)
+      .map(
+        (t) => DateTime.utc(
+          t.completedAt!.year,
+          t.completedAt!.month,
+          t.completedAt!.day,
+        ),
+      )
+      .toSet();
+
   int streak = 0;
-  DateTime cursor = DateTime(now.year, now.month, now.day);
-  for (final d in completedDates) {
-    if (d == cursor || d == cursor.subtract(const Duration(days: 1))) {
-      streak++;
-      cursor = cursor.subtract(const Duration(days: 1));
-    } else {
-      break;
-    }
+  DateTime cursor = DateTime.utc(now.year, now.month, now.day);
+  while (completedDays.contains(cursor)) {
+    streak++;
+    cursor = DateTime.utc(cursor.year, cursor.month, cursor.day - 1);
   }
   final lastCompleted = tasks
       .where((t) => t.completedAt != null)

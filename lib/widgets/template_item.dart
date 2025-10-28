@@ -196,7 +196,7 @@ class TemplateItem extends StatelessWidget {
                   if (onDuplicate != null)
                     OutlinedButton.icon(
                       onPressed: onDuplicate,
-                      icon: const Icon(Icons.copy, size: 16),
+                      icon: const Icon(Icons.copy_outlined, size: 16),
                       label: const Text('Copy'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
@@ -233,7 +233,7 @@ class TemplateItem extends StatelessWidget {
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit, size: 16),
+                            Icon(Icons.edit_outlined, size: 16),
                             SizedBox(width: 8),
                             Text('Edit'),
                           ],
@@ -255,7 +255,11 @@ class TemplateItem extends StatelessWidget {
                           value: 'delete',
                           child: Row(
                             children: [
-                              Icon(Icons.delete, size: 16, color: Colors.red),
+                              Icon(
+                                Icons.delete_outline,
+                                size: 16,
+                                color: Colors.red,
+                              ),
                               SizedBox(width: 8),
                               Text(
                                 'Delete',

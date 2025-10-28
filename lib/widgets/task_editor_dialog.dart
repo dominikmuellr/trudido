@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/todo.dart';
 import '../services/storage_service.dart';
+import '../providers/clock.dart';
 
 /// Unified Task Editor Dialog
 /// Handles both creating new tasks and editing existing ones
@@ -534,11 +535,12 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
   }
 
   Future<void> _selectDueDate() async {
+    final now = ref.read(clockProvider).now();
     // Show Material's built-in date range picker
     final picked = await showDateRangePicker(
       context: context,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
       initialDateRange: _startDate != null && _dueDate != null
           ? DateTimeRange(start: _startDate!, end: _dueDate!)
           : null,
@@ -594,7 +596,9 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
       }
 
       final todo = Todo(
-        id: widget.todo?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        id:
+            widget.todo?.id ??
+            ref.read(clockProvider).now().millisecondsSinceEpoch.toString(),
         text: _titleController.text.trim(),
         notes: _notesController.text.trim().isEmpty
             ? null
@@ -605,7 +609,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
         folderId: _selectedFolderId.isEmpty ? null : _selectedFolderId,
         reminderOffsetsMinutes: _reminderOffsetsMinutes,
         isCompleted: widget.todo?.isCompleted ?? false,
-        createdAt: widget.todo?.createdAt ?? DateTime.now(),
+        createdAt: widget.todo?.createdAt ?? ref.read(clockProvider).now(),
         completedAt: widget.todo?.completedAt,
       );
 

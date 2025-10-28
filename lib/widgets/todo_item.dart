@@ -53,14 +53,14 @@ class TodoItem extends StatelessWidget {
               onPressed: (_) => onEdit(),
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
-              icon: Icons.edit,
+              icon: Icons.edit_outlined,
               label: 'Edit',
             ),
             SlidableAction(
               onPressed: (_) => onDelete(),
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
-              icon: Icons.delete,
+              icon: Icons.delete_outline,
               label: 'Delete',
             ),
           ],
@@ -223,7 +223,7 @@ class TodoItem extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.event, size: 14, color: dateColor),
+            Icon(Icons.event_outlined, size: 14, color: dateColor),
             const SizedBox(width: 4),
             Text(
               dueDateText,

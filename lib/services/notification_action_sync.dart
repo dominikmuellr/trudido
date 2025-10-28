@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'notification_service.dart';
 import 'storage_service.dart';
 import '../providers/app_providers.dart';
+import '../providers/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// A singleton responsible for idempotent handling of notification actions
@@ -28,7 +29,8 @@ class NotificationActionSync {
         try {
           await NotificationBridge.instance.pullPendingNativeActions();
         } catch (e) {
-          if (kDebugMode) debugPrint('[NotificationActionSync] secondary pull failed: $e');
+          if (kDebugMode)
+            debugPrint('[NotificationActionSync] secondary pull failed: $e');
         }
       });
     }
@@ -48,19 +50,27 @@ class NotificationActionSync {
     _sub = null;
   }
 
-  Future<void> _processAction(NotificationAction action, ProviderContainer? container) async {
-  if (kDebugMode) debugPrint('[NotificationActionSync] processing action $action');
+  Future<void> _processAction(
+    NotificationAction action,
+    ProviderContainer? container,
+  ) async {
+    if (kDebugMode)
+      debugPrint('[NotificationActionSync] processing action $action');
     final key = _actionKey(action);
     if (_applied.contains(key)) {
-      if (kDebugMode) debugPrint('[NotificationActionSync] Skipping duplicate action $key');
+      if (kDebugMode)
+        debugPrint('[NotificationActionSync] Skipping duplicate action $key');
       return; // idempotent skip
     }
 
     // Load current task state from storage directly to avoid stale UI state
-  final todo = await StorageService.getTodoAsync(action.taskId);
+    final todo = await StorageService.getTodoAsync(action.taskId);
     if (action.type == 'taskCompleted') {
       if (todo == null) {
-        if (kDebugMode) debugPrint('[NotificationActionSync] Task not found ${action.taskId}');
+        if (kDebugMode)
+          debugPrint(
+            '[NotificationActionSync] Task not found ${action.taskId}',
+          );
         _markApplied(key); // Avoid reprocessing
         return;
       }
@@ -69,28 +79,39 @@ class NotificationActionSync {
         return;
       }
       // Update task as completed
-      final updated = todo.copyWith(isCompleted: true, completedAt: DateTime.now());
-      if (kDebugMode) debugPrint('[NotificationActionSync] marking task ${action.taskId} complete');
+      final now = container?.read(clockProvider).now() ?? DateTime.now();
+      final updated = todo.copyWith(isCompleted: true, completedAt: now);
+      if (kDebugMode)
+        debugPrint(
+          '[NotificationActionSync] marking task ${action.taskId} complete',
+        );
       await StorageService.updateTodo(updated);
       // Update provider state if available
-      try { 
+      try {
         // Force tasks list refresh (tasksProvider loads from repository/storage)
         await container?.read(tasksProvider.notifier).refresh();
-      } catch (e) { if (kDebugMode) debugPrint('[NotificationActionSync] refresh failed: $e'); }
+      } catch (e) {
+        if (kDebugMode)
+          debugPrint('[NotificationActionSync] refresh failed: $e');
+      }
       _markApplied(key);
     } else if (action.type == 'taskSnoozed') {
       // Optional: adjust reminders or track next notification time
       // For idempotency, only apply if newScheduledTime differs from last stored meta.
       if (action.newScheduledTime != null) {
         final metaKey = 'snooze_last_${action.taskId}';
-  final last = StorageService.getMeta(metaKey);
-        final newMillis = action.newScheduledTime!.millisecondsSinceEpoch.toString();
+        final last = StorageService.getMeta(metaKey);
+        final newMillis = action.newScheduledTime!.millisecondsSinceEpoch
+            .toString();
         if (last == newMillis) {
           _markApplied(key);
           return; // duplicate snooze event
         }
-  StorageService.setMeta(metaKey, newMillis);
-  if (kDebugMode) debugPrint('[NotificationActionSync] recorded snooze for ${action.taskId} newTime=${action.newScheduledTime}');
+        StorageService.setMeta(metaKey, newMillis);
+        if (kDebugMode)
+          debugPrint(
+            '[NotificationActionSync] recorded snooze for ${action.taskId} newTime=${action.newScheduledTime}',
+          );
       }
       _markApplied(key);
     }

@@ -1,19 +1,17 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../models/todo.dart';
 import '../controllers/task_controller.dart';
+import '../providers/clock.dart';
 import '../widgets/reminder_components.dart';
 import '../widgets/add_reminder_dialog.dart';
+import '../utils/date_formatters.dart';
 
 class EditTaskScreen extends ConsumerStatefulWidget {
   final Todo? task;
 
-  const EditTaskScreen({
-    super.key,
-    this.task,
-  });
+  const EditTaskScreen({super.key, this.task});
 
   @override
   ConsumerState<EditTaskScreen> createState() => _EditTaskScreenState();
@@ -43,19 +41,24 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
     if (widget.task != null) {
       _titleController = TextEditingController(text: widget.task!.text);
       _notesController = TextEditingController(text: widget.task!.notes ?? '');
-      
+
       // Ensure priority is valid
       const validPriorities = ['low', 'medium', 'high'];
-      _selectedPriority = validPriorities.contains(widget.task!.priority) 
-          ? widget.task!.priority 
+      _selectedPriority = validPriorities.contains(widget.task!.priority)
+          ? widget.task!.priority
           : 'medium';
-      
+
       _selectedFolderId = widget.task!.folderId;
-  _selectedDueDate = widget.task!.dueDate;
-  _selectedStartDate = widget.task!.startDate;
-  _multiDay = widget.task!.startDate != null && widget.task!.dueDate != null && !widget.task!.dueDate!.isBefore(widget.task!.startDate!);
-  _reminderOffsetsMinutes = List<int>.from(widget.task?.reminderOffsetsMinutes ?? []); // Updated
-  _tags = List<String>.from(widget.task?.tags ?? []);
+      _selectedDueDate = widget.task!.dueDate;
+      _selectedStartDate = widget.task!.startDate;
+      _multiDay =
+          widget.task!.startDate != null &&
+          widget.task!.dueDate != null &&
+          !widget.task!.dueDate!.isBefore(widget.task!.startDate!);
+      _reminderOffsetsMinutes = List<int>.from(
+        widget.task?.reminderOffsetsMinutes ?? [],
+      ); // Updated
+      _tags = List<String>.from(widget.task?.tags ?? []);
     } else {
       _titleController = TextEditingController();
       _notesController = TextEditingController();
@@ -77,15 +80,21 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
       return;
     }
 
-  setState(() { _isLoading = true; });
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
-  if (widget.task != null) {
+      if (widget.task != null) {
         // Update existing task
-        debugPrint('EditTaskScreen: Updating existing task with reminders: $_reminderOffsetsMinutes');
+        debugPrint(
+          'EditTaskScreen: Updating existing task with reminders: $_reminderOffsetsMinutes',
+        );
         final updatedTask = widget.task!.copyWith(
           text: _titleController.text.trim(),
-          notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+          notes: _notesController.text.trim().isEmpty
+              ? null
+              : _notesController.text.trim(),
           priority: _selectedPriority,
           folderId: _selectedFolderId,
           dueDate: _selectedDueDate,
@@ -94,13 +103,17 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
           tags: _tags,
         );
 
-  await ref.read(taskControllerProvider.notifier).update(updatedTask);
+        await ref.read(taskControllerProvider.notifier).update(updatedTask);
       } else {
         // Create new task
-        debugPrint('EditTaskScreen: Creating new task with reminders: $_reminderOffsetsMinutes');
+        debugPrint(
+          'EditTaskScreen: Creating new task with reminders: $_reminderOffsetsMinutes',
+        );
         final newTask = Todo(
           text: _titleController.text.trim(),
-          notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+          notes: _notesController.text.trim().isEmpty
+              ? null
+              : _notesController.text.trim(),
           priority: _selectedPriority,
           folderId: _selectedFolderId,
           dueDate: _selectedDueDate,
@@ -109,24 +122,25 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
           tags: _tags,
         );
 
-  await ref.read(taskControllerProvider.notifier).add(newTask);
+        await ref.read(taskControllerProvider.notifier).add(newTask);
       }
 
-  if (!mounted) return;
-  Navigator.of(context).pop({
+      if (!mounted) return;
+      Navigator.of(context).pop({
         'success': true,
         'action': widget.task != null ? 'updated' : 'created',
-        'message': widget.task != null ? 'Task updated successfully' : 'Task created successfully'
+        'message': widget.task != null
+            ? 'Task updated successfully'
+            : 'Task created successfully',
       });
     } catch (e) {
-  if (!mounted) return;
-  Navigator.of(context).pop({
+      if (!mounted) return;
+      Navigator.of(context).pop({
         'success': false,
         'error': e.toString(),
-        'message': 'Error saving task: $e'
+        'message': 'Error saving task: $e',
       });
-    }
-    finally {
+    } finally {
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -138,17 +152,18 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
   Future<void> _selectDueDate() async {
     debugPrint('EditTaskScreen: _selectDueDate() called');
     final localContext = context; // capture for immediate use only
-    final initialDate = _selectedDueDate ?? DateTime.now();
-  final DateTime? pickedDate = await showDatePicker(
+    final now = ref.read(clockProvider).now();
+    final initialDate = _selectedDueDate ?? now;
+    final DateTime? pickedDate = await showDatePicker(
       context: localContext,
       initialDate: initialDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+      firstDate: now.subtract(const Duration(days: 365)),
+      lastDate: now.add(const Duration(days: 365 * 2)),
     );
     if (!mounted) return; // do not use context unless still mounted
     debugPrint('EditTaskScreen: Date picker result: $pickedDate');
     if (pickedDate == null) return;
-  final TimeOfDay? pickedTime = await showTimePicker(
+    final TimeOfDay? pickedTime = await showTimePicker(
       context: localContext,
       initialTime: _selectedDueDate != null
           ? TimeOfDay.fromDateTime(_selectedDueDate!)
@@ -175,19 +190,32 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
   }
 
   Future<void> _selectRange() async {
-    final now = DateTime.now();
+    final now = ref.read(clockProvider).now();
     final initialStart = _selectedStartDate ?? _selectedDueDate ?? now;
     final initialEnd = _selectedDueDate ?? initialStart;
     final range = await showDateRangePicker(
       context: context,
       firstDate: now.subtract(const Duration(days: 365)),
       lastDate: now.add(const Duration(days: 365 * 2)),
-      initialDateRange: DateTimeRange(start: initialStart, end: initialEnd.isBefore(initialStart) ? initialStart : initialEnd),
+      initialDateRange: DateTimeRange(
+        start: initialStart,
+        end: initialEnd.isBefore(initialStart) ? initialStart : initialEnd,
+      ),
     );
     if (!mounted || range == null) return;
     setState(() {
-      _selectedStartDate = DateTime(range.start.year, range.start.month, range.start.day);
-      _selectedDueDate = DateTime(range.end.year, range.end.month, range.end.day, _selectedDueDate?.hour ?? 23, _selectedDueDate?.minute ?? 59);
+      _selectedStartDate = DateTime(
+        range.start.year,
+        range.start.month,
+        range.start.day,
+      );
+      _selectedDueDate = DateTime(
+        range.end.year,
+        range.end.month,
+        range.end.day,
+        _selectedDueDate?.hour ?? 23,
+        _selectedDueDate?.minute ?? 59,
+      );
       _multiDay = true;
       if (_reminderOffsetsMinutes.isEmpty) {
         _reminderOffsetsMinutes.add(0);
@@ -236,11 +264,14 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                   child: SizedBox(
                     width: 24,
                     height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2.0, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.0,
+                      color: Colors.white,
+                    ),
                   ),
                 )
               : IconButton(
-                  icon: const Icon(Icons.save),
+                  icon: const Icon(Icons.save_outlined),
                   onPressed: _isLoading ? null : _saveTask,
                   tooltip: 'Save',
                 ),
@@ -268,39 +299,70 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
               ),
               const SizedBox(height: 16),
               // --- Schedule Section (polished) ---
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Theme.of(context).colorScheme.outline.withAlpha(77)),
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                       child: Row(
                         children: [
-                          Icon(Icons.calendar_today_outlined, color: Theme.of(context).colorScheme.primary),
-                          const SizedBox(width: 12),
-                          Text('Schedule', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                          Icon(
+                            Icons.event_outlined,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Schedule',
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                ),
+                          ),
                           const Spacer(),
-                          if (_selectedDueDate != null || _selectedStartDate != null)
+                          if (_selectedDueDate != null ||
+                              _selectedStartDate != null)
                             IconButton(
-                              icon: const Icon(Icons.close),
-                              tooltip: 'Clear',
+                              icon: const Icon(Icons.close, size: 20),
+                              tooltip: 'Clear schedule',
+                              visualDensity: VisualDensity.compact,
                               onPressed: () => setState(() {
-                                _selectedDueDate = null; _selectedStartDate = null; _multiDay = false;
+                                _selectedDueDate = null;
+                                _selectedStartDate = null;
+                                _multiDay = false;
                               }),
-                            )
+                            ),
                         ],
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: SegmentedButton<bool>(
+                        style: SegmentedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                        ),
                         segments: const [
-                          ButtonSegment(value: false, label: Text('Single Day')),
-                          ButtonSegment(value: true, label: Text('Multi-Day')),
+                          ButtonSegment(
+                            value: false,
+                            label: Text('Single'),
+                            icon: Icon(Icons.event, size: 16),
+                          ),
+                          ButtonSegment(
+                            value: true,
+                            label: Text('Range'),
+                            icon: Icon(Icons.date_range, size: 16),
+                          ),
                         ],
                         selected: {_multiDay},
                         onSelectionChanged: (s) {
@@ -308,7 +370,9 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                           setState(() {
                             _multiDay = v;
                             if (v) {
-                              _selectedStartDate ??= _selectedDueDate ?? DateTime.now();
+                              _selectedStartDate ??=
+                                  _selectedDueDate ??
+                                  ref.read(clockProvider).now();
                             } else {
                               _selectedStartDate = null;
                             }
@@ -317,6 +381,9 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                       ),
                     ),
                     InkWell(
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(12),
+                      ),
                       onTap: () async {
                         if (_multiDay) {
                           await _selectRange();
@@ -325,9 +392,8 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                         }
                       },
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                        padding: const EdgeInsets.all(16),
                         child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
                               child: Column(
@@ -335,30 +401,101 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                                 children: [
                                   Text(
                                     _multiDay
-                                        ? (_selectedStartDate == null || _selectedDueDate == null
-                                            ? 'Select date range'
-                                            : '${DateFormat('MMM d, yyyy').format(_selectedStartDate!)} → ${DateFormat('MMM d, yyyy').format(_selectedDueDate!)}')
+                                        ? (_selectedStartDate == null ||
+                                                  _selectedDueDate == null
+                                              ? 'Select date range'
+                                              : DateFormatters.formatSmartRange(
+                                                  _selectedStartDate!,
+                                                  _selectedDueDate!,
+                                                  now: ref
+                                                      .read(clockProvider)
+                                                      .now(),
+                                                ))
                                         : (_selectedDueDate == null
-                                            ? 'Set due date (optional)'
-                                            : DateFormat('EEE, MMM d, yyyy • HH:mm').format(_selectedDueDate!)),
-                                    style: Theme.of(context).textTheme.bodyLarge,
+                                              ? 'Set due date (optional)'
+                                              : DateFormatters.formatSmart(
+                                                  _selectedDueDate!,
+                                                  now: ref
+                                                      .read(clockProvider)
+                                                      .now(),
+                                                )),
+                                    style: Theme.of(context).textTheme.bodyLarge
+                                        ?.copyWith(fontWeight: FontWeight.w500),
                                   ),
-                                  const SizedBox(height: 2),
+                                  const SizedBox(height: 4),
                                   Text(
-                                    _multiDay && _selectedStartDate != null && _selectedDueDate != null
-                                        ? '${_selectedDueDate!.difference(_selectedStartDate!).inDays + 1} day span'
-                                        : (_selectedDueDate == null ? 'No schedule' : 'Tap to change'),
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline),
+                                    _multiDay &&
+                                            _selectedStartDate != null &&
+                                            _selectedDueDate != null
+                                        ? '${_selectedDueDate!.difference(_selectedStartDate!).inDays + 1} day${_selectedDueDate!.difference(_selectedStartDate!).inDays + 1 > 1 ? 's' : ''}'
+                                        : (_selectedDueDate == null
+                                              ? 'No deadline set'
+                                              : 'Tap to change'),
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Icon(_multiDay ? Icons.date_range : Icons.event, color: Theme.of(context).colorScheme.primary),
+                            Icon(
+                              _selectedDueDate != null ||
+                                      _selectedStartDate != null
+                                  ? Icons.edit_calendar_outlined
+                                  : Icons.add_box_outlined,
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 20,
+                            ),
                           ],
                         ),
                       ),
                     ),
+                    // Show date chips for better visual feedback
+                    if (_selectedDueDate != null || _selectedStartDate != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            if (_multiDay && _selectedStartDate != null)
+                              Chip(
+                                avatar: Icon(
+                                  Icons.play_arrow_outlined,
+                                  size: 16,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                label: Text(
+                                  DateFormatters.formatChip(
+                                    _selectedStartDate!,
+                                    now: ref.read(clockProvider).now(),
+                                  ),
+                                ),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            if (_selectedDueDate != null)
+                              Chip(
+                                avatar: Icon(
+                                  _multiDay
+                                      ? Icons.stop_outlined
+                                      : Icons.event_outlined,
+                                  size: 16,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                label: Text(
+                                  DateFormatters.formatChip(
+                                    _selectedDueDate!,
+                                    now: ref.read(clockProvider).now(),
+                                  ),
+                                ),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                          ],
+                        ),
+                      ),
                     if (!_multiDay && _selectedDueDate != null)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -386,8 +523,8 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                   onAddReminder: _showAddReminderDialog,
                 ),
               ],
-              // --- End of New Reminder UI ---
 
+              // --- End of New Reminder UI ---
               const SizedBox(height: 16),
               TextFormField(
                 controller: _notesController,

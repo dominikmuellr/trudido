@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../providers/clock.dart';
 
 /// Smart date picker that supports both single date and date range selection
 /// Single tap = single day, Double tap/drag = date range
-class SmartDatePicker extends StatefulWidget {
+class SmartDatePicker extends ConsumerStatefulWidget {
   final DateTime? initialStartDate;
   final DateTime? initialEndDate;
   final Function(DateTime? startDate, DateTime? endDate) onDateSelected;
@@ -16,10 +18,10 @@ class SmartDatePicker extends StatefulWidget {
   });
 
   @override
-  State<SmartDatePicker> createState() => _SmartDatePickerState();
+  ConsumerState<SmartDatePicker> createState() => _SmartDatePickerState();
 }
 
-class _SmartDatePickerState extends State<SmartDatePicker> {
+class _SmartDatePickerState extends ConsumerState<SmartDatePicker> {
   DateTime? _startDate;
   DateTime? _endDate;
 
@@ -37,9 +39,7 @@ class _SmartDatePickerState extends State<SmartDatePicker> {
 
     return Dialog(
       clipBehavior: Clip.hardEdge,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(28),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       child: Container(
         width: MediaQuery.of(context).size.width * 0.9,
         padding: const EdgeInsets.all(24),
@@ -49,10 +49,7 @@ class _SmartDatePickerState extends State<SmartDatePicker> {
             // Header
             Row(
               children: [
-                Icon(
-                  Icons.calendar_month,
-                  color: colorScheme.primary,
-                ),
+                Icon(Icons.calendar_month, color: colorScheme.primary),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -90,9 +87,15 @@ class _SmartDatePickerState extends State<SmartDatePicker> {
                 ),
               ),
               child: CalendarDatePicker(
-                initialDate: _startDate ?? DateTime.now(),
-                firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                lastDate: DateTime.now().add(const Duration(days: 365)),
+                initialDate: _startDate ?? ref.read(clockProvider).now(),
+                firstDate: ref
+                    .read(clockProvider)
+                    .now()
+                    .subtract(const Duration(days: 30)),
+                lastDate: ref
+                    .read(clockProvider)
+                    .now()
+                    .add(const Duration(days: 365)),
                 onDateChanged: _handleDateSelection,
               ),
             ),
@@ -111,7 +114,9 @@ class _SmartDatePickerState extends State<SmartDatePicker> {
                 child: Column(
                   children: [
                     Text(
-                      _endDate != null ? 'Date Range Selected' : 'Single Date Selected',
+                      _endDate != null
+                          ? 'Date Range Selected'
+                          : 'Single Date Selected',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
@@ -209,10 +214,7 @@ Future<Map<String, DateTime?>?> showSmartDatePicker({
       initialStartDate: initialStartDate,
       initialEndDate: initialEndDate,
       onDateSelected: (startDate, endDate) {
-        result = {
-          'startDate': startDate,
-          'endDate': endDate,
-        };
+        result = {'startDate': startDate, 'endDate': endDate};
       },
     ),
   );

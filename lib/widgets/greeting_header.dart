@@ -4,6 +4,7 @@ import 'dart:math';
 
 import '../services/theme_service.dart';
 import '../providers/app_providers.dart';
+import '../providers/clock.dart';
 import '../services/storage_service.dart';
 import '../utils/responsive_size.dart';
 import 'filters_sheet.dart';
@@ -447,7 +448,7 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
   }
 
   String _getTimeBasedMessage() {
-    final hour = DateTime.now().hour;
+    final hour = ref.read(clockProvider).now().hour;
     if (hour < 12) {
       return 'Ready to tackle your morning tasks?';
     } else if (hour < 17) {

@@ -20,7 +20,9 @@ class AutoBackupFile {
     return AutoBackupFile(
       filename: map['filename'] as String,
       size: map['size'] as int,
-      lastModified: DateTime.fromMillisecondsSinceEpoch(map['lastModified'] as int),
+      lastModified: DateTime.fromMillisecondsSinceEpoch(
+        map['lastModified'] as int,
+      ),
       path: map['path'] as String,
     );
   }
@@ -33,10 +35,10 @@ class AutoBackupFile {
   }
 
   /// Gets a human-readable date
-  String get formattedDate {
-    final now = DateTime.now();
-    final difference = now.difference(lastModified);
-    
+  String formattedDate([DateTime? now]) {
+    final currentTime = now ?? DateTime.now();
+    final difference = currentTime.difference(lastModified);
+
     if (difference.inDays == 0) {
       return 'Today ${lastModified.hour}:${lastModified.minute.toString().padLeft(2, '0')}';
     } else if (difference.inDays == 1) {
@@ -57,7 +59,7 @@ class AutoBackupService {
   static const MethodChannel _channel = MethodChannel('app.files');
 
   /// Schedules automatic periodic backups
-  /// 
+  ///
   /// [intervalHours] - How often to backup (default: 24 hours = daily)
   /// [requiresCharging] - Only backup when device is charging
   /// [requiresWifi] - Only backup when connected to WiFi (recommended)
@@ -67,7 +69,7 @@ class AutoBackupService {
     bool requiresWifi = true,
   }) async {
     if (!Platform.isAndroid) return false;
-    
+
     try {
       final result = await _channel.invokeMethod('scheduleAutoBackup', {
         'intervalHours': intervalHours,
@@ -84,7 +86,7 @@ class AutoBackupService {
   /// Cancels automatic backup scheduling
   Future<bool> cancelAutoBackup() async {
     if (!Platform.isAndroid) return false;
-    
+
     try {
       final result = await _channel.invokeMethod('cancelAutoBackup');
       return result == true;
@@ -97,7 +99,7 @@ class AutoBackupService {
   /// Checks if automatic backup is currently scheduled
   Future<bool> isAutoBackupScheduled() async {
     if (!Platform.isAndroid) return false;
-    
+
     try {
       final result = await _channel.invokeMethod('isAutoBackupScheduled');
       return result == true;
@@ -110,7 +112,7 @@ class AutoBackupService {
   /// Opens the backup folder in the system file manager
   Future<bool> openBackupFolder() async {
     if (!Platform.isAndroid) return false;
-    
+
     try {
       final result = await _channel.invokeMethod('openBackupFolder');
       return result == true;
@@ -123,7 +125,7 @@ class AutoBackupService {
   /// Opens folder picker to choose custom backup location
   Future<bool> chooseBackupFolder() async {
     if (!Platform.isAndroid) return false;
-    
+
     try {
       final result = await _channel.invokeMethod('chooseBackupFolder');
       return result == true;
@@ -136,7 +138,7 @@ class AutoBackupService {
   /// Gets the currently selected custom backup folder path (if any)
   Future<String?> getCustomBackupFolder() async {
     if (!Platform.isAndroid) return null;
-    
+
     try {
       final result = await _channel.invokeMethod('getCustomBackupFolder');
       return result as String?;
@@ -149,12 +151,14 @@ class AutoBackupService {
   /// Clears the custom backup folder setting (reverts to default)
   Future<bool> clearCustomBackupFolder() async {
     if (!Platform.isAndroid) return false;
-    
+
     try {
       final result = await _channel.invokeMethod('clearCustomBackupFolder');
       return result == true;
     } catch (e) {
-      debugPrint('[AutoBackupService] Failed to clear custom backup folder: $e');
+      debugPrint(
+        '[AutoBackupService] Failed to clear custom backup folder: $e',
+      );
       return false;
     }
   }
@@ -162,11 +166,11 @@ class AutoBackupService {
   /// Lists all available auto backup files
   Future<List<AutoBackupFile>> listAutoBackups() async {
     if (!Platform.isAndroid) return [];
-    
+
     try {
       final result = await _channel.invokeMethod('listAutoBackups') as List?;
       if (result == null) return [];
-      
+
       return result.map((item) {
         final map = Map<String, dynamic>.from(item as Map);
         return AutoBackupFile.fromMap(map);
@@ -180,7 +184,7 @@ class AutoBackupService {
   /// Imports a specific auto backup file
   Future<bool> importAutoBackup(String filename) async {
     if (!Platform.isAndroid) return false;
-    
+
     try {
       final result = await _channel.invokeMethod('importAutoBackup', filename);
       return result == true;
@@ -196,11 +200,14 @@ class AutoBackupService {
       return 'Every $intervalHours hours';
     } else if (intervalHours == 24) {
       return 'Daily';
-    } else if (intervalHours == 168) { // 24 * 7
+    } else if (intervalHours == 168) {
+      // 24 * 7
       return 'Weekly';
-    } else if (intervalHours == 336) { // 24 * 14
+    } else if (intervalHours == 336) {
+      // 24 * 14
       return 'Bi-weekly';
-    } else if (intervalHours >= 720) { // 24 * 30
+    } else if (intervalHours >= 720) {
+      // 24 * 30
       return 'Monthly';
     } else {
       final days = intervalHours ~/ 24;

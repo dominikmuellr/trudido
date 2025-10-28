@@ -5,11 +5,7 @@ class TemplateEditorDialog extends StatefulWidget {
   final FolderTemplate? template;
   final Function(FolderTemplate) onSave;
 
-  const TemplateEditorDialog({
-    super.key,
-    this.template,
-    required this.onSave,
-  });
+  const TemplateEditorDialog({super.key, this.template, required this.onSave});
 
   @override
   State<TemplateEditorDialog> createState() => _TemplateEditorDialogState();
@@ -27,16 +23,24 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.template?.name ?? '');
-    _descriptionController = TextEditingController(text: widget.template?.description ?? '');
+    _descriptionController = TextEditingController(
+      text: widget.template?.description ?? '',
+    );
     _keywords = List.from(widget.template?.keywords ?? []);
-    
+
     // Convert existing task templates to editable data
-    _tasks = widget.template?.taskTemplates.map((t) => TaskTemplateData(
-      text: t.text,
-      priority: t.priority,
-      notes: t.notes ?? '',
-    )).toList() ?? [];
-    
+    _tasks =
+        widget.template?.taskTemplates
+            .map(
+              (t) => TaskTemplateData(
+                text: t.text,
+                priority: t.priority,
+                notes: t.notes ?? '',
+              ),
+            )
+            .toList() ??
+        [];
+
     // Ensure at least one empty task
     if (_tasks.isEmpty) {
       _tasks.add(TaskTemplateData());
@@ -75,9 +79,9 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Content
             Expanded(
               child: Form(
@@ -100,9 +104,9 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
                           return null;
                         },
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Description
                       TextFormField(
                         controller: _descriptionController,
@@ -112,29 +116,27 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
                         ),
                         maxLines: 2,
                       ),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Keywords section
                       Text(
                         'Keywords (for auto-suggestions)',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       _buildKeywordsSection(),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Tasks section
                       Row(
                         children: [
                           Text(
                             'Tasks',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           const Spacer(),
                           TextButton.icon(
@@ -155,19 +157,21 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
                 ),
               ),
             ),
-            
+
             // Actions
             const SizedBox(height: 16),
             Row(
               children: [
                 TextButton(
-                  onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                  onPressed: _isLoading
+                      ? null
+                      : () => Navigator.of(context).pop(),
                   child: const Text('Cancel'),
                 ),
                 const SizedBox(width: 16),
                 FilledButton(
                   onPressed: _isLoading ? null : _saveTemplate,
-                  child: _isLoading 
+                  child: _isLoading
                       ? const SizedBox(
                           width: 16,
                           height: 16,
@@ -191,14 +195,16 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            ..._keywords.map((keyword) => Chip(
-              label: Text(keyword),
-              onDeleted: () {
-                setState(() {
-                  _keywords.remove(keyword);
-                });
-              },
-            )),
+            ..._keywords.map(
+              (keyword) => Chip(
+                label: Text(keyword),
+                onDeleted: () {
+                  setState(() {
+                    _keywords.remove(keyword);
+                  });
+                },
+              ),
+            ),
             ActionChip(
               label: const Text('+ Add Keyword'),
               onPressed: () => _addKeywordDialog(),
@@ -221,7 +227,7 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
       children: _tasks.asMap().entries.map((entry) {
         final index = entry.key;
         final task = entry.value;
-        
+
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: Padding(
@@ -244,7 +250,10 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
                             _tasks.removeAt(index);
                           });
                         },
-                        icon: const Icon(Icons.delete, color: Colors.red),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
                       ),
                   ],
                 ),
@@ -273,10 +282,14 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
                           labelText: 'Priority',
                           border: OutlineInputBorder(),
                         ),
-                        items: ['low', 'medium', 'high'].map((priority) => DropdownMenuItem(
-                          value: priority,
-                          child: Text(priority.toUpperCase()),
-                        )).toList(),
+                        items: ['low', 'medium', 'high']
+                            .map(
+                              (priority) => DropdownMenuItem(
+                                value: priority,
+                                child: Text(priority.toUpperCase()),
+                              ),
+                            )
+                            .toList(),
                         onChanged: (value) => task.priority = value ?? 'medium',
                       ),
                     ),
@@ -350,12 +363,12 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
 
     try {
       final validTasks = _tasks.where((t) => t.text.trim().isNotEmpty).toList();
-      
+
       final template = FolderTemplate(
         id: widget.template?.id,
         name: _nameController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty 
-            ? null 
+        description: _descriptionController.text.trim().isEmpty
+            ? null
             : _descriptionController.text.trim(),
         keywords: _keywords,
         taskTemplates: validTasks.asMap().entries.map((entry) {
@@ -385,9 +398,5 @@ class TaskTemplateData {
   String priority;
   String notes;
 
-  TaskTemplateData({
-    this.text = '',
-    this.priority = 'medium',
-    this.notes = '',
-  });
+  TaskTemplateData({this.text = '', this.priority = 'medium', this.notes = ''});
 }
