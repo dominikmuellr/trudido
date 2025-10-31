@@ -1,3 +1,19 @@
+
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file(System.getenv("HOME") + "/trudido-release-key.jks")
+            storePassword = "^%o7^7#rK#r2J@3&59*H$798E"
+            keyAlias = "trudido-key"
+            keyPassword = "^%o7^7#rK#r2J@3&59*H$798E"
+        }
+    }
+
+
+
+----
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -30,30 +46,34 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("D:/keystores/trudido-release-key.jks")
-            storePassword = "^%o7^7#rK#r2J@3&59*H$798E"
-            keyAlias = "trudido-key"
-            keyPassword = "^%o7^7#rK#r2J@3&59*H$798E"
+            // Keystore from environment variables for safety
+            storeFile = file(System.getenv("HOME") + "/trudido-release-key.jks")
+            storePassword = System.getenv("^%o7^7#rK#r2J@3&59*H$798E")
+            keyAlias = System.getenv("trudido-key")
+            keyPassword = System.getenv("^%o7^7#rK#r2J@3&59*H$798E")
         }
     }
 
-buildTypes {
-    getByName("release") {
-        signingConfig = signingConfigs.getByName("release")
-        isMinifyEnabled = false
-        isShrinkResources = false
-    }
-}
 
-   
+
+
+
+
+
+
+    buildTypes {
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
+    }
+
     dependenciesInfo {
-        // Disables dependency metadata when building APKs (for IzzyOnDroid/F-Droid)
         includeInApk = false
-        // Disables dependency metadata when building Android App Bundles (for Google Play)
         includeInBundle = false
     }
 }
-
 
 flutter {
     source = "../.."
@@ -61,6 +81,6 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-    // WorkManager for deferred, battery-friendly scheduling of far-future reminders (>24h)
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 }
+

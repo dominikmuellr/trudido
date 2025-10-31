@@ -1,4 +1,4 @@
-name: Build Signed APK
+name: Build Signed APKs
 
 on:
   push:
@@ -27,15 +27,40 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Build signed APK
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep 'version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Build universal signed APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: flutter build apk --release
 
-      - name: Upload APK artifact
+      - name: Rename universal APK with version
+        run: |
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-release-$VERSION.apk
+        env:
+          VERSION: ${{ env.VERSION }}
+
+      - name: Build ARM64 signed APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: flutter build apk --release --target-platform=android-arm64
+
+      - name: Rename ARM64 APK with version
+        run: |
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-release-arm64-$VERSION.apk
+        env:
+          VERSION: ${{ env.VERSION }}
+
+      - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: signed-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: signed-apks-$VERSION
+          path: build/app/outputs/flutter-apk/app-release*.apk
