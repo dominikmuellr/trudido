@@ -1,23 +1,7 @@
-
-    }
-
-    signingConfigs {
-        create("release") {
-            storeFile = file(System.getenv("HOME") + "/trudido-release-key.jks")
-            storePassword = "^%o7^7#rK#r2J@3&59*H$798E"
-            keyAlias = "trudido-key"
-            keyPassword = "^%o7^7#rK#r2J@3&59*H$798E"
-        }
-    }
-
-
-
-----
-
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // Flutter plugin must be applied last
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -46,20 +30,13 @@ android {
 
     signingConfigs {
         create("release") {
-            // Keystore from environment variables for safety
+            // Use environment variables for secrets
             storeFile = file(System.getenv("HOME") + "/trudido-release-key.jks")
-            storePassword = System.getenv("^%o7^7#rK#r2J@3&59*H$798E")
-            keyAlias = System.getenv("trudido-key")
-            keyPassword = System.getenv("^%o7^7#rK#r2J@3&59*H$798E")
+            storePassword = System.getenv("TRUDIDO_STORE_PASSWORD")
+            keyAlias = System.getenv("TRUDIDO_KEY_ALIAS")
+            keyPassword = System.getenv("TRUDIDO_KEY_PASSWORD")
         }
     }
-
-
-
-
-
-
-
 
     buildTypes {
         getByName("release") {
@@ -83,4 +60,3 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 }
-
