@@ -37,11 +37,13 @@ android {
         }
     }
 
-    buildTypes {
-        release {
-            signingConfig = signingConfigs.getByName("release")
-        }
+buildTypes {
+    getByName("release") {
+        signingConfig = signingConfigs.getByName("release")
+        isMinifyEnabled = false
+        isShrinkResources = false
     }
+}
 
    
     dependenciesInfo {
