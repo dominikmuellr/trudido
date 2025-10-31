@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install Flutter
@@ -21,6 +21,7 @@ jobs:
       - name: Restore keystore
         run: |
           echo "$KEYSTORE_BASE64" | base64 --decode > $HOME/trudido-release-key.jks
+          echo "TRUDIDO_KEYSTORE=$HOME/trudido-release-key.jks" >> $GITHUB_ENV
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
 
