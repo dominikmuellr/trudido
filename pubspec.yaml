@@ -16,7 +16,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.7+7 # Release tag for v1.0.7 (build 7)
+version: 1.0.8+8 # Release tag for v1.0.8 (build 8)
 
 environment:
   sdk: ^3.8.1
@@ -24,10 +24,10 @@ environment:
 # Build metadata (helpful for reproducible builds and support requests)
 build_info:
   commit: 39c4217ce576487945d98f0013d055e1bf82b60e
-  tag: v1.0.7
+  tag: v1.0.8
   flutter: "3.35.5"
   flutter_path: "/c/dev/flutter/bin/flutter"
-  build_command: "flutter build apk --release --build-name=1.0.7 --build-number=7"
+  build_command: "flutter build apk --release --build-name=1.0.8 --build-number=8"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions

@@ -289,7 +289,7 @@ class MarkdownExportService {
       await StorageService.waitNotesReady();
       final existingNotes = StorageService.getAllNotes();
 
-      // Check for existing note by ID (from frontmatter)
+      // Check for duplicate note by ID (from frontmatter)
       final existingById = existingNotes
           .where((n) => n.id == note.id)
           .firstOrNull;
@@ -300,7 +300,7 @@ class MarkdownExportService {
         return ImportResult(success: false, message: 'skipped');
       }
 
-      // Check for existing note by title and content similarity
+      // Check for duplicate note by title and content similarity
       final similarNote = existingNotes
           .where(
             (n) =>

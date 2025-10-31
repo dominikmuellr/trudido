@@ -131,6 +131,19 @@ class _SwipeActionSheet extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 8),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            child: Center(
+              child: Text(
+                'Made with ❤️ in Europe',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -278,7 +291,7 @@ class SettingsScreen extends ConsumerWidget {
       });
     }
     final taskStats = ref.watch(taskStatisticsProvider);
-    final statistics = taskStats; // adapt naming for existing UI
+    final statistics = taskStats;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -391,6 +404,18 @@ class SettingsScreen extends ConsumerWidget {
                 MaterialPageRoute(builder: (context) => const AboutScreen()),
               );
             },
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            child: Center(
+              child: Text(
+                'Made with ❤️ in Europe',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           ),
         ],
       ),

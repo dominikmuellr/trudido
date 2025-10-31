@@ -96,7 +96,7 @@ class FolderNotifier extends StateNotifier<AsyncValue<List<Folder>>> {
     return result;
   }
 
-  /// Update an existing folder
+  /// Update a folder
   Future<FolderUpdateResult> updateFolder({
     required String folderId,
     required String name,

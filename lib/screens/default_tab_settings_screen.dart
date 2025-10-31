@@ -57,7 +57,7 @@ class DefaultTabNotifier extends StateNotifier<AsyncValue<String>> {
 /// Default Tab Settings Screen
 ///
 /// This screen allows users to choose their preferred starting tab.
-/// It integrates with your existing app's Material Design 3 theme
+/// It integrates with your app's Material Design 3 theme
 /// and follows Android best practices for settings UI.
 class DefaultTabSettingsScreen extends ConsumerWidget {
   const DefaultTabSettingsScreen({super.key});

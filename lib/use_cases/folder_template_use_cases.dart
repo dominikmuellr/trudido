@@ -37,7 +37,7 @@ class SuggestTemplatesUseCase {
   }
 }
 
-/// Use case for creating template from existing folder
+/// Use case for creating template from a folder
 class CreateTemplateFromFolderUseCase {
   final FolderTemplateRepository _repository;
 
@@ -54,11 +54,15 @@ class ApplyTemplateUseCase {
 
   ApplyTemplateUseCase(this._repository);
 
-  Future<List<Todo>> call(FolderTemplate template, String folderId, {DateTime? baseDueDate}) async {
+  Future<List<Todo>> call(
+    FolderTemplate template,
+    String folderId, {
+    DateTime? baseDueDate,
+  }) async {
     final todos = <Todo>[];
     // Ensure storage (lazy todos box) is ready before attempting to save created todos.
     await StorageService.waitTodosReady();
-    
+
     for (final taskTemplate in template.taskTemplates) {
       // Calculate due date if template has offset
       DateTime? dueDate;
@@ -83,13 +87,15 @@ class ApplyTemplateUseCase {
         todos.add(todo);
       } catch (e, st) {
         // Log and continue applying remaining tasks
-        debugPrint('[ApplyTemplateUseCase] Failed to save todo from template: $e\n$st');
+        debugPrint(
+          '[ApplyTemplateUseCase] Failed to save todo from template: $e\n$st',
+        );
       }
     }
 
     // Increment template usage
     await _repository.incrementTemplateUsage(template.id);
-    
+
     return todos;
   }
 }

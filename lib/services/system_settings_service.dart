@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 
 /// Unified wrapper for system settings related to precise alarms & battery optimization.
-/// Uses the existing native MethodChannel 'app.perms' exposed in MainActivity.
+/// Uses the native MethodChannel 'app.perms' exposed in MainActivity.
 /// This file is added to satisfy the consolidated API described in the requirements
 /// while keeping older per-feature services backward compatible.
 class SystemSettingsService {
@@ -11,13 +11,15 @@ class SystemSettingsService {
   static final SystemSettingsService instance = SystemSettingsService._();
 
   static const MethodChannel _primaryChannel = MethodChannel('app.perms');
-  static const MethodChannel _fallbackChannel = MethodChannel('com.trudido.app/notifications');
+  static const MethodChannel _fallbackChannel = MethodChannel(
+    'com.trudido.app/notifications',
+  );
 
   static const _fallbackSupported = {
     'canScheduleExactAlarms',
     'openExactAlarmSettings',
     'isIgnoringBatteryOptimizations',
-    'requestIgnoreBatteryOptimizations'
+    'requestIgnoreBatteryOptimizations',
   };
 
   // Readiness gate: on hot restart the Dart side may call methods before the
@@ -30,21 +32,31 @@ class SystemSettingsService {
     if (_ready) return;
     if (_readyFuture != null) return _readyFuture!; // another awaiter in flight
     _readyFuture = _probeReadiness();
-    try { await _readyFuture; } finally { _readyFuture = null; }
+    try {
+      await _readyFuture;
+    } finally {
+      _readyFuture = null;
+    }
   }
 
   Future<void> _probeReadiness() async {
-    if (!Platform.isAndroid) { _ready = true; return; }
+    if (!Platform.isAndroid) {
+      _ready = true;
+      return;
+    }
     const attemptDelays = [50, 100, 150, 250, 400, 600]; // ~1.5s total
     for (var i = 0; i < attemptDelays.length; i++) {
       try {
         await _primaryChannel.invokeMethod('canScheduleExactAlarms');
         _ready = true;
-        if (i > 0) debugPrint('[SystemSettingsService] channel ready after retry #$i');
+        if (i > 0)
+          debugPrint('[SystemSettingsService] channel ready after retry #$i');
         return;
       } on MissingPluginException {
         if (i == attemptDelays.length - 1) {
-          debugPrint('[SystemSettingsService] readiness probe exhausted; continuing with fallback-enabled invocations');
+          debugPrint(
+            '[SystemSettingsService] readiness probe exhausted; continuing with fallback-enabled invocations',
+          );
         } else {
           await Future.delayed(Duration(milliseconds: attemptDelays[i]));
         }
@@ -54,7 +66,8 @@ class SystemSettingsService {
         break;
       }
     }
-    _ready = true; // avoid blocking; subsequent invocations still have their own retries/fallback
+    _ready =
+        true; // avoid blocking; subsequent invocations still have their own retries/fallback
   }
 
   Future<T?> _invoke<T>(String method, {int retries = 2}) async {
@@ -67,15 +80,21 @@ class SystemSettingsService {
         lastMissing = e;
         if (attempt < retries) {
           // short backoff before retrying primary channel
-            await Future.delayed(Duration(milliseconds: 80 * (attempt + 1)));
+          await Future.delayed(Duration(milliseconds: 80 * (attempt + 1)));
           continue;
         }
       }
     }
     if (lastMissing != null && _fallbackSupported.contains(method)) {
-      debugPrint('[SystemSettingsService] primary channel unresolved for $method after retries, trying fallback: $lastMissing');
-      try { return await _fallbackChannel.invokeMethod<T>(method); } on MissingPluginException catch (e2) {
-        debugPrint('[SystemSettingsService] fallback MissingPluginException for $method: $e2');
+      debugPrint(
+        '[SystemSettingsService] primary channel unresolved for $method after retries, trying fallback: $lastMissing',
+      );
+      try {
+        return await _fallbackChannel.invokeMethod<T>(method);
+      } on MissingPluginException catch (e2) {
+        debugPrint(
+          '[SystemSettingsService] fallback MissingPluginException for $method: $e2',
+        );
         rethrow;
       }
     }
@@ -90,40 +109,65 @@ class SystemSettingsService {
       final r = await _invoke<bool>('canScheduleExactAlarms');
       return r ?? true; // fail-open to avoid blocking user flows needlessly
     } catch (e, st) {
-      debugPrint('[SystemSettingsService] canScheduleExactAlarms error: $e\n$st');
+      debugPrint(
+        '[SystemSettingsService] canScheduleExactAlarms error: $e\n$st',
+      );
       return true;
     }
   }
 
   Future<void> openExactAlarmSettings() async {
     if (!Platform.isAndroid) return;
-    try { await _invoke('openExactAlarmSettings'); } catch (e){ debugPrint('[SystemSettingsService] openExactAlarmSettings error: $e'); }
+    try {
+      await _invoke('openExactAlarmSettings');
+    } catch (e) {
+      debugPrint('[SystemSettingsService] openExactAlarmSettings error: $e');
+    }
   }
 
   Future<bool> isIgnoringBatteryOptimizations() async {
     if (!Platform.isAndroid) return true;
-    try { final r = await _invoke<bool>('isIgnoringBatteryOptimizations'); return r ?? true; } catch (e){ debugPrint('[SystemSettingsService] isIgnoringBatteryOptimizations error: $e'); return true; }
+    try {
+      final r = await _invoke<bool>('isIgnoringBatteryOptimizations');
+      return r ?? true;
+    } catch (e) {
+      debugPrint(
+        '[SystemSettingsService] isIgnoringBatteryOptimizations error: $e',
+      );
+      return true;
+    }
   }
 
   Future<void> requestIgnoreBatteryOptimizations() async {
     if (!Platform.isAndroid) return;
-    try { await _invoke('requestIgnoreBatteryOptimizations'); } catch (e){ debugPrint('[SystemSettingsService] requestIgnoreBatteryOptimizations error: $e'); }
+    try {
+      await _invoke('requestIgnoreBatteryOptimizations');
+    } catch (e) {
+      debugPrint(
+        '[SystemSettingsService] requestIgnoreBatteryOptimizations error: $e',
+      );
+    }
   }
 
   /// DEBUG ONLY: schedules a short exact alarm (AlarmClock) to force system to list app under
   /// Alarms & reminders. No-op in release mode to avoid unintended behavior.
   Future<bool> scheduleDebugExactAlarm() async {
     if (!Platform.isAndroid) return false;
-    assert(() { debugPrint('[SystemSettingsService] scheduling debug exact alarm'); return true; }());
+    assert(() {
+      debugPrint('[SystemSettingsService] scheduling debug exact alarm');
+      return true;
+    }());
     // Retry a few times in case channel not yet registered after a hot restart.
     const attempts = 3;
-  for (var i = 0; i < attempts; i++) {
+    for (var i = 0; i < attempts; i++) {
       try {
         final r = await _invoke<bool>('scheduleDebugExactAlarm');
         return r ?? false;
       } on MissingPluginException catch (e) {
         if (i == attempts - 1) {
-          debugPrint('[SystemSettingsService] scheduleDebugExactAlarm final failure: $e');
+          debugPrint(
+            '[SystemSettingsService] scheduleDebugExactAlarm final failure: $e',
+          );
           return false;
         }
         await Future.delayed(Duration(milliseconds: 150 * (i + 1)));

@@ -864,7 +864,7 @@ class AppTheme {
     return (light, dark);
   }
 
-  /// Derive a pure black variant of an existing dark ThemeData while keeping its ColorScheme.
+  /// Derive a pure black variant of a dark ThemeData while keeping its ColorScheme.
   static ThemeData blackify(ThemeData darkBase) {
     final cs = darkBase.colorScheme;
     return darkBase.copyWith(

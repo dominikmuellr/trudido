@@ -86,7 +86,7 @@ class UpdateFolderUseCase {
       );
     }
 
-    // Get existing folder
+    // Get current folder
     final existingFolder = await _repository.getFolderById(params.folderId);
     if (existingFolder == null) {
       return FolderUpdateResult.failure('Folder not found');

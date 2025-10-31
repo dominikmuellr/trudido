@@ -28,7 +28,7 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
     );
     _keywords = List.from(widget.template?.keywords ?? []);
 
-    // Convert existing task templates to editable data
+    // Convert task templates to editable data
     _tasks =
         widget.template?.taskTemplates
             .map(

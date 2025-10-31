@@ -1,0 +1,4 @@
+Version 1.0.8 (build 8):
+- Bumped app version from 1.0.7 to 1.0.8 (build 8)
+- Minor fixes and translations updates
+- See full changelog in app release notes

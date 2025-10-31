@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/permissions_channel.dart';
 import '../providers/alarm_settings_providers.dart';
-import '../services/notification_service.dart';
 
 class ComprehensiveNotificationSettings extends ConsumerStatefulWidget {
   const ComprehensiveNotificationSettings({super.key});
@@ -87,8 +86,6 @@ class _ComprehensiveNotificationSettingsState
                 PermissionsChannel.instance.openBatteryOptimizationSettings(),
           ),
 
-          const Divider(),
-
           // System Settings Section
           _buildSectionHeader(context, 'System Settings'),
 
@@ -118,26 +115,6 @@ class _ComprehensiveNotificationSettingsState
               onTap: () => PermissionsChannel.instance.openExactAlarmSettings(),
             ),
           ],
-
-          const Divider(),
-
-          // Testing Section
-          _buildSectionHeader(context, 'Test Notifications'),
-
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ListTile(
-              leading: Icon(Icons.science),
-              title: const Text('Test Notification (10s)'),
-              subtitle: const Text('Schedule test notification in 10 seconds'),
-              trailing: ElevatedButton(
-                onPressed: _scheduleTestNotification,
-                child: const Text('Test'),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
         ],
       ),
     );
@@ -189,36 +166,5 @@ class _ComprehensiveNotificationSettingsState
       ),
       onTap: isGranted ? null : onTap,
     );
-  }
-
-  Future<void> _scheduleTestNotification() async {
-    try {
-      final bridge = NotificationBridge.instance;
-      final dt = DateTime.now().add(const Duration(seconds: 10));
-      await bridge.scheduleTaskNotification(
-        taskId: 'test-10s',
-        title: 'Test Notification',
-        body: 'This is a test notification scheduled 10 seconds ago',
-        scheduledTime: dt,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Test notification scheduled for 10 seconds'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error scheduling test: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 }

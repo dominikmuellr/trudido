@@ -5,7 +5,9 @@ import '../repositories/hive_folder_template_repository.dart';
 import '../use_cases/folder_template_use_cases.dart';
 
 // Repository provider
-final folderTemplateRepositoryProvider = Provider<FolderTemplateRepository>((ref) {
+final folderTemplateRepositoryProvider = Provider<FolderTemplateRepository>((
+  ref,
+) {
   return HiveFolderTemplateRepository();
 });
 
@@ -18,32 +20,41 @@ final createTemplateUseCaseProvider = Provider<CreateTemplateUseCase>((ref) {
   return CreateTemplateUseCase(ref.read(folderTemplateRepositoryProvider));
 });
 
-final suggestTemplatesUseCaseProvider = Provider<SuggestTemplatesUseCase>((ref) {
+final suggestTemplatesUseCaseProvider = Provider<SuggestTemplatesUseCase>((
+  ref,
+) {
   return SuggestTemplatesUseCase(ref.read(folderTemplateRepositoryProvider));
 });
 
-final createFromFolderUseCaseProvider = Provider<CreateTemplateFromFolderUseCase>((ref) {
-  return CreateTemplateFromFolderUseCase(ref.read(folderTemplateRepositoryProvider));
-});
+final createFromFolderUseCaseProvider =
+    Provider<CreateTemplateFromFolderUseCase>((ref) {
+      return CreateTemplateFromFolderUseCase(
+        ref.read(folderTemplateRepositoryProvider),
+      );
+    });
 
 final applyTemplateUseCaseProvider = Provider<ApplyTemplateUseCase>((ref) {
   return ApplyTemplateUseCase(ref.read(folderTemplateRepositoryProvider));
 });
 
 // State notifier for templates
-final templateNotifierProvider = StateNotifierProvider<TemplateNotifier, AsyncValue<List<FolderTemplate>>>((ref) {
-  return TemplateNotifier(
-    ref.read(getTemplatesUseCaseProvider),
-    ref.read(folderTemplateRepositoryProvider),
-  );
-});
+final templateNotifierProvider =
+    StateNotifierProvider<TemplateNotifier, AsyncValue<List<FolderTemplate>>>((
+      ref,
+    ) {
+      return TemplateNotifier(
+        ref.read(getTemplatesUseCaseProvider),
+        ref.read(folderTemplateRepositoryProvider),
+      );
+    });
 
 /// State notifier for managing folder templates
 class TemplateNotifier extends StateNotifier<AsyncValue<List<FolderTemplate>>> {
   final GetTemplatesUseCase _getTemplatesUseCase;
   final FolderTemplateRepository _repository;
-  
-  TemplateNotifier(this._getTemplatesUseCase, this._repository) : super(const AsyncValue.loading()) {
+
+  TemplateNotifier(this._getTemplatesUseCase, this._repository)
+    : super(const AsyncValue.loading()) {
     loadTemplates();
   }
 
@@ -64,7 +75,7 @@ class TemplateNotifier extends StateNotifier<AsyncValue<List<FolderTemplate>>> {
     await loadTemplates(); // Reload to update state
   }
 
-  /// Update an existing template
+  /// Update a template
   Future<void> updateTemplate(FolderTemplate template) async {
     await _repository.updateTemplate(template);
     await loadTemplates(); // Reload to update state
@@ -86,6 +97,6 @@ class TemplateNotifier extends StateNotifier<AsyncValue<List<FolderTemplate>>> {
   /// Reset built-in template to original
   Future<void> resetTemplate(String templateId) async {
     await _repository.resetBuiltInTemplate(templateId);
-    await loadTemplates(); // Reload to update state  
+    await loadTemplates(); // Reload to update state
   }
 }

@@ -366,7 +366,6 @@ Enjoy taking notes! 📝''',
   static List<Todo> getAllTodos() {
     // Only usable after full eager open (legacy); with lazy box this will often be empty early.
     if (_todosLazyBox != null) {
-      // LazyBox has no synchronous values enumeration without IO; return empty placeholder.
       return const [];
     }
     return const [];
@@ -401,7 +400,7 @@ Enjoy taking notes! 📝''',
   }
 
   static Future<void> saveTodosOrder(List<Todo> todos) async {
-    // Clear existing todos and save in new order
+    // Clear todos and save in new order
     await waitTodosReady();
     if (_todosLazyBox != null) {
       await _todosLazyBox!.clear();
@@ -710,7 +709,7 @@ Enjoy taking notes! 📝''',
           'show_completed_tasks': getShowCompletedTasks(),
         },
         'exported_at': DateTime.now().toIso8601String(),
-        'version': '1.0.0', // Version for fresh v1.0.0 release
+        'version': '1.0.8', // Version for v1.0.8 release
       };
 
       debugPrint('[StorageService] Export data prepared successfully');
@@ -757,8 +756,7 @@ Enjoy taking notes! 📝''',
       // Ensure storage is fully initialized
       await waitTodosReady();
 
-      // Clear existing data
-      debugPrint('[StorageService] Clearing existing data...');
+      debugPrint('[StorageService] Clearing data...');
       await clearAllTodos();
 
       // Clear folders and templates if repositories are available
@@ -817,7 +815,6 @@ Enjoy taking notes! 📝''',
         final notesData = data['notes'] as List;
         debugPrint('[StorageService] Importing ${notesData.length} notes...');
 
-        // Clear existing notes (except the default welcome note)
         await clearAllNotes();
 
         for (final noteJson in notesData) {

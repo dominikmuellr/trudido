@@ -20,7 +20,7 @@ class PreferencesService {
 
   Future<void> ensureInitialized() async {
     if (_prefs != null) return;
-    // Reuse existing fast prefs init path in StorageService.
+    // Reuse fast prefs init path in StorageService.
     await StorageService.ensurePrefs();
     // Access private copy via SharedPreferences.getInstance again.
     _prefs = await SharedPreferences.getInstance();

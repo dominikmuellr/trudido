@@ -76,7 +76,7 @@ class EncryptionHelper {
     }
   }
 
-  /// Resets encryption keys (use with caution - will make existing vault notes unreadable)
+  /// Resets encryption keys (use with caution - may make vault notes unreadable)
   static Future<void> resetEncryptionKeys() async {
     await _storage.delete(key: _keyName);
     await _storage.delete(key: _ivName);

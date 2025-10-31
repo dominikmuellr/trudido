@@ -6,7 +6,7 @@ import '../services/storage_service.dart';
 import '../providers/clock.dart';
 
 /// Unified Task Editor Dialog
-/// Handles both creating new tasks and editing existing ones
+/// Handles both creating new tasks and editing tasks
 /// Follows Android Material Design 3 best practices
 class TaskEditorDialog extends ConsumerStatefulWidget {
   final Todo? todo;
@@ -42,7 +42,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
     _titleController = TextEditingController(text: widget.todo?.text ?? '');
     _notesController = TextEditingController(text: widget.todo?.notes ?? '');
 
-    // Initialize from existing todo if editing
+    // Initialize from todo if editing
     if (widget.todo != null) {
       _startDate = widget.todo!.startDate;
       _dueDate = widget.todo!.dueDate;
