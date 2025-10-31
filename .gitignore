@@ -193,3 +193,7 @@ macos/Pods/
 *.pyo
 *.env
 *.env.*
+
+# Keystore
+*.jks
+trudido-clean/

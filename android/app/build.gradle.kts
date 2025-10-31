@@ -29,14 +29,14 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            // Use environment variables for secrets
-            storeFile = file(System.getenv("HOME") + "/trudido-release-key.jks")
-            storePassword = System.getenv("TRUDIDO_STORE_PASSWORD")
-            keyAlias = System.getenv("TRUDIDO_KEY_ALIAS")
-            keyPassword = System.getenv("TRUDIDO_KEY_PASSWORD")
-        }
+    create("release") {
+        storeFile = file(System.getenv("TRUDIDO_KEYSTORE"))
+        storePassword = System.getenv("TRUDIDO_KEYSTORE_PASSWORD")
+        keyAlias = System.getenv("TRUDIDO_KEY_ALIAS")
+        keyPassword = System.getenv("TRUDIDO_KEY_PASSWORD")
     }
+}
+
 
     buildTypes {
         getByName("release") {
