@@ -709,7 +709,7 @@ Enjoy taking notes! 📝''',
           'show_completed_tasks': getShowCompletedTasks(),
         },
         'exported_at': DateTime.now().toIso8601String(),
-        'version': '1.0.8', // Version for v1.0.8 release
+        'version': '1.0.9', // Version for v1.0.9 release
       };
 
       debugPrint('[StorageService] Export data prepared successfully');

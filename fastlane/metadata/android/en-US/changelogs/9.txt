@@ -1,0 +1,6 @@
+Version 1.0.9 (build 9):
+- Added Material 3 expandable FAB menu with tab-specific actions
+- Implemented Vault Note creation directly from FAB menu
+- Enhanced animations with staggered pop-up effects
+- Improved user flow for vault folder creation
+- See full changelog in app release notes
