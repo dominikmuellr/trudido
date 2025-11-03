@@ -13,12 +13,14 @@ import '../services/folder_provider.dart';
 import '../services/vault_auth_service.dart';
 import '../services/vault_password_service.dart';
 import '../services/biometric_auth_service.dart';
+// import '../services/markdown_export_service.dart'; // Commented out - for future import feature
 import '../repositories/note_folder_repository.dart';
 import '../models/note_folder.dart';
 import '../screens/task_editor_screen.dart';
+import '../screens/template_management_screen.dart';
 import '../widgets/todo_list_tab.dart';
 import '../widgets/create_folder_dialog.dart';
-import '../widgets/animated_widgets.dart';
+import '../widgets/fab_menu.dart';
 import '../utils/animated_navigation.dart';
 import 'settings_screen.dart';
 import 'notes_screen.dart';
@@ -113,165 +115,163 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Define tabs
     final tabs = [const TodoListTab(), const NotesScreen()];
 
-    // Use standard Material FAB position
-    const fabLocation = FloatingActionButtonLocation.endFloat;
-
     // Check if we should use NavigationRail for wider screens
     final screenWidth = MediaQuery.of(context).size.width;
     final useNavigationRail = screenWidth >= 600; // Material 3 breakpoint
 
     if (useNavigationRail) {
-      return Scaffold(
-        body: Row(
-          children: [
-            // Material 3 NavigationRail
-            NavigationRail(
-              selectedIndex: currentTab,
-              onDestinationSelected: (index) {
-                final previousTab = ref.read(currentTabProvider);
+      return Stack(
+        children: [
+          Scaffold(
+            body: Row(
+              children: [
+                // Material 3 NavigationRail
+                NavigationRail(
+                  selectedIndex: currentTab,
+                  onDestinationSelected: (index) {
+                    final previousTab = ref.read(currentTabProvider);
 
-                // Security: Clear vault folder selection when leaving Notes tab
-                if (previousTab == 1 && index != 1) {
-                  _clearVaultSelectionIfNeeded();
-                }
+                    // Security: Clear vault folder selection when leaving Notes tab
+                    if (previousTab == 1 && index != 1) {
+                      _clearVaultSelectionIfNeeded();
+                    }
 
-                ref.read(currentTabProvider.notifier).setTab(index);
-                // Exit search mode when switching tabs
-                final isSearchMode = ref.read(searchModeProvider);
-                if (isSearchMode) {
-                  ref.read(searchModeProvider.notifier).state = false;
-                  _searchController.clear();
-                  if (previousTab == 0) {
-                    ref.read(searchQueryProvider.notifier).state = '';
-                  } else if (previousTab == 1) {
-                    ref.read(notesSearchQueryProvider.notifier).state = '';
-                  }
-                }
-              },
-              labelType: NavigationRailLabelType.all,
-              destinations: [
-                NavigationRailDestination(
-                  icon: _buildNavigationIcon(Icons.checklist_outlined, 0),
-                  selectedIcon: _buildNavigationIcon(Icons.checklist, 0),
-                  label: const Text('Tasks'),
+                    ref.read(currentTabProvider.notifier).setTab(index);
+                    // Exit search mode when switching tabs
+                    final isSearchMode = ref.read(searchModeProvider);
+                    if (isSearchMode) {
+                      ref.read(searchModeProvider.notifier).state = false;
+                      _searchController.clear();
+                      if (previousTab == 0) {
+                        ref.read(searchQueryProvider.notifier).state = '';
+                      } else if (previousTab == 1) {
+                        ref.read(notesSearchQueryProvider.notifier).state = '';
+                      }
+                    }
+                  },
+                  labelType: NavigationRailLabelType.all,
+                  destinations: [
+                    NavigationRailDestination(
+                      icon: _buildNavigationIcon(Icons.checklist_outlined, 0),
+                      selectedIcon: _buildNavigationIcon(Icons.checklist, 0),
+                      label: const Text('Tasks'),
+                    ),
+                    NavigationRailDestination(
+                      icon: _buildNavigationIcon(Icons.note_outlined, 1),
+                      selectedIcon: _buildNavigationIcon(Icons.note, 1),
+                      label: const Text('Notes'),
+                    ),
+                  ],
                 ),
-                NavigationRailDestination(
-                  icon: _buildNavigationIcon(Icons.note_outlined, 1),
-                  selectedIcon: _buildNavigationIcon(Icons.note, 1),
-                  label: const Text('Notes'),
+                const VerticalDivider(thickness: 1, width: 1),
+                // Main content
+                Expanded(
+                  child: Scaffold(
+                    appBar: _buildAppBar(context),
+                    body: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      switchInCurve: Curves.easeInOut,
+                      switchOutCurve: Curves.easeInOut,
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(opacity: animation, child: child);
+                      },
+                      child: IndexedStack(
+                        key: ValueKey<int>(currentTab),
+                        index: currentTab,
+                        children: tabs,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
-            const VerticalDivider(thickness: 1, width: 1),
-            // Main content
-            Expanded(
-              child: Scaffold(
-                appBar: _buildAppBar(context),
-                body: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  switchInCurve: Curves.easeInOut,
-                  switchOutCurve: Curves.easeInOut,
-                  transitionBuilder: (child, animation) {
-                    return FadeTransition(opacity: animation, child: child);
-                  },
-                  child: IndexedStack(
-                    key: ValueKey<int>(currentTab),
-                    index: currentTab,
-                    children: tabs,
-                  ),
-                ),
-                floatingActionButtonLocation: fabLocation,
-                floatingActionButton: AnimatedFAB(
-                  heroTag: "main_fab",
-                  visible: true,
-                  icon: _buildFabIcon(currentTab),
-                  onPressed: () => _onFabPressed(currentTab),
-                  backgroundColor: _getFabColor(
-                    currentTab,
-                    Theme.of(context).colorScheme,
-                  ),
-                ),
-              ),
+          ),
+          // Backdrop overlay
+          const FabMenuScreenBackdrop(),
+          // FAB on top
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FabMenu(
+              onAddTask: _showAddTaskDialog,
+              onAddNote: _createNewNote,
+              onAddFromTemplate: _showTemplateSelection,
+              onCreateVaultNote: _createVaultNote,
             ),
-          ],
-        ),
+          ),
+        ],
       );
     }
 
-    return Scaffold(
-      appBar: _buildAppBar(context),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        switchInCurve: Curves.easeInOut,
-        switchOutCurve: Curves.easeInOut,
-        transitionBuilder: (child, animation) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-        child: IndexedStack(
-          key: ValueKey<int>(currentTab),
-          index: currentTab,
-          children: tabs,
-        ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: currentTab,
-        onDestinationSelected: (index) {
-          final previousTab = ref.read(currentTabProvider);
-
-          // Security: Clear vault folder selection when leaving Notes tab
-          if (previousTab == 1 && index != 1) {
-            _clearVaultSelectionIfNeeded();
-          }
-
-          ref.read(currentTabProvider.notifier).setTab(index);
-          // Exit search mode when switching tabs
-          final isSearchMode = ref.read(searchModeProvider);
-          if (isSearchMode) {
-            ref.read(searchModeProvider.notifier).state = false;
-            _searchController.clear();
-            if (previousTab == 0) {
-              ref.read(searchQueryProvider.notifier).state = '';
-            } else if (previousTab == 1) {
-              ref.read(notesSearchQueryProvider.notifier).state = '';
-            }
-          }
-        },
-        destinations: [
-          NavigationDestination(
-            icon: _buildNavigationIcon(Icons.checklist_outlined, 0),
-            selectedIcon: _buildNavigationIcon(Icons.checklist, 0),
-            label: 'Tasks',
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: _buildAppBar(context),
+          body: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            switchInCurve: Curves.easeInOut,
+            switchOutCurve: Curves.easeInOut,
+            transitionBuilder: (child, animation) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            child: IndexedStack(
+              key: ValueKey<int>(currentTab),
+              index: currentTab,
+              children: tabs,
+            ),
           ),
-          NavigationDestination(
-            icon: _buildNavigationIcon(Icons.note_outlined, 1),
-            selectedIcon: _buildNavigationIcon(Icons.note, 1),
-            label: 'Notes',
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: currentTab,
+            onDestinationSelected: (index) {
+              final previousTab = ref.read(currentTabProvider);
+
+              // Security: Clear vault folder selection when leaving Notes tab
+              if (previousTab == 1 && index != 1) {
+                _clearVaultSelectionIfNeeded();
+              }
+
+              ref.read(currentTabProvider.notifier).setTab(index);
+              // Exit search mode when switching tabs
+              final isSearchMode = ref.read(searchModeProvider);
+              if (isSearchMode) {
+                ref.read(searchModeProvider.notifier).state = false;
+                _searchController.clear();
+                if (previousTab == 0) {
+                  ref.read(searchQueryProvider.notifier).state = '';
+                } else if (previousTab == 1) {
+                  ref.read(notesSearchQueryProvider.notifier).state = '';
+                }
+              }
+            },
+            destinations: [
+              NavigationDestination(
+                icon: _buildNavigationIcon(Icons.checklist_outlined, 0),
+                selectedIcon: _buildNavigationIcon(Icons.checklist, 0),
+                label: 'Tasks',
+              ),
+              NavigationDestination(
+                icon: _buildNavigationIcon(Icons.note_outlined, 1),
+                selectedIcon: _buildNavigationIcon(Icons.note, 1),
+                label: 'Notes',
+              ),
+            ],
           ),
-        ],
-      ),
-      floatingActionButtonLocation: fabLocation,
-      floatingActionButton: AnimatedFAB(
-        heroTag: "main_fab",
-        visible: true,
-        icon: _buildFabIcon(currentTab),
-        onPressed: () => _onFabPressed(currentTab),
-        backgroundColor: _getFabColor(
-          currentTab,
-          Theme.of(context).colorScheme,
         ),
-      ),
+        // Backdrop overlay
+        const FabMenuScreenBackdrop(),
+        // FAB on top - positioned above the bottom navigation bar
+        Positioned(
+          right: 16,
+          bottom: 96, // NavigationBar height (~80) + standard spacing (16)
+          child: FabMenu(
+            onAddTask: _showAddTaskDialog,
+            onAddNote: _createNewNote,
+            onAddFromTemplate: _showTemplateSelection,
+            onCreateVaultNote: _createVaultNote,
+          ),
+        ),
+      ],
     );
-  }
-
-  void _onFabPressed(int currentTab) {
-    switch (currentTab) {
-      case 0: // Tasks tab
-        _showAddTaskDialog();
-        break;
-      case 1: // Notes tab
-        _createNewNote();
-        break;
-    }
   }
 
   /// Security: Clear vault folder selection if currently viewing a vault
@@ -319,6 +319,85 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       NoteEditorScreen(initialFolderId: selectedFolderId),
     );
   }
+
+  Future<void> _createVaultNote() async {
+    // Get all folders
+    final foldersAsync = ref.read(noteFoldersProvider);
+    final folders = foldersAsync.valueOrNull ?? [];
+
+    // Get vault folders
+    final vaultFolders = folders.where((f) => f.isVault).toList();
+
+    if (vaultFolders.isEmpty) {
+      // No vaults exist - navigate to folder management to create one
+      if (!mounted) return;
+
+      await AnimatedNavigation.pushContainerTransform(
+        context,
+        const NotesFolderManagementScreen(),
+      );
+
+      return;
+    }
+
+    // Use the first vault as default (or could track last used vault)
+    // TODO: Could add a StateProvider to track the last accessed vault
+    final defaultVault = vaultFolders.first;
+
+    // Authenticate vault access
+    final authenticated = await VaultAuthService.authenticate(
+      context: context,
+      folderId: defaultVault.id,
+      folderName: defaultVault.name,
+      useBiometric: defaultVault.useBiometric,
+      hasPassword: defaultVault.hasPassword,
+    );
+
+    if (!authenticated) {
+      // User cancelled or authentication failed
+      return;
+    }
+
+    // Authentication successful - create note in vault
+    if (!mounted) return;
+    AnimatedNavigation.pushContainerTransform(
+      context,
+      NoteEditorScreen(initialFolderId: defaultVault.id),
+    );
+  }
+
+  void _showTemplateSelection() {
+    AnimatedNavigation.pushContainerTransform(
+      context,
+      const TemplateManagementScreen(),
+    );
+  }
+
+  // Commented out - kept for potential future use
+  // Future<void> _importNotes() async {
+  //   try {
+  //     final result = await MarkdownExportService.importNotesFromFiles();
+
+  //     if (!mounted) return;
+
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text(result.message),
+  //         backgroundColor: result.success ? Colors.green : Colors.red,
+  //         behavior: SnackBarBehavior.floating,
+  //       ),
+  //     );
+  //   } catch (e) {
+  //     if (!mounted) return;
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text('Import failed: $e'),
+  //         backgroundColor: Colors.red,
+  //         behavior: SnackBarBehavior.floating,
+  //       ),
+  //     );
+  //   }
+  // }
 
   /// Shows vault setup dialog for first-time vault access
   Future<bool> _showVaultSetupDialog(
@@ -376,14 +455,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return false;
   }
 
-  /// Builds the consistent FAB icon (plus)
-  Widget _buildFabIcon(int currentTab) {
-    return const ScaledIcon(
-      Icons.add, // Consistent plus icon
-      size: 24,
-    );
-  }
-
   /// Builds navigation icon with optional badge for notification counts
   Widget _buildNavigationIcon(IconData icon, int tabIndex) {
     // Get counts for badges
@@ -416,27 +487,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   /// Returns the appropriate tooltip for the current tab and context
-  /// Returns context-aware color for the FAB
-  Color? _getFabColor(int currentTab, ColorScheme colorScheme) {
-    // Use theme-aware colors that work in both light and dark mode
-    switch (currentTab) {
-      case 0: // Tasks tab - Action-oriented with subtle green tint
-        return Color.lerp(
-          colorScheme.primary,
-          colorScheme.tertiary, // Often green in Material 3
-          0.15, // More subtle blend
-        );
-      case 1: // Notes tab - Creative-oriented with warmer tone
-        return Color.lerp(
-          colorScheme.primary,
-          colorScheme.secondary,
-          0.2, // Slightly more pronounced for creativity
-        );
-      default:
-        return colorScheme.primary;
-    }
-  }
-
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     final isSearchMode = ref.watch(searchModeProvider);
     final currentTab = ref.watch(currentTabProvider);
