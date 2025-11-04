@@ -9,6 +9,14 @@ import '../providers/filter_providers.dart';
 import '../providers/clock.dart';
 import 'hybrid_todo_item.dart';
 
+/// Custom calendar format that extends table_calendar formats
+enum CustomCalendarFormat {
+  month,
+  twoWeeks,
+  week,
+  day, // Custom day view
+}
+
 /// Material Design 3 Calendar View for Tasks
 /// Shows tasks in a beautiful calendar layout with proper Material theming
 class CalendarView extends ConsumerStatefulWidget {
@@ -23,25 +31,439 @@ class CalendarView extends ConsumerStatefulWidget {
 class _CalendarViewState extends ConsumerState<CalendarView> {
   late DateTime _focusedDay;
   DateTime? _selectedDay;
-  CalendarFormat _calendarFormat = CalendarFormat.month;
 
-  double _heightForFormat(BuildContext context, CalendarFormat fmt) {
+  // Convert custom format to table_calendar format
+  CalendarFormat get _calendarFormat {
+    final customFormat = ref.watch(calendarFormatProvider);
+    switch (customFormat) {
+      case CustomCalendarFormat.month:
+        return CalendarFormat.month;
+      case CustomCalendarFormat.twoWeeks:
+        return CalendarFormat.twoWeeks;
+      case CustomCalendarFormat.week:
+      case CustomCalendarFormat.day:
+        return CalendarFormat.week;
+    }
+  }
+
+  double _heightForFormat(BuildContext context, CustomCalendarFormat fmt) {
     final width = MediaQuery.of(context).size.width;
     final cellHeight = (width - 32) / 7;
     const headerHeight = 52.0;
     const daysOfWeekHeight = 24.0;
-    final rows = fmt == CalendarFormat.month
+
+    // For day view, return a taller height for the timetable
+    if (fmt == CustomCalendarFormat.day) {
+      return MediaQuery.of(context).size.height * 0.7; // 70% of screen height
+    }
+
+    final rows = fmt == CustomCalendarFormat.month
         ? 6
-        : fmt == CalendarFormat.twoWeeks
+        : fmt == CustomCalendarFormat.twoWeeks
         ? 2
         : 1;
-    // Reduce padding significantly for month view, add a bit for week view to prevent overflow
-    final extraPadding = fmt == CalendarFormat.month
-        ? -40.0
-        : fmt == CalendarFormat.week
-        ? 4.0
-        : 0.0;
+    // Increase padding to prevent overflow
+    final extraPadding = fmt == CustomCalendarFormat.month
+        ? 15.0 // Increased to add more space
+        : fmt == CustomCalendarFormat.twoWeeks
+        ? 12.0 // Increased from 4.0 to fix 7.4 pixel overflow
+        : 6.0; // Increased from 0.0 to fix 1.7 pixel overflow
     return headerHeight + daysOfWeekHeight + rows * cellHeight + extraPadding;
+  }
+
+  Widget _buildDayTimetable(BuildContext context, ColorScheme colorScheme) {
+    final dayTasks = _selectedDay != null
+        ? _getTasksForDay(_selectedDay!)
+        : _getTasksForDay(_focusedDay);
+
+    // Separate all-day tasks (tasks with time 00:00:00 or no specific time)
+    final allDayTasks = dayTasks.where((task) {
+      if (task.dueDate == null) return false;
+      // Consider tasks at midnight as all-day tasks
+      return task.dueDate!.hour == 0 &&
+          task.dueDate!.minute == 0 &&
+          task.dueDate!.second == 0;
+    }).toList();
+
+    // Get tasks with specific times
+    final timedTasks = dayTasks.where((task) {
+      if (task.dueDate == null) return false;
+      // Exclude all-day tasks
+      return !(task.dueDate!.hour == 0 &&
+          task.dueDate!.minute == 0 &&
+          task.dueDate!.second == 0);
+    }).toList();
+
+    return Column(
+      children: [
+        // Header with date, navigation, and format button - matching TableCalendar layout
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          child: Row(
+            children: [
+              // Left chevron
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () {
+                  setState(() {
+                    _focusedDay = _focusedDay.subtract(const Duration(days: 1));
+                    _selectedDay = _focusedDay;
+                  });
+                },
+              ),
+              // Centered date title
+              Expanded(
+                child: Text(
+                  DateFormat.yMMMMd().format(_selectedDay ?? _focusedDay),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              // Format button (positioned before right chevron)
+              Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: _cycleCalendarFormat,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        'Day',
+                        style: TextStyle(
+                          color: colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Right chevron
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () {
+                  setState(() {
+                    _focusedDay = _focusedDay.add(const Duration(days: 1));
+                    _selectedDay = _focusedDay;
+                  });
+                },
+              ),
+            ],
+          ),
+        ), // Container
+        // All-day tasks section
+        if (allDayTasks.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: colorScheme.outlineVariant, width: 1),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'All-day',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: allDayTasks.map((task) {
+                    return InkWell(
+                      onTap: () => _editTask(context, task),
+                      onLongPress: () {
+                        // Show confirmation dialog before deleting
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Delete Task'),
+                            content: Text('Delete "${task.text}"?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  ref
+                                      .read(taskControllerProvider.notifier)
+                                      .delete(task.id);
+                                  Navigator.pop(context);
+                                },
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getColorForPriority(
+                            task.priority,
+                            colorScheme,
+                          ).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _getColorForPriority(
+                              task.priority,
+                              colorScheme,
+                            ),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          task.text,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ), // Container
+        // Timetable
+        Expanded(
+          child: ListView.builder(
+            itemCount: 24, // 24 hours
+            itemBuilder: (context, hour) {
+              // Get all tasks for this hour
+              final hourTasks = timedTasks.where((task) {
+                if (task.dueDate == null) return false;
+                return task.dueDate!.hour == hour;
+              }).toList();
+
+              // Sort by minute
+              hourTasks.sort((a, b) {
+                final aMinute = a.dueDate?.minute ?? 0;
+                final bMinute = b.dueDate?.minute ?? 0;
+                return aMinute.compareTo(bMinute);
+              });
+
+              // Group tasks by exact time (hour:minute)
+              final Map<String, List<Todo>> tasksByTime = {};
+              for (var task in hourTasks) {
+                if (task.dueDate != null) {
+                  final timeKey =
+                      '${task.dueDate!.hour}:${task.dueDate!.minute.toString().padLeft(2, '0')}';
+                  tasksByTime[timeKey] = tasksByTime[timeKey] ?? [];
+                  tasksByTime[timeKey]!.add(task);
+                }
+              }
+
+              return Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: colorScheme.outlineVariant.withOpacity(0.3),
+                      width: 0.5,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Time label
+                    SizedBox(
+                      width: 60,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          '${hour.toString().padLeft(2, '0')}:00',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Tasks for this hour - grouped by exact time
+                    Expanded(
+                      child: hourTasks.isEmpty
+                          ? const SizedBox(height: 50)
+                          : Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: tasksByTime.entries.map((entry) {
+                                  final tasksAtSameTime = entry.value;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: tasksAtSameTime.map((task) {
+                                        return IntrinsicWidth(
+                                          child: InkWell(
+                                            onTap: () =>
+                                                _editTask(context, task),
+                                            onLongPress: () {
+                                              // Show confirmation dialog before deleting
+                                              showDialog(
+                                                context: context,
+                                                builder: (context) => AlertDialog(
+                                                  title: const Text(
+                                                    'Delete Task',
+                                                  ),
+                                                  content: Text(
+                                                    'Delete "${task.text}"?',
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                            context,
+                                                          ),
+                                                      child: const Text(
+                                                        'Cancel',
+                                                      ),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed: () {
+                                                        ref
+                                                            .read(
+                                                              taskControllerProvider
+                                                                  .notifier,
+                                                            )
+                                                            .delete(task.id);
+                                                        Navigator.pop(context);
+                                                      },
+                                                      child: const Text(
+                                                        'Delete',
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            },
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            child: Container(
+                                              constraints: const BoxConstraints(
+                                                minWidth: 100,
+                                              ),
+                                              margin:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 4,
+                                                  ),
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: _getColorForPriority(
+                                                  task.priority,
+                                                  colorScheme,
+                                                ).withOpacity(0.2),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: _getColorForPriority(
+                                                    task.priority,
+                                                    colorScheme,
+                                                  ),
+                                                  width: 1,
+                                                ),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    task.text,
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color:
+                                                          colorScheme.onSurface,
+                                                    ),
+                                                  ),
+                                                  if (task.dueDate != null)
+                                                    Text(
+                                                      DateFormat.jm().format(
+                                                        task.dueDate!,
+                                                      ),
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: colorScheme
+                                                            .onSurfaceVariant,
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                            ), // Container
+                                          ), // InkWell
+                                        ); // IntrinsicWidth
+                                      }).toList(),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ), // ListView.builder
+        ), // Expanded
+      ], // Column children
+    ); // Column - end of day timetable
+  }
+
+  void _cycleCalendarFormat() {
+    final currentFormat = ref.read(calendarFormatProvider);
+    switch (currentFormat) {
+      case CustomCalendarFormat.month:
+        ref
+            .read(calendarFormatProvider.notifier)
+            .setFormat(CustomCalendarFormat.twoWeeks);
+        break;
+      case CustomCalendarFormat.twoWeeks:
+        ref
+            .read(calendarFormatProvider.notifier)
+            .setFormat(CustomCalendarFormat.week);
+        break;
+      case CustomCalendarFormat.week:
+        ref
+            .read(calendarFormatProvider.notifier)
+            .setFormat(CustomCalendarFormat.day);
+        break;
+      case CustomCalendarFormat.day:
+        ref
+            .read(calendarFormatProvider.notifier)
+            .setFormat(CustomCalendarFormat.month);
+        break;
+    }
   }
 
   Color _getColorForPriority(String priority, ColorScheme colorScheme) {
@@ -259,16 +681,17 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     final selectedDayTasks = _selectedDay != null
         ? _getTasksForDay(_selectedDay!)
         : <Todo>[];
+    final customFormat = ref.watch(calendarFormatProvider);
 
     return SingleChildScrollView(
       child: Column(
         children: [
           // Calendar Widget - Animated height based on format
           AnimatedContainer(
-            key: ValueKey(_calendarFormat),
+            key: ValueKey(customFormat),
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
-            height: _heightForFormat(context, _calendarFormat) + 8,
+            height: _heightForFormat(context, customFormat) + 8,
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: colorScheme.surface,
@@ -278,328 +701,348 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
               borderRadius: BorderRadius.circular(16),
               child: MediaQuery(
                 data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
-                child: TableCalendar<Todo>(
-                  firstDay: DateTime.utc(2020, 1, 1),
-                  lastDay: DateTime.utc(2030, 12, 31),
-                  focusedDay: _focusedDay,
-                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                  calendarFormat: _calendarFormat,
-                  startingDayOfWeek: StartingDayOfWeek.monday,
-                  // Long-press on a day to create a new task prefilled with that date
-                  onDayLongPressed: (selectedDay, focusedDay) {
-                    final dateOnly = DateTime(
-                      selectedDay.year,
-                      selectedDay.month,
-                      selectedDay.day,
-                    );
-                    // Update provider so editor can prefill the date
-                    ref.read(selectedCalendarDateProvider.notifier).state =
-                        dateOnly;
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => TaskEditorScreen(
-                          presetDueDate: dateOnly,
-                          onSave: (t) =>
-                              ref.read(taskControllerProvider.notifier).add(t),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Use consistent small font size for all months to prevent overflow
+                    const headerFontSize = 16.0;
+
+                    // Show day timetable when format is day, otherwise show calendar
+                    if (customFormat == CustomCalendarFormat.day) {
+                      return _buildDayTimetable(context, colorScheme);
+                    }
+
+                    return TableCalendar<Todo>(
+                      key: ValueKey(
+                        'calendar_${_focusedDay.month}_${_focusedDay.year}',
+                      ),
+                      firstDay: DateTime.utc(2020, 1, 1),
+                      lastDay: DateTime.utc(2030, 12, 31),
+                      focusedDay: _focusedDay,
+                      selectedDayPredicate: (day) =>
+                          isSameDay(_selectedDay, day),
+                      calendarFormat: _calendarFormat,
+                      startingDayOfWeek: StartingDayOfWeek.monday,
+                      // Long-press on a day to create a new task prefilled with that date
+                      onDayLongPressed: (selectedDay, focusedDay) {
+                        final dateOnly = DateTime(
+                          selectedDay.year,
+                          selectedDay.month,
+                          selectedDay.day,
+                        );
+                        // Update provider so editor can prefill the date
+                        ref.read(selectedCalendarDateProvider.notifier).state =
+                            dateOnly;
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => TaskEditorScreen(
+                              presetDueDate: dateOnly,
+                              onSave: (t) => ref
+                                  .read(taskControllerProvider.notifier)
+                                  .add(t),
+                            ),
+                          ),
+                        );
+                      },
+                      eventLoader: (day) =>
+                          _getTasksGroupedByDay()[DateTime(
+                            day.year,
+                            day.month,
+                            day.day,
+                          )] ??
+                          [],
+
+                      // Material Design 3 Styling
+                      headerStyle: HeaderStyle(
+                        formatButtonVisible: true,
+                        titleCentered: true,
+                        formatButtonShowsNext: false,
+                        formatButtonDecoration: BoxDecoration(
+                          color: colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        formatButtonTextStyle: TextStyle(
+                          color: colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        leftChevronIcon: Icon(
+                          Icons.chevron_left,
+                          color: colorScheme.onSurface,
+                        ),
+                        rightChevronIcon: Icon(
+                          Icons.chevron_right,
+                          color: colorScheme.onSurface,
+                        ),
+                        // Dynamically adjust font size based on month name length
+                        titleTextStyle: TextStyle(
+                          fontSize: headerFontSize,
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
                         ),
                       ),
-                    );
-                  },
-                  eventLoader: (day) =>
-                      _getTasksGroupedByDay()[DateTime(
-                        day.year,
-                        day.month,
-                        day.day,
-                      )] ??
-                      [],
 
-                  // Material Design 3 Styling
-                  headerStyle: HeaderStyle(
-                    formatButtonVisible: true,
-                    titleCentered: true,
-                    formatButtonShowsNext: false,
-                    formatButtonDecoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    formatButtonTextStyle: TextStyle(
-                      color: colorScheme.onPrimaryContainer,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    leftChevronIcon: Icon(
-                      Icons.chevron_left,
-                      color: colorScheme.onSurface,
-                    ),
-                    rightChevronIcon: Icon(
-                      Icons.chevron_right,
-                      color: colorScheme.onSurface,
-                    ),
-                    titleTextStyle:
-                        theme.textTheme.titleLarge?.copyWith(
+                      calendarStyle: CalendarStyle(
+                        // Calendar sizing - more compact
+                        tablePadding: const EdgeInsets.all(4),
+                        cellPadding: const EdgeInsets.all(2),
+                        rowDecoration: const BoxDecoration(),
+
+                        // Today styling - transparent to allow custom builder
+                        todayDecoration: const BoxDecoration(),
+                        todayTextStyle: TextStyle(
+                          color: colorScheme.primary,
                           fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurface,
-                        ) ??
-                        TextStyle(
+                        ),
+
+                        // Selected day styling - transparent to allow custom builder
+                        selectedDecoration: const BoxDecoration(),
+                        selectedTextStyle: TextStyle(
+                          color: colorScheme.primary,
                           fontWeight: FontWeight.w600,
+                        ),
+
+                        // Weekend styling
+                        weekendTextStyle: TextStyle(color: colorScheme.error),
+
+                        // Default styling
+                        defaultTextStyle: TextStyle(
                           color: colorScheme.onSurface,
                         ),
-                  ),
-
-                  calendarStyle: CalendarStyle(
-                    // Calendar sizing - more compact
-                    tablePadding: const EdgeInsets.all(4),
-                    cellPadding: const EdgeInsets.all(2),
-                    rowDecoration: const BoxDecoration(),
-
-                    // Today styling - transparent to allow custom builder
-                    todayDecoration: const BoxDecoration(),
-                    todayTextStyle: TextStyle(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-
-                    // Selected day styling - transparent to allow custom builder
-                    selectedDecoration: const BoxDecoration(),
-                    selectedTextStyle: TextStyle(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-
-                    // Weekend styling
-                    weekendTextStyle: TextStyle(color: colorScheme.error),
-
-                    // Default styling
-                    defaultTextStyle: TextStyle(color: colorScheme.onSurface),
-                    outsideTextStyle: TextStyle(
-                      color: colorScheme.onSurface.withValues(alpha: 0.4),
-                    ),
-                  ),
-
-                  calendarBuilders: CalendarBuilders<Todo>(
-                    // Custom today builder with underline
-                    todayBuilder: (context, day, focusedDay) {
-                      final isSelected = isSameDay(_selectedDay, day);
-                      // Fade out today's underline when another day is selected
-                      final opacity = isSelected ? 1.0 : 0.5;
-
-                      return GestureDetector(
-                        onDoubleTap: () {
-                          final dateOnly = DateTime(
-                            day.year,
-                            day.month,
-                            day.day,
-                          );
-                          ref
-                                  .read(selectedCalendarDateProvider.notifier)
-                                  .state =
-                              dateOnly;
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => TaskEditorScreen(
-                                presetDueDate: dateOnly,
-                                onSave: (t) => ref
-                                    .read(taskControllerProvider.notifier)
-                                    .add(t),
-                              ),
-                            ),
-                          );
-                        },
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '${day.day}',
-                              style: TextStyle(
-                                color: colorScheme.primary.withValues(
-                                  alpha: opacity,
-                                ),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Container(
-                              height: 2,
-                              width: 20,
-                              decoration: BoxDecoration(
-                                color: colorScheme.primary.withValues(
-                                  alpha: opacity,
-                                ),
-                                borderRadius: BorderRadius.circular(1),
-                              ),
-                            ),
-                          ],
+                        outsideTextStyle: TextStyle(
+                          color: colorScheme.onSurface.withValues(alpha: 0.4),
                         ),
-                      );
-                    },
+                      ),
 
-                    // Custom selected day builder with underline
-                    selectedBuilder: (context, day, focusedDay) {
-                      final isToday = isSameDay(
-                        day,
-                        ref.read(clockProvider).now(),
-                      );
+                      calendarBuilders: CalendarBuilders<Todo>(
+                        // Custom today builder with underline
+                        todayBuilder: (context, day, focusedDay) {
+                          final isSelected = isSameDay(_selectedDay, day);
+                          // Fade out today's underline when another day is selected
+                          final opacity = isSelected ? 1.0 : 0.5;
 
-                      Widget content = Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '${day.day}',
-                            style: TextStyle(
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            height: 2,
-                            width: 20,
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary,
-                              borderRadius: BorderRadius.circular(1),
-                            ),
-                          ),
-                        ],
-                      );
-
-                      // Today builder handles today visually, but we still add double-tap
-                      if (isToday) {
-                        // Return the same visual with gesture detector
-                      }
-
-                      return GestureDetector(
-                        onDoubleTap: () {
-                          final dateOnly = DateTime(
-                            day.year,
-                            day.month,
-                            day.day,
-                          );
-                          ref
-                                  .read(selectedCalendarDateProvider.notifier)
-                                  .state =
-                              dateOnly;
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => TaskEditorScreen(
-                                presetDueDate: dateOnly,
-                                onSave: (t) => ref
-                                    .read(taskControllerProvider.notifier)
-                                    .add(t),
-                              ),
-                            ),
-                          );
-                        },
-                        child: content,
-                      );
-                    },
-                    // Custom marker builder - left bars style
-                    markerBuilder: (context, day, events) {
-                      if (events.isEmpty) return const SizedBox.shrink();
-
-                      // Sort events by priority: high → medium → low → none
-                      final sortedEvents = events.toList()
-                        ..sort((a, b) {
-                          const priorityOrder = {
-                            'high': 0,
-                            'medium': 1,
-                            'low': 2,
-                            'none': 3,
-                          };
-                          final aPriority =
-                              priorityOrder[a.priority.toLowerCase()] ?? 4;
-                          final bPriority =
-                              priorityOrder[b.priority.toLowerCase()] ?? 4;
-                          return aPriority.compareTo(bPriority);
-                        });
-
-                      const maxBars = 2;
-                      final bars = sortedEvents.take(maxBars).toList();
-                      final extra = sortedEvents.length - bars.length;
-
-                      return Positioned(
-                        top: 4,
-                        bottom: 4,
-                        left: 4,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            for (var event in bars)
-                              Container(
-                                margin: const EdgeInsets.symmetric(vertical: 1),
-                                width: 4,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: _getColorForPriority(
-                                    event.priority,
-                                    colorScheme,
+                          return GestureDetector(
+                            onDoubleTap: () {
+                              final dateOnly = DateTime(
+                                day.year,
+                                day.month,
+                                day.day,
+                              );
+                              ref
+                                      .read(
+                                        selectedCalendarDateProvider.notifier,
+                                      )
+                                      .state =
+                                  dateOnly;
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => TaskEditorScreen(
+                                    presetDueDate: dateOnly,
+                                    onSave: (t) => ref
+                                        .read(taskControllerProvider.notifier)
+                                        .add(t),
                                   ),
-                                  borderRadius: BorderRadius.circular(2),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.06,
-                                      ),
-                                      blurRadius: 1,
-                                    ),
-                                  ],
                                 ),
-                              ),
-                            if (extra > 0)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 2),
-                                child: Text(
-                                  '+$extra',
+                              );
+                            },
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  '${day.day}',
                                   style: TextStyle(
-                                    fontSize: 8,
-                                    color: theme.textTheme.bodySmall?.color,
+                                    color: colorScheme.primary.withValues(
+                                      alpha: opacity,
+                                    ),
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  height: 2,
+                                  width: 20,
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primary.withValues(
+                                      alpha: opacity,
+                                    ),
+                                    borderRadius: BorderRadius.circular(1),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+
+                        // Custom selected day builder with underline
+                        selectedBuilder: (context, day, focusedDay) {
+                          final isToday = isSameDay(
+                            day,
+                            ref.read(clockProvider).now(),
+                          );
+
+                          Widget content = Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '${day.day}',
+                                style: TextStyle(
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                          ],
+                              const SizedBox(height: 4),
+                              Container(
+                                height: 2,
+                                width: 20,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primary,
+                                  borderRadius: BorderRadius.circular(1),
+                                ),
+                              ),
+                            ],
+                          );
+
+                          // Today builder handles today visually, but we still add double-tap
+                          if (isToday) {
+                            // Return the same visual with gesture detector
+                          }
+
+                          return GestureDetector(
+                            onDoubleTap: () {
+                              final dateOnly = DateTime(
+                                day.year,
+                                day.month,
+                                day.day,
+                              );
+                              ref
+                                      .read(
+                                        selectedCalendarDateProvider.notifier,
+                                      )
+                                      .state =
+                                  dateOnly;
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => TaskEditorScreen(
+                                    presetDueDate: dateOnly,
+                                    onSave: (t) => ref
+                                        .read(taskControllerProvider.notifier)
+                                        .add(t),
+                                  ),
+                                ),
+                              );
+                            },
+                            child: content,
+                          );
+                        },
+                        // Custom marker builder - left bars style
+                        markerBuilder: (context, day, events) {
+                          if (events.isEmpty) return const SizedBox.shrink();
+
+                          // Sort events by priority: high → medium → low → none
+                          final sortedEvents = events.toList()
+                            ..sort((a, b) {
+                              const priorityOrder = {
+                                'high': 0,
+                                'medium': 1,
+                                'low': 2,
+                                'none': 3,
+                              };
+                              final aPriority =
+                                  priorityOrder[a.priority.toLowerCase()] ?? 4;
+                              final bPriority =
+                                  priorityOrder[b.priority.toLowerCase()] ?? 4;
+                              return aPriority.compareTo(bPriority);
+                            });
+
+                          const maxBars = 2;
+                          final bars = sortedEvents.take(maxBars).toList();
+                          final extra = sortedEvents.length - bars.length;
+
+                          return Positioned(
+                            top: 4,
+                            bottom: 4,
+                            left: 4,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                for (var event in bars)
+                                  Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      vertical: 1,
+                                    ),
+                                    width: 4,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: _getColorForPriority(
+                                        event.priority,
+                                        colorScheme,
+                                      ),
+                                      borderRadius: BorderRadius.circular(2),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.06,
+                                          ),
+                                          blurRadius: 1,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (extra > 0)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Text(
+                                      '+$extra',
+                                      style: TextStyle(
+                                        fontSize: 8,
+                                        color: theme.textTheme.bodySmall?.color,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+
+                      daysOfWeekStyle: DaysOfWeekStyle(
+                        weekdayStyle: TextStyle(
+                          color: colorScheme.onSurface,
+                          fontWeight: FontWeight.w500,
                         ),
-                      );
-                    },
-                  ),
+                        weekendStyle: TextStyle(
+                          color: colorScheme.error,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
 
-                  daysOfWeekStyle: DaysOfWeekStyle(
-                    weekdayStyle: TextStyle(
-                      color: colorScheme.onSurface,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    weekendStyle: TextStyle(
-                      color: colorScheme.error,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                      onDaySelected: (selectedDay, focusedDay) {
+                        setState(() {
+                          _selectedDay = selectedDay;
+                          _focusedDay = focusedDay;
+                        });
+                        // Update the provider so other widgets can access the selected date
+                        ref.read(selectedCalendarDateProvider.notifier).state =
+                            selectedDay;
+                      },
 
-                  onDaySelected: (selectedDay, focusedDay) {
-                    setState(() {
-                      _selectedDay = selectedDay;
-                      _focusedDay = focusedDay;
-                    });
-                    // Update the provider so other widgets can access the selected date
-                    ref.read(selectedCalendarDateProvider.notifier).state =
-                        selectedDay;
-                  },
+                      onFormatChanged: (format) {
+                        _cycleCalendarFormat();
+                      },
 
-                  onFormatChanged: (format) {
-                    setState(() {
-                      _calendarFormat = format;
-                    });
-                  },
-
-                  onPageChanged: (focusedDay) {
-                    setState(() {
-                      _focusedDay = focusedDay;
-                    });
+                      onPageChanged: (focusedDay) {
+                        setState(() {
+                          _focusedDay = focusedDay;
+                        });
+                      },
+                    );
                   },
                 ),
               ),
             ),
-          ),
-
-          // Selected Day Tasks
-          if (_selectedDay != null) ...[
+          ), // AnimatedContainer
+          // Selected Day Tasks - Only show when NOT in day view
+          if (_selectedDay != null &&
+              customFormat != CustomCalendarFormat.day) ...[
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(

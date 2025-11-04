@@ -32,8 +32,8 @@ class TodoListTab extends ConsumerWidget {
 
     return Column(
       children: [
-        // Greeting header (always shown)
-        const GreetingHeader(),
+        // Greeting header (hidden in calendar view to save space)
+        if (viewType != TaskViewType.calendar) const GreetingHeader(),
 
         sectionGap,
 

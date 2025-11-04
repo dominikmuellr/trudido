@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/folder_provider.dart';
-import '../widgets/folder_item.dart';
 import '../widgets/create_folder_dialog.dart';
 import '../widgets/edit_folder_dialog.dart';
 import '../use_cases/folder_use_cases.dart';
@@ -16,19 +15,10 @@ class FolderManagementScreen extends ConsumerStatefulWidget {
 
 class _FolderManagementScreenState
     extends ConsumerState<FolderManagementScreen> {
-  final _searchController = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final foldersAsync = ref.watch(filteredFoldersProvider);
+    final foldersAsync = ref.watch(folderNotifierProvider);
     final foldersWithCounts = ref.watch(foldersWithTaskCountsProvider);
-    final searchQuery = ref.watch(folderSearchQueryProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -36,187 +26,153 @@ class _FolderManagementScreenState
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         foregroundColor: Theme.of(context).colorScheme.onSurface,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.add),
-            onPressed: () => _showCreateFolderDialog(context),
-            tooltip: 'Create Folder',
-          ),
-        ],
       ),
-      body: Column(
-        children: [
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search folders...',
-                prefixIcon: Icon(Icons.search),
-                suffixIcon: searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.close),
-                        onPressed: () {
-                          _searchController.clear();
-                          ref.read(folderSearchQueryProvider.notifier).state =
-                              '';
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
+      body: foldersAsync.when(
+        data: (folders) {
+          if (folders.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.folder_open,
+                    size: 64,
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No folders yet',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('Create a folder to organize your tasks'),
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: () => _showCreateFolderDialog(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Create Folder'),
+                  ),
+                ],
               ),
-              onChanged: (value) {
-                ref.read(folderSearchQueryProvider.notifier).state = value;
-              },
-            ),
-          ),
+            );
+          }
 
-          // Folders list
-          Expanded(
-            child: foldersAsync.when(
-              data: (folders) {
-                if (folders.isEmpty) {
-                  return _buildEmptyState(context);
-                }
+          return foldersWithCounts.when(
+            data: (foldersWithTaskCounts) {
+              // Create a map for quick lookup of task counts
+              final taskCountMap = <String, int>{};
+              for (final folderWithCount in foldersWithTaskCounts) {
+                taskCountMap[folderWithCount.folder.id] =
+                    folderWithCount.taskCount;
+              }
 
-                return foldersWithCounts.when(
-                  data: (foldersWithTaskCounts) {
-                    // Create a map for quick lookup of task counts
-                    final taskCountMap = <String, int>{};
-                    for (final folderWithCount in foldersWithTaskCounts) {
-                      taskCountMap[folderWithCount.folder.id] =
-                          folderWithCount.taskCount;
-                    }
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: folders.length,
+                itemBuilder: (context, index) {
+                  final folder = folders[index];
+                  final taskCount = taskCountMap[folder.id] ?? 0;
 
-                    return ReorderableListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: folders.length,
-                      onReorder: (oldIndex, newIndex) {
-                        _reorderFolders(folders, oldIndex, newIndex);
-                      },
-                      itemBuilder: (context, index) {
-                        final folder = folders[index];
-                        final taskCount = taskCountMap[folder.id] ?? 0;
-
-                        return FolderItem(
-                          key: ValueKey(folder.id),
-                          folder: folder,
-                          taskCount: taskCount,
-                          onTap: () => _selectFolder(folder.id),
-                          onEdit: () => _showEditFolderDialog(context, folder),
-                          onDelete: folder.isDefault
-                              ? null
-                              : () => _deleteFolder(folder.id),
-                        );
-                      },
-                    );
-                  },
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, stack) =>
-                      Center(child: Text('Error loading task counts: $error')),
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.warning,
-                      size: 48,
-                      color: Theme.of(context).colorScheme.error,
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: ListTile(
+                      leading: Icon(
+                        _getIconData(folder.icon ?? 'folder'),
+                        color: Color(folder.color),
+                        size: 32,
+                      ),
+                      title: Text(
+                        folder.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (folder.description != null &&
+                              folder.description!.isNotEmpty)
+                            Text(folder.description!),
+                          Text(
+                            '$taskCount ${taskCount == 1 ? 'task' : 'tasks'}',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.outline,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      onTap: () => _showEditFolderDialog(context, folder),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () =>
+                                _showEditFolderDialog(context, folder),
+                            tooltip: 'Edit folder',
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => _deleteFolder(folder.id),
+                            tooltip: 'Delete folder',
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Error loading folders',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      error.toString(),
-                      style: Theme.of(context).textTheme.bodySmall,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => ref
-                          .read(folderNotifierProvider.notifier)
-                          .loadFolders(),
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
+                  );
+                },
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) =>
+                Center(child: Text('Error loading task counts: $error')),
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error,
+                size: 64,
+                color: Theme.of(context).colorScheme.error,
               ),
-            ),
+              const SizedBox(height: 16),
+              Text('Error loading folders'),
+              const SizedBox(height: 8),
+              FilledButton(
+                onPressed: () => ref.refresh(folderNotifierProvider),
+                child: const Text('Retry'),
+              ),
+            ],
           ),
-        ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showCreateFolderDialog(context),
+        child: const Icon(Icons.add),
       ),
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
-    final searchQuery = ref.watch(folderSearchQueryProvider);
-
-    if (searchQuery.isNotEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.search,
-              size: 48,
-              color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No folders found',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Try adjusting your search terms',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
-      );
+  IconData _getIconData(String iconName) {
+    switch (iconName) {
+      case 'work':
+        return Icons.work;
+      case 'home':
+        return Icons.home;
+      case 'shopping_cart':
+        return Icons.shopping_cart;
+      case 'favorite':
+        return Icons.favorite;
+      case 'school':
+        return Icons.school;
+      case 'folder':
+      default:
+        return Icons.folder;
     }
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.folder,
-            size: 48,
-            color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No folders yet',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Create your first folder to organize your tasks',
-            style: Theme.of(context).textTheme.bodySmall,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () => _showCreateFolderDialog(context),
-            icon: Icon(Icons.add),
-            label: const Text('Create Folder'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showCreateFolderDialog(BuildContext context) {
@@ -231,28 +187,6 @@ class _FolderManagementScreenState
       context: context,
       builder: (context) => EditFolderDialog(folder: folder),
     );
-  }
-
-  void _reorderFolders(List folders, int oldIndex, int newIndex) {
-    if (oldIndex < newIndex) {
-      newIndex -= 1;
-    }
-
-    // Create new order based on the reordered list
-    final reorderedFolders = List.from(folders);
-    final item = reorderedFolders.removeAt(oldIndex);
-    reorderedFolders.insert(newIndex, item);
-
-    // Extract folder IDs in new order
-    final folderIds = reorderedFolders.map((f) => f.id as String).toList();
-
-    // Update the order
-    ref.read(folderNotifierProvider.notifier).reorderFolders(folderIds);
-  }
-
-  void _selectFolder(String folderId) {
-    ref.read(selectedFolderProvider.notifier).state = folderId;
-    Navigator.pop(context);
   }
 
   void _deleteFolder(String folderId) {

@@ -52,37 +52,62 @@ Future<void> showFiltersSheet(BuildContext context) {
                         children: [
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 8.0),
-                            child: Text('Filters', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                            child: Text(
+                              'Filters',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                           const Divider(),
 
                           const Padding(
                             padding: EdgeInsets.only(top: 8.0, bottom: 4.0),
-                            child: Text('Priority', style: TextStyle(fontWeight: FontWeight.w600)),
+                            child: Text(
+                              'Priority',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                           RadioListTile<String>(
                             title: const Text('All Priorities'),
                             value: 'all',
                             groupValue: p,
-                            onChanged: (v) => innerRef.read(selectedPriorityProvider.notifier).state = v ?? 'all',
+                            onChanged: (v) =>
+                                innerRef
+                                        .read(selectedPriorityProvider.notifier)
+                                        .state =
+                                    v ?? 'all',
                           ),
                           RadioListTile<String>(
                             title: const Text('High Priority'),
                             value: 'high',
                             groupValue: p,
-                            onChanged: (v) => innerRef.read(selectedPriorityProvider.notifier).state = v ?? 'high',
+                            onChanged: (v) =>
+                                innerRef
+                                        .read(selectedPriorityProvider.notifier)
+                                        .state =
+                                    v ?? 'high',
                           ),
                           RadioListTile<String>(
                             title: const Text('Medium Priority'),
                             value: 'medium',
                             groupValue: p,
-                            onChanged: (v) => innerRef.read(selectedPriorityProvider.notifier).state = v ?? 'medium',
+                            onChanged: (v) =>
+                                innerRef
+                                        .read(selectedPriorityProvider.notifier)
+                                        .state =
+                                    v ?? 'medium',
                           ),
                           RadioListTile<String>(
                             title: const Text('Low Priority'),
                             value: 'low',
                             groupValue: p,
-                            onChanged: (v) => innerRef.read(selectedPriorityProvider.notifier).state = v ?? 'low',
+                            onChanged: (v) =>
+                                innerRef
+                                        .read(selectedPriorityProvider.notifier)
+                                        .state =
+                                    v ?? 'low',
                           ),
 
                           const SizedBox(height: 8),
@@ -90,50 +115,61 @@ Future<void> showFiltersSheet(BuildContext context) {
                           SwitchListTile(
                             title: const Text('Show Completed'),
                             value: s,
-                            onChanged: (value) => innerRef.read(showCompletedProvider.notifier).state = value,
+                            onChanged: (value) =>
+                                innerRef
+                                        .read(showCompletedProvider.notifier)
+                                        .state =
+                                    value,
                           ),
 
                           const SizedBox(height: 8),
 
                           const Padding(
                             padding: EdgeInsets.only(top: 8.0, bottom: 4.0),
-                            child: Text('Sort by', style: TextStyle(fontWeight: FontWeight.w600)),
+                            child: Text(
+                              'Sort by',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
                           RadioListTile<String>(
                             title: const Text('Default'),
                             value: 'default',
                             groupValue: sort,
-                            onChanged: (v) => innerRef.read(sortByProvider.notifier).state = v ?? 'default',
-                          ),
-                          RadioListTile<String>(
-                            title: const Text('Manual'),
-                            value: 'manual',
-                            groupValue: sort,
-                            onChanged: (v) => innerRef.read(sortByProvider.notifier).state = v ?? 'manual',
+                            onChanged: (v) =>
+                                innerRef.read(sortByProvider.notifier).state =
+                                    v ?? 'default',
                           ),
                           RadioListTile<String>(
                             title: const Text('Date Created'),
                             value: 'date_created',
                             groupValue: sort,
-                            onChanged: (v) => innerRef.read(sortByProvider.notifier).state = v ?? 'date_created',
+                            onChanged: (v) =>
+                                innerRef.read(sortByProvider.notifier).state =
+                                    v ?? 'date_created',
                           ),
                           RadioListTile<String>(
                             title: const Text('Due Date'),
                             value: 'date_due',
                             groupValue: sort,
-                            onChanged: (v) => innerRef.read(sortByProvider.notifier).state = v ?? 'date_due',
+                            onChanged: (v) =>
+                                innerRef.read(sortByProvider.notifier).state =
+                                    v ?? 'date_due',
                           ),
                           RadioListTile<String>(
                             title: const Text('Priority'),
                             value: 'priority',
                             groupValue: sort,
-                            onChanged: (v) => innerRef.read(sortByProvider.notifier).state = v ?? 'priority',
+                            onChanged: (v) =>
+                                innerRef.read(sortByProvider.notifier).state =
+                                    v ?? 'priority',
                           ),
                           RadioListTile<String>(
                             title: const Text('Alphabetical'),
                             value: 'alphabetical',
                             groupValue: sort,
-                            onChanged: (v) => innerRef.read(sortByProvider.notifier).state = v ?? 'alphabetical',
+                            onChanged: (v) =>
+                                innerRef.read(sortByProvider.notifier).state =
+                                    v ?? 'alphabetical',
                           ),
 
                           const SizedBox(height: 12),

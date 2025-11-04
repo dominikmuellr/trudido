@@ -83,39 +83,6 @@ class _EditFolderDialogState extends ConsumerState<EditFolderDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Show default folder warning
-                if (widget.folder.isDefault) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withAlpha(26),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: theme.colorScheme.primary.withAlpha(77),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info,
-                          color: theme.colorScheme.primary,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'This is a default folder. Some properties may be restricted.',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
                 // Folder name
                 TextFormField(
                   controller: _nameController,

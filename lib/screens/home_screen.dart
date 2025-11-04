@@ -19,12 +19,12 @@ import '../models/note_folder.dart';
 import '../screens/task_editor_screen.dart';
 import '../screens/template_management_screen.dart';
 import '../widgets/todo_list_tab.dart';
-import '../widgets/create_folder_dialog.dart';
 import '../widgets/fab_menu.dart';
 import '../utils/animated_navigation.dart';
 import 'settings_screen.dart';
 import 'notes_screen.dart';
 import 'note_editor_screen.dart';
+import 'folder_management_screen.dart';
 import 'notes_folder_management_screen.dart';
 
 // Provider for tracking search mode state
@@ -111,6 +111,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   Widget build(BuildContext context) {
     final currentTab = ref.watch(currentTabProvider);
+    final isSearchMode = ref.watch(searchModeProvider);
+    final selectedNoteFolderId = ref.watch(selectedNoteFolderProvider);
+    final fabMenuExpanded = ref.watch(fabMenuExpandedProvider);
 
     // Define tabs
     final tabs = [const TodoListTab(), const NotesScreen()];
@@ -119,6 +122,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final screenWidth = MediaQuery.of(context).size.width;
     final useNavigationRail = screenWidth >= 600; // Material 3 breakpoint
 
+    // Handle back navigation: close search, vault, or FAB menu before exiting app
+    return PopScope(
+      canPop: !isSearchMode && selectedNoteFolderId == null && !fabMenuExpanded,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+
+        // Priority 1: Close FAB menu if open
+        if (fabMenuExpanded) {
+          ref.read(fabMenuExpandedProvider.notifier).state = false;
+          return;
+        }
+
+        // Priority 2: Exit search mode if active
+        if (isSearchMode) {
+          ref.read(searchModeProvider.notifier).state = false;
+          _searchController.clear();
+          if (currentTab == 0) {
+            ref.read(searchQueryProvider.notifier).state = '';
+          } else if (currentTab == 1) {
+            ref.read(notesSearchQueryProvider.notifier).state = '';
+          }
+          return;
+        }
+
+        // Priority 3: Exit vault view if in a vault
+        if (selectedNoteFolderId != null) {
+          final foldersAsync = ref.read(noteFoldersProvider);
+          final folders = foldersAsync.valueOrNull ?? [];
+          final folder = folders
+              .where((f) => f.id == selectedNoteFolderId)
+              .firstOrNull;
+
+          if (folder != null && folder.isVault) {
+            ref.read(selectedNoteFolderProvider.notifier).state = null;
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Vault locked'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+            return;
+          }
+        }
+
+        // If none of the above, allow default back behavior (exit app)
+      },
+      child: _buildContent(useNavigationRail, tabs, currentTab),
+    );
+  }
+
+  Widget _buildContent(
+    bool useNavigationRail,
+    List<Widget> tabs,
+    int currentTab,
+  ) {
     if (useNavigationRail) {
       return Stack(
         children: [
@@ -197,6 +257,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               onAddNote: _createNewNote,
               onAddFromTemplate: _showTemplateSelection,
               onCreateVaultNote: _createVaultNote,
+              onLockVault: _lockVault,
+              onSearch: _triggerSearch,
             ),
           ),
         ],
@@ -262,12 +324,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         // FAB on top - positioned above the bottom navigation bar
         Positioned(
           right: 16,
-          bottom: 96, // NavigationBar height (~80) + standard spacing (16)
+          bottom:
+              110, // NavigationBar height (~80) + extra spacing for better visibility
           child: FabMenu(
             onAddTask: _showAddTaskDialog,
             onAddNote: _createNewNote,
             onAddFromTemplate: _showTemplateSelection,
             onCreateVaultNote: _createVaultNote,
+            onLockVault: _lockVault,
+            onSearch: _triggerSearch,
           ),
         ),
       ],
@@ -358,12 +423,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     debugPrint('[Home Screen] Using vault: ${vaultFolders.first.name}');
 
-    // Use the first vault as default (or could track last used vault)
-    // TODO: Could add a StateProvider to track the last accessed vault
-    final defaultVault = vaultFolders.first;
+    // Try to use the last accessed vault, otherwise use the first one
+    final lastVaultId = ref.read(lastAccessedVaultProvider);
+    final defaultVault = lastVaultId != null
+        ? vaultFolders.firstWhere(
+            (v) => v.id == lastVaultId,
+            orElse: () => vaultFolders.first,
+          )
+        : vaultFolders.first;
 
     debugPrint(
-      '[Home Screen] Vault details - ID: ${defaultVault.id}, useBiometric: ${defaultVault.useBiometric}, hasPassword: ${defaultVault.hasPassword}',
+      '[Home Screen] Vault details - ID: ${defaultVault.id}, Name: ${defaultVault.name}, useBiometric: ${defaultVault.useBiometric}, hasPassword: ${defaultVault.hasPassword}',
     );
 
     // Check if vault needs initial setup (no password set yet)
@@ -404,7 +474,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       return;
     }
 
-    // Authentication successful - create note in vault
+    // Authentication successful - save this vault as last accessed
+    ref.read(lastAccessedVaultProvider.notifier).state = defaultVault.id;
+    debugPrint('[Home Screen] Saved vault ${defaultVault.id} as last accessed');
+
+    // Create note in vault
     debugPrint('[Home Screen] Authentication successful, creating note');
     if (!mounted) {
       debugPrint('[Home Screen] Widget not mounted, aborting');
@@ -426,6 +500,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       context,
       const TemplateManagementScreen(),
     );
+  }
+
+  void _lockVault() {
+    // Clear the selected folder to exit vault view
+    ref.read(selectedNoteFolderProvider.notifier).state = null;
+
+    // Close FAB menu
+    ref.read(fabMenuExpandedProvider.notifier).state = false;
+
+    // Show confirmation
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Vault locked'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _triggerSearch() {
+    // Activate search mode
+    // Note: Search behavior depends on context:
+    // - In a vault: Search is scoped to that specific vault only
+    // - Global (not in vault): Search excludes all vault content for security
+    // This is handled automatically via filteredNotesProvider and filteredTasksProvider
+    ref.read(searchModeProvider.notifier).state = true;
+
+    // Close FAB menu
+    ref.read(fabMenuExpandedProvider.notifier).state = false;
   }
 
   // Commented out - kept for potential future use
@@ -668,7 +770,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               Align(
                 alignment: Alignment.center,
                 child: multiMode && currentTab == 0
-                    ? Text('${selectedIds.length} selected')
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: ScaledIcon(
+                              selectedIds.length ==
+                                      ref.watch(filteredTasksProvider).length
+                                  ? Icons.check_box
+                                  : Icons.check_box_outline_blank,
+                            ),
+                            tooltip: 'Select all',
+                            onPressed: () {
+                              final allTasks = ref.read(filteredTasksProvider);
+                              final notifier = ref.read(
+                                selectedTodoIdsProvider.notifier,
+                              );
+                              if (selectedIds.length == allTasks.length) {
+                                // Deselect all
+                                notifier.clear();
+                              } else {
+                                // Select all - clear first then add all
+                                notifier.clear();
+                                for (final task in allTasks) {
+                                  notifier.toggle(task.id);
+                                }
+                              }
+                            },
+                          ),
+                          Text(
+                            '${selectedIds.length} selected',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      )
                     : (currentTab == 0
                           ? _buildFolderDropdown(
                               isLeading: false,
@@ -695,6 +834,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Add spacing to prevent accidental hits on the menu when switching views
+                    if (currentTab == 0 && !multiMode)
+                      const SizedBox(width: 16),
                     if (currentTab == 0 && multiMode) ...[
                       IconButton(
                         icon: ScaledIcon(Icons.check_circle_outline),
@@ -861,6 +1003,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         final computedMax = ((screenWidth / 2) - reserved).clamp(140.0, 420.0);
 
         return PopupMenuButton<String>(
+          clipBehavior: Clip.hardEdge,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          color: Theme.of(context).colorScheme.surface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 2,
+          splashRadius: 0,
+          offset: const Offset(0, 8),
           child: Container(
             // Slightly larger padding for better tap target and presence
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -875,7 +1026,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               color: asTitle
                   ? Colors.transparent
                   : Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(12),
             ),
             // Show compact UI when used as leading: icon + caret only
             child: isLeading
@@ -1003,22 +1154,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                   )
                   .toList(),
-              // Divider + create new folder option
+              // Divider + manage folders option
               PopupMenuDivider(
                 height: 1,
                 color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
               ),
               PopupMenuItem<String>(
-                value: '_CREATE_FOLDER_',
+                value: '_MANAGE_FOLDERS_',
                 child: Row(
                   children: [
                     ScaledIcon(
-                      Icons.create_new_folder,
+                      Icons.settings,
                       size: 18,
                       color: Theme.of(context).colorScheme.primary,
                     ),
                     const SizedBox(width: 12),
-                    const Text('Create folder'),
+                    const Text('Manage folders'),
                   ],
                 ),
               ),
@@ -1028,11 +1179,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             debugPrint(
               '[FolderDropdown] Selected folder: ${folderId == '_ALL_FOLDERS_' ? 'All folders' : folderId}',
             );
-            if (folderId == '_CREATE_FOLDER_') {
-              // Open the create folder dialog
-              showDialog(
-                context: context,
-                builder: (ctx) => const CreateFolderDialog(),
+            if (folderId == '_MANAGE_FOLDERS_') {
+              // Navigate to folder management screen
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const FolderManagementScreen(),
+                ),
               );
               return;
             }
@@ -1183,6 +1335,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             : null;
 
         return PopupMenuButton<String>(
+          clipBehavior: Clip.hardEdge,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          color: Theme.of(context).colorScheme.surface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 2,
+          splashRadius: 0,
+          offset: const Offset(0, 8),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             margin: isLeading
@@ -1194,7 +1355,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               color: asTitle
                   ? Colors.transparent
                   : Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: isLeading
                 ? Row(
@@ -1203,7 +1364,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ScaledIcon(
                         selectedFolder != null && selectedFolder.isVault
                             ? Icons.lock_open
-                            : Icons.folder,
+                            : Icons.folder_outlined,
                         size: 18,
                         color: selectedFolder != null && selectedFolder.isVault
                             ? Colors.amber
@@ -1227,7 +1388,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         ScaledIcon(
                           selectedFolder != null && selectedFolder.isVault
                               ? Icons.lock_open
-                              : Icons.folder,
+                              : Icons.folder_outlined,
                           size: 20,
                           color:
                               selectedFolder != null && selectedFolder.isVault
@@ -1264,7 +1425,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 child: Row(
                   children: [
                     ScaledIcon(
-                      Icons.folder,
+                      Icons.folder_outlined,
                       size: 18,
                       color: selectedFolderId == null
                           ? Theme.of(context).colorScheme.primary
@@ -1297,7 +1458,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 ? (selectedFolderId == folder.id
                                       ? Icons.lock_open
                                       : Icons.lock)
-                                : Icons.folder,
+                                : Icons.folder_outlined,
                             size: 18,
                             color: selectedFolderId == folder.id
                                 ? Theme.of(context).colorScheme.primary
@@ -1399,6 +1560,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     return;
                   }
                 }
+
+                // Track last accessed vault
+                ref.read(lastAccessedVaultProvider.notifier).state = folder.id;
               }
 
               ref.read(selectedNoteFolderProvider.notifier).state = folderId;
@@ -1468,7 +1632,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             ScaledIcon(
-              Icons.folder,
+              Icons.folder_outlined,
               size: 18,
               color: Theme.of(context).colorScheme.error,
             ),
@@ -1541,7 +1705,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       case 'fitness':
         return Icons.fitness_center;
       default:
-        return Icons.folder;
+        return Icons.folder_outlined;
     }
   }
 

@@ -6,6 +6,9 @@ import '../repositories/note_folder_repository.dart';
 /// Provider for selected folder filter (null = all notes)
 final selectedNoteFolderProvider = StateProvider<String?>((ref) => null);
 
+/// Provider for tracking the last accessed vault folder ID
+final lastAccessedVaultProvider = StateProvider<String?>((ref) => null);
+
 /// Controller for handling notes business logic
 class NotesController extends StateNotifier<AsyncValue<void>> {
   final NotesNotifier _notesNotifier;

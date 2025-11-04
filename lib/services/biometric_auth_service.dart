@@ -45,13 +45,17 @@ class BiometricAuthService {
   }) async {
     try {
       debugPrint('[BiometricAuth] Starting authentication');
-      debugPrint('[BiometricAuth] Reason: $reason, biometricOnly: $biometricOnly');
-      
+      debugPrint(
+        '[BiometricAuth] Reason: $reason, biometricOnly: $biometricOnly',
+      );
+
       final isAvailable = await isBiometricsAvailable();
       debugPrint('[BiometricAuth] Biometrics available: $isAvailable');
 
       if (!isAvailable && biometricOnly) {
-        debugPrint('[BiometricAuth] Biometrics not available and biometricOnly=true, returning false');
+        debugPrint(
+          '[BiometricAuth] Biometrics not available and biometricOnly=true, returning false',
+        );
         return false;
       }
 
@@ -63,11 +67,13 @@ class BiometricAuthService {
           biometricOnly: biometricOnly,
         ),
       );
-      
+
       debugPrint('[BiometricAuth] Authentication result: $result');
       return result;
     } on PlatformException catch (e) {
-      debugPrint('[BiometricAuth] Platform exception: ${e.code} - ${e.message}');
+      debugPrint(
+        '[BiometricAuth] Platform exception: ${e.code} - ${e.message}',
+      );
       print('Biometric authentication error: $e');
       return false;
     } catch (e) {

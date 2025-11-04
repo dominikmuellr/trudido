@@ -1,18 +1,60 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/todo.dart';
 import 'app_providers.dart';
 import '../services/folder_provider.dart';
+import '../widgets/calendar_view.dart';
 
 // Filter state providers
 final searchQueryProvider = StateProvider<String>((ref) => '');
 final selectedPriorityProvider = StateProvider<String>((ref) => 'all');
 final showCompletedProvider = StateProvider<bool>((ref) => true);
-final sortByProvider = StateProvider<String>((ref) => 'default'); // default|date_created|date_due|priority|alphabetical|manual
+final sortByProvider = StateProvider<String>(
+  (ref) => 'default',
+); // default|date_created|date_due|priority|alphabetical|manual
 
 // View state providers
 enum TaskViewType { list, calendar }
-final taskViewTypeProvider = StateProvider<TaskViewType>((ref) => TaskViewType.list);
+
+final taskViewTypeProvider = StateProvider<TaskViewType>(
+  (ref) => TaskViewType.list,
+);
 final selectedCalendarDateProvider = StateProvider<DateTime?>((ref) => null);
+
+// Calendar format notifier with persistence
+class CalendarFormatNotifier extends StateNotifier<CustomCalendarFormat> {
+  CalendarFormatNotifier() : super(CustomCalendarFormat.month) {
+    _loadSavedFormat();
+  }
+
+  Future<void> _loadSavedFormat() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedIndex = prefs.getInt('calendar_format_index');
+      if (savedIndex != null &&
+          savedIndex < CustomCalendarFormat.values.length) {
+        state = CustomCalendarFormat.values[savedIndex];
+      }
+    } catch (e) {
+      // If loading fails, keep default (month)
+    }
+  }
+
+  Future<void> setFormat(CustomCalendarFormat format) async {
+    state = format;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('calendar_format_index', format.index);
+    } catch (e) {
+      // Save failed, but state is updated locally
+    }
+  }
+}
+
+final calendarFormatProvider =
+    StateNotifierProvider<CalendarFormatNotifier, CustomCalendarFormat>(
+      (ref) => CalendarFormatNotifier(),
+    );
 
 /// Derived filtered task list based on filters above.
 final filteredTasksProvider = Provider<List<Todo>>((ref) {
@@ -27,10 +69,13 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
   var filtered = tasks.where((todo) {
     if (searchQuery.isNotEmpty) {
       final q = searchQuery.toLowerCase();
-      if (!todo.text.toLowerCase().contains(q) && !(todo.notes?.toLowerCase().contains(q) ?? false)) return false;
+      if (!todo.text.toLowerCase().contains(q) &&
+          !(todo.notes?.toLowerCase().contains(q) ?? false))
+        return false;
     }
     if (selectedFolder != null && todo.folderId != selectedFolder) return false;
-    if (selectedPriority != 'all' && todo.priority != selectedPriority) return false;
+    if (selectedPriority != 'all' && todo.priority != selectedPriority)
+      return false;
     if (!showCompleted && todo.isCompleted) return false;
     return true;
   }).toList();
@@ -56,7 +101,9 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
       });
       break;
     case 'alphabetical':
-      filtered.sort((a, b) => a.text.toLowerCase().compareTo(b.text.toLowerCase()));
+      filtered.sort(
+        (a, b) => a.text.toLowerCase().compareTo(b.text.toLowerCase()),
+      );
       break;
     case 'manual':
       // Keep repository-provided order

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/todo.dart';
 import '../models/preferences_state.dart';
 import '../providers/app_providers.dart';
+import '../utils/responsive_size.dart';
 
 class HybridTodoItem extends ConsumerWidget {
   final Todo todo;
@@ -68,65 +69,73 @@ class HybridTodoItem extends ConsumerWidget {
         DismissDirection.endToStart,
         preferences,
       ),
-      child: Card(
-        elevation: 0,
-        color: selected
-            ? Theme.of(context).colorScheme.primaryContainer
-            : Theme.of(context).colorScheme.surfaceContainerHighest,
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        child: InkWell(
-          onTap: selectable ? onSelectToggle : onEdit,
-          onLongPress: selectable ? null : onSelectToggle,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                if (selectable) ...[
-                  Checkbox(value: selected, onChanged: (v) => onSelectToggle()),
-                  const SizedBox(width: 8),
-                ],
-
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        todo.text,
-                        style: TextStyle(
-                          decoration: todo.isCompleted
-                              ? TextDecoration.lineThrough
-                              : null,
-                          color: todo.isCompleted
-                              ? Theme.of(context).colorScheme.onSurfaceVariant
-                              : Theme.of(context).colorScheme.onSurface,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 16,
+      child: GestureDetector(
+        onTap: selectable ? onSelectToggle : onEdit,
+        onLongPress: selectable ? null : onSelectToggle,
+        child: Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          elevation: 2,
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: selected
+                  ? Theme.of(context).colorScheme.primaryContainer
+                  : Theme.of(context).colorScheme.surface,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  if (selectable) ...[
+                    Checkbox(
+                      value: selected,
+                      onChanged: (v) => onSelectToggle(),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          todo.text,
+                          style: TextStyle(
+                            decoration: todo.isCompleted
+                                ? TextDecoration.lineThrough
+                                : null,
+                            color: todo.isCompleted
+                                ? Theme.of(context).colorScheme.onSurfaceVariant
+                                : Theme.of(context).colorScheme.onSurface,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      // Show priority and due date/time in a row
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 4,
-                        children: [
-                          // Priority indicator (only show if not 'none')
-                          if (todo.priority != 'none')
-                            _buildPriorityChip(context),
-                          // Due date and time
-                          if (todo.dueDate != null) _buildDueDateChip(context),
-                          // Repeat indicator
-                          if (todo.isRecurring) _buildRepeatChip(context),
-                        ],
-                      ),
-                    ],
+                        const SizedBox(height: 6),
+                        // Show priority and due date/time in a row
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 4,
+                          children: [
+                            // Priority indicator (only show if not 'none')
+                            if (todo.priority != 'none')
+                              _buildPriorityChip(context),
+                            // Due date and time
+                            if (todo.dueDate != null)
+                              _buildDueDateChip(context),
+                            // Repeat indicator
+                            if (todo.isRecurring) _buildRepeatChip(context),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Checkbox(
-                  value: todo.isCompleted,
-                  onChanged: (value) => onToggle(),
-                ),
-              ],
+                  Checkbox(
+                    value: todo.isCompleted,
+                    onChanged: (value) => onToggle(),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -293,38 +302,46 @@ class HybridTodoItem extends ConsumerWidget {
         ? preferences.swipeRightAction
         : preferences.swipeLeftAction;
 
-    IconData icon;
-    Color color;
-    String text;
-
-    if (action == 'delete') {
-      icon = Icons.delete_outline;
-      color = Theme.of(context).colorScheme.errorContainer;
-      text = 'Delete';
-    } else if (action == 'pin') {
-      icon = Icons.push_pin_outlined;
-      color = Theme.of(context).colorScheme.tertiaryContainer;
-      text = 'Pin';
-    } else {
-      // 'none' or unknown
+    if (action == 'none') {
       return Container(); // No background for 'none'
     }
 
+    final IconData icon;
+    final Color color;
+    final String text;
+
+    if (action == 'delete') {
+      icon = Icons.delete;
+      color = Colors.red;
+      text = 'DELETE';
+    } else if (action == 'pin') {
+      icon = Icons.push_pin_outlined;
+      color = Theme.of(context).colorScheme.primary;
+      text = 'PIN';
+    } else {
+      return Container();
+    }
+
     return Container(
-      color: color,
       alignment: isStartToEnd ? Alignment.centerLeft : Alignment.centerRight,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        mainAxisAlignment: isStartToEnd
-            ? MainAxisAlignment.start
-            : MainAxisAlignment.end,
+      padding: isStartToEnd
+          ? const EdgeInsets.only(left: 20)
+          : const EdgeInsets.only(right: 20),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: Theme.of(context).colorScheme.onErrorContainer),
-          const SizedBox(width: 8),
+          ScaledIcon(icon, color: Colors.white, size: 28),
+          const SizedBox(height: 4),
           Text(
             text,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onErrorContainer,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
             ),
           ),
         ],

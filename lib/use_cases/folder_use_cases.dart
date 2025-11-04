@@ -124,11 +124,6 @@ class DeleteFolderUseCase {
         return FolderDeletionResult.failure('Folder not found');
       }
 
-      // Prevent deletion of default folders
-      if (folder.isDefault) {
-        return FolderDeletionResult.failure('Cannot delete default folders');
-      }
-
       await _repository.deleteFolder(folderId);
       return FolderDeletionResult.success();
     } catch (e) {
