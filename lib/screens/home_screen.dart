@@ -321,30 +321,73 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _createVaultNote() async {
+    debugPrint('[Home Screen] _createVaultNote called');
+
     // Get all folders
     final foldersAsync = ref.read(noteFoldersProvider);
+    debugPrint(
+      '[Home Screen] Folders async state: ${foldersAsync.runtimeType}',
+    );
+
     final folders = foldersAsync.valueOrNull ?? [];
+    debugPrint('[Home Screen] Total folders: ${folders.length}');
 
     // Get vault folders
     final vaultFolders = folders.where((f) => f.isVault).toList();
+    debugPrint('[Home Screen] Vault folders found: ${vaultFolders.length}');
 
     if (vaultFolders.isEmpty) {
       // No vaults exist - navigate to folder management to create one
-      if (!mounted) return;
+      debugPrint(
+        '[Home Screen] No vaults exist, navigating to folder management',
+      );
+      if (!mounted) {
+        debugPrint('[Home Screen] Widget not mounted, aborting');
+        return;
+      }
 
+      debugPrint('[Home Screen] Pushing NotesFolderManagementScreen');
       await AnimatedNavigation.pushContainerTransform(
         context,
         const NotesFolderManagementScreen(),
       );
+      debugPrint('[Home Screen] Returned from NotesFolderManagementScreen');
 
       return;
     }
+
+    debugPrint('[Home Screen] Using vault: ${vaultFolders.first.name}');
 
     // Use the first vault as default (or could track last used vault)
     // TODO: Could add a StateProvider to track the last accessed vault
     final defaultVault = vaultFolders.first;
 
+    debugPrint(
+      '[Home Screen] Vault details - ID: ${defaultVault.id}, useBiometric: ${defaultVault.useBiometric}, hasPassword: ${defaultVault.hasPassword}',
+    );
+
+    // Check if vault needs initial setup (no password set yet)
+    if (!defaultVault.hasPassword) {
+      debugPrint('[Home Screen] Vault has no password, showing setup dialog');
+      if (!mounted) return;
+
+      final setupSuccess = await _showVaultSetupDialog(context, defaultVault);
+      debugPrint('[Home Screen] Vault setup result: $setupSuccess');
+
+      if (!setupSuccess) {
+        debugPrint('[Home Screen] Vault setup cancelled or failed');
+        return;
+      }
+
+      // Refresh folders to get updated vault with password flag
+      ref.invalidate(noteFoldersProvider);
+      await Future.delayed(
+        const Duration(milliseconds: 100),
+      ); // Give time for provider to refresh
+    }
+
     // Authenticate vault access
+    debugPrint('[Home Screen] Calling VaultAuthService.authenticate...');
     final authenticated = await VaultAuthService.authenticate(
       context: context,
       folderId: defaultVault.id,
@@ -353,17 +396,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       hasPassword: defaultVault.hasPassword,
     );
 
+    debugPrint('[Home Screen] Authentication result: $authenticated');
+
     if (!authenticated) {
       // User cancelled or authentication failed
+      debugPrint('[Home Screen] Authentication failed or cancelled');
       return;
     }
 
     // Authentication successful - create note in vault
-    if (!mounted) return;
+    debugPrint('[Home Screen] Authentication successful, creating note');
+    if (!mounted) {
+      debugPrint('[Home Screen] Widget not mounted, aborting');
+      return;
+    }
+
+    debugPrint(
+      '[Home Screen] Pushing NoteEditorScreen with folder ID: ${defaultVault.id}',
+    );
     AnimatedNavigation.pushContainerTransform(
       context,
       NoteEditorScreen(initialFolderId: defaultVault.id),
     );
+    debugPrint('[Home Screen] Note editor pushed');
   }
 
   void _showTemplateSelection() {

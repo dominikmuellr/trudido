@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -43,21 +44,34 @@ class BiometricAuthService {
     bool biometricOnly = false,
   }) async {
     try {
+      debugPrint('[BiometricAuth] Starting authentication');
+      debugPrint('[BiometricAuth] Reason: $reason, biometricOnly: $biometricOnly');
+      
       final isAvailable = await isBiometricsAvailable();
+      debugPrint('[BiometricAuth] Biometrics available: $isAvailable');
 
       if (!isAvailable && biometricOnly) {
+        debugPrint('[BiometricAuth] Biometrics not available and biometricOnly=true, returning false');
         return false;
       }
 
-      return await _auth.authenticate(
+      debugPrint('[BiometricAuth] Calling local_auth.authenticate()...');
+      final result = await _auth.authenticate(
         localizedReason: reason,
         options: AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: biometricOnly,
         ),
       );
+      
+      debugPrint('[BiometricAuth] Authentication result: $result');
+      return result;
     } on PlatformException catch (e) {
+      debugPrint('[BiometricAuth] Platform exception: ${e.code} - ${e.message}');
       print('Biometric authentication error: $e');
+      return false;
+    } catch (e) {
+      debugPrint('[BiometricAuth] Unexpected error: $e');
       return false;
     }
   }

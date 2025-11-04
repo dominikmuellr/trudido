@@ -23,19 +23,28 @@ class VaultAuthService {
     required bool useBiometric,
     required bool hasPassword,
   }) async {
+    debugPrint('[VaultAuth] Starting authentication for $folderName');
+    debugPrint('[VaultAuth] useBiometric: $useBiometric, hasPassword: $hasPassword');
+    
     // Check if biometric is available and enabled
     final biometricAvailable =
         useBiometric && await BiometricAuthService.isBiometricsAvailable();
+    
+    debugPrint('[VaultAuth] Biometric available: $biometricAvailable');
 
     // Get failed attempts count
     final attempts = _failedAttempts[folderId] ?? 0;
+    debugPrint('[VaultAuth] Failed attempts: $attempts');
 
     // Try biometric if available and under max attempts
     if (biometricAvailable && attempts < maxBiometricAttempts) {
+      debugPrint('[VaultAuth] Attempting biometric authentication...');
       final biometricSuccess = await BiometricAuthService.authenticate(
         reason: 'Authenticate to access $folderName',
         biometricOnly: true,
       );
+      
+      debugPrint('[VaultAuth] Biometric result: $biometricSuccess');
 
       if (biometricSuccess) {
         // Reset failed attempts on success
