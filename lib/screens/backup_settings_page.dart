@@ -93,7 +93,6 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
   Future<void> _showAutoBackupSetupDialog() async {
     int selectedInterval = 24; // Default: daily
     bool requiresCharging = false;
-    bool requiresWifi = true;
 
     final result = await showDialog<bool>(
       context: context,
@@ -168,16 +167,6 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                     setState(() => requiresCharging = value ?? false);
                   },
                 ),
-                CheckboxListTile(
-                  title: const Text('Only on WiFi'),
-                  subtitle: const Text(
-                    'Recommended to avoid mobile data usage',
-                  ),
-                  value: requiresWifi,
-                  onChanged: (value) {
-                    setState(() => requiresWifi = value ?? true);
-                  },
-                ),
               ],
             ),
           ),
@@ -199,7 +188,6 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
       final success = await AutoBackupService.instance.scheduleAutoBackup(
         intervalHours: selectedInterval,
         requiresCharging: requiresCharging,
-        requiresWifi: requiresWifi,
       );
 
       if (!mounted) return;

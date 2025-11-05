@@ -62,11 +62,9 @@ class AutoBackupService {
   ///
   /// [intervalHours] - How often to backup (default: 24 hours = daily)
   /// [requiresCharging] - Only backup when device is charging
-  /// [requiresWifi] - Only backup when connected to WiFi (recommended)
   Future<bool> scheduleAutoBackup({
     int intervalHours = 24,
     bool requiresCharging = false,
-    bool requiresWifi = true,
   }) async {
     if (!Platform.isAndroid) return false;
 
@@ -74,7 +72,6 @@ class AutoBackupService {
       final result = await _channel.invokeMethod('scheduleAutoBackup', {
         'intervalHours': intervalHours,
         'requiresCharging': requiresCharging,
-        'requiresWifi': requiresWifi,
       });
       return result == true;
     } catch (e) {

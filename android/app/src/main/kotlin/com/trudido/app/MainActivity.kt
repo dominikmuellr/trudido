@@ -78,13 +78,11 @@ class MainActivity : FlutterFragmentActivity() {
                 "scheduleAutoBackup" -> {
                     val intervalHours = (call.arguments as? Map<String, Any>)?.get("intervalHours") as? Int ?: 24
                     val requiresCharging = (call.arguments as? Map<String, Any>)?.get("requiresCharging") as? Boolean ?: false
-                    val requiresWifi = (call.arguments as? Map<String, Any>)?.get("requiresWifi") as? Boolean ?: true
                     
                     AutoBackupWorker.schedulePeriodicBackup(
                         this,
                         intervalHours.toLong(),
                         requiresCharging,
-                        requiresWifi,
                         requiresBatteryNotLow = true
                     )
                     result.success(true)

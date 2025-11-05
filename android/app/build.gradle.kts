@@ -41,8 +41,10 @@ android {
     buildTypes {
         getByName("release") {
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = false
-            isShrinkResources = false
+            // Enable code shrinking, obfuscation, and optimization (standard for production)
+            isMinifyEnabled = true
+            // Remove unused resources to reduce APK size
+            isShrinkResources = true
         }
     }
 

@@ -64,7 +64,7 @@ dependencies:
 
   # Icons and fonts
   meta: ^1.16.0
-  google_fonts: ^6.2.1
+  # Removed google_fonts to reduce APK size - using system default fonts (Roboto on Android)
 
   # Markdown support
   flutter_markdown_plus: ^1.0.5
@@ -89,7 +89,6 @@ dependencies:
 
   # Cryptographic hashing for secure password storage
   crypto: ^3.0.3
-  lottie: ^3.3.2
 
 dev_dependencies:
   flutter_test:
@@ -126,31 +125,13 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - LICENSE
-    - assets/imagefiles/
+    # App icons (needed at runtime)
+    - assets/imagefiles/trudicon.png
+    - assets/imagefiles/trudiconRound.png
+    # Screenshots & GitHub badge excluded - only for GitHub README, not bundled in APK
 
-  # Bundled fonts used by the app. These files should be placed under
-  # assets/fonts/ (script available at tools/download_fonts.sh)
-  fonts:
-    - family: Montserrat
-      fonts:
-        # Use the variable-weight Montserrat font and provide copies with
-        # the specific filenames google_fonts expects when runtime fetching
-        # is disabled in tests.
-        - asset: assets/fonts/Montserrat-wght.ttf
-        - asset: assets/fonts/Montserrat-Regular.ttf
-        - asset: assets/fonts/Montserrat-Light.ttf
-        - asset: assets/fonts/Montserrat-Medium.ttf
-        - asset: assets/fonts/Montserrat-SemiBold.ttf
-    - family: Inter
-      fonts:
-        # Use the variable optical-size & weight Inter font and provide
-        # a copy with the medium weight filename google_fonts may request.
-        - asset: assets/fonts/Inter-opsz-wght.ttf
-        - asset: assets/fonts/Inter-Medium.ttf
-    - family: JetBrainsMono
-      fonts:
-        - asset: assets/fonts/JetBrainsMono-Regular.ttf
-          weight: 400
+  # Fonts removed to reduce APK size - using system default fonts
+  # Previous custom fonts (Montserrat, Inter, JetBrainsMono) added ~3.3 MB to APK
 
 # Flutter launcher icons configuration
 flutter_launcher_icons:

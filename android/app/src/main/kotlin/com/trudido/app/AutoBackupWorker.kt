@@ -37,19 +37,17 @@ class AutoBackupWorker(
          * @param context Application context
          * @param intervalHours How often to run backup (in hours)
          * @param requiresCharging Whether device must be charging
-         * @param requiresWifi Whether device must be on WiFi
          * @param requiresBatteryNotLow Whether device battery must not be low
          */
         fun schedulePeriodicBackup(
             context: Context,
             intervalHours: Long = 24, // Default: daily backup
             requiresCharging: Boolean = false,
-            requiresWifi: Boolean = true, // Recommended for background operations
             requiresBatteryNotLow: Boolean = true
         ) {
             // Build constraints for when backup should run
             val constraints = Constraints.Builder()
-                .setRequiredNetworkType(if (requiresWifi) NetworkType.UNMETERED else NetworkType.NOT_REQUIRED)
+                .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
                 .setRequiresCharging(requiresCharging)
                 .setRequiresBatteryNotLow(requiresBatteryNotLow)
                 .setRequiresStorageNotLow(true) // Always require sufficient storage

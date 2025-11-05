@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dynamic_color/dynamic_color.dart';
-import 'package:google_fonts/google_fonts.dart';
+// Removed google_fonts package to reduce APK size - using system default fonts
 import '../providers/app_providers.dart';
 // (preferences state accessed via preferencesStateProvider import from app_providers)
 
@@ -131,98 +131,76 @@ class AppTheme {
   static const Color mediumPriority = Color(0xFFFFB74D);
   static const Color lowPriority = Color(0xFF81C784);
 
-  /// Creates a comprehensive text theme with Montserrat for headlines/titles and Inter for body text
+  /// Creates a comprehensive text theme using system default fonts (Roboto on Android)
   static TextTheme _buildTextTheme(Brightness brightness) {
-    // When set to true tests or environments can opt out of google_fonts
-    // usage entirely to avoid network calls or missing bundled fonts.
-    // Tests should set `AppTheme.disableGoogleFonts = true` in setUpAll.
-    if (disableGoogleFonts) {
-      return brightness == Brightness.light
-          ? ThemeData.light().textTheme
-          : ThemeData.dark().textTheme;
-    }
+    // Use system default text theme - no custom fonts to reduce APK size
     final baseTextTheme = brightness == Brightness.light
         ? ThemeData.light().textTheme
         : ThemeData.dark().textTheme;
-    // Use Montserrat for headlines, titles, and labels
-    // Guard GoogleFonts usage: in tests or restricted environments google_fonts
-    // may not be able to fetch or load fonts. If that fails, fall back to the
-    // platform default text theme to avoid throwing during widget tests.
-    TextTheme montserratTextTheme;
-    try {
-      montserratTextTheme = GoogleFonts.montserratTextTheme(baseTextTheme)
-          .copyWith(
-            displayLarge: GoogleFonts.montserrat(
-              fontWeight: FontWeight.w300,
-              letterSpacing: -1.5,
-            ),
-            displayMedium: GoogleFonts.montserrat(
-              fontWeight: FontWeight.w300,
-              letterSpacing: -0.5,
-            ),
-            displaySmall: GoogleFonts.montserrat(fontWeight: FontWeight.w400),
-            headlineLarge: GoogleFonts.montserrat(
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.25,
-            ),
-            headlineMedium: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
-            headlineSmall: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
-            titleLarge: GoogleFonts.montserrat(
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.15,
-            ),
-            titleMedium: GoogleFonts.montserrat(
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.15,
-            ),
-            titleSmall: GoogleFonts.montserrat(
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.1,
-            ),
-            labelLarge: GoogleFonts.montserrat(
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.1,
-            ),
-            labelMedium: GoogleFonts.montserrat(
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.5,
-            ),
-            labelSmall: GoogleFonts.montserrat(
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.5,
-            ),
-          );
-    } catch (e, st) {
-      // If GoogleFonts fails (network disabled in tests or assets missing),
-      // log and fall back to base text theme so the app/tests continue.
-      debugPrint('[AppTheme] GoogleFonts load failed: $e\n$st');
-      montserratTextTheme = baseTextTheme;
-    }
 
-    // Use Inter for body text (more readable for longer content)
-    // Using w500 for better readability - w400 can appear too thin
-    try {
-      return montserratTextTheme.copyWith(
-        bodyLarge: GoogleFonts.inter(
-          fontWeight: FontWeight.w500, // Medium weight for better presence
-          letterSpacing: 0.5,
-        ),
-        bodyMedium: GoogleFonts.inter(
-          fontWeight: FontWeight.w500, // Medium weight for consistency
-          letterSpacing: 0.25,
-        ),
-        bodySmall: GoogleFonts.inter(
-          fontWeight: FontWeight.w500, // Consistent across all body text
-          letterSpacing: 0.4,
-        ),
-      );
-    } catch (e, st) {
-      debugPrint('[AppTheme] GoogleFonts inter load failed: $e\n$st');
-      return montserratTextTheme;
-    }
+    // Customize weights and letter spacing while using default font
+    return baseTextTheme.copyWith(
+      displayLarge: baseTextTheme.displayLarge?.copyWith(
+        fontWeight: FontWeight.w300,
+        letterSpacing: -1.5,
+      ),
+      displayMedium: baseTextTheme.displayMedium?.copyWith(
+        fontWeight: FontWeight.w300,
+        letterSpacing: -0.5,
+      ),
+      displaySmall: baseTextTheme.displaySmall?.copyWith(
+        fontWeight: FontWeight.w400,
+      ),
+      headlineLarge: baseTextTheme.headlineLarge?.copyWith(
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.25,
+      ),
+      headlineMedium: baseTextTheme.headlineMedium?.copyWith(
+        fontWeight: FontWeight.w600,
+      ),
+      headlineSmall: baseTextTheme.headlineSmall?.copyWith(
+        fontWeight: FontWeight.w600,
+      ),
+      titleLarge: baseTextTheme.titleLarge?.copyWith(
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.15,
+      ),
+      titleMedium: baseTextTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.15,
+      ),
+      titleSmall: baseTextTheme.titleSmall?.copyWith(
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.1,
+      ),
+      labelLarge: baseTextTheme.labelLarge?.copyWith(
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.1,
+      ),
+      labelMedium: baseTextTheme.labelMedium?.copyWith(
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.5,
+      ),
+      labelSmall: baseTextTheme.labelSmall?.copyWith(
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.5,
+      ),
+      bodyLarge: baseTextTheme.bodyLarge?.copyWith(
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.5,
+      ),
+      bodyMedium: baseTextTheme.bodyMedium?.copyWith(
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.25,
+      ),
+      bodySmall: baseTextTheme.bodySmall?.copyWith(
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.4,
+      ),
+    );
   }
 
-  /// Helper method for code/monospace text styling that works well with our typography system
+  /// Helper method for code/monospace text styling
   static TextStyle getCodeTextStyle(
     BuildContext context, {
     double? fontSize,
@@ -230,36 +208,16 @@ class AppTheme {
     Color? color,
   }) {
     final theme = Theme.of(context);
-    if (disableGoogleFonts) {
-      return TextStyle(
-        fontFamily: 'monospace',
-        fontSize: fontSize ?? theme.textTheme.bodyMedium?.fontSize,
-        fontWeight: fontWeight ?? FontWeight.w500,
-        color: color ?? theme.colorScheme.onSurfaceVariant,
-        letterSpacing: 0.0,
-      );
-    }
-    try {
-      return GoogleFonts.jetBrainsMono(
-        fontSize: fontSize ?? theme.textTheme.bodyMedium?.fontSize,
-        fontWeight: fontWeight ?? FontWeight.w500,
-        color: color ?? theme.colorScheme.onSurfaceVariant,
-        letterSpacing: 0.0,
-      );
-    } catch (e, st) {
-      debugPrint('[AppTheme] jetBrainsMono load failed: $e\n$st');
-      return TextStyle(
-        fontFamily: 'monospace',
-        fontSize: fontSize ?? theme.textTheme.bodyMedium?.fontSize,
-        fontWeight: fontWeight ?? FontWeight.w500,
-        color: color ?? theme.colorScheme.onSurfaceVariant,
-        letterSpacing: 0.0,
-      );
-    }
+    return TextStyle(
+      fontFamily: 'monospace',
+      fontSize: fontSize ?? theme.textTheme.bodyMedium?.fontSize,
+      fontWeight: fontWeight ?? FontWeight.w500,
+      color: color ?? theme.colorScheme.onSurfaceVariant,
+      letterSpacing: 0.0,
+    );
   }
 
-  /// Safe accessor for Montserrat that falls back to a plain TextStyle when
-  /// GoogleFonts fails (tests, offline, or restricted environments).
+  /// Safe accessor for custom text styles using system default font
   static TextStyle safeMontserrat(
     BuildContext context, {
     double? fontSize,
@@ -268,30 +226,12 @@ class AppTheme {
     double? letterSpacing,
   }) {
     final theme = Theme.of(context);
-    if (disableGoogleFonts) {
-      return TextStyle(
-        fontSize: fontSize ?? theme.textTheme.titleLarge?.fontSize,
-        fontWeight: fontWeight ?? FontWeight.w500,
-        color: color ?? theme.colorScheme.primary,
-        letterSpacing: letterSpacing ?? 0.0,
-      );
-    }
-    try {
-      return GoogleFonts.montserrat(
-        fontSize: fontSize ?? theme.textTheme.titleLarge?.fontSize,
-        fontWeight: fontWeight ?? FontWeight.w500,
-        color: color ?? theme.colorScheme.primary,
-        letterSpacing: letterSpacing ?? 0.0,
-      );
-    } catch (e, st) {
-      debugPrint('[AppTheme] safeMontserrat fallback: $e\n$st');
-      return TextStyle(
-        fontSize: fontSize ?? theme.textTheme.titleLarge?.fontSize,
-        fontWeight: fontWeight ?? FontWeight.w500,
-        color: color ?? theme.colorScheme.primary,
-        letterSpacing: letterSpacing ?? 0.0,
-      );
-    }
+    return TextStyle(
+      fontSize: fontSize ?? theme.textTheme.titleLarge?.fontSize,
+      fontWeight: fontWeight ?? FontWeight.w500,
+      color: color ?? theme.colorScheme.primary,
+      letterSpacing: letterSpacing ?? 0.0,
+    );
   }
 
   /// When true, AppTheme will avoid using google_fonts API and fall back to
