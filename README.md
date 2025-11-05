@@ -27,8 +27,6 @@
 
  
 <h1 align="center">Trudido — Minimalist Material You To-Do App</h1>
-
-
 <p align="center">
   A lightweight, privacy-first to-do app built with Flutter and Material You.
 </p>
