@@ -25,9 +25,6 @@
 </p>
 
 
-### Only the links above are the only trusted sources of Trudido. Everything else is not related to me.
-
-
  
 <h1 align="center">Trudido — Minimalist Material You To-Do App</h1>
 
@@ -45,6 +42,9 @@
          alt="Get it on GitHub"
          height="60"></a>
 </p>
+
+
+### Only the links above are the only trusted sources of Trudido. Everything else is not related to me.
 
 
 ## ✨ Features
