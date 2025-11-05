@@ -1,4 +1,4 @@
-## 📦 Installation
+## About Me
 
 
 <p align="center">
@@ -61,22 +61,7 @@
 ### 🔒 Privacy
 - 100 % offline — all data stored locally on your device  
 - No tracking, ads, or analytics  
-- Import/export functionality for complete data ownership  
-
----
-
-## 🧩 License
-Licensed under the **GNU General Public License v3.0 (GPL-3.0)**.  
-You are free to use, modify, and distribute this software under the same license.  
-See the [LICENSE](LICENSE) file for details.
-
----
-
-## 💬 Contributing
-Pull requests are welcome!  
-For major changes, please open an issue first to discuss what you’d like to modify.
-
----
+- Import/export functionality for complete data ownership
 
 ## 📸 Screenshots
 
@@ -89,5 +74,16 @@ For major changes, please open an issue first to discuss what you’d like to mo
   <img src="assets/imagefiles/6.png" width="200">
   <img src="assets/imagefiles/7.png" width="200">
 </p>
+
+
+## 🧩 License
+Licensed under the **GNU General Public License v3.0 (GPL-3.0)**.  
+You are free to use, modify, and distribute this software under the same license.  
+See the [LICENSE](LICENSE) file for details.
+
+
+## 💬 Contributing
+Pull requests are welcome!  
+For major changes, please open an issue first to discuss what you’d like to modify.
 
 
