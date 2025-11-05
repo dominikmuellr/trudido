@@ -81,9 +81,13 @@ For major changes, please open an issue first to discuss what you’d like to mo
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="assets/imagefiles/1.png" alt="screenshot 1" width="200"/>
-  <img src="assets/imagefiles/2.png" alt="screenshot 2" width="200"/>
-  <img src="assets/imagefiles/4.png" alt="screenshot 4" width="200"/>
-  <img src="assets/imagefiles/5.png" alt="screenshot 5" width="200"/>
-</p
+  <img src="assets/imagefiles/1.png" width="200">
+  <img src="assets/imagefiles/2.png" width="200">
+  <img src="assets/imagefiles/3.png" width="200">
+  <img src="assets/imagefiles/4.png" width="200">
+  <img src="assets/imagefiles/5.png" width="200">
+  <img src="assets/imagefiles/6.png" width="200">
+  <img src="assets/imagefiles/7.png" width="200">
+</p>
+
 
