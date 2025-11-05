@@ -28,8 +28,20 @@
 </p>
 
 
-[<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png"
-alt="Get it on Obtainium" height="60">](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/dominikmuellr/trudido)
+<p align="center">
+  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/dominikmuellr/trudido">
+    <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png"
+         alt="Get it on Obtainium"
+         height="60">
+  </a>
+  <a href="https://github.com/dominikmuellr/trudido/releases">
+    <img src="https://raw.githubusercontent.com/dominikmuellr/trudido/main/assets/getitongithub.png"
+         alt="Get it on GitHub"
+         height="60">
+  </a>
+</p>
+
+
 
 
 
