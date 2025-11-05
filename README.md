@@ -1,3 +1,6 @@
+## 📦 Installation
+
+
 <p align="center">
   <img src="assets/imagefiles/trudiconRound.png" alt="App Icon" width="130" height="130">
 </p>
@@ -24,7 +27,11 @@
   A lightweight, privacy-first to-do app built with Flutter and Material You.
 </p>
 
----
+
+[<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png"
+alt="Get it on Obtainium" height="60">](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/dominikmuellr/trudido)
+
+
 
 ## ✨ Features
 
