@@ -41,10 +41,6 @@
   </a>
 </p>
 
-
-
-
-
 ## ✨ Features
 
 ### 📋 Task Management
@@ -69,12 +65,6 @@
 - 100 % offline — all data stored locally on your device  
 - No tracking, ads, or analytics  
 - Import/export functionality for complete data ownership  
-
----
-
-## 📦 Installation
-[⬇️ Download the latest release](https://github.com/dominikmuellr/trudido/releases)  
-*(Play Store listing coming soon)*
 
 ---
 
