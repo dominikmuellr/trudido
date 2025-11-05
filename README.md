@@ -72,13 +72,13 @@
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="assets/imagefiles/1.png" width="200">
-  <img src="assets/imagefiles/2.png" width="200">
-  <img src="assets/imagefiles/3.png" width="200">
-  <img src="assets/imagefiles/4.png" width="200">
-  <img src="assets/imagefiles/5.png" width="200">
-  <img src="assets/imagefiles/6.png" width="200">
-  <img src="assets/imagefiles/7.png" width="200">
+  <img src="assets/imagefiles/1.png" width="250">
+  <img src="assets/imagefiles/2.png" width="250">
+  <img src="assets/imagefiles/3.png" width="250">
+  <img src="assets/imagefiles/4.png" width="250">
+  <img src="assets/imagefiles/5.png" width="250">
+  <img src="assets/imagefiles/6.png" width="250">
+  <img src="assets/imagefiles/7.png" width="250">
 </p>
 
 
