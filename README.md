@@ -41,8 +41,8 @@
          height="60"></a>
 </p>
 
-
-### Only the links above are the only trusted sources of Trudido. Everything else is not related to me.
+## Official Sources
+The links above are the only trusted sources of Trudido. Any other websites or listings are not affiliated with me or this project.
 
 
 ## ✨ Features
