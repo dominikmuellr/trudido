@@ -187,6 +187,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     List<Widget> tabs,
     int currentTab,
   ) {
+    final fabMenuExpanded = ref.watch(fabMenuExpandedProvider);
+
     if (useNavigationRail) {
       return Stack(
         children: [
@@ -355,7 +357,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
         ),
         // View toggle button (only on Tasks tab, positioned above FAB)
-        if (currentTab == 0)
+        // Hide when FAB menu is expanded
+        if (currentTab == 0 && !fabMenuExpanded)
           Positioned(
             right: 20, // Offset to center-align with FAB (FAB is larger)
             bottom: 174, // FAB bottom (110) + FAB size (~48) + gap (16)
@@ -1783,7 +1786,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             subtitle,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.secondary.withOpacity(0.8),
-              fontWeight: FontWeight.w300,
               fontSize: 13,
             ),
             overflow: TextOverflow.ellipsis,
@@ -1843,7 +1845,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             subtitle,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.secondary.withOpacity(0.8),
-              fontWeight: FontWeight.w300,
               fontSize: 13,
             ),
             overflow: TextOverflow.ellipsis,
