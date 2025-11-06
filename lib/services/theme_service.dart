@@ -239,6 +239,31 @@ class AppTheme {
   /// disable runtime fetching to prevent google_fonts from throwing.
   static bool disableGoogleFonts = false;
 
+  /// Helper to lighten a color by a percentage (0.0 to 1.0)
+  static Color _lighten(Color color, double amount) {
+    final hsl = HSLColor.fromColor(color);
+    final lightness = (hsl.lightness + amount).clamp(0.0, 1.0);
+    return hsl.withLightness(lightness).toColor();
+  }
+
+  /// Enhance dark mode contrast by lightening surfaces and text
+  static ColorScheme _enhanceDarkContrast(ColorScheme darkScheme) {
+    return darkScheme.copyWith(
+      // Make surfaces slightly lighter for better contrast with background
+      surfaceContainerLowest: _lighten(darkScheme.surfaceContainerLowest, 0.05),
+      surfaceContainerLow: _lighten(darkScheme.surfaceContainerLow, 0.08),
+      surfaceContainer: _lighten(darkScheme.surfaceContainer, 0.08),
+      surfaceContainerHigh: _lighten(darkScheme.surfaceContainerHigh, 0.10),
+      surfaceContainerHighest: _lighten(
+        darkScheme.surfaceContainerHighest,
+        0.12,
+      ),
+      // Make text slightly brighter for better readability
+      onSurface: _lighten(darkScheme.onSurface, 0.05),
+      onSurfaceVariant: _lighten(darkScheme.onSurfaceVariant, 0.08),
+    );
+  }
+
   static ThemeData _baseLight(ColorScheme colorScheme) => ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
@@ -319,6 +344,11 @@ class AppTheme {
         iconSize: 20,
       ),
     ),
+    // Modern circular checkboxes
+    checkboxTheme: CheckboxThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      side: BorderSide(color: colorScheme.outline, width: 2),
+    ),
   );
 
   static ThemeData _baseDark(ColorScheme colorScheme) => ThemeData(
@@ -334,7 +364,7 @@ class AppTheme {
       foregroundColor: colorScheme.onSurface, // Material 3 color-aware
     ),
     cardTheme: CardThemeData(
-      elevation: 1, // Material 3 standard for most cards
+      elevation: 1, // MD3 standard elevation for cards
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       color: colorScheme.surfaceContainerLow, // Material 3 elevated surface
     ),
@@ -352,7 +382,9 @@ class AppTheme {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.5)),
+        borderSide: BorderSide(
+          color: colorScheme.outline.withOpacity(0.7),
+        ), // Increased for better dark mode visibility
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -378,9 +410,14 @@ class AppTheme {
     ),
     chipTheme: ChipThemeData(
       backgroundColor: colorScheme.surfaceContainerHighest,
-      selectedColor: colorScheme.primary.withValues(alpha: 0.3),
+      selectedColor: colorScheme.primary.withValues(
+        alpha: 0.35,
+      ), // Increased from 0.3 for better dark mode visibility
       labelStyle: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      side: BorderSide(
+        color: colorScheme.outline.withOpacity(0.2),
+      ), // Add subtle border for better definition
     ),
     // Material 3 PopupMenu styling
     popupMenuTheme: PopupMenuThemeData(
@@ -400,6 +437,11 @@ class AppTheme {
         foregroundColor: colorScheme.onSurfaceVariant,
         iconSize: 20,
       ),
+    ),
+    // Modern circular checkboxes
+    checkboxTheme: CheckboxThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      side: BorderSide(color: colorScheme.outline, width: 2),
     ),
   );
 
@@ -686,14 +728,18 @@ class AppTheme {
       final monoLight = _createMonochromaticLightScheme();
       final monoDark = _createMonochromaticDarkScheme();
       light = _baseLight(dynamicLight ?? monoLight);
-      dark = _baseDark(dynamicDark ?? monoDark);
+      dark = _baseDark(
+        dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : monoDark,
+      );
     }
     // Special handling for grey - create grey accent scheme
     else if (seedColor.value == 0xFF757575) {
       final greyLight = _createGreyLightScheme();
       final greyDark = _createGreyDarkScheme();
       light = _baseLight(dynamicLight ?? greyLight);
-      dark = _baseDark(dynamicDark ?? greyDark);
+      dark = _baseDark(
+        dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : greyDark,
+      );
     }
     // Special handling for hack - create Matrix green scheme (proper brightness handling)
     else if (seedColor.value == 0xFF00FF00) {
@@ -701,7 +747,9 @@ class AppTheme {
       final hackDark = _createHackDarkScheme();
       // Use proper light/dark schemes with matching brightness
       light = _baseLight(dynamicLight ?? hackLight);
-      dark = _baseDark(dynamicDark ?? hackDark);
+      dark = _baseDark(
+        dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : hackDark,
+      );
     }
     // Special handling for Dracula - create Dracula color scheme (proper brightness handling)
     else if (seedColor.value == 0xFFBD93F9) {
@@ -709,7 +757,9 @@ class AppTheme {
       final draculaDark = _createDraculaDarkScheme();
       // Use proper light/dark schemes with matching brightness
       light = _baseLight(dynamicLight ?? draculaLight);
-      dark = _baseDark(dynamicDark ?? draculaDark);
+      dark = _baseDark(
+        dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : draculaDark,
+      );
     }
     // Special handling for Solarized - create authentic Solarized color scheme
     else if (seedColor.value == 0xFF268BD2) {
@@ -717,7 +767,9 @@ class AppTheme {
       final solarizedDark = _createSolarizedDarkScheme();
       // Use proper light/dark schemes with matching brightness
       light = _baseLight(dynamicLight ?? solarizedLight);
-      dark = _baseDark(dynamicDark ?? solarizedDark);
+      dark = _baseDark(
+        dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : solarizedDark,
+      );
     } else {
       // Use normal Material 3 color generation for other colors
       final seedLight = ColorScheme.fromSeed(
@@ -728,8 +780,12 @@ class AppTheme {
         seedColor: seedColor,
         brightness: Brightness.dark,
       );
+      // Boost dark mode contrast by adjusting surface colors
+      final enhancedDark = _enhanceDarkContrast(seedDark);
       light = _baseLight(dynamicLight ?? seedLight);
-      dark = _baseDark(dynamicDark ?? seedDark);
+      dark = _baseDark(
+        dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : enhancedDark,
+      );
     }
 
     if (compact) {

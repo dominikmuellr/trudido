@@ -82,7 +82,10 @@ class TodoListTab extends ConsumerWidget {
                 return false;
               },
               child: viewType == TaskViewType.calendar
-                  ? CalendarView(tasks: filteredTodos)
+                  ? CalendarView(
+                      key: ValueKey(ref.watch(selectedCalendarDateProvider)),
+                      tasks: filteredTodos,
+                    )
                   : filteredTodos.isEmpty
                   ? _buildEmptyState(
                       context,

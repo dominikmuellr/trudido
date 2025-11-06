@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trudido/utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:table_calendar/table_calendar.dart';
 import '../services/theme_service.dart';
 import 'dart:math';
 import 'dart:async';
@@ -16,10 +17,12 @@ import '../services/biometric_auth_service.dart';
 // import '../services/markdown_export_service.dart'; // Commented out - for future import feature
 import '../repositories/note_folder_repository.dart';
 import '../models/note_folder.dart';
+import '../models/todo.dart';
 import '../screens/task_editor_screen.dart';
 import '../screens/template_management_screen.dart';
 import '../widgets/todo_list_tab.dart';
 import '../widgets/fab_menu.dart';
+import '../widgets/create_folder_dialog.dart';
 import '../utils/animated_navigation.dart';
 import 'settings_screen.dart';
 import 'notes_screen.dart';
@@ -76,6 +79,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with WidgetsBindingObserver {
   final _searchController = TextEditingController();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _isCalendarExpanded = false;
 
   @override
   void initState() {
@@ -268,6 +273,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Stack(
       children: [
         Scaffold(
+          key: _scaffoldKey,
+          drawer: _buildNavigationDrawer(context, currentTab),
           appBar: _buildAppBar(context),
           body: AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
@@ -283,9 +290,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
           ),
           bottomNavigationBar: NavigationBar(
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? null // Use default in dark mode
+                : Theme.of(context).colorScheme.surfaceContainerLow,
             selectedIndex: currentTab,
             onDestinationSelected: (index) {
               final previousTab = ref.read(currentTabProvider);
+
+              // If tapping the same tab, open the drawer
+              if (previousTab == index) {
+                _scaffoldKey.currentState?.openDrawer();
+                return;
+              }
 
               // Security: Clear vault folder selection when leaving Notes tab
               if (previousTab == 1 && index != 1) {
@@ -556,6 +572,283 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   //   }
   // }
 
+  /// Shows note folder creation dialog
+  Future<void> _showCreateNoteFolderDialog() async {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    bool isVault = false;
+
+    return showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Create Note Folder'),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Folder Name',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter a folder name';
+                      }
+                      return null;
+                    },
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description (optional)',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 2,
+                    textCapitalization: TextCapitalization.sentences,
+                  ),
+                  const SizedBox(height: 16),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Encrypted Vault Folder'),
+                    subtitle: const Text(
+                      'Notes will be encrypted with AES-256',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    secondary: Icon(
+                      isVault ? Icons.lock : Icons.lock_open,
+                      color: isVault ? Colors.amber : null,
+                    ),
+                    value: isVault,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        isVault = value ?? false;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  final name = nameController.text.trim();
+                  final description = descriptionController.text.trim();
+
+                  // If vault, setup password and biometric preferences
+                  String? vaultPassword;
+                  bool useBiometric = true;
+
+                  if (isVault) {
+                    // Show password setup dialog
+                    final passwordResult =
+                        await _showPasswordSetupDialogForFolder(context, name);
+
+                    if (passwordResult == null) {
+                      return; // User cancelled
+                    }
+
+                    vaultPassword = passwordResult['password'] as String;
+                    useBiometric = passwordResult['useBiometric'] as bool;
+                  }
+
+                  // Create the folder first
+                  final result = await ref
+                      .read(noteFoldersProvider.notifier)
+                      .createFolder(
+                        name: name,
+                        description: description.isEmpty ? null : description,
+                        isVault: isVault,
+                        hasPassword: isVault && vaultPassword != null,
+                        useBiometric: useBiometric,
+                      );
+
+                  if (mounted) {
+                    if (result != null) {
+                      // Store the password if vault
+                      if (isVault && vaultPassword != null) {
+                        await VaultPasswordService.setVaultPassword(
+                          result.id,
+                          vaultPassword,
+                        );
+                      }
+
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Folder "$name" created successfully'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Failed to create folder. Name may already exist.',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                }
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Shows password setup dialog for vault folders
+  Future<Map<String, dynamic>?> _showPasswordSetupDialogForFolder(
+    BuildContext context,
+    String folderName,
+  ) async {
+    final formKey = GlobalKey<FormState>();
+    final passwordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    bool obscurePassword = true;
+    bool obscureConfirm = true;
+    bool useBiometric = true;
+
+    // Check if biometric is available
+    final biometricAvailable =
+        await BiometricAuthService.isBiometricsAvailable();
+
+    return showDialog<Map<String, dynamic>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('Setup Password for $folderName'),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Create a password/PIN to protect this vault folder',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Password/PIN',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            obscurePassword = !obscurePassword;
+                          });
+                        },
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a password';
+                      }
+                      if (value.length < 4) {
+                        return 'Password must be at least 4 characters';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: confirmPasswordController,
+                    obscureText: obscureConfirm,
+                    decoration: InputDecoration(
+                      labelText: 'Confirm Password',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscureConfirm
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            obscureConfirm = !obscureConfirm;
+                          });
+                        },
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value != passwordController.text) {
+                        return 'Passwords do not match';
+                      }
+                      return null;
+                    },
+                  ),
+                  if (biometricAvailable) ...[
+                    const SizedBox(height: 16),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Use Biometric Shortcut'),
+                      subtitle: const Text(
+                        'Skip password with fingerprint/face recognition',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      value: useBiometric,
+                      onChanged: (value) {
+                        setState(() {
+                          useBiometric = value ?? true;
+                        });
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  Navigator.pop(context, {
+                    'password': passwordController.text,
+                    'useBiometric': useBiometric,
+                  });
+                }
+              },
+              child: const Text('Setup'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Shows vault setup dialog for first-time vault access
   Future<bool> _showVaultSetupDialog(
     BuildContext context,
@@ -643,10 +936,771 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return iconWidget;
   }
 
+  /// Builds a cycling theme mode icon button for the drawer header
+  Widget _buildThemeCycleIcon({
+    required String currentMode,
+    required ColorScheme colorScheme,
+  }) {
+    // Determine current icon and next mode
+    IconData icon;
+    String tooltip;
+    String nextMode;
+
+    switch (currentMode) {
+      case 'light':
+        icon = Icons.wb_sunny;
+        tooltip = 'Light mode (tap for Dark)';
+        nextMode = 'dark';
+        break;
+      case 'dark':
+        icon = Icons.nightlight_round;
+        tooltip = 'Dark mode (tap for Auto)';
+        nextMode = 'system';
+        break;
+      case 'system':
+      default:
+        icon = Icons.brightness_auto;
+        tooltip = 'Auto mode (tap for Light)';
+        nextMode = 'light';
+        break;
+    }
+
+    return IconButton(
+      icon: Icon(icon),
+      iconSize: 20,
+      color: colorScheme.primary,
+      tooltip: tooltip,
+      onPressed: () async {
+        // Cycle to next theme mode
+        final prefsService = ref.read(preferencesServiceProvider);
+        final updated = await prefsService.update(themeMode: nextMode);
+        ref.read(preferencesStateProvider.notifier).state = updated;
+      },
+    );
+  }
+
+  /// Builds the navigation drawer with contextual folders and common actions
+  Widget _buildNavigationDrawer(BuildContext context, int currentTab) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final preferences = ref.watch(preferencesStateProvider);
+
+    // Check if current theme is dark-only (Hack or Dracula)
+    final isDarkOnlyTheme =
+        !preferences.useDynamicColor &&
+        (preferences.accentColorSeed == 0xFF00FF00 || // Hack theme
+            preferences.accentColorSeed == 0xFFBD93F9); // Dracula theme
+
+    // Check if AMOLED black theme is enabled
+    final isAmoledBlack =
+        preferences.useBlackTheme &&
+        Theme.of(context).brightness == Brightness.dark;
+
+    return Drawer(
+      backgroundColor: isAmoledBlack ? Colors.black : colorScheme.surface,
+      child: SafeArea(
+        child: Column(
+          children: [
+            // Drawer header with theme switcher
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 8, 16),
+              child: Row(
+                children: [
+                  // App name
+                  Text(
+                    'Trudido',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  const Spacer(),
+                  // Theme mode cycling icon (hidden for dark-only themes)
+                  if (!isDarkOnlyTheme)
+                    _buildThemeCycleIcon(
+                      currentMode: preferences.themeMode,
+                      colorScheme: colorScheme,
+                    ),
+                ],
+              ),
+            ),
+
+            // Folders section
+            Expanded(
+              child: currentTab == 0
+                  ? _buildTaskFoldersList(context)
+                  : _buildNoteFoldersList(context),
+            ),
+
+            // Common actions section
+            _buildDrawerActions(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Builds the task folders list for the drawer
+  Widget _buildTaskFoldersList(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final foldersAsync = ref.watch(folderNotifierProvider);
+    final selectedFolderId = ref.watch(selectedFolderProvider);
+
+    return foldersAsync.when(
+      data: (folders) {
+        return ListView(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          children: [
+            // Create new folder option at the top
+            ListTile(
+              dense: true,
+              visualDensity: VisualDensity.compact,
+              leading: Icon(Icons.add, size: 20, color: colorScheme.primary),
+              title: Text(
+                'Create Folder',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              onTap: () {
+                Navigator.of(context).pop(); // Close drawer
+                // Show create folder dialog directly
+                showDialog(
+                  context: context,
+                  builder: (context) => const CreateFolderDialog(),
+                );
+              },
+            ),
+            // "All Tasks" option
+            ListTile(
+              dense: true,
+              visualDensity: VisualDensity.compact,
+              leading: Icon(
+                Icons.folder_outlined,
+                size: 20,
+                color: selectedFolderId == null
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+              title: Text(
+                'All Tasks',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: selectedFolderId == null
+                      ? colorScheme.primary
+                      : colorScheme.onSurface,
+                  fontWeight: selectedFolderId == null
+                      ? FontWeight.w600
+                      : FontWeight.normal,
+                ),
+              ),
+              selected: selectedFolderId == null,
+              selectedTileColor: colorScheme.secondaryContainer.withOpacity(
+                0.3,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              onTap: () {
+                ref.read(selectedFolderProvider.notifier).state = null;
+                Navigator.of(context).pop(); // Close drawer
+              },
+            ),
+            // Individual folders
+            ...folders.map((folder) {
+              final isSelected = selectedFolderId == folder.id;
+              return ListTile(
+                dense: true,
+                visualDensity: VisualDensity.compact,
+                leading: Icon(
+                  _getIconData(folder.icon),
+                  size: 20,
+                  color: isSelected ? colorScheme.primary : Color(folder.color),
+                ),
+                title: Text(
+                  folder.name,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isSelected
+                        ? colorScheme.primary
+                        : colorScheme.onSurface,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                  ),
+                ),
+                selected: isSelected,
+                selectedTileColor: colorScheme.secondaryContainer.withOpacity(
+                  0.3,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                onTap: () {
+                  ref.read(selectedFolderProvider.notifier).state = folder.id;
+                  Navigator.of(context).pop(); // Close drawer
+                },
+              );
+            }),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            'Error loading folders',
+            style: TextStyle(color: colorScheme.error),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Builds the note folders list for the drawer
+  Widget _buildNoteFoldersList(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final foldersAsync = ref.watch(noteFoldersProvider);
+    final selectedFolderId = ref.watch(selectedNoteFolderProvider);
+
+    return foldersAsync.when(
+      data: (folders) {
+        return ListView(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          children: [
+            // Create new folder option at the top
+            ListTile(
+              dense: true,
+              visualDensity: VisualDensity.compact,
+              leading: Icon(Icons.add, size: 20, color: colorScheme.primary),
+              title: Text(
+                'Create Folder',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              onTap: () {
+                Navigator.of(context).pop(); // Close drawer
+                // Show create note folder dialog directly
+                _showCreateNoteFolderDialog();
+              },
+            ),
+            // "All Notes" option
+            ListTile(
+              dense: true,
+              visualDensity: VisualDensity.compact,
+              leading: Icon(
+                Icons.folder_outlined,
+                size: 20,
+                color: selectedFolderId == null
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+              title: Text(
+                'All Notes',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: selectedFolderId == null
+                      ? colorScheme.primary
+                      : colorScheme.onSurface,
+                  fontWeight: selectedFolderId == null
+                      ? FontWeight.w600
+                      : FontWeight.normal,
+                ),
+              ),
+              selected: selectedFolderId == null,
+              selectedTileColor: colorScheme.secondaryContainer.withOpacity(
+                0.3,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              onTap: () {
+                ref.read(selectedNoteFolderProvider.notifier).state = null;
+                Navigator.of(context).pop(); // Close drawer
+              },
+            ),
+            // Individual folders
+            ...folders.map((folder) {
+              final isSelected = selectedFolderId == folder.id;
+              final isVault = folder.isVault;
+              return ListTile(
+                dense: true,
+                visualDensity: VisualDensity.compact,
+                leading: Icon(
+                  isVault
+                      ? (isSelected ? Icons.lock_open : Icons.lock)
+                      : Icons.folder_outlined,
+                  size: 20,
+                  color: isSelected
+                      ? colorScheme.primary
+                      : (isVault ? Colors.amber : colorScheme.onSurfaceVariant),
+                ),
+                title: Text(
+                  folder.name,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isSelected
+                        ? colorScheme.primary
+                        : colorScheme.onSurface,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                  ),
+                ),
+                selected: isSelected,
+                selectedTileColor: colorScheme.secondaryContainer.withOpacity(
+                  0.3,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                onTap: () async {
+                  // Handle vault authentication
+                  if (isVault && !folder.hasPassword) {
+                    // First-time setup
+                    final success = await _showVaultSetupDialog(
+                      context,
+                      folder,
+                    );
+                    if (!success) {
+                      return;
+                    }
+                  } else if (isVault && folder.hasPassword) {
+                    // Require authentication for vault folders with password
+                    final authenticated = await VaultAuthService.authenticate(
+                      context: context,
+                      folderId: folder.id,
+                      folderName: folder.name,
+                      useBiometric: folder.useBiometric,
+                      hasPassword: folder.hasPassword,
+                    );
+
+                    if (!authenticated) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Authentication required to access vault folder',
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                      return;
+                    }
+
+                    // Track last accessed vault
+                    ref.read(lastAccessedVaultProvider.notifier).state =
+                        folder.id;
+                  }
+
+                  ref.read(selectedNoteFolderProvider.notifier).state =
+                      folder.id;
+                  if (context.mounted) {
+                    Navigator.of(context).pop(); // Close drawer
+                  }
+                },
+              );
+            }),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            'Error loading folders',
+            style: TextStyle(color: colorScheme.error),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Builds the common actions section of the drawer
+  Widget _buildDrawerActions(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final currentTab = ref.watch(currentTabProvider);
+
+    return Column(
+      children: [
+        // Calendar section (only for Tasks tab)
+        if (currentTab == 0) _buildCompactCalendar(context),
+
+        // Manage Folders action
+        ListTile(
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          leading: Icon(
+            Icons.folder_special_outlined,
+            size: 20,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          title: Text('Manage Folders', style: theme.textTheme.bodyMedium),
+          onTap: () {
+            Navigator.of(context).pop(); // Close drawer
+            _clearVaultSelectionIfNeeded();
+            if (currentTab == 0) {
+              // Tasks folders
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const FolderManagementScreen(),
+                ),
+              );
+            } else {
+              // Notes folders
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const NotesFolderManagementScreen(),
+                ),
+              );
+            }
+          },
+        ),
+
+        // Settings
+        ListTile(
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          leading: Icon(
+            Icons.settings_outlined,
+            size: 20,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          title: Text('Settings', style: theme.textTheme.bodyMedium),
+          onTap: () {
+            Navigator.of(context).pop(); // Close drawer
+            _clearVaultSelectionIfNeeded();
+            AnimatedNavigation.push(context, const SettingsScreen());
+          },
+        ),
+      ],
+    );
+  }
+
+  /// Builds a compact collapsible calendar for the drawer
+  Widget _buildCompactCalendar(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final selectedDate = ref.watch(selectedCalendarDateProvider);
+    final tasks = ref.watch(filteredTasksProvider);
+
+    return Column(
+      children: [
+        // Calendar header with expand/collapse
+        ListTile(
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          leading: Icon(
+            Icons.calendar_month,
+            size: 20,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          title: Text('Calendar', style: theme.textTheme.bodyMedium),
+          trailing: Icon(
+            _isCalendarExpanded ? Icons.expand_less : Icons.expand_more,
+            size: 20,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          onTap: () {
+            setState(() {
+              _isCalendarExpanded = !_isCalendarExpanded;
+            });
+          },
+        ),
+
+        // Expandable calendar
+        AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TableCalendar<Todo>(
+                firstDay: DateTime.utc(2020, 1, 1),
+                lastDay: DateTime.utc(2030, 12, 31),
+                focusedDay: selectedDate ?? DateTime.now(),
+                selectedDayPredicate: (day) => isSameDay(selectedDate, day),
+                calendarFormat: CalendarFormat.month,
+                startingDayOfWeek: StartingDayOfWeek.monday,
+
+                // Event loader - get tasks for each day
+                eventLoader: (day) {
+                  return tasks.where((task) {
+                    if (task.dueDate == null) return false;
+                    final taskDate = DateTime(
+                      task.dueDate!.year,
+                      task.dueDate!.month,
+                      task.dueDate!.day,
+                    );
+                    final checkDate = DateTime(day.year, day.month, day.day);
+                    return taskDate.isAtSameMomentAs(checkDate);
+                  }).toList();
+                },
+
+                headerStyle: HeaderStyle(
+                  formatButtonVisible: false,
+                  titleCentered: true,
+                  titleTextStyle: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                  ),
+                  leftChevronIcon: Icon(
+                    Icons.chevron_left,
+                    size: 20,
+                    color: colorScheme.onSurface,
+                  ),
+                  rightChevronIcon: Icon(
+                    Icons.chevron_right,
+                    size: 20,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                daysOfWeekStyle: DaysOfWeekStyle(
+                  weekdayStyle: TextStyle(
+                    fontSize: 11,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  weekendStyle: TextStyle(
+                    fontSize: 11,
+                    color: colorScheme.error.withOpacity(0.7),
+                  ),
+                ),
+                calendarStyle: CalendarStyle(
+                  cellMargin: const EdgeInsets.all(2),
+                  cellPadding: const EdgeInsets.all(0),
+                  // Make today decoration transparent so custom builder can handle it
+                  todayDecoration: const BoxDecoration(),
+                  todayTextStyle: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  // No special styling for selected day in compact calendar
+                  selectedDecoration: const BoxDecoration(),
+                  selectedTextStyle: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurface,
+                  ),
+                  defaultTextStyle: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurface,
+                  ),
+                  weekendTextStyle: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.error,
+                  ),
+                  outsideTextStyle: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurface.withOpacity(0.3),
+                  ),
+                ),
+
+                // Custom marker builder - show task indicators (left bars) and today indicator
+                calendarBuilders: CalendarBuilders<Todo>(
+                  // Custom today builder with underline (only for today)
+                  todayBuilder: (context, day, focusedDay) {
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '${day.day}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Container(
+                          height: 1.5,
+                          width: 14,
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary,
+                            borderRadius: BorderRadius.circular(0.75),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+
+                  // Selected day builder - show underline only if it's today
+                  selectedBuilder: (context, day, focusedDay) {
+                    // Check if selected day is today
+                    final now = DateTime.now();
+                    final isToday =
+                        day.year == now.year &&
+                        day.month == now.month &&
+                        day.day == now.day;
+
+                    if (isToday) {
+                      // Show same indicator as today
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '${day.day}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Container(
+                            height: 1.5,
+                            width: 14,
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary,
+                              borderRadius: BorderRadius.circular(0.75),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    // For other selected days, show normal text (no indicator)
+                    return null;
+                  },
+
+                  markerBuilder: (context, day, events) {
+                    if (events.isEmpty) return const SizedBox.shrink();
+
+                    // Sort events by priority: high → medium → low → none
+                    final sortedEvents = events.toList()
+                      ..sort((a, b) {
+                        const priorityOrder = {
+                          'high': 0,
+                          'medium': 1,
+                          'low': 2,
+                          'none': 3,
+                        };
+                        final aPriority =
+                            priorityOrder[a.priority.toLowerCase()] ?? 4;
+                        final bPriority =
+                            priorityOrder[b.priority.toLowerCase()] ?? 4;
+                        return aPriority.compareTo(bPriority);
+                      });
+
+                    const maxBars = 2;
+                    final bars = sortedEvents.take(maxBars).toList();
+                    final extra = sortedEvents.length - bars.length;
+
+                    return Positioned(
+                      top: 2,
+                      bottom: 2,
+                      left: 2,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (var event in bars)
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 0.5),
+                              width: 3,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: _getColorForPriority(
+                                  event.priority,
+                                  colorScheme,
+                                ),
+                                borderRadius: BorderRadius.circular(1.5),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.06),
+                                    blurRadius: 1,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (extra > 0)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 1),
+                              child: Text(
+                                '+$extra',
+                                style: TextStyle(
+                                  fontSize: 6,
+                                  color: theme.textTheme.bodySmall?.color,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
+                onDaySelected: (selectedDay, focusedDay) {
+                  // Set the selected date to the tapped day
+                  ref
+                      .read(selectedCalendarDateProvider.notifier)
+                      .state = DateTime(
+                    selectedDay.year,
+                    selectedDay.month,
+                    selectedDay.day,
+                  );
+                  // Switch to calendar view
+                  ref.read(taskViewTypeProvider.notifier).state =
+                      TaskViewType.calendar;
+                  // Close drawer
+                  Navigator.of(context).pop();
+                },
+
+                // Handle page changes to update focused day
+                onPageChanged: (focusedDay) {
+                  // Update focused day when user navigates months
+                  ref
+                      .read(selectedCalendarDateProvider.notifier)
+                      .state = DateTime(
+                    focusedDay.year,
+                    focusedDay.month,
+                    focusedDay.day,
+                  );
+                },
+              ),
+            ),
+          ),
+          crossFadeState: _isCalendarExpanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 300),
+        ),
+      ],
+    );
+  }
+
+  /// Helper method to get color for task priority
+  Color _getColorForPriority(String priority, ColorScheme colorScheme) {
+    switch (priority.toLowerCase()) {
+      case 'high':
+        return colorScheme.error;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.blue;
+      default:
+        return colorScheme.tertiary;
+    }
+  }
+
   /// Returns the appropriate tooltip for the current tab and context
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     final isSearchMode = ref.watch(searchModeProvider);
     final currentTab = ref.watch(currentTabProvider);
+    final preferences = ref.watch(preferencesStateProvider);
+
+    // Check if AMOLED black theme is enabled
+    final isAmoledBlack =
+        preferences.useBlackTheme &&
+        Theme.of(context).brightness == Brightness.dark;
 
     if (isSearchMode && (currentTab == 0 || currentTab == 1)) {
       // Material 3 compliant search AppBar
@@ -654,8 +1708,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       final colorScheme = theme.colorScheme;
 
       return AppBar(
-        backgroundColor: colorScheme.surface,
-        surfaceTintColor: colorScheme.surfaceTint,
+        backgroundColor: isAmoledBlack ? Colors.black : colorScheme.surface,
+        surfaceTintColor: isAmoledBlack
+            ? Colors.transparent
+            : colorScheme.surfaceTint,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
           onPressed: () {
@@ -711,258 +1767,115 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     final multiMode = ref.watch(multiSelectModeProvider);
     final selectedIds = ref.watch(selectedTodoIdsProvider);
-    // Build a custom AppBar using PreferredSize + Stack so the centered folder
-    // selector doesn't compete for space with left/right widgets and avoids
-    // RenderFlex overflow.
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(kToolbarHeight),
-      child: SafeArea(
-        child: Container(
-          height: kToolbarHeight,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Left area: close button (multi-select) or app name
-              Align(
-                alignment: Alignment.centerLeft,
-                child: multiMode
-                    ? IconButton(
-                        icon: ScaledIcon(Icons.close),
-                        onPressed: () {
-                          ref.read(multiSelectModeProvider.notifier).state =
-                              false;
-                          ref.read(selectedTodoIdsProvider.notifier).clear();
-                        },
-                      )
-                    : Consumer(
-                        builder: (context, ref, child) {
-                          final preferences = ref.watch(
-                            preferencesStateProvider,
-                          );
-                          final isHackTheme =
-                              preferences.accentColorSeed == 0xFF00FF00 &&
-                              !preferences
-                                  .useDynamicColor; // Dynamic colors override hack theme
+    final colorScheme = Theme.of(context).colorScheme;
 
-                          return Padding(
-                            padding: const EdgeInsets.only(left: 12),
-                            child: GestureDetector(
-                              onTap: isHackTheme
-                                  ? () => _triggerMatrixRain(ref)
-                                  : null,
-                              child: Text(
-                                'trudido',
-                                style: AppTheme.safeMontserrat(
-                                  context,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w500,
-                                  letterSpacing: 0.4,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+    // Simplified AppBar with menu button, title, and actions
+    return AppBar(
+      backgroundColor: isAmoledBlack ? Colors.black : colorScheme.surface,
+      surfaceTintColor: isAmoledBlack
+          ? Colors.transparent
+          : colorScheme.surfaceTint,
+      // Leading: Menu button to open drawer (or close button in multi-select mode)
+      leading: multiMode
+          ? IconButton(
+              icon: ScaledIcon(Icons.close),
+              onPressed: () {
+                ref.read(multiSelectModeProvider.notifier).state = false;
+                ref.read(selectedTodoIdsProvider.notifier).clear();
+              },
+            )
+          : Builder(
+              builder: (context) => IconButton(
+                icon: ScaledIcon(Icons.menu, color: colorScheme.primary),
+                tooltip: 'Open menu',
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
               ),
-              // Center area: folder selector (or selected count when multiMode)
-              Align(
-                alignment: Alignment.center,
-                child: multiMode && currentTab == 0
-                    ? Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: ScaledIcon(
-                              selectedIds.length ==
-                                      ref.watch(filteredTasksProvider).length
-                                  ? Icons.check_box
-                                  : Icons.check_box_outline_blank,
-                            ),
-                            tooltip: 'Select all',
-                            onPressed: () {
-                              final allTasks = ref.read(filteredTasksProvider);
-                              final notifier = ref.read(
-                                selectedTodoIdsProvider.notifier,
-                              );
-                              if (selectedIds.length == allTasks.length) {
-                                // Deselect all
-                                notifier.clear();
-                              } else {
-                                // Select all - clear first then add all
-                                notifier.clear();
-                                for (final task in allTasks) {
-                                  notifier.toggle(task.id);
-                                }
-                              }
-                            },
+            ),
+      // Title: App name or selection count
+      title: multiMode && currentTab == 0
+          ? Text(
+              '${selectedIds.length} selected',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: colorScheme.onSurface,
+              ),
+            )
+          : Consumer(
+              builder: (context, ref, child) {
+                final preferences = ref.watch(preferencesStateProvider);
+                final isHackTheme =
+                    preferences.accentColorSeed == 0xFF00FF00 &&
+                    !preferences.useDynamicColor;
+
+                return GestureDetector(
+                  onTap: isHackTheme ? () => _triggerMatrixRain(ref) : null,
+                  child: Text(
+                    'trudido',
+                    style: AppTheme.safeMontserrat(
+                      context,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.4,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                );
+              },
+            ),
+      // Actions: view toggle and delete button
+      actions: [
+        // View toggle for tasks tab
+        if (currentTab == 0 && !multiMode) _buildViewToggle(),
+
+        // Delete button in multi-select mode
+        if (currentTab == 0 && multiMode)
+          IconButton(
+            icon: Icon(
+              Icons.delete_outline,
+              color: selectedIds.isEmpty
+                  ? colorScheme.onSurface.withAlpha(100)
+                  : colorScheme.error,
+            ),
+            tooltip: 'Delete',
+            onPressed: selectedIds.isEmpty
+                ? null
+                : () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Delete tasks'),
+                        content: Text(
+                          'Delete ${selectedIds.length} selected ${selectedIds.length == 1 ? 'task' : 'tasks'}?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
                           ),
-                          Text(
-                            '${selectedIds.length} selected',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(context).colorScheme.onSurface,
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: Text(
+                              'Delete',
+                              style: TextStyle(color: colorScheme.error),
                             ),
                           ),
                         ],
-                      )
-                    : (currentTab == 0
-                          ? _buildFolderDropdown(
-                              isLeading: false,
-                              asTitle: true,
-                            )
-                          : currentTab == 1
-                          ? _buildNoteFolderDropdown(
-                              isLeading: false,
-                              asTitle: true,
-                            )
-                          : _buildAppBarTitle(currentTab)),
-              ),
-              // Positioned view toggle: placed between center and right area
-              if (currentTab == 0 && !multiMode)
-                Align(
-                  // Move slightly left compared to previous 0.9 placement
-                  alignment: const Alignment(0.8, 0),
-                  child: _buildViewToggle(),
-                ),
-
-              // Right area: actions (multi-select icons, overflow)
-              Align(
-                alignment: Alignment.centerRight,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Add spacing to prevent accidental hits on the menu when switching views
-                    if (currentTab == 0 && !multiMode)
-                      const SizedBox(width: 16),
-                    if (currentTab == 0 && multiMode) ...[
-                      IconButton(
-                        icon: ScaledIcon(Icons.check_circle_outline),
-                        tooltip: 'Mark complete',
-                        onPressed: selectedIds.isEmpty
-                            ? null
-                            : () async {
-                                final controller = ref.read(
-                                  taskControllerProvider.notifier,
-                                );
-                                final current = ref.read(tasksProvider);
-                                for (final id in selectedIds) {
-                                  final t = current.firstWhere(
-                                    (e) => e.id == id,
-                                  );
-                                  if (!t.isCompleted)
-                                    await controller.toggleComplete(id);
-                                }
-                                ref
-                                    .read(selectedTodoIdsProvider.notifier)
-                                    .clear();
-                              },
                       ),
-                      IconButton(
-                        icon: ScaledIcon(Icons.radio_button_unchecked),
-                        tooltip: 'Mark incomplete',
-                        onPressed: selectedIds.isEmpty
-                            ? null
-                            : () async {
-                                final controller = ref.read(
-                                  taskControllerProvider.notifier,
-                                );
-                                final current = ref.read(tasksProvider);
-                                for (final id in selectedIds) {
-                                  final t = current.firstWhere(
-                                    (e) => e.id == id,
-                                  );
-                                  if (t.isCompleted)
-                                    await controller.toggleComplete(id);
-                                }
-                                ref
-                                    .read(selectedTodoIdsProvider.notifier)
-                                    .clear();
-                              },
-                      ),
-                      IconButton(
-                        icon: ScaledIcon(Icons.delete_outline),
-                        tooltip: 'Delete',
-                        onPressed: selectedIds.isEmpty
-                            ? null
-                            : () async {
-                                final controller = ref.read(
-                                  taskControllerProvider.notifier,
-                                );
-                                await controller.bulkDelete(selectedIds);
-                                ref
-                                    .read(selectedTodoIdsProvider.notifier)
-                                    .clear();
-                                ref
-                                        .read(multiSelectModeProvider.notifier)
-                                        .state =
-                                    false;
-                              },
-                      ),
-                    ],
-
-                    // Global overflow menu
-                    PopupMenuButton<String>(
-                      icon: ScaledIcon(
-                        Icons.more_vert,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      tooltip: 'More options',
-                      onSelected: (value) {
-                        switch (value) {
-                          case 'search':
-                            ref.read(searchModeProvider.notifier).state = true;
-                            break;
-                          case 'settings':
-                            // Security: Clear vault selection before navigating away
-                            _clearVaultSelectionIfNeeded();
-                            AnimatedNavigation.push(
-                              context,
-                              const SettingsScreen(),
-                            );
-                            break;
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        if ((currentTab == 0 || currentTab == 1) && !multiMode)
-                          PopupMenuItem(
-                            value: 'search',
-                            child: ListTile(
-                              leading: const Icon(Icons.search, size: 20),
-                              title: const Text('Search'),
-                              dense: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                            ),
-                          ),
-
-                        PopupMenuItem(
-                          value: 'settings',
-                          child: ListTile(
-                            leading: const Icon(
-                              Icons.settings_outlined,
-                              size: 20,
-                            ),
-                            title: const Text('Settings'),
-                            dense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                            ),
-                          ),
-                        ),
-                        // Help & About entries removed: About and Help moved to Settings -> About & Licenses
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                    );
+                    if (confirmed == true) {
+                      final controller = ref.read(
+                        taskControllerProvider.notifier,
+                      );
+                      await controller.bulkDelete(selectedIds);
+                      ref.read(selectedTodoIdsProvider.notifier).clear();
+                      ref.read(multiSelectModeProvider.notifier).state = false;
+                    }
+                  },
           ),
-        ),
-      ),
+      ],
     );
   }
 

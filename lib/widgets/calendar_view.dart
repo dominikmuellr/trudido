@@ -560,13 +560,23 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
   @override
   void initState() {
     super.initState();
+    // Read the selected date from provider, or use today if not set
+    final selectedDate = ref.read(selectedCalendarDateProvider);
     final now = ref.read(clockProvider).now();
-    _focusedDay = now;
-    _selectedDay = now;
-    // Initialize the provider with today's date
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(selectedCalendarDateProvider.notifier).state = _selectedDay;
-    });
+
+    if (selectedDate != null) {
+      // Use the date from the provider (set by compact calendar or other sources)
+      _focusedDay = selectedDate;
+      _selectedDay = selectedDate;
+    } else {
+      // Default to today
+      _focusedDay = now;
+      _selectedDay = now;
+      // Initialize the provider with today's date
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(selectedCalendarDateProvider.notifier).state = _selectedDay;
+      });
+    }
   }
 
   /// Get tasks for a specific day

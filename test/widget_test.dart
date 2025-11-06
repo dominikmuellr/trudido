@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:trudido/main.dart';
 import 'package:trudido/services/storage_service.dart';
@@ -21,11 +20,6 @@ class _TestRepo extends TaskRepository {
 void main() {
   setUpAll(() {
     WidgetsFlutterBinding.ensureInitialized();
-    // Prevent google_fonts from trying to fetch fonts from the network
-    // during widget tests which run with TestWidgetsFlutterBinding.
-    GoogleFonts.config.allowRuntimeFetching = false;
-    // We rely on bundled fonts, so don't disable AppTheme GoogleFonts usage here.
-    // AppTheme.disableGoogleFonts = true; // no longer needed when fonts are bundled
     // Run storage deferred opens synchronously in tests to avoid background
     // timers that the test harness treats as pending.
     StorageService.performDeferredSynchronously = true;

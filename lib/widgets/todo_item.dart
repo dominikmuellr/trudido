@@ -31,8 +31,9 @@ class TodoItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final selectedBg = cs.secondaryContainer;
-    final selectedFg = cs.onSecondaryContainer;
+    // Use a more subtle selection color that works better in dark mode
+    final selectedBg = cs.surfaceContainerHighest;
+    final selectedFg = cs.onSurface;
     final appOpts =
         theme.extension<AppOptions>() ??
         const AppOptions(compact: false, highContrast: false);
@@ -75,8 +76,13 @@ class TodoItem extends StatelessWidget {
                     : 'Not selected. Double tap to select.')
               : 'Double tap to edit task. Long press to select.',
           child: Card(
-            elevation: todo.isCompleted ? 1 : 2,
-            color: selected ? selectedBg : null,
+            elevation: todo.isCompleted ? 0 : 1, // Enhanced MD3: 1 for tasks
+            color: selected
+                ? selectedBg
+                : (theme.brightness == Brightness.dark
+                      ? cs
+                            .surfaceContainerHigh // Higher surface for better visibility
+                      : null),
             child: InkWell(
               onTap: () {
                 if (selectable && onSelectToggle != null) {
@@ -116,8 +122,9 @@ class TodoItem extends StatelessWidget {
                               padding: EdgeInsets.all(controlPad),
                               child: AnimatedContainer(
                                 duration: const Duration(
-                                  milliseconds: 300,
+                                  milliseconds: 200,
                                 ), // Material 3 standard
+                                curve: Curves.easeInOut,
                                 width: 24,
                                 height: 24,
                                 decoration: BoxDecoration(
@@ -125,7 +132,7 @@ class TodoItem extends StatelessWidget {
                                   border: Border.all(
                                     color: selected
                                         ? theme.colorScheme.primary
-                                        : theme.colorScheme.outline,
+                                        : theme.colorScheme.onSurfaceVariant,
                                     width: 2,
                                   ),
                                   color: selected
@@ -134,7 +141,7 @@ class TodoItem extends StatelessWidget {
                                 ),
                                 child: selected
                                     ? Icon(
-                                        Icons.done,
+                                        Icons.check,
                                         size: 16,
                                         color: theme.colorScheme.onPrimary,
                                       )

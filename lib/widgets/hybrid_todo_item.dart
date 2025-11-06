@@ -73,16 +73,22 @@ class HybridTodoItem extends ConsumerWidget {
         onTap: selectable ? onSelectToggle : onEdit,
         onLongPress: selectable ? null : onSelectToggle,
         child: Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          elevation: 2,
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          elevation: 0, // Modern MD3: flat design with no shadow
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          color: selected
+              ? Theme.of(context).colorScheme.primaryContainer
+              : (Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest // Lighter surface in dark mode
+                    : Theme.of(context)
+                          .colorScheme
+                          .surfaceContainer), // Balanced elevation in light mode
           child: Container(
             width: double.infinity,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: selected
-                  ? Theme.of(context).colorScheme.primaryContainer
-                  : Theme.of(context).colorScheme.surface,
-            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
