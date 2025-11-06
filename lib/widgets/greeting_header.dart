@@ -7,7 +7,6 @@ import '../providers/app_providers.dart';
 import '../providers/clock.dart';
 import '../services/storage_service.dart';
 import '../utils/responsive_size.dart';
-import 'filters_sheet.dart';
 
 // Matrix Rain Animation Widget for Hack Theme
 class MatrixNameAnimation extends StatefulWidget {
@@ -427,17 +426,6 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
                         tooltip: 'Change language',
                       ),
                     ),
-
-                  Semantics(
-                    label: 'Open filters',
-                    button: true,
-                    child: IconButton(
-                      onPressed: () => showFiltersSheet(context),
-                      icon: const ScaledIcon(Icons.filter_alt),
-                      color: theme.colorScheme.primary,
-                      tooltip: 'Filters',
-                    ),
-                  ),
                 ],
               ),
             ],

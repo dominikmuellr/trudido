@@ -6,6 +6,7 @@ import '../services/theme_service.dart';
 import 'dart:math';
 import 'dart:async';
 import '../providers/filter_providers.dart';
+import '../providers/clock.dart';
 import '../controllers/task_controller.dart';
 import '../controllers/notes_controller.dart';
 import '../providers/app_providers.dart';
@@ -14,6 +15,7 @@ import '../services/folder_provider.dart';
 import '../services/vault_auth_service.dart';
 import '../services/vault_password_service.dart';
 import '../services/biometric_auth_service.dart';
+import '../services/storage_service.dart';
 // import '../services/markdown_export_service.dart'; // Commented out - for future import feature
 import '../repositories/note_folder_repository.dart';
 import '../models/note_folder.dart';
@@ -81,6 +83,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   final _searchController = TextEditingController();
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isCalendarExpanded = false;
+  bool _isFilterExpanded = false;
 
   @override
   void initState() {
@@ -351,6 +354,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             onSearch: _triggerSearch,
           ),
         ),
+        // View toggle button (only on Tasks tab, positioned above FAB)
+        if (currentTab == 0)
+          Positioned(
+            right: 20, // Offset to center-align with FAB (FAB is larger)
+            bottom: 174, // FAB bottom (110) + FAB size (~48) + gap (16)
+            child: FloatingActionButton.small(
+              heroTag: 'view_toggle',
+              backgroundColor: Theme.of(context).colorScheme.secondaryContainer
+                  .withOpacity(0.7), // Semi-transparent for subtle effect
+              foregroundColor: Theme.of(
+                context,
+              ).colorScheme.onSecondaryContainer,
+              elevation: 2,
+              shape: const CircleBorder(), // Explicitly circular
+              onPressed: () {
+                final current = ref.read(taskViewTypeProvider);
+                ref
+                    .read(taskViewTypeProvider.notifier)
+                    .state = current == TaskViewType.list
+                    ? TaskViewType.calendar
+                    : TaskViewType.list;
+              },
+              child: Icon(
+                ref.watch(taskViewTypeProvider) == TaskViewType.list
+                    ? Icons.calendar_month
+                    : Icons.list,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -1331,6 +1363,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         // Calendar section (only for Tasks tab)
         if (currentTab == 0) _buildCompactCalendar(context),
 
+        // Filter section (only for Tasks tab)
+        if (currentTab == 0) _buildCompactFilter(context),
+
         // Manage Folders action
         ListTile(
           dense: true,
@@ -1691,6 +1726,390 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
+  /// Builds greeting widget for AppBar based on current tab
+  Widget _buildGreeting(int currentTab) {
+    if (currentTab == 0) {
+      // Tasks tab - show greeting with statistics
+      return _buildTasksGreeting();
+    } else {
+      // Notes tab - show creative greeting
+      return _buildNotesGreeting();
+    }
+  }
+
+  /// Builds tasks greeting with time-based subtitle
+  Widget _buildTasksGreeting() {
+    final userName = StorageService.getUserName();
+    final displayName =
+        (userName.isEmpty ||
+            userName == '_SKIP_NAME_' ||
+            userName == '_CLEARED_NAME_')
+        ? 'there'
+        : userName;
+    final hour = ref.read(clockProvider).now().hour;
+    final theme = Theme.of(context);
+
+    String greeting;
+    String subtitle;
+
+    if (hour < 12) {
+      greeting = 'Good morning, $displayName';
+      subtitle = 'Ready to tackle your morning tasks?';
+    } else if (hour < 17) {
+      greeting = 'Good afternoon, $displayName';
+      subtitle = 'How\'s your day going so far?';
+    } else {
+      greeting = 'Good evening, $displayName';
+      subtitle = 'Time to wrap up the day!';
+    }
+
+    return GestureDetector(
+      onTap: () => _showNameDialog(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            greeting,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.normal,
+              color: theme.colorScheme.primary,
+              fontSize: 17,
+            ),
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            subtitle,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.secondary.withOpacity(0.8),
+              fontWeight: FontWeight.w300,
+              fontSize: 13,
+            ),
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds notes greeting
+  Widget _buildNotesGreeting() {
+    final userName = StorageService.getUserName();
+    final displayName =
+        (userName.isEmpty ||
+            userName == '_SKIP_NAME_' ||
+            userName == '_CLEARED_NAME_')
+        ? 'there'
+        : userName;
+    final hour = ref.read(clockProvider).now().hour;
+    final theme = Theme.of(context);
+
+    String greeting;
+    String subtitle;
+
+    if (hour < 12) {
+      greeting = 'Good morning, $displayName';
+      subtitle = 'Capture your morning thoughts';
+    } else if (hour < 17) {
+      greeting = 'Good afternoon, $displayName';
+      subtitle = 'Ready to capture ideas?';
+    } else if (hour < 21) {
+      greeting = 'Good evening, $displayName';
+      subtitle = 'Evening thoughts?';
+    } else {
+      greeting = 'Good night, $displayName';
+      subtitle = 'What\'s on your mind?';
+    }
+
+    return GestureDetector(
+      onTap: () => _showNameDialog(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            greeting,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.normal,
+              color: theme.colorScheme.primary,
+              fontSize: 17,
+            ),
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            subtitle,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.secondary.withOpacity(0.8),
+              fontWeight: FontWeight.w300,
+              fontSize: 13,
+            ),
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Shows dialog to edit user name
+  void _showNameDialog(BuildContext context) {
+    final currentName = StorageService.getUserName();
+    final nameController = TextEditingController(
+      text:
+          currentName.isEmpty ||
+              currentName == '_SKIP_NAME_' ||
+              currentName == '_CLEARED_NAME_'
+          ? ''
+          : currentName,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Your Name'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Name',
+            hintText: 'Enter your name',
+            border: OutlineInputBorder(),
+          ),
+          textCapitalization: TextCapitalization.words,
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              // Clear name
+              StorageService.setUserName('_CLEARED_NAME_');
+              Navigator.pop(context);
+              setState(() {}); // Refresh to show changes
+            },
+            child: const Text('Clear'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final newName = nameController.text.trim();
+              if (newName.isEmpty) {
+                StorageService.setUserName('_SKIP_NAME_');
+              } else {
+                StorageService.setUserName(newName);
+              }
+              Navigator.pop(context);
+              setState(() {}); // Refresh to show changes
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds a compact collapsible filter for the drawer
+  Widget _buildCompactFilter(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      children: [
+        // Filter header with expand/collapse
+        ListTile(
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          leading: Icon(
+            Icons.filter_alt_outlined,
+            size: 20,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          title: Text('Filter', style: theme.textTheme.bodyMedium),
+          trailing: Icon(
+            _isFilterExpanded ? Icons.expand_less : Icons.expand_more,
+            size: 20,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          onTap: () {
+            setState(() {
+              _isFilterExpanded = !_isFilterExpanded;
+            });
+          },
+        ),
+
+        // Expandable filter options
+        AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Reset all filters option
+                  ListTile(
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    leading: Icon(
+                      Icons.clear_all,
+                      size: 18,
+                      color: colorScheme.tertiary,
+                    ),
+                    title: Text(
+                      'Reset Filters',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    onTap: () {
+                      // Reset all filters to defaults
+                      ref.read(selectedPriorityProvider.notifier).state = 'all';
+                      ref.read(dueTodayFilterProvider.notifier).state = false;
+                      ref.read(showCompletedProvider.notifier).state = false;
+                      ref.read(sortByProvider.notifier).state = 'default';
+                      Navigator.of(context).pop();
+
+                      // Show feedback
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('All filters cleared'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    leading: Icon(
+                      Icons.priority_high,
+                      size: 18,
+                      color: colorScheme.error,
+                    ),
+                    title: Text(
+                      'High Priority',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    onTap: () {
+                      // Set priority filter to high
+                      ref.read(selectedPriorityProvider.notifier).state =
+                          'high';
+                      // Show all tasks (completed and incomplete)
+                      ref.read(showCompletedProvider.notifier).state = true;
+                      Navigator.of(context).pop();
+
+                      // Show feedback
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Showing high priority tasks'),
+                          duration: const Duration(seconds: 2),
+                          action: SnackBarAction(
+                            label: 'Clear',
+                            onPressed: () {
+                              ref
+                                      .read(selectedPriorityProvider.notifier)
+                                      .state =
+                                  'all';
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    leading: Icon(
+                      Icons.calendar_today,
+                      size: 18,
+                      color: colorScheme.primary,
+                    ),
+                    title: Text('Due Today', style: theme.textTheme.bodySmall),
+                    onTap: () {
+                      // Enable due today filter
+                      ref.read(dueTodayFilterProvider.notifier).state = true;
+                      // Reset priority to show all priorities
+                      ref.read(selectedPriorityProvider.notifier).state = 'all';
+                      // Show all tasks (completed and incomplete)
+                      ref.read(showCompletedProvider.notifier).state = true;
+                      // Stay in list view (don't switch to calendar)
+                      ref.read(taskViewTypeProvider.notifier).state =
+                          TaskViewType.list;
+                      Navigator.of(context).pop();
+
+                      // Show feedback
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Showing tasks due today'),
+                          duration: const Duration(seconds: 2),
+                          action: SnackBarAction(
+                            label: 'Clear',
+                            onPressed: () {
+                              ref.read(dueTodayFilterProvider.notifier).state =
+                                  false;
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    leading: Icon(
+                      Icons.check_circle_outline,
+                      size: 18,
+                      color: Colors.green,
+                    ),
+                    title: Text('Completed', style: theme.textTheme.bodySmall),
+                    onTap: () {
+                      // Reset priority filter to show all
+                      ref.read(selectedPriorityProvider.notifier).state = 'all';
+                      // Toggle completed filter - if already showing completed, this will hide incomplete
+                      // For a "show only completed" filter, we need a different approach
+                      // For now, ensure completed are visible and sort by completion
+                      ref.read(showCompletedProvider.notifier).state = true;
+                      ref.read(sortByProvider.notifier).state = 'default';
+                      Navigator.of(context).pop();
+
+                      // Show feedback
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Showing completed tasks'),
+                          duration: const Duration(seconds: 2),
+                          action: SnackBarAction(
+                            label: 'Hide',
+                            onPressed: () {
+                              ref.read(showCompletedProvider.notifier).state =
+                                  false;
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          crossFadeState: _isFilterExpanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 300),
+        ),
+      ],
+    );
+  }
+
   /// Returns the appropriate tooltip for the current tab and context
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     final isSearchMode = ref.watch(searchModeProvider);
@@ -1803,33 +2222,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 color: colorScheme.onSurface,
               ),
             )
-          : Consumer(
-              builder: (context, ref, child) {
-                final preferences = ref.watch(preferencesStateProvider);
-                final isHackTheme =
-                    preferences.accentColorSeed == 0xFF00FF00 &&
-                    !preferences.useDynamicColor;
-
-                return GestureDetector(
-                  onTap: isHackTheme ? () => _triggerMatrixRain(ref) : null,
-                  child: Text(
-                    'trudido',
-                    style: AppTheme.safeMontserrat(
-                      context,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.4,
-                      color: colorScheme.primary,
-                    ),
-                  ),
-                );
-              },
-            ),
-      // Actions: view toggle and delete button
+          : _buildGreeting(currentTab),
+      // Actions: delete button in multi-select mode
       actions: [
-        // View toggle for tasks tab
-        if (currentTab == 0 && !multiMode) _buildViewToggle(),
-
         // Delete button in multi-select mode
         if (currentTab == 0 && multiMode)
           IconButton(
@@ -2558,42 +2953,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   /// Build the view toggle for switching between list and calendar views
-  Widget _buildViewToggle() {
-    final viewType = ref.watch(taskViewTypeProvider);
-
-    return Container(
-      // Move the toggle slightly to the left to reduce distance from center.
-      // Reduce right margin to 8 for a more compact placement.
-      margin: const EdgeInsets.only(right: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ViewToggleButton(
-            icon: Icons.list,
-            isSelected: viewType == TaskViewType.list,
-            onTap: () {
-              ref.read(taskViewTypeProvider.notifier).state = TaskViewType.list;
-            },
-            tooltip: 'List View',
-          ),
-          _ViewToggleButton(
-            icon: Icons.calendar_month,
-            isSelected: viewType == TaskViewType.calendar,
-            onTap: () {
-              ref.read(taskViewTypeProvider.notifier).state =
-                  TaskViewType.calendar;
-            },
-            tooltip: 'Calendar View',
-          ),
-        ],
-      ),
-    );
-  }
-
   /// Helper method to get icon data from icon name
   IconData _getIconData(String? iconName) {
     switch (iconName) {
@@ -2869,48 +3228,6 @@ class MatrixColumn {
 }
 
 /// Custom view toggle button for list/calendar switching
-class _ViewToggleButton extends StatelessWidget {
-  final IconData icon;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final String tooltip;
-
-  const _ViewToggleButton({
-    required this.icon,
-    required this.isSelected,
-    required this.onTap,
-    required this.tooltip,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          // Reduced padding to make the control more compact
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            color: isSelected ? colorScheme.primary : Colors.transparent,
-            // Slightly smaller corner radius for a tighter look
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ScaledIcon(
-            icon,
-            // Slightly smaller icon so the control isn't overly prominent
-            size: 18,
-            color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // Multi-select providers
 final multiSelectModeProvider = StateProvider<bool>((ref) => false);
 final selectedTodoIdsProvider =

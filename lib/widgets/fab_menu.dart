@@ -241,7 +241,7 @@ class _FabMenuState extends ConsumerState<FabMenu>
         // Main FAB
         FloatingActionButton(
           onPressed: _toggleMenu,
-          shape: _isExpanded ? const CircleBorder() : null,
+          shape: const CircleBorder(),
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
             transitionBuilder: (child, animation) {

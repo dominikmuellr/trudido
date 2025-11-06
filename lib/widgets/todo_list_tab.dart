@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/filter_providers.dart';
 import '../controllers/task_controller.dart';
 import '../widgets/hybrid_todo_item.dart';
-import '../widgets/greeting_header.dart';
 import '../widgets/calendar_view.dart';
 import '../screens/task_editor_screen.dart';
 import '../models/todo.dart';
@@ -28,15 +27,9 @@ class TodoListTab extends ConsumerWidget {
         Theme.of(context).extension<AppOptions>() ??
         const AppOptions(compact: false, highContrast: false);
     final outerPad = EdgeInsets.all(appOpts.compact ? 12 : 16);
-    final sectionGap = SizedBox(height: appOpts.compact ? 6 : 8);
 
     return Column(
       children: [
-        // Greeting header (hidden in calendar view to save space)
-        if (viewType != TaskViewType.calendar) const GreetingHeader(),
-
-        sectionGap,
-
         // Content view based on view type
         Expanded(
           child: GestureDetector(

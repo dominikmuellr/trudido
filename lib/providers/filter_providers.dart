@@ -12,6 +12,7 @@ final showCompletedProvider = StateProvider<bool>((ref) => true);
 final sortByProvider = StateProvider<String>(
   (ref) => 'default',
 ); // default|date_created|date_due|priority|alphabetical|manual
+final dueTodayFilterProvider = StateProvider<bool>((ref) => false);
 
 // View state providers
 enum TaskViewType { list, calendar }
@@ -63,6 +64,7 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
   final selectedPriority = ref.watch(selectedPriorityProvider);
   final showCompleted = ref.watch(showCompletedProvider);
   final sortBy = ref.watch(sortByProvider);
+  final dueTodayFilter = ref.watch(dueTodayFilterProvider);
   // Folder filter still comes from legacy folder provider (not yet migrated)
   final selectedFolder = ref.watch(selectedFolderProvider);
 
@@ -77,6 +79,20 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
     if (selectedPriority != 'all' && todo.priority != selectedPriority)
       return false;
     if (!showCompleted && todo.isCompleted) return false;
+
+    // Due today filter
+    if (dueTodayFilter) {
+      if (todo.dueDate == null) return false;
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final taskDate = DateTime(
+        todo.dueDate!.year,
+        todo.dueDate!.month,
+        todo.dueDate!.day,
+      );
+      if (!taskDate.isAtSameMomentAs(today)) return false;
+    }
+
     return true;
   }).toList();
 
