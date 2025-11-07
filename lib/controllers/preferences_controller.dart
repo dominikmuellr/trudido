@@ -73,10 +73,8 @@ class PreferencesController {
 
   Future<void> toggleHideGreeting() =>
       _update(hideGreeting: !state.hideGreeting);
-  Future<void> toggleRandomGreetings() =>
-      _update(randomGreetingsEnabled: !state.randomGreetingsEnabled);
-  Future<void> setFixedGreetingLanguage(int languageIndex) =>
-      _update(fixedGreetingLanguage: languageIndex);
+  Future<void> setGreetingLanguage(int languageIndex) =>
+      _update(greetingLanguage: languageIndex);
   Future<void> setFabPosition(String pos) => _update(fabPosition: pos);
 
   Future<void> setSwipeLeftAction(String action) =>
@@ -90,8 +88,7 @@ class PreferencesController {
     bool? useBlackTheme,
     int? accentColorSeed,
     bool? hideGreeting,
-    bool? randomGreetingsEnabled,
-    int? fixedGreetingLanguage,
+    int? greetingLanguage,
     String? fabPosition,
     String? swipeLeftAction,
     String? swipeRightAction,
@@ -102,8 +99,7 @@ class PreferencesController {
       useBlackTheme: useBlackTheme,
       accentColorSeed: accentColorSeed,
       hideGreeting: hideGreeting,
-      randomGreetingsEnabled: randomGreetingsEnabled,
-      fixedGreetingLanguage: fixedGreetingLanguage,
+      greetingLanguage: greetingLanguage,
       fabPosition: fabPosition,
       swipeLeftAction: swipeLeftAction,
       swipeRightAction: swipeRightAction,

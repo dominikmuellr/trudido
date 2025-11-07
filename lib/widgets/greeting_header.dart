@@ -6,7 +6,6 @@ import '../services/theme_service.dart';
 import '../providers/app_providers.dart';
 import '../providers/clock.dart';
 import '../services/storage_service.dart';
-import '../utils/responsive_size.dart';
 
 // Matrix Rain Animation Widget for Hack Theme
 class MatrixNameAnimation extends StatefulWidget {
@@ -239,16 +238,11 @@ final userNameProvider = StateProvider<String>(
   (ref) => StorageService.getUserName(),
 );
 
-// Provider for current greeting language
-final greetingLanguageProvider = StateProvider<int>((ref) {
+// Provider for current greeting language - directly reads from preferences
+final greetingLanguageProvider = Provider<int>((ref) {
   final prefs = ref.watch(preferencesStateProvider);
-  if (prefs.randomGreetingsEnabled) {
-    // Generate a random greeting when random is enabled
-    return Random().nextInt(17);
-  } else {
-    // Use fixed language from preferences
-    return prefs.fixedGreetingLanguage;
-  }
+  // Use the greeting language from preferences
+  return prefs.greetingLanguage;
 });
 
 // Provider for hide greeting preference
@@ -288,15 +282,6 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
   @override
   void initState() {
     super.initState();
-  }
-
-  void _changeGreeting() {
-    final currentGreetingIndex = ref.read(greetingLanguageProvider);
-    int newGreetingIndex;
-    do {
-      newGreetingIndex = Random().nextInt(_greetings.length);
-    } while (newGreetingIndex == currentGreetingIndex);
-    ref.read(greetingLanguageProvider.notifier).state = newGreetingIndex;
   }
 
   @override
@@ -400,9 +385,8 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                        // Only show language explanation when random greetings are enabled
-                        if (preferences.randomGreetingsEnabled)
-                          Text(greeting['lang']!, style: langStyle),
+                        // Show language name
+                        Text(greeting['lang']!, style: langStyle),
                         // Time-based message as subtitle
                         const SizedBox(height: 4),
                         Text(_getTimeBasedMessage(), style: messageStyle),
@@ -410,23 +394,6 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
                     ),
                   ),
                 ),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Only show globe button if random greetings are enabled
-                  if (preferences.randomGreetingsEnabled)
-                    Semantics(
-                      label: 'Change greeting language',
-                      button: true,
-                      child: IconButton(
-                        onPressed: _changeGreeting,
-                        icon: const ScaledIcon(Icons.language),
-                        color: theme.colorScheme.primary,
-                        tooltip: 'Change language',
-                      ),
-                    ),
-                ],
               ),
             ],
           ),

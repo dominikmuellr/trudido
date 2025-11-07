@@ -83,48 +83,33 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
     return Consumer(
       builder: (context, ref, _) {
         final preferences = ref.watch(preferencesStateProvider);
-        final controller = ref.read(preferencesControllerProvider);
 
-        return Column(
-          children: [
-            SwitchListTile(
-              secondary: Icon(Icons.language),
-              title: const Text('Random Greetings'),
-              subtitle: const Text('Show greeting in different languages'),
-              value: preferences.randomGreetingsEnabled,
-              onChanged: (value) {
-                controller.toggleRandomGreetings();
+        return ListTile(
+          leading: const Icon(Icons.translate),
+          title: const Text('Greeting Language'),
+          subtitle: Text(
+            _getGreetingLanguageName(preferences.greetingLanguage),
+          ),
+          trailing: Icon(Icons.arrow_forward_ios),
+          onTap: () async {
+            await showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              builder: (ctx) {
+                return DraggableScrollableSheet(
+                  initialChildSize: 0.5,
+                  minChildSize: 0.5,
+                  maxChildSize: 0.9,
+                  expand: false,
+                  builder: (context, scrollController) {
+                    return _GreetingLanguageSheet(
+                      scrollController: scrollController,
+                    );
+                  },
+                );
               },
-            ),
-            if (!preferences.randomGreetingsEnabled)
-              ListTile(
-                leading: const Icon(Icons.translate),
-                title: const Text('Greeting Language'),
-                subtitle: Text(
-                  _getGreetingLanguageName(preferences.fixedGreetingLanguage),
-                ),
-                trailing: Icon(Icons.arrow_forward_ios),
-                onTap: () async {
-                  await showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (ctx) {
-                      return DraggableScrollableSheet(
-                        initialChildSize: 0.5,
-                        minChildSize: 0.5,
-                        maxChildSize: 0.9,
-                        expand: false,
-                        builder: (context, scrollController) {
-                          return _GreetingLanguageSheet(
-                            scrollController: scrollController,
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-          ],
+            );
+          },
         );
       },
     );
@@ -962,7 +947,7 @@ class _GreetingLanguageSheet extends ConsumerWidget {
               controller: scrollController,
               itemCount: languages.length,
               itemBuilder: (context, index) {
-                final isSelected = preferences.fixedGreetingLanguage == index;
+                final isSelected = preferences.greetingLanguage == index;
                 return ListTile(
                   title: Text(languages[index]),
                   trailing: isSelected
@@ -972,7 +957,7 @@ class _GreetingLanguageSheet extends ConsumerWidget {
                         )
                       : null,
                   onTap: () {
-                    controller.setFixedGreetingLanguage(index);
+                    controller.setGreetingLanguage(index);
                     Navigator.of(context).pop();
                   },
                 );

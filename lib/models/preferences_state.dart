@@ -7,9 +7,7 @@ class PreferencesState {
   final bool compactDensity;
   final bool highContrast;
   final bool hideGreeting;
-  final bool
-  randomGreetingsEnabled; // Whether to enable random greeting changes
-  final int fixedGreetingLanguage; // Fixed language index (-1 for random)
+  final int greetingLanguage; // Language index for greeting header
   final String fabPosition; // left | center | right
   final String swipeLeftAction; // 'none', 'delete', 'pin'
   final String swipeRightAction; // 'none', 'delete', 'pin'
@@ -22,8 +20,7 @@ class PreferencesState {
     required this.compactDensity,
     required this.highContrast,
     required this.hideGreeting,
-    required this.randomGreetingsEnabled,
-    required this.fixedGreetingLanguage,
+    required this.greetingLanguage,
     required this.fabPosition,
     required this.swipeLeftAction,
     required this.swipeRightAction,
@@ -37,8 +34,7 @@ class PreferencesState {
     bool? compactDensity,
     bool? highContrast,
     bool? hideGreeting,
-    bool? randomGreetingsEnabled,
-    int? fixedGreetingLanguage,
+    int? greetingLanguage,
     String? fabPosition,
     String? swipeLeftAction,
     String? swipeRightAction,
@@ -50,9 +46,7 @@ class PreferencesState {
     compactDensity: compactDensity ?? this.compactDensity,
     highContrast: highContrast ?? this.highContrast,
     hideGreeting: hideGreeting ?? this.hideGreeting,
-    randomGreetingsEnabled:
-        randomGreetingsEnabled ?? this.randomGreetingsEnabled,
-    fixedGreetingLanguage: fixedGreetingLanguage ?? this.fixedGreetingLanguage,
+    greetingLanguage: greetingLanguage ?? this.greetingLanguage,
     fabPosition: fabPosition ?? this.fabPosition,
     swipeLeftAction: swipeLeftAction ?? this.swipeLeftAction,
     swipeRightAction: swipeRightAction ?? this.swipeRightAction,
@@ -66,8 +60,7 @@ class PreferencesState {
     compactDensity: false,
     highContrast: false,
     hideGreeting: false,
-    randomGreetingsEnabled: false, // Default: fixed English greeting
-    fixedGreetingLanguage: 0, // Default: English (index 0)
+    greetingLanguage: 0, // Default: English (index 0)
     fabPosition: 'right',
     swipeLeftAction: 'delete', // Default: left to delete
     swipeRightAction: 'pin', // Default: right to pin

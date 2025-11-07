@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:ui' as ui;
 
 import '../models/app_error.dart';
 import '../models/preferences_state.dart';
@@ -24,7 +25,86 @@ class PreferencesService {
     await StorageService.ensurePrefs();
     // Access private copy via SharedPreferences.getInstance again.
     _prefs = await SharedPreferences.getInstance();
+
+    // On first launch, detect device language and set greeting language
+    await _setInitialGreetingLanguage();
+
     _hydrate();
+  }
+
+  /// Detect device language and set greeting language on first launch
+  Future<void> _setInitialGreetingLanguage() async {
+    final p = _prefs!;
+
+    // Check if greeting language has already been set
+    if (p.containsKey('greeting_language')) {
+      return; // Already configured, don't override user preference
+    }
+
+    // Get device locale
+    final locale = ui.PlatformDispatcher.instance.locale;
+    final languageCode = locale.languageCode.toLowerCase();
+
+    // Map language codes to greeting language indices
+    int greetingIndex = 0; // Default to English
+
+    switch (languageCode) {
+      case 'es': // Spanish
+        greetingIndex = 1;
+        break;
+      case 'fr': // French
+        greetingIndex = 2;
+        break;
+      case 'de': // German
+        greetingIndex = 3;
+        break;
+      case 'it': // Italian
+        greetingIndex = 4;
+        break;
+      case 'nl': // Dutch
+        greetingIndex = 5;
+        break;
+      case 'pt': // Portuguese
+        greetingIndex = 6;
+        break;
+      case 'sv': // Swedish
+        greetingIndex = 7;
+        break;
+      case 'da': // Danish
+        greetingIndex = 8;
+        break;
+      case 'no': // Norwegian
+      case 'nb': // Norwegian Bokmål
+      case 'nn': // Norwegian Nynorsk
+        greetingIndex = 9;
+        break;
+      case 'fi': // Finnish
+        greetingIndex = 10;
+        break;
+      case 'pl': // Polish
+        greetingIndex = 11;
+        break;
+      case 'cs': // Czech
+        greetingIndex = 12;
+        break;
+      case 'hu': // Hungarian
+        greetingIndex = 13;
+        break;
+      case 'ro': // Romanian
+        greetingIndex = 14;
+        break;
+      case 'tr': // Turkish
+        greetingIndex = 15;
+        break;
+      case 'uk': // Ukrainian
+        greetingIndex = 16;
+        break;
+      default:
+        greetingIndex = 0; // English fallback
+    }
+
+    // Set the detected language
+    await p.setInt('greeting_language', greetingIndex);
   }
 
   void _hydrate() {
@@ -50,12 +130,9 @@ class PreferencesService {
       hideGreeting:
           p.getBool('hide_greeting') ??
           PreferencesState.defaultState.hideGreeting,
-      randomGreetingsEnabled:
-          p.getBool('random_greetings_enabled') ??
-          PreferencesState.defaultState.randomGreetingsEnabled,
-      fixedGreetingLanguage:
-          p.getInt('fixed_greeting_language') ??
-          PreferencesState.defaultState.fixedGreetingLanguage,
+      greetingLanguage:
+          p.getInt('greeting_language') ??
+          PreferencesState.defaultState.greetingLanguage,
       fabPosition: _sanitizeFabPosition(p.getString('fab_position')),
       swipeLeftAction:
           p.getString('swipe_left_action') ??
@@ -77,8 +154,7 @@ class PreferencesService {
     bool? useBlackTheme,
     int? accentColorSeed,
     bool? hideGreeting,
-    bool? randomGreetingsEnabled,
-    int? fixedGreetingLanguage,
+    int? greetingLanguage,
     String? fabPosition,
     String? swipeLeftAction,
     String? swipeRightAction,
@@ -96,10 +172,8 @@ class PreferencesService {
       if (accentColorSeed != null)
         await p.setInt('accent_color_seed', accentColorSeed);
       if (hideGreeting != null) await p.setBool('hide_greeting', hideGreeting);
-      if (randomGreetingsEnabled != null)
-        await p.setBool('random_greetings_enabled', randomGreetingsEnabled);
-      if (fixedGreetingLanguage != null)
-        await p.setInt('fixed_greeting_language', fixedGreetingLanguage);
+      if (greetingLanguage != null)
+        await p.setInt('greeting_language', greetingLanguage);
       if (fabPosition != null) await p.setString('fab_position', fabPosition);
       if (swipeLeftAction != null)
         await p.setString('swipe_left_action', swipeLeftAction);

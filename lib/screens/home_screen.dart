@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:trudido/utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
-import '../services/theme_service.dart';
 import 'dart:math';
 import 'dart:async';
 import '../providers/filter_providers.dart';
@@ -16,6 +15,7 @@ import '../services/vault_auth_service.dart';
 import '../services/vault_password_service.dart';
 import '../services/biometric_auth_service.dart';
 import '../services/storage_service.dart';
+import '../services/greeting_service.dart';
 // import '../services/markdown_export_service.dart'; // Commented out - for future import feature
 import '../repositories/note_folder_repository.dart';
 import '../models/note_folder.dart';
@@ -346,7 +346,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         Positioned(
           right: 16,
           bottom:
-              110, // NavigationBar height (~80) + extra spacing for better visibility
+              130, // NavigationBar height (~80) + extra spacing (moved up from 110)
           child: FabMenu(
             onAddTask: _showAddTaskDialog,
             onAddNote: _createNewNote,
@@ -361,7 +361,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         if (currentTab == 0 && !fabMenuExpanded)
           Positioned(
             right: 20, // Offset to center-align with FAB (FAB is larger)
-            bottom: 174, // FAB bottom (110) + FAB size (~48) + gap (16)
+            bottom: 194, // FAB bottom (130) + FAB size (~48) + gap (16)
             child: FloatingActionButton.small(
               heroTag: 'view_toggle',
               backgroundColor: Theme.of(context).colorScheme.secondaryContainer
@@ -1743,28 +1743,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// Builds tasks greeting with time-based subtitle
   Widget _buildTasksGreeting() {
     final userName = StorageService.getUserName();
-    final displayName =
-        (userName.isEmpty ||
-            userName == '_SKIP_NAME_' ||
-            userName == '_CLEARED_NAME_')
-        ? 'there'
-        : userName;
     final hour = ref.read(clockProvider).now().hour;
     final theme = Theme.of(context);
+    final preferences = ref.watch(preferencesStateProvider);
+    final languageIndex = preferences.greetingLanguage;
 
-    String greeting;
-    String subtitle;
-
-    if (hour < 12) {
-      greeting = 'Good morning, $displayName';
-      subtitle = 'Ready to tackle your morning tasks?';
-    } else if (hour < 17) {
-      greeting = 'Good afternoon, $displayName';
-      subtitle = 'How\'s your day going so far?';
-    } else {
-      greeting = 'Good evening, $displayName';
-      subtitle = 'Time to wrap up the day!';
-    }
+    final greeting = GreetingService.getGreeting(
+      hour: hour,
+      languageIndex: languageIndex,
+      userName: userName,
+    );
+    final subtitle = GreetingService.getTasksSubtitle(
+      hour: hour,
+      languageIndex: languageIndex,
+    );
 
     return GestureDetector(
       onTap: () => _showNameDialog(context),
@@ -1775,7 +1767,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           Text(
             greeting,
             style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.normal,
+              fontWeight: FontWeight.w700, // Bold for prominence
               color: theme.colorScheme.primary,
               fontSize: 17,
             ),
@@ -1785,6 +1777,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           Text(
             subtitle,
             style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w500, // Medium for better readability
               color: theme.colorScheme.secondary.withOpacity(0.8),
               fontSize: 13,
             ),
@@ -1799,31 +1792,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// Builds notes greeting
   Widget _buildNotesGreeting() {
     final userName = StorageService.getUserName();
-    final displayName =
-        (userName.isEmpty ||
-            userName == '_SKIP_NAME_' ||
-            userName == '_CLEARED_NAME_')
-        ? 'there'
-        : userName;
     final hour = ref.read(clockProvider).now().hour;
     final theme = Theme.of(context);
+    final preferences = ref.watch(preferencesStateProvider);
+    final languageIndex = preferences.greetingLanguage;
 
-    String greeting;
-    String subtitle;
-
-    if (hour < 12) {
-      greeting = 'Good morning, $displayName';
-      subtitle = 'Capture your morning thoughts';
-    } else if (hour < 17) {
-      greeting = 'Good afternoon, $displayName';
-      subtitle = 'Ready to capture ideas?';
-    } else if (hour < 21) {
-      greeting = 'Good evening, $displayName';
-      subtitle = 'Evening thoughts?';
-    } else {
-      greeting = 'Good night, $displayName';
-      subtitle = 'What\'s on your mind?';
-    }
+    final greeting = GreetingService.getGreeting(
+      hour: hour,
+      languageIndex: languageIndex,
+      userName: userName,
+    );
+    final subtitle = GreetingService.getNotesSubtitle(
+      hour: hour,
+      languageIndex: languageIndex,
+    );
 
     return GestureDetector(
       onTap: () => _showNameDialog(context),
@@ -1834,7 +1816,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           Text(
             greeting,
             style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.normal,
+              fontWeight: FontWeight.w700, // Bold for prominence
               color: theme.colorScheme.primary,
               fontSize: 17,
             ),
@@ -1844,6 +1826,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           Text(
             subtitle,
             style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w500, // Medium for better readability
               color: theme.colorScheme.secondary.withOpacity(0.8),
               fontSize: 13,
             ),

@@ -1,0 +1,42 @@
+Version 1.1.0 - Major UI & Feature Update
+
+NEW FEATURES:
+• Customizable greeting language in Settings → Display & Theme
+• Material 3 expandable FAB menu with tab-specific actions
+• Vault Note creation directly from FAB menu with enhanced animations
+• Quick drawer access - tap the same navigation tab twice to open drawer
+• Cycling theme mode switcher in drawer header (Light → Dark → Auto/System)
+• Calendar-Switcher over FAB for better reachability
+
+
+UI IMPROVEMENTS:
+• Enhanced greeting header with bold font weights (w700) for better readability
+• Improved subtitle font weight (w500) for better visual hierarchy
+• Raised FAB and calendar button position for better spacing from navigation bar (bottom: 110→130, 174→194)
+• Hide task completion checkbox in multi-select mode to reduce visual clutter
+• Cleaner greeting display - shows just greeting without ", there" when no name is set
+• Better Material 3 compliance in greeting presentation
+• Staggered pop-up animations for FAB menu items
+• Improved vault folder creation flow with better user guidance
+
+NAVIGATION:
+• Drawer opens when tapping active navigation tab for quick folder access
+• Theme mode cycling: Light → Dark → System (tap icon in drawer header)
+• Smart vault clearing when leaving Notes tab for better security
+• Contextual folder lists in drawer based on current tab (Tasks/Notes)
+
+TECHNICAL IMPROVEMENTS:
+• New GreetingService for centralized multilingual greeting management
+• Greeting language preference now stored properly and syncs across app
+• Changed greeting provider from StateProvider to Provider for automatic updates
+• Greeting updates immediately when language is changed in settings
+• Preferences model simplified: removed randomGreetingsEnabled, renamed fixedGreetingLanguage to greetingLanguage
+• Updated preferences service with device locale detection via PlatformDispatcher
+• Enhanced animation controllers for FAB menu stagger effects
+
+FIXES:
+• Greeting language now updates immediately when changed in settings
+• Better visual hierarchy in app bar greetings
+• Fixed multi-select mode checkbox overlap issue
+• Improved Material 3 FAB menu animations
+• Better vault folder password setup flow

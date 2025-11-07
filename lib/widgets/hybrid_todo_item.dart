@@ -136,10 +136,12 @@ class HybridTodoItem extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  Checkbox(
-                    value: todo.isCompleted,
-                    onChanged: (value) => onToggle(),
-                  ),
+                  // Only show completion checkbox when NOT in multi-select mode
+                  if (!selectable)
+                    Checkbox(
+                      value: todo.isCompleted,
+                      onChanged: (value) => onToggle(),
+                    ),
                 ],
               ),
             ),
