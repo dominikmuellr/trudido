@@ -45,6 +45,8 @@ android {
             isMinifyEnabled = true
             // Remove unused resources to reduce APK size
             isShrinkResources = true
+            // Apply ProGuard rules for proper minification
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
