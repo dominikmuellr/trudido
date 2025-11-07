@@ -80,6 +80,8 @@ The links above are the only trusted sources of Trudido. Any other websites or l
   <img src="assets/imagefiles/5.png" width="250">
   <img src="assets/imagefiles/6.png" width="250">
   <img src="assets/imagefiles/7.png" width="250">
+  <img src="assets/imagefiles/8.png" width="250">
+  <img src="assets/imagefiles/9.png" width="250">
 </p>
 
 
