@@ -280,7 +280,8 @@ class GreetingService {
     }
 
     // Check if user has set a name
-    final hasUserName = userName.isNotEmpty &&
+    final hasUserName =
+        userName.isNotEmpty &&
         userName != '_SKIP_NAME_' &&
         userName != '_CLEARED_NAME_';
 
