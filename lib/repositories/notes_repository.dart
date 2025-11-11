@@ -95,12 +95,14 @@ class NotesRepository {
     required String content,
     bool isPinned = false,
     String? folderId,
+    String? todoTxtContent,
   }) async {
     final note = Note(
       title: title,
       content: content,
       isPinned: isPinned,
       folderId: folderId,
+      todoTxtContent: todoTxtContent,
     );
 
     // Encrypt if vault folder
@@ -118,6 +120,7 @@ class NotesRepository {
     String? content,
     bool? isPinned,
     String? folderId,
+    String? todoTxtContent,
   }) async {
     final existingNote = StorageService.getNote(id);
     if (existingNote == null) return null;
@@ -130,6 +133,7 @@ class NotesRepository {
       content: content ?? decryptedNote.content,
       isPinned: isPinned ?? decryptedNote.isPinned,
       folderId: folderId ?? decryptedNote.folderId,
+      todoTxtContent: todoTxtContent ?? decryptedNote.todoTxtContent,
       updatedAt: DateTime.now(),
     );
 
@@ -215,12 +219,14 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
     required String title,
     required String content,
     String? folderId,
+    String? todoTxtContent,
   }) async {
     final repository = ref.read(notesRepositoryProvider);
     final note = await repository.createNote(
       title: title,
       content: content,
       folderId: folderId,
+      todoTxtContent: todoTxtContent,
     );
     await refresh();
     return note;
@@ -233,6 +239,7 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
     String? content,
     bool? isPinned,
     String? folderId,
+    String? todoTxtContent,
   }) async {
     final repository = ref.read(notesRepositoryProvider);
     final note = await repository.updateNote(
@@ -241,6 +248,7 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
       content: content,
       isPinned: isPinned,
       folderId: folderId,
+      todoTxtContent: todoTxtContent,
     );
     if (note != null) {
       await refresh();

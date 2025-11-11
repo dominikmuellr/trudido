@@ -27,6 +27,9 @@ class Note extends HiveObject {
   @HiveField(6)
   String? folderId; // Reference to folder (including vault folders)
 
+  @HiveField(7)
+  String? todoTxtContent; // Optional todo.txt format representation
+
   Note({
     String? id,
     required this.title,
@@ -35,6 +38,7 @@ class Note extends HiveObject {
     DateTime? updatedAt,
     this.isPinned = false,
     this.folderId,
+    this.todoTxtContent,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
@@ -48,6 +52,7 @@ class Note extends HiveObject {
     DateTime? updatedAt,
     bool? isPinned,
     String? folderId,
+    String? todoTxtContent,
   }) {
     return Note(
       id: id ?? this.id,
@@ -57,6 +62,7 @@ class Note extends HiveObject {
       updatedAt: updatedAt ?? this.updatedAt,
       isPinned: isPinned ?? this.isPinned,
       folderId: folderId ?? this.folderId,
+      todoTxtContent: todoTxtContent ?? this.todoTxtContent,
     );
   }
 
@@ -84,6 +90,7 @@ class Note extends HiveObject {
       'updatedAt': updatedAt.toIso8601String(),
       'isPinned': isPinned,
       'folderId': folderId,
+      'todoTxtContent': todoTxtContent,
     };
   }
 
@@ -97,6 +104,7 @@ class Note extends HiveObject {
       updatedAt: DateTime.parse(json['updatedAt'] as String),
       isPinned: json['isPinned'] as bool? ?? false,
       folderId: json['folderId'] as String?,
+      todoTxtContent: json['todoTxtContent'] as String?,
     );
   }
 }

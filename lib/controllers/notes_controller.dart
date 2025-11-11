@@ -20,6 +20,7 @@ class NotesController extends StateNotifier<AsyncValue<void>> {
     required String title,
     required String content,
     String? folderId,
+    String? todoTxtContent,
   }) async {
     // Validate input
     if (title.trim().isEmpty) {
@@ -33,6 +34,7 @@ class NotesController extends StateNotifier<AsyncValue<void>> {
         title: title.trim(),
         content: content,
         folderId: folderId,
+        todoTxtContent: todoTxtContent,
       );
       state = const AsyncValue.data(null);
       return note;
@@ -47,6 +49,7 @@ class NotesController extends StateNotifier<AsyncValue<void>> {
     required String id,
     String? title,
     String? content,
+    String? todoTxtContent,
   }) async {
     // Validate input
     if (title != null && title.trim().isEmpty) {
@@ -60,6 +63,7 @@ class NotesController extends StateNotifier<AsyncValue<void>> {
         id: id,
         title: title?.trim(),
         content: content,
+        todoTxtContent: todoTxtContent,
       );
       state = const AsyncValue.data(null);
       return note;

@@ -337,6 +337,63 @@ class NotePreviewCard extends ConsumerWidget {
                   const SizedBox(height: 12),
                   Row(
                     children: [
+                      // Format indicator
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              (note.todoTxtContent != null &&
+                                  note.todoTxtContent!.isNotEmpty)
+                              ? Theme.of(context).colorScheme.secondaryContainer
+                              : Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              (note.todoTxtContent != null &&
+                                      note.todoTxtContent!.isNotEmpty)
+                                  ? Icons.checklist
+                                  : Icons.text_fields,
+                              size: 12,
+                              color:
+                                  (note.todoTxtContent != null &&
+                                      note.todoTxtContent!.isNotEmpty)
+                                  ? Theme.of(
+                                      context,
+                                    ).colorScheme.onSecondaryContainer
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimaryContainer,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              (note.todoTxtContent != null &&
+                                      note.todoTxtContent!.isNotEmpty)
+                                  ? '.txt'
+                                  : '.md',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color:
+                                    (note.todoTxtContent != null &&
+                                        note.todoTxtContent!.isNotEmpty)
+                                    ? Theme.of(
+                                        context,
+                                      ).colorScheme.onSecondaryContainer
+                                    : Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       ScaledIcon(
                         Icons.schedule,
                         size: 14,
