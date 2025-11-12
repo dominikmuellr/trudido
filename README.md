@@ -16,8 +16,7 @@
     <img src="https://img.shields.io/github/stars/dominikmuellr/trudido?style=for-the-badge&color=yellow" alt="Stars"></a>
   <a href="https://github.com/dominikmuellr/trudido/issues">
     <img src="https://img.shields.io/github/issues/dominikmuellr/trudido?style=for-the-badge&color=red" alt="Open Issues"></a>
-  <a href="https://github.com/dominikmuellr/trudido/releases">
-    <img src="https://img.shields.io/github/v/release/dominikmuellr/trudido?style=for-the-badge&color=orange" alt="Latest Release"></a>
+
   <a href="https://github.com/dominikmuellr/trudido/releases">
     <img src="https://img.shields.io/github/downloads/dominikmuellr/trudido/total?style=for-the-badge&color=blueviolet&label=Downloads" alt="Downloads"></a>
   <a href="https://github.com/dominikmuellr/trudido/blob/main/LICENSE">
