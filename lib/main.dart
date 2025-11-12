@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart'
         defaultTargetPlatform,
         TargetPlatform; // platform check without BuildContext
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_quill/flutter_quill.dart'
+    show FlutterQuillLocalizations;
 import 'l10n/app_localizations.dart';
 import 'services/storage_service.dart';
 import 'services/permissions_channel.dart';
@@ -344,6 +346,7 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
                 GlobalMaterialLocalizations.delegate,
                 GlobalWidgetsLocalizations.delegate,
                 GlobalCupertinoLocalizations.delegate,
+                FlutterQuillLocalizations.delegate,
               ],
               supportedLocales: const [
                 Locale('en'), // English
@@ -401,7 +404,7 @@ class _AppBootstrapState extends State<AppBootstrap>
   bool _ready = false;
   late final AnimationController _fadeCtrl = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 350),
+    duration: const Duration(milliseconds: 250),
   );
 
   @override

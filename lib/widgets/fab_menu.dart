@@ -58,12 +58,12 @@ class _FabMenuState extends ConsumerState<FabMenu>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 175),
     );
     _animation = CurvedAnimation(
       parent: _animationController,
-      curve: Curves.easeOut,
-      reverseCurve: Curves.easeIn,
+      curve: Curves.easeInOutCubicEmphasized,
+      reverseCurve: Curves.easeInOutCubicEmphasized,
     );
   }
 

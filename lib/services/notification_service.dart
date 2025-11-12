@@ -10,12 +10,15 @@ import 'package:flutter/foundation.dart';
 ///  * Pulls any pending native updates persisted while Flutter was dead
 ///  * Forwards events to app-layer listeners so UI/state can update
 class NotificationBridge {
-  static const MethodChannel _channel = MethodChannel('com.trudido.app/notifications');
+  static const MethodChannel _channel = MethodChannel(
+    'com.trudido.app/notifications',
+  );
 
   static final NotificationBridge instance = NotificationBridge._();
   NotificationBridge._();
 
-  final StreamController<NotificationAction> _actionController = StreamController.broadcast();
+  final StreamController<NotificationAction> _actionController =
+      StreamController.broadcast();
   Stream<NotificationAction> get actions => _actionController.stream;
 
   bool _initialized = false;
@@ -23,7 +26,9 @@ class NotificationBridge {
   int _probeAttempts = 0;
   bool _probeScheduled = false;
 
-  Future<void> initialize({Future<void> Function()? syncPendingNativeUpdates}) async {
+  Future<void> initialize({
+    Future<void> Function()? syncPendingNativeUpdates,
+  }) async {
     if (_initialized) return;
     _initialized = true;
 
@@ -31,11 +36,13 @@ class NotificationBridge {
       switch (call.method) {
         case 'notificationAction':
           final data = Map<dynamic, dynamic>.from(call.arguments as Map);
-            _handleIncomingAction(data);
+          _handleIncomingAction(data);
           break;
         default:
           if (kDebugMode) {
-            print('[NotificationBridge] Unknown method from native: ${call.method}');
+            print(
+              '[NotificationBridge] Unknown method from native: ${call.method}',
+            );
           }
       }
     });
@@ -55,7 +62,7 @@ class NotificationBridge {
     required String title,
     required String body,
     required DateTime scheduledTime,
-  String? uniqueKey,
+    String? uniqueKey,
   }) async {
     try {
       final result = await _channel.invokeMethod('scheduleNotification', {
@@ -63,7 +70,7 @@ class NotificationBridge {
         'title': title,
         'body': body,
         'triggerTime': scheduledTime.millisecondsSinceEpoch,
-    if (uniqueKey != null) 'uniqueKey': uniqueKey,
+        if (uniqueKey != null) 'uniqueKey': uniqueKey,
       });
       return result == true;
     } catch (e) {
@@ -74,9 +81,10 @@ class NotificationBridge {
 
   Future<bool> cancelTaskNotification(String taskId) async {
     try {
-      final result = await _channel.invokeMethod('cancelScheduledNotification', {
-        'taskId': taskId,
-      });
+      final result = await _channel.invokeMethod(
+        'cancelScheduledNotification',
+        {'taskId': taskId},
+      );
       return result == true;
     } catch (e) {
       debugPrint('[NotificationBridge] cancel error: $e');
@@ -93,11 +101,15 @@ class NotificationBridge {
     }
     try {
       final list = await _channel.invokeMethod('getPendingActions');
-      if (kDebugMode) print('[NotificationBridge] pulled pending list=${list is List ? list.length : 'non-list'}');
+      if (kDebugMode)
+        print(
+          '[NotificationBridge] pulled pending list=${list is List ? list.length : 'non-list'}',
+        );
       if (list is List) {
         for (final raw in list) {
           if (raw is Map) {
-            if (kDebugMode) print('[NotificationBridge] applying pending raw=$raw');
+            if (kDebugMode)
+              print('[NotificationBridge] applying pending raw=$raw');
             _handleIncomingAction(Map<String, dynamic>.from(raw));
           }
         }
@@ -112,7 +124,10 @@ class NotificationBridge {
     try {
       final list = await _channel.invokeMethod('getPendingActions');
       _channelProven = true;
-      if (kDebugMode) print('[NotificationBridge] probe success; list type=${list.runtimeType}');
+      if (kDebugMode)
+        print(
+          '[NotificationBridge] probe success; list type=${list.runtimeType}',
+        );
       if (list is List) {
         for (final raw in list) {
           if (raw is Map) _handleIncomingAction(Map<String, dynamic>.from(raw));
@@ -120,14 +135,18 @@ class NotificationBridge {
       }
       await _channel.invokeMethod('clearPendingActions');
     } catch (e) {
-      if (kDebugMode) print('[NotificationBridge] probe failed (will retry later, suppressed): $e');
+      if (kDebugMode)
+        print(
+          '[NotificationBridge] probe failed (will retry later, suppressed): $e',
+        );
     }
   }
 
   void _scheduleProbeRetry() {
     if (_channelProven) return;
     if (_probeScheduled) return;
-    if (_probeAttempts >= 6) return; // stop after max attempts (~backoff total < ~5s)
+    if (_probeAttempts >= 6)
+      return; // stop after max attempts (~backoff total < ~5s)
     _probeScheduled = true;
     final attempt = ++_probeAttempts;
     // Exponential backoff: 100ms * 2^(attempt-1), capped at 1600ms
@@ -169,5 +188,6 @@ class NotificationAction {
     this.newScheduledTime,
   });
   @override
-  String toString() => 'NotificationAction(type=$type, taskId=$taskId, newScheduledTime=$newScheduledTime)';
+  String toString() =>
+      'NotificationAction(type=$type, taskId=$taskId, newScheduledTime=$newScheduledTime)';
 }

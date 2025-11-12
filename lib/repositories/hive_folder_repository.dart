@@ -76,17 +76,19 @@ class HiveFolderRepository implements FolderRepository {
       }
     }
     if (dups.isNotEmpty) {
-      for (final d in dups) { await _foldersBox!.delete(d.id); }
+      for (final d in dups) {
+        await _foldersBox!.delete(d.id);
+      }
       folders.removeWhere((f) => dups.any((d) => d.id == f.id));
     }
     folders.sort((a, b) {
       // Default folders first, then by sort order, then by name
       if (a.isDefault && !b.isDefault) return -1;
       if (!a.isDefault && b.isDefault) return 1;
-      
+
       final sortOrderComparison = a.sortOrder.compareTo(b.sortOrder);
       if (sortOrderComparison != 0) return sortOrderComparison;
-      
+
       return a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
     return folders;
@@ -95,7 +97,7 @@ class HiveFolderRepository implements FolderRepository {
   @override
   Future<void> updateFolderOrder(List<String> folderIds) async {
     if (_foldersBox == null) await init();
-    
+
     for (int i = 0; i < folderIds.length; i++) {
       final folder = await getFolderById(folderIds[i]);
       if (folder != null) {
@@ -117,9 +119,11 @@ class HiveFolderRepository implements FolderRepository {
   @override
   Future<bool> folderNameExists(String name, {String? excludeId}) async {
     final folders = await getAllFolders();
-    return folders.any((folder) => 
-        folder.name.toLowerCase() == name.toLowerCase() && 
-        folder.id != excludeId);
+    return folders.any(
+      (folder) =>
+          folder.name.toLowerCase() == name.toLowerCase() &&
+          folder.id != excludeId,
+    );
   }
 
   @override
@@ -128,7 +132,9 @@ class HiveFolderRepository implements FolderRepository {
     final todos = await StorageService.getAllTodosAsync();
     final folderCounts = <String, int>{};
     final folders = await getAllFolders();
-    for (final folder in folders) { folderCounts[folder.id] = 0; }
+    for (final folder in folders) {
+      folderCounts[folder.id] = 0;
+    }
     for (final todo in todos) {
       final fid = todo.folderId;
       if (fid != null) folderCounts[fid] = (folderCounts[fid] ?? 0) + 1;
@@ -140,10 +146,11 @@ class HiveFolderRepository implements FolderRepository {
   Future<List<Folder>> searchFolders(String query) async {
     final folders = await getAllFolders();
     final lowercaseQuery = query.toLowerCase();
-    
+
     return folders.where((folder) {
       final nameMatch = folder.name.toLowerCase().contains(lowercaseQuery);
-      final descriptionMatch = folder.description?.toLowerCase().contains(lowercaseQuery) ?? false;
+      final descriptionMatch =
+          folder.description?.toLowerCase().contains(lowercaseQuery) ?? false;
       return nameMatch || descriptionMatch;
     }).toList();
   }
@@ -161,29 +168,59 @@ class HiveFolderRepository implements FolderRepository {
   Future<void> _createDefaultFoldersIfNeeded() async {
     final existing = _foldersBox!.values.toList();
     final existingNames = existing.map((f) => f.name.toLowerCase()).toSet();
-    Future<void> ensure(String name, String desc, int color, String icon, int order) async {
+    Future<void> ensure(
+      String name,
+      String desc,
+      int color,
+      String icon,
+      int order,
+    ) async {
       if (existingNames.contains(name.toLowerCase())) return;
       // Recheck after potential race
-      final latestNames = _foldersBox!.values.map((f) => f.name.toLowerCase()).toSet();
+      final latestNames = _foldersBox!.values
+          .map((f) => f.name.toLowerCase())
+          .toSet();
       if (latestNames.contains(name.toLowerCase())) return;
-      await createFolder(Folder(
-        name: name,
-        description: desc,
-        color: color,
-        icon: icon,
-        isDefault: true,
-        sortOrder: order,
-      ));
+      await createFolder(
+        Folder(
+          name: name,
+          description: desc,
+          color: color,
+          icon: icon,
+          isDefault: true,
+          sortOrder: order,
+        ),
+      );
     }
-    await ensure('Personal', 'Personal tasks and reminders', 0xFF2196F3, 'person', 0);
-    await ensure('Work', 'Work-related tasks and projects', 0xFF4CAF50, 'work', 1);
-    await ensure('Shopping', 'Shopping lists and purchases', 0xFFFF9800, 'shopping_cart', 2);
+
+    await ensure(
+      'Personal',
+      'Personal tasks and reminders',
+      0xFF2196F3,
+      'person',
+      0,
+    );
+    await ensure(
+      'Work',
+      'Work-related tasks and projects',
+      0xFF4CAF50,
+      'work',
+      1,
+    );
+    await ensure(
+      'Shopping',
+      'Shopping lists and purchases',
+      0xFFFF9800,
+      'shopping_cart',
+      2,
+    );
   }
 
   Folder _pickFolderToKeep(Folder a, Folder b) {
     // Prefer default, then earlier createdAt, then lower id lexicographically
     if (a.isDefault != b.isDefault) return a.isDefault ? a : b;
-    if (a.createdAt != b.createdAt) return a.createdAt.isBefore(b.createdAt) ? a : b;
+    if (a.createdAt != b.createdAt)
+      return a.createdAt.isBefore(b.createdAt) ? a : b;
     return a.id.compareTo(b.id) <= 0 ? a : b;
   }
 

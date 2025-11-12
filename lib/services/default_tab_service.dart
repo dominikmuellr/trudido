@@ -1,19 +1,16 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service for managing user default tab settings
-/// 
+///
 /// This service handles persistence of the user's preferred starting tab
 /// using SharedPreferences. It provides methods to get and set the default
 /// tab with proper error handling and fallback behavior.
 class DefaultTabService {
   static const String _defaultTabKey = 'user_default_starting_tab';
   static const String _defaultFallback = 'tasks'; // Default to tasks tab
-  
+
   /// Available tab options that match your app's navigation structure
-  static const Map<String, int> tabIndices = {
-    'tasks': 0,
-    'notes': 1,
-  };
+  static const Map<String, int> tabIndices = {'tasks': 0, 'notes': 1};
 
   /// Get the user's preferred default tab
   /// Returns the tab ID string (e.g., 'tasks', 'notes')
@@ -21,7 +18,7 @@ class DefaultTabService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final savedTab = prefs.getString(_defaultTabKey);
-      
+
       // Validate that the saved tab is still valid
       if (savedTab != null && tabIndices.containsKey(savedTab)) {
         return savedTab;
@@ -29,7 +26,7 @@ class DefaultTabService {
     } catch (e) {
       // If reading fails, fall back to default
     }
-    
+
     return _defaultFallback;
   }
 
@@ -47,7 +44,7 @@ class DefaultTabService {
     if (!tabIndices.containsKey(tabId)) {
       return false;
     }
-    
+
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_defaultTabKey, tabId);
@@ -72,8 +69,7 @@ class DefaultTabService {
   /// Get all available tab options with their display names
   static Map<String, String> getAllTabs() {
     return {
-      for (final tabId in tabIndices.keys)
-        tabId: getTabDisplayName(tabId),
+      for (final tabId in tabIndices.keys) tabId: getTabDisplayName(tabId),
     };
   }
 

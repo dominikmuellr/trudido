@@ -6,7 +6,9 @@ import '../services/system_settings_service.dart';
 class BatteryOptimizationNudge extends StatefulWidget {
   final Widget child;
   const BatteryOptimizationNudge({super.key, required this.child});
-  @override State<BatteryOptimizationNudge> createState() => _BatteryOptimizationNudgeState();
+  @override
+  State<BatteryOptimizationNudge> createState() =>
+      _BatteryOptimizationNudgeState();
 }
 
 class _BatteryOptimizationNudgeState extends State<BatteryOptimizationNudge> {
@@ -20,18 +22,24 @@ class _BatteryOptimizationNudgeState extends State<BatteryOptimizationNudge> {
   Future<void> _check() async {
     final needed = await LateAlarmNudgeService.instance.consumePromptIfNeeded();
     if (!needed || !mounted) return;
-    if (await SystemSettingsService.instance.isIgnoringBatteryOptimizations()) return; // Already optimized
+    if (await SystemSettingsService.instance.isIgnoringBatteryOptimizations())
+      return; // Already optimized
     if (!mounted) return;
     // Show lightweight SnackBar with action.
     final messenger = ScaffoldMessenger.maybeOf(context);
-    messenger?.showSnackBar(SnackBar(
-      content: const Text('Reminders seem delayed. Allow unrestricted background?'),
-      action: SnackBarAction(
-        label: 'Allow',
-        onPressed: () => SystemSettingsService.instance.requestIgnoreBatteryOptimizations(),
+    messenger?.showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Reminders seem delayed. Allow unrestricted background?',
+        ),
+        action: SnackBarAction(
+          label: 'Allow',
+          onPressed: () => SystemSettingsService.instance
+              .requestIgnoreBatteryOptimizations(),
+        ),
+        duration: const Duration(milliseconds: 4000),
       ),
-      duration: const Duration(seconds: 6),
-    ));
+    );
   }
 
   @override

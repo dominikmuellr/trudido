@@ -51,10 +51,10 @@ void main() {
     test('formats mixed time units correctly', () {
       // 1 hour 30 minutes = 90 minutes
       expect(formatMinutesReadable(90), '1 hour 30 minutes before');
-      
+
       // 1 day 2 hours = 1560 minutes
       expect(formatMinutesReadable(1560), '1 day 2 hours before');
-      
+
       // 23 hours = 1380 minutes (less than a day)
       expect(formatMinutesReadable(1380), '23 hours before');
     });
@@ -63,7 +63,7 @@ void main() {
       // Just under thresholds
       expect(formatMinutesReadable(59), '59 minutes before');
       expect(formatMinutesReadable(1439), '23 hours 59 minutes before');
-      
+
       // Large values (many days)
       expect(formatMinutesReadable(525600), '365 days before'); // 1 year
     });
@@ -84,13 +84,13 @@ void main() {
     test('handles fractional time units correctly', () {
       // 3 hours 15 minutes
       expect(formatMinutesReadable(195), '3 hours 15 minutes before');
-      
+
       // 2 days 5 hours
       expect(formatMinutesReadable(3180), '2 days 5 hours before');
-      
+
       // 1 day 1 hour (singular forms)
       expect(formatMinutesReadable(1500), '1 day 1 hour before');
-      
+
       // 1 hour 1 minute (singular forms)
       expect(formatMinutesReadable(61), '1 hour 1 minute before');
     });

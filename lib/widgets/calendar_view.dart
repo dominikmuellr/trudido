@@ -699,8 +699,8 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
           // Calendar Widget - Animated height based on format
           AnimatedContainer(
             key: ValueKey(customFormat),
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOutCubicEmphasized,
             height: _heightForFormat(context, customFormat) + 8,
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(

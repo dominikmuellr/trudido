@@ -23,10 +23,10 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
     templates.sort((a, b) {
       if (a.isBuiltIn && !b.isBuiltIn) return -1;
       if (!a.isBuiltIn && b.isBuiltIn) return 1;
-      
+
       final usageComparison = b.useCount.compareTo(a.useCount);
       if (usageComparison != 0) return usageComparison;
-      
+
       return a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
     return templates;
@@ -55,7 +55,7 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
   Future<bool> deleteTemplate(String id) async {
     if (_templatesBox == null) await init();
     final template = await getTemplateById(id);
-    
+
     // Only allow deletion of custom templates
     if (template != null && !template.isBuiltIn) {
       await _templatesBox!.delete(id);
@@ -80,53 +80,69 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
   Future<List<FolderTemplate>> searchTemplates(String query) async {
     final allTemplates = await getAllTemplates();
     final lowercaseQuery = query.toLowerCase();
-    
+
     return allTemplates.where((template) {
       final nameMatch = template.name.toLowerCase().contains(lowercaseQuery);
-      final descriptionMatch = template.description?.toLowerCase().contains(lowercaseQuery) ?? false;
-      final keywordMatch = template.keywords.any((keyword) => keyword.toLowerCase().contains(lowercaseQuery));
+      final descriptionMatch =
+          template.description?.toLowerCase().contains(lowercaseQuery) ?? false;
+      final keywordMatch = template.keywords.any(
+        (keyword) => keyword.toLowerCase().contains(lowercaseQuery),
+      );
       return nameMatch || descriptionMatch || keywordMatch;
     }).toList();
   }
 
   @override
-  Future<List<FolderTemplate>> suggestTemplatesForFolder(String folderName) async {
+  Future<List<FolderTemplate>> suggestTemplatesForFolder(
+    String folderName,
+  ) async {
     final allTemplates = await getAllTemplates();
     final lowercaseName = folderName.toLowerCase();
-    
+
     // Find templates with matching keywords
     final suggestions = allTemplates.where((template) {
-      return template.keywords.any((keyword) => lowercaseName.contains(keyword.toLowerCase()));
+      return template.keywords.any(
+        (keyword) => lowercaseName.contains(keyword.toLowerCase()),
+      );
     }).toList();
-    
+
     // Sort by relevance (more keyword matches = higher relevance)
     suggestions.sort((a, b) {
-      final aMatches = a.keywords.where((keyword) => lowercaseName.contains(keyword.toLowerCase())).length;
-      final bMatches = b.keywords.where((keyword) => lowercaseName.contains(keyword.toLowerCase())).length;
+      final aMatches = a.keywords
+          .where((keyword) => lowercaseName.contains(keyword.toLowerCase()))
+          .length;
+      final bMatches = b.keywords
+          .where((keyword) => lowercaseName.contains(keyword.toLowerCase()))
+          .length;
       final matchComparison = bMatches.compareTo(aMatches);
-      
+
       if (matchComparison != 0) return matchComparison;
       return b.useCount.compareTo(a.useCount); // Then by usage
     });
-    
+
     return suggestions.take(3).toList(); // Top 3 suggestions
   }
 
   @override
-  Future<FolderTemplate> createTemplateFromFolder(String folderId, String templateName) async {
+  Future<FolderTemplate> createTemplateFromFolder(
+    String folderId,
+    String templateName,
+  ) async {
     // Get folder and its todos
     await StorageService.waitTodosReady();
     final todos = await StorageService.getAllTodosAsync();
-    final folderTodos = todos.where((todo) => todo.folderId == folderId).toList();
-    
+    final folderTodos = todos
+        .where((todo) => todo.folderId == folderId)
+        .toList();
+
     // Sort todos by creation order or custom order
     folderTodos.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    
+
     // Convert todos to task templates
     final taskTemplates = folderTodos.asMap().entries.map((entry) {
       final index = entry.key;
       final todo = entry.value;
-      
+
       return TaskTemplate(
         text: todo.text,
         priority: todo.priority,
@@ -137,7 +153,7 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
         reminderOffsets: todo.reminderOffsetsMinutes,
       );
     }).toList();
-    
+
     // Create template
     final template = FolderTemplate(
       name: templateName,
@@ -146,7 +162,7 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
       taskTemplates: taskTemplates,
       isBuiltIn: false,
     );
-    
+
     await createTemplate(template);
     return template;
   }
@@ -166,7 +182,9 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
   @override
   Future<List<FolderTemplate>> getMostUsedTemplates(int limit) async {
     final allTemplates = await getAllTemplates();
-    final usedTemplates = allTemplates.where((template) => template.useCount > 0).toList();
+    final usedTemplates = allTemplates
+        .where((template) => template.useCount > 0)
+        .toList();
     usedTemplates.sort((a, b) => b.useCount.compareTo(a.useCount));
     return usedTemplates.take(limit).toList();
   }
@@ -190,8 +208,9 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
   /// Create built-in templates if they don't exist
   Future<void> _createBuiltInTemplatesIfNeeded() async {
     final existingTemplates = _templatesBox!.values.toList();
-    
-    if (existingTemplates.isEmpty || !existingTemplates.any((t) => t.isBuiltIn)) {
+
+    if (existingTemplates.isEmpty ||
+        !existingTemplates.any((t) => t.isBuiltIn)) {
       await _createBuiltInTemplates();
     }
   }
@@ -206,14 +225,54 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
         keywords: ['project', 'client', 'development', 'work', 'build'],
         isBuiltIn: true,
         taskTemplates: [
-          TaskTemplate(text: 'Project Research & Planning', priority: 'high', sortOrder: 0, estimatedMinutes: 120),
-          TaskTemplate(text: 'Requirements Gathering', priority: 'high', sortOrder: 1, estimatedMinutes: 90),
-          TaskTemplate(text: 'Create Timeline & Milestones', priority: 'high', sortOrder: 2, estimatedMinutes: 60),
-          TaskTemplate(text: 'Design & Architecture', priority: 'medium', sortOrder: 3, estimatedMinutes: 180),
-          TaskTemplate(text: 'Implementation Phase', priority: 'high', sortOrder: 4, estimatedMinutes: 480),
-          TaskTemplate(text: 'Testing & Quality Assurance', priority: 'high', sortOrder: 5, estimatedMinutes: 120),
-          TaskTemplate(text: 'Client Review & Feedback', priority: 'medium', sortOrder: 6, estimatedMinutes: 60),
-          TaskTemplate(text: 'Final Delivery & Documentation', priority: 'high', sortOrder: 7, estimatedMinutes: 90),
+          TaskTemplate(
+            text: 'Project Research & Planning',
+            priority: 'high',
+            sortOrder: 0,
+            estimatedMinutes: 120,
+          ),
+          TaskTemplate(
+            text: 'Requirements Gathering',
+            priority: 'high',
+            sortOrder: 1,
+            estimatedMinutes: 90,
+          ),
+          TaskTemplate(
+            text: 'Create Timeline & Milestones',
+            priority: 'high',
+            sortOrder: 2,
+            estimatedMinutes: 60,
+          ),
+          TaskTemplate(
+            text: 'Design & Architecture',
+            priority: 'medium',
+            sortOrder: 3,
+            estimatedMinutes: 180,
+          ),
+          TaskTemplate(
+            text: 'Implementation Phase',
+            priority: 'high',
+            sortOrder: 4,
+            estimatedMinutes: 480,
+          ),
+          TaskTemplate(
+            text: 'Testing & Quality Assurance',
+            priority: 'high',
+            sortOrder: 5,
+            estimatedMinutes: 120,
+          ),
+          TaskTemplate(
+            text: 'Client Review & Feedback',
+            priority: 'medium',
+            sortOrder: 6,
+            estimatedMinutes: 60,
+          ),
+          TaskTemplate(
+            text: 'Final Delivery & Documentation',
+            priority: 'high',
+            sortOrder: 7,
+            estimatedMinutes: 90,
+          ),
         ],
       ),
 
@@ -224,11 +283,36 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
         keywords: ['shopping', 'groceries', 'store', 'buy', 'purchase'],
         isBuiltIn: true,
         taskTemplates: [
-          TaskTemplate(text: 'Check pantry & make list', priority: 'high', sortOrder: 0, estimatedMinutes: 15),
-          TaskTemplate(text: 'Check weekly ads for deals', priority: 'low', sortOrder: 1, estimatedMinutes: 10),
-          TaskTemplate(text: 'Grocery store visit', priority: 'high', sortOrder: 2, estimatedMinutes: 45),
-          TaskTemplate(text: 'Pharmacy pickup', priority: 'medium', sortOrder: 3, estimatedMinutes: 10),
-          TaskTemplate(text: 'Put everything away', priority: 'medium', sortOrder: 4, estimatedMinutes: 15),
+          TaskTemplate(
+            text: 'Check pantry & make list',
+            priority: 'high',
+            sortOrder: 0,
+            estimatedMinutes: 15,
+          ),
+          TaskTemplate(
+            text: 'Check weekly ads for deals',
+            priority: 'low',
+            sortOrder: 1,
+            estimatedMinutes: 10,
+          ),
+          TaskTemplate(
+            text: 'Grocery store visit',
+            priority: 'high',
+            sortOrder: 2,
+            estimatedMinutes: 45,
+          ),
+          TaskTemplate(
+            text: 'Pharmacy pickup',
+            priority: 'medium',
+            sortOrder: 3,
+            estimatedMinutes: 10,
+          ),
+          TaskTemplate(
+            text: 'Put everything away',
+            priority: 'medium',
+            sortOrder: 4,
+            estimatedMinutes: 15,
+          ),
         ],
       ),
 
@@ -239,13 +323,55 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
         keywords: ['travel', 'trip', 'vacation', 'holiday', 'flight'],
         isBuiltIn: true,
         taskTemplates: [
-          TaskTemplate(text: 'Research destinations & activities', priority: 'high', sortOrder: 0, estimatedMinutes: 120, dueDateOffset: -30),
-          TaskTemplate(text: 'Book flights', priority: 'high', sortOrder: 1, estimatedMinutes: 30, dueDateOffset: -21),
-          TaskTemplate(text: 'Find & book accommodation', priority: 'high', sortOrder: 2, estimatedMinutes: 45, dueDateOffset: -21),
-          TaskTemplate(text: 'Plan daily itinerary', priority: 'medium', sortOrder: 3, estimatedMinutes: 90, dueDateOffset: -14),
-          TaskTemplate(text: 'Check passport & documents', priority: 'high', sortOrder: 4, estimatedMinutes: 15, dueDateOffset: -14),
-          TaskTemplate(text: 'Pack bags', priority: 'high', sortOrder: 5, estimatedMinutes: 60, dueDateOffset: -1),
-          TaskTemplate(text: 'Check in online', priority: 'medium', sortOrder: 6, estimatedMinutes: 10, dueDateOffset: -1),
+          TaskTemplate(
+            text: 'Research destinations & activities',
+            priority: 'high',
+            sortOrder: 0,
+            estimatedMinutes: 120,
+            dueDateOffset: -30,
+          ),
+          TaskTemplate(
+            text: 'Book flights',
+            priority: 'high',
+            sortOrder: 1,
+            estimatedMinutes: 30,
+            dueDateOffset: -21,
+          ),
+          TaskTemplate(
+            text: 'Find & book accommodation',
+            priority: 'high',
+            sortOrder: 2,
+            estimatedMinutes: 45,
+            dueDateOffset: -21,
+          ),
+          TaskTemplate(
+            text: 'Plan daily itinerary',
+            priority: 'medium',
+            sortOrder: 3,
+            estimatedMinutes: 90,
+            dueDateOffset: -14,
+          ),
+          TaskTemplate(
+            text: 'Check passport & documents',
+            priority: 'high',
+            sortOrder: 4,
+            estimatedMinutes: 15,
+            dueDateOffset: -14,
+          ),
+          TaskTemplate(
+            text: 'Pack bags',
+            priority: 'high',
+            sortOrder: 5,
+            estimatedMinutes: 60,
+            dueDateOffset: -1,
+          ),
+          TaskTemplate(
+            text: 'Check in online',
+            priority: 'medium',
+            sortOrder: 6,
+            estimatedMinutes: 10,
+            dueDateOffset: -1,
+          ),
         ],
       ),
 
@@ -253,15 +379,52 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
       FolderTemplate(
         name: 'Home Maintenance',
         description: 'Seasonal home maintenance checklist',
-        keywords: ['home', 'house', 'maintenance', 'repair', 'cleaning', 'seasonal'],
+        keywords: [
+          'home',
+          'house',
+          'maintenance',
+          'repair',
+          'cleaning',
+          'seasonal',
+        ],
         isBuiltIn: true,
         taskTemplates: [
-          TaskTemplate(text: 'Check & replace air filters', priority: 'high', sortOrder: 0, estimatedMinutes: 15),
-          TaskTemplate(text: 'Clean gutters', priority: 'medium', sortOrder: 1, estimatedMinutes: 120),
-          TaskTemplate(text: 'Test smoke & carbon detectors', priority: 'high', sortOrder: 2, estimatedMinutes: 20),
-          TaskTemplate(text: 'Deep clean carpets/floors', priority: 'medium', sortOrder: 3, estimatedMinutes: 180),
-          TaskTemplate(text: 'Inspect & seal windows', priority: 'medium', sortOrder: 4, estimatedMinutes: 60),
-          TaskTemplate(text: 'Service HVAC system', priority: 'high', sortOrder: 5, estimatedMinutes: 90),
+          TaskTemplate(
+            text: 'Check & replace air filters',
+            priority: 'high',
+            sortOrder: 0,
+            estimatedMinutes: 15,
+          ),
+          TaskTemplate(
+            text: 'Clean gutters',
+            priority: 'medium',
+            sortOrder: 1,
+            estimatedMinutes: 120,
+          ),
+          TaskTemplate(
+            text: 'Test smoke & carbon detectors',
+            priority: 'high',
+            sortOrder: 2,
+            estimatedMinutes: 20,
+          ),
+          TaskTemplate(
+            text: 'Deep clean carpets/floors',
+            priority: 'medium',
+            sortOrder: 3,
+            estimatedMinutes: 180,
+          ),
+          TaskTemplate(
+            text: 'Inspect & seal windows',
+            priority: 'medium',
+            sortOrder: 4,
+            estimatedMinutes: 60,
+          ),
+          TaskTemplate(
+            text: 'Service HVAC system',
+            priority: 'high',
+            sortOrder: 5,
+            estimatedMinutes: 90,
+          ),
         ],
       ),
 
@@ -269,16 +432,64 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
       FolderTemplate(
         name: 'Event Planning',
         description: 'General event organization workflow',
-        keywords: ['event', 'party', 'birthday', 'wedding', 'celebration', 'gathering'],
+        keywords: [
+          'event',
+          'party',
+          'birthday',
+          'wedding',
+          'celebration',
+          'gathering',
+        ],
         isBuiltIn: true,
         taskTemplates: [
-          TaskTemplate(text: 'Set date & create guest list', priority: 'high', sortOrder: 0, estimatedMinutes: 30, dueDateOffset: -21),
-          TaskTemplate(text: 'Send invitations', priority: 'high', sortOrder: 1, estimatedMinutes: 45, dueDateOffset: -14),
-          TaskTemplate(text: 'Plan menu & order food/catering', priority: 'high', sortOrder: 2, estimatedMinutes: 60, dueDateOffset: -7),
-          TaskTemplate(text: 'Buy decorations & supplies', priority: 'medium', sortOrder: 3, estimatedMinutes: 90, dueDateOffset: -3),
-          TaskTemplate(text: 'Prepare venue & setup', priority: 'high', sortOrder: 4, estimatedMinutes: 120, dueDateOffset: -1),
-          TaskTemplate(text: 'Day-of coordination', priority: 'high', sortOrder: 5, estimatedMinutes: 60),
-          TaskTemplate(text: 'Cleanup & thank guests', priority: 'medium', sortOrder: 6, estimatedMinutes: 90, dueDateOffset: 1),
+          TaskTemplate(
+            text: 'Set date & create guest list',
+            priority: 'high',
+            sortOrder: 0,
+            estimatedMinutes: 30,
+            dueDateOffset: -21,
+          ),
+          TaskTemplate(
+            text: 'Send invitations',
+            priority: 'high',
+            sortOrder: 1,
+            estimatedMinutes: 45,
+            dueDateOffset: -14,
+          ),
+          TaskTemplate(
+            text: 'Plan menu & order food/catering',
+            priority: 'high',
+            sortOrder: 2,
+            estimatedMinutes: 60,
+            dueDateOffset: -7,
+          ),
+          TaskTemplate(
+            text: 'Buy decorations & supplies',
+            priority: 'medium',
+            sortOrder: 3,
+            estimatedMinutes: 90,
+            dueDateOffset: -3,
+          ),
+          TaskTemplate(
+            text: 'Prepare venue & setup',
+            priority: 'high',
+            sortOrder: 4,
+            estimatedMinutes: 120,
+            dueDateOffset: -1,
+          ),
+          TaskTemplate(
+            text: 'Day-of coordination',
+            priority: 'high',
+            sortOrder: 5,
+            estimatedMinutes: 60,
+          ),
+          TaskTemplate(
+            text: 'Cleanup & thank guests',
+            priority: 'medium',
+            sortOrder: 6,
+            estimatedMinutes: 90,
+            dueDateOffset: 1,
+          ),
         ],
       ),
     ];

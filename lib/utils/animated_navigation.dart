@@ -184,7 +184,7 @@ class AnimatedSnackbar {
   static void show(
     BuildContext context, {
     required String message,
-    Duration duration = const Duration(seconds: 4),
+    Duration duration = const Duration(milliseconds: 2500),
     SnackBarAction? action,
     Color? backgroundColor,
     Color? textColor,
@@ -225,7 +225,7 @@ class AnimatedSnackbar {
   static void success(
     BuildContext context, {
     required String message,
-    Duration duration = const Duration(seconds: 4),
+    Duration duration = const Duration(milliseconds: 2500),
   }) {
     HapticFeedbackService.success();
     show(
@@ -242,7 +242,7 @@ class AnimatedSnackbar {
   static void error(
     BuildContext context, {
     required String message,
-    Duration duration = const Duration(seconds: 4),
+    Duration duration = const Duration(milliseconds: 2500),
   }) {
     HapticFeedbackService.error();
     show(
@@ -259,7 +259,7 @@ class AnimatedSnackbar {
   static void info(
     BuildContext context, {
     required String message,
-    Duration duration = const Duration(seconds: 4),
+    Duration duration = const Duration(milliseconds: 2500),
   }) {
     HapticFeedbackService.lightImpact();
     show(
@@ -274,7 +274,7 @@ class AnimatedSnackbar {
   static void warning(
     BuildContext context, {
     required String message,
-    Duration duration = const Duration(seconds: 4),
+    Duration duration = const Duration(milliseconds: 2500),
   }) {
     HapticFeedbackService.warning();
     show(

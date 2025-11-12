@@ -9,10 +9,12 @@ class TemplateManagementScreen extends ConsumerStatefulWidget {
   const TemplateManagementScreen({super.key});
 
   @override
-  ConsumerState<TemplateManagementScreen> createState() => _TemplateManagementScreenState();
+  ConsumerState<TemplateManagementScreen> createState() =>
+      _TemplateManagementScreenState();
 }
 
-class _TemplateManagementScreenState extends ConsumerState<TemplateManagementScreen>
+class _TemplateManagementScreenState
+    extends ConsumerState<TemplateManagementScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String _searchQuery = '';
@@ -40,46 +42,53 @@ class _TemplateManagementScreenState extends ConsumerState<TemplateManagementScr
         // Ensure proper spacing for back button
         leadingWidth: 56, // Standard leading width
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(112), // Increased for better spacing
+          preferredSize: const Size.fromHeight(
+            112,
+          ), // Increased for better spacing
           child: Padding(
             padding: const EdgeInsets.only(bottom: 8.0), // Add bottom padding
             child: Column(
               children: [
                 // Search bar
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 12.0), // Better spacing
+                  padding: const EdgeInsets.fromLTRB(
+                    16.0,
+                    0,
+                    16.0,
+                    12.0,
+                  ), // Better spacing
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
                       hintText: 'Search templates...',
                       prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _searchQuery = '');
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
+                    onChanged: (value) {
+                      setState(() => _searchQuery = value);
+                    },
                   ),
-                  onChanged: (value) {
-                    setState(() => _searchQuery = value);
-                  },
                 ),
-              ),
-              // Tab bar
-              TabBar(
-                controller: _tabController,
-                tabs: const [
-                  Tab(text: 'All Templates'),
-                  Tab(text: 'Built-in'),
-                  Tab(text: 'Custom'),
-                ],
-              ),
+                // Tab bar
+                TabBar(
+                  controller: _tabController,
+                  tabs: const [
+                    Tab(text: 'All Templates'),
+                    Tab(text: 'Built-in'),
+                    Tab(text: 'Custom'),
+                  ],
+                ),
               ],
             ),
           ),
@@ -103,9 +112,8 @@ class _TemplateManagementScreenState extends ConsumerState<TemplateManagementScr
   Widget _buildTemplateList(AsyncValue<List<FolderTemplate>> templatesAsync) {
     return templatesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(
-        child: Text('Error loading templates: $error'),
-      ),
+      error: (error, stack) =>
+          Center(child: Text('Error loading templates: $error')),
       data: (templates) {
         final filteredTemplates = _filterTemplates(templates);
 
@@ -123,9 +131,11 @@ class _TemplateManagementScreenState extends ConsumerState<TemplateManagementScr
               onTap: () => _editTemplate(template),
               onUse: () => _useTemplate(template),
               onDuplicate: () => _duplicateTemplate(template),
-              onDelete: template.isBuiltIn ? null : () => _deleteTemplate(template),
-              onReset: (template.isBuiltIn && template.isCustomized) 
-                  ? () => _resetTemplate(template) 
+              onDelete: template.isBuiltIn
+                  ? null
+                  : () => _deleteTemplate(template),
+              onReset: (template.isBuiltIn && template.isCustomized)
+                  ? () => _resetTemplate(template)
                   : null,
             );
           },
@@ -175,12 +185,14 @@ class _TemplateManagementScreenState extends ConsumerState<TemplateManagementScr
 
   List<FolderTemplate> _filterTemplates(List<FolderTemplate> templates) {
     if (_searchQuery.isEmpty) return templates;
-    
+
     return templates.where((template) {
       final query = _searchQuery.toLowerCase();
       return template.name.toLowerCase().contains(query) ||
-             template.description?.toLowerCase().contains(query) == true ||
-             template.keywords.any((keyword) => keyword.toLowerCase().contains(query));
+          template.description?.toLowerCase().contains(query) == true ||
+          template.keywords.any(
+            (keyword) => keyword.toLowerCase().contains(query),
+          );
     }).toList();
   }
 
@@ -233,10 +245,14 @@ class _TemplateManagementScreenState extends ConsumerState<TemplateManagementScr
       builder: (context) => TemplateEditorDialog(
         template: template,
         onSave: (updatedTemplate) {
-          ref.read(templateNotifierProvider.notifier).updateTemplate(updatedTemplate);
+          ref
+              .read(templateNotifierProvider.notifier)
+              .updateTemplate(updatedTemplate);
           Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Template "${updatedTemplate.name}" updated')),
+            SnackBar(
+              content: Text('Template "${updatedTemplate.name}" updated'),
+            ),
           );
         },
       ),
@@ -257,8 +273,10 @@ class _TemplateManagementScreenState extends ConsumerState<TemplateManagementScr
       taskTemplates: template.taskTemplates,
       isBuiltIn: false, // Duplicates are always custom
     );
-    
-    ref.read(templateNotifierProvider.notifier).createTemplate(duplicatedTemplate);
+
+    ref
+        .read(templateNotifierProvider.notifier)
+        .createTemplate(duplicatedTemplate);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Template "${duplicatedTemplate.name}" created')),
     );
@@ -269,7 +287,9 @@ class _TemplateManagementScreenState extends ConsumerState<TemplateManagementScr
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Template'),
-        content: Text('Are you sure you want to delete "${template.name}"?\n\nThis action cannot be undone.'),
+        content: Text(
+          'Are you sure you want to delete "${template.name}"?\n\nThis action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -277,7 +297,9 @@ class _TemplateManagementScreenState extends ConsumerState<TemplateManagementScr
           ),
           FilledButton(
             onPressed: () {
-              ref.read(templateNotifierProvider.notifier).deleteTemplate(template.id);
+              ref
+                  .read(templateNotifierProvider.notifier)
+                  .deleteTemplate(template.id);
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Template "${template.name}" deleted')),
@@ -295,7 +317,9 @@ class _TemplateManagementScreenState extends ConsumerState<TemplateManagementScr
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Reset Template'),
-        content: Text('Reset "${template.name}" to its original built-in version?\n\nYour customizations will be lost.'),
+        content: Text(
+          'Reset "${template.name}" to its original built-in version?\n\nYour customizations will be lost.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -303,10 +327,16 @@ class _TemplateManagementScreenState extends ConsumerState<TemplateManagementScr
           ),
           FilledButton(
             onPressed: () {
-              ref.read(templateNotifierProvider.notifier).resetTemplate(template.id);
+              ref
+                  .read(templateNotifierProvider.notifier)
+                  .resetTemplate(template.id);
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Template "${template.name}" reset to original')),
+                SnackBar(
+                  content: Text(
+                    'Template "${template.name}" reset to original',
+                  ),
+                ),
               );
             },
             child: const Text('Reset'),

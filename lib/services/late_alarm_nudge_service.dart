@@ -14,7 +14,9 @@ class LateAlarmNudgeService {
       final r = await _channel.invokeMethod('consumeLateAlarmPrompt');
       return r == true;
     } catch (e, st) {
-      debugPrint('[LateAlarmNudgeService] consumePromptIfNeeded error: $e\n$st');
+      debugPrint(
+        '[LateAlarmNudgeService] consumePromptIfNeeded error: $e\n$st',
+      );
       return false;
     }
   }

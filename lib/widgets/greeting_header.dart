@@ -151,7 +151,7 @@ class _MatrixNameAnimationState extends State<MatrixNameAnimation>
     super.initState();
     _initializeAnimation();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
     _controller.addListener(_updateAnimation);
@@ -331,7 +331,7 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
             children: [
               Expanded(
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 500),
+                  duration: const Duration(milliseconds: 300),
                   transitionBuilder: (child, animation) =>
                       FadeTransition(opacity: animation, child: child),
                   child: Align(

@@ -19,17 +19,17 @@ class AddReminderDialog extends StatefulWidget {
 class _AddReminderDialogState extends State<AddReminderDialog> {
   final TextEditingController _customController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  
+
   // Common reminder presets in minutes
   static const List<int> _presets = [
-    0,     // At due time
-    5,     // 5 minutes before
-    15,    // 15 minutes before
-    30,    // 30 minutes before
-    60,    // 1 hour before
-    120,   // 2 hours before
-    1440,  // 1 day before
-    2880,  // 2 days before
+    0, // At due time
+    5, // 5 minutes before
+    15, // 15 minutes before
+    30, // 30 minutes before
+    60, // 1 hour before
+    120, // 2 hours before
+    1440, // 1 day before
+    2880, // 2 days before
     10080, // 1 week before
   ];
 
@@ -41,9 +41,11 @@ class _AddReminderDialogState extends State<AddReminderDialog> {
 
   void _addCustomReminder() {
     if (!_formKey.currentState!.validate()) return;
-    
+
     final text = _customController.text.trim();
-    final int minutes = int.parse(text); // Safe because validator ensures it's valid
+    final int minutes = int.parse(
+      text,
+    ); // Safe because validator ensures it's valid
     widget.onReminderAdded(minutes);
     Navigator.of(context).pop();
   }
@@ -65,16 +67,19 @@ class _AddReminderDialogState extends State<AddReminderDialog> {
               child: ListView(
                 shrinkWrap: true,
                 children: _presets
-                    .where((preset) => !widget.existingReminders.contains(preset))
+                    .where(
+                      (preset) => !widget.existingReminders.contains(preset),
+                    )
                     .map((minutes) {
-                  return ListTile(
-                    title: Text(formatMinutesReadable(minutes)),
-                    onTap: () {
-                      widget.onReminderAdded(minutes);
-                      Navigator.of(context).pop();
-                    },
-                  );
-                }).toList(),
+                      return ListTile(
+                        title: Text(formatMinutesReadable(minutes)),
+                        onTap: () {
+                          widget.onReminderAdded(minutes);
+                          Navigator.of(context).pop();
+                        },
+                      );
+                    })
+                    .toList(),
               ),
             ),
             const SizedBox(height: 16),
@@ -103,7 +108,8 @@ class _AddReminderDialogState extends State<AddReminderDialog> {
                         if (minutes < 0) {
                           return 'Minutes cannot be negative';
                         }
-                        if (minutes > 525600) { // Max 1 year in minutes
+                        if (minutes > 525600) {
+                          // Max 1 year in minutes
                           return 'Maximum 525600 minutes (1 year)';
                         }
                         return null;

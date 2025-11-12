@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 
 /// Material Design 3 Animation Constants
-/// Based on Material Design motion guidelines
+/// Based on Material Design motion guidelines - Optimized for speed
 class AppAnimations {
-  // Duration constants following Material Design 3
+  // Duration constants following Material Design 3 - Faster for snappier feel
   static const Duration durationShort1 = Duration(milliseconds: 50);
-  static const Duration durationShort2 = Duration(milliseconds: 100);
-  static const Duration durationShort3 = Duration(milliseconds: 150);
-  static const Duration durationShort4 = Duration(milliseconds: 200);
-  static const Duration durationMedium1 = Duration(milliseconds: 250);
-  static const Duration durationMedium2 = Duration(milliseconds: 300);
-  static const Duration durationMedium3 = Duration(milliseconds: 350);
-  static const Duration durationMedium4 = Duration(milliseconds: 400);
-  static const Duration durationLong1 = Duration(milliseconds: 450);
-  static const Duration durationLong2 = Duration(milliseconds: 500);
-  static const Duration durationLong3 = Duration(milliseconds: 550);
-  static const Duration durationLong4 = Duration(milliseconds: 600);
-  static const Duration durationExtraLong1 = Duration(milliseconds: 700);
-  static const Duration durationExtraLong2 = Duration(milliseconds: 800);
-  static const Duration durationExtraLong3 = Duration(milliseconds: 900);
-  static const Duration durationExtraLong4 = Duration(milliseconds: 1000);
+  static const Duration durationShort2 = Duration(milliseconds: 75);
+  static const Duration durationShort3 = Duration(milliseconds: 100);
+  static const Duration durationShort4 = Duration(milliseconds: 125);
+  static const Duration durationMedium1 = Duration(milliseconds: 150);
+  static const Duration durationMedium2 = Duration(milliseconds: 175);
+  static const Duration durationMedium3 = Duration(milliseconds: 200);
+  static const Duration durationMedium4 = Duration(milliseconds: 225);
+  static const Duration durationLong1 = Duration(milliseconds: 250);
+  static const Duration durationLong2 = Duration(milliseconds: 275);
+  static const Duration durationLong3 = Duration(milliseconds: 300);
+  static const Duration durationLong4 = Duration(milliseconds: 325);
+  static const Duration durationExtraLong1 = Duration(milliseconds: 350);
+  static const Duration durationExtraLong2 = Duration(milliseconds: 400);
+  static const Duration durationExtraLong3 = Duration(milliseconds: 450);
+  static const Duration durationExtraLong4 = Duration(milliseconds: 500);
 
   // Material Design 3 Easing curves
   static const Curve emphasized = Curves.easeInOutCubicEmphasized;

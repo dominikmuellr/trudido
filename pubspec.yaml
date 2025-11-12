@@ -21,6 +21,10 @@ version: 1.1.0+10 # Release tag for v1.1.0 (build 10)
 environment:
   sdk: ^3.8.1
 
+# Platform configuration - Android only
+platforms:
+  android:
+
 # Build metadata (helpful for reproducible builds and support requests)
 build_info:
   commit: 39c4217ce576487945d98f0013d055e1bf82b60e
@@ -61,6 +65,8 @@ dependencies:
   table_calendar: ^3.1.2
   # Dynamic Material You colors (Android 12+)
   dynamic_color: ^1.7.0
+  # Staggered grid for masonry layout
+  flutter_staggered_grid_view: ^0.7.0
 
   # Icons and fonts
   meta: ^1.16.0
@@ -68,6 +74,9 @@ dependencies:
 
   # Markdown support
   flutter_markdown_plus: ^1.0.5
+
+  # Rich text editor (WYSIWYG)
+  flutter_quill: ^11.5.0
 
   # Open external URLs (e.g., GitHub link in About screen)
   url_launcher: ^6.1.10
@@ -79,6 +88,16 @@ dependencies:
 
   # Permissions handler
   permission_handler: ^12.0.1
+
+  # Image/video picker with camera support
+  image_picker: ^1.1.2
+
+  # Audio recording
+  record: ^5.1.2
+  path: ^1.9.0
+
+  # Audio playback
+  audioplayers: ^6.0.0
 
   # Encryption for vault notes
   encrypt: ^5.0.3
@@ -108,6 +127,11 @@ dev_dependencies:
 
   # Icon generation
   flutter_launcher_icons: ^0.14.4
+
+# Override dependencies to fix compatibility issues
+dependency_overrides:
+  # Fix record_linux compatibility issue
+  record_linux: ^1.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

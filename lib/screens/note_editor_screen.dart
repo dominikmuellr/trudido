@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:trudido/utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'dart:async';
 import '../models/note.dart';
 import '../controllers/notes_controller.dart';
 import '../repositories/notes_repository.dart';
-import '../utils/smart_markdown_helper.dart';
-import '../services/theme_service.dart';
-import '../utils/todo_txt_converter.dart';
 
 /// Screen for creating and editing markdown notes
 class NoteEditorScreen extends ConsumerStatefulWidget {
@@ -24,8 +20,6 @@ class NoteEditorScreen extends ConsumerStatefulWidget {
 class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     with TickerProviderStateMixin {
   late final TextEditingController _contentController;
-  late final TextEditingController _todoTxtController;
-  late final TextEditingController _todoTxtTitleController;
   late final TabController _tabController;
   bool _isEditing = false;
   bool _hasUnsavedChanges = false;
@@ -36,104 +30,29 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   static const Duration _autoSaveDuration = Duration(seconds: 1);
   static const Duration _previewDuration = Duration(milliseconds: 100);
 
-  // View mode: 'markdown' or 'todotxt'
-  String _viewMode = 'markdown';
-
-  // Static variable to remember last used mode across all notes
-  static String _lastUsedMode = 'markdown';
-
-  /// Builds a basic markdown formatting toolbar
-  Widget _buildMarkdownToolbar() {
-    return Material(
-      elevation: 1,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: Container(
-        height: 56, // Standard Material toolbar height
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Center(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _toolbarButton(Icons.format_bold, '**', tooltip: 'Bold'),
-                _toolbarButton(Icons.format_italic, '*', tooltip: 'Italic'),
-                _toolbarButton(Icons.title, '# ', tooltip: 'Heading'),
-                _toolbarButton(
-                  Icons.format_list_bulleted,
-                  '- ',
-                  tooltip: 'List',
-                ),
-                _toolbarButton(
-                  Icons.table_chart,
-                  '\n| Header 1 | Header 2 |\n| --- | --- |\n| Row 1 Col 1 | Row 1 Col 2 |\n',
-                  tooltip: 'Table',
-                ),
-                _toolbarButton(
-                  Icons.code,
-                  '\n```dart\ncode\n```\n',
-                  tooltip: 'Code Block',
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Helper for toolbar buttons
-  Widget _toolbarButton(IconData icon, String markdown, {String? tooltip}) {
-    return IconButton(
-      icon: ScaledIcon(icon),
-      tooltip: tooltip,
-      onPressed: () => _insertMarkdown(markdown),
-      splashRadius: 24,
-    );
-  }
-
-  /// Builds text style that makes the first line larger (title-like)
-  TextStyle _buildContentTextStyle() {
-    return Theme.of(context).textTheme.bodyLarge ?? const TextStyle();
-  }
-
-  /// Inserts markdown at the current cursor position
-  void _insertMarkdown(String markdown) {
-    final controller = _contentController;
-    final text = controller.text;
-    final selection = controller.selection;
-    final newText = text.replaceRange(selection.start, selection.end, markdown);
-    controller.text = newText;
-    // Move cursor after inserted markdown
-    final newOffset = selection.start + markdown.length;
-    controller.selection = TextSelection.collapsed(offset: newOffset);
-  }
+  // Preview panel state
+  bool _showPreview = false;
+  bool _userToggledPreview = false; // Track if user manually toggled preview
+  double _previewHeight = 200.0; // Initial height
+  static const double _minPreviewHeight = 100.0;
+  static const double _maxPreviewHeight = 500.0;
 
   @override
   void initState() {
     super.initState();
     _contentController = TextEditingController();
-    _todoTxtController = TextEditingController();
-    _todoTxtTitleController = TextEditingController();
     _tabController = TabController(length: 2, vsync: this);
-
-    // For new notes, use the last used mode
-    if (widget.noteId == null) {
-      _viewMode = _lastUsedMode;
-    }
 
     _loadNote();
     _contentController.addListener(_onContentChanged);
-    _todoTxtController.addListener(_onTodoTxtChanged);
-    _todoTxtTitleController.addListener(_onTodoTxtChanged);
 
-    print(
-      'NoteEditor initialized: noteId=${widget.noteId}, viewMode=$_viewMode',
-    );
+    print('NoteEditor initialized: noteId=${widget.noteId}');
   }
 
   Future<void> _loadNote() async {
-    if (widget.noteId == null) return;
+    if (widget.noteId == null) {
+      return;
+    }
 
     final repository = ref.read(notesRepositoryProvider);
 
@@ -144,6 +63,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     Note? note = await repository.getNoteById(widget.noteId!);
 
     _originalNote = note;
+
     // When editing, put title and content together with title as first line
     final titleLine = _originalNote!.title;
     final contentLines = _originalNote!.content.split('\n');
@@ -165,25 +85,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       _contentController.text = '$titleLine\n${_originalNote!.content}';
     }
 
-    // Load todo.txt content if available, otherwise generate from markdown
-    if (_originalNote!.todoTxtContent != null &&
-        _originalNote!.todoTxtContent!.isNotEmpty) {
-      _todoTxtController.text = _originalNote!.todoTxtContent!;
-      _todoTxtTitleController.text = _originalNote!.title;
-      // If note has todo.txt content, open in todo.txt mode
-      setState(() {
-        _viewMode = 'todotxt';
-      });
-    } else {
-      _todoTxtController.text = TodoTxtConverter.markdownToTodoTxt(
-        _originalNote!.content,
-      );
-      _todoTxtTitleController.text = _originalNote!.title;
-      // Default to markdown mode
-      setState(() {
-        _viewMode = 'markdown';
-      });
-    }
+    // Check if loaded note has markdown and show preview
+    _updatePreviewVisibility(_contentController.text);
 
     _isEditing = true;
   }
@@ -218,36 +121,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     }
   }
 
-  void _onTodoTxtChanged() {
-    // When todo.txt content changes, track changes for auto-save
-    if (_viewMode == 'todotxt') {
-      final hasChanges =
-          _originalNote == null ||
-          _todoTxtController.text != (_originalNote!.todoTxtContent ?? '');
-      _debounceTimer?.cancel();
-      _autoSaveTimer?.cancel();
-      if (hasChanges != _hasUnsavedChanges) {
-        setState(() {
-          _hasUnsavedChanges = hasChanges;
-        });
-      }
-      if (hasChanges) {
-        _autoSaveTimer = Timer(_autoSaveDuration, () {
-          if (mounted && _hasUnsavedChanges) {
-            _performAutoSave();
-          }
-        });
-      }
-    }
-  }
-
   Future<void> _performAutoSave() async {
     final content = _contentController.text.trim();
+    print('DEBUG AutoSave - content length: ${content.length}');
     if (content.isEmpty) {
       setState(() {
         _saveStatus = 'Content required for save';
       });
-      Future.delayed(const Duration(seconds: 2), () {
+      Future.delayed(const Duration(milliseconds: 1200), () {
         if (mounted) {
           setState(() {
             _saveStatus = '';
@@ -265,7 +146,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         setState(() {
           _saveStatus = 'Auto-saved';
         });
-        Future.delayed(const Duration(seconds: 2), () {
+        Future.delayed(const Duration(milliseconds: 1200), () {
           if (mounted) {
             setState(() {
               _saveStatus = '';
@@ -278,7 +159,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         setState(() {
           _saveStatus = 'Auto-save failed';
         });
-        Future.delayed(const Duration(seconds: 3), () {
+        Future.delayed(const Duration(milliseconds: 1800), () {
           if (mounted) {
             setState(() {
               _saveStatus = '';
@@ -291,11 +172,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
 
   @override
   void dispose() {
+    _removeSlashMenu();
     _debounceTimer?.cancel();
     _autoSaveTimer?.cancel();
     _contentController.dispose();
-    _todoTxtController.dispose();
-    _todoTxtTitleController.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -313,114 +193,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         }
       },
       child: Scaffold(
-        resizeToAvoidBottomInset: false,
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(
           title: Text(_isEditing ? 'Edit Note' : 'New Note'),
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: [
-              Tab(icon: ScaledIcon(Icons.edit), text: 'Editor'),
-              Tab(icon: ScaledIcon(Icons.preview), text: 'Preview'),
-            ],
-          ),
           actions: [
-            // View mode toggle (Markdown / todo.txt)
-            Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment<String>(
-                    value: 'markdown',
-                    label: Text('.md'),
-                    icon: Icon(Icons.text_fields, size: 18),
-                  ),
-                  ButtonSegment<String>(
-                    value: 'todotxt',
-                    label: Text('.txt'),
-                    icon: Icon(Icons.checklist, size: 18),
-                  ),
-                ],
-                selected: {_viewMode},
-                style: ButtonStyle(
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                ),
-                onSelectionChanged: (Set<String> newSelection) {
-                  setState(() {
-                    final previousMode = _viewMode;
-                    _viewMode = newSelection.first;
-
-                    // Save the last used mode for future new notes
-                    _lastUsedMode = _viewMode;
-
-                    print('Switching from $previousMode to $_viewMode');
-
-                    // Only sync content if there is actual content to convert
-                    // Don't fill empty notes with example text - let hint text show
-                    if (_viewMode == 'todotxt' && previousMode == 'markdown') {
-                      // Switching TO todo.txt view: convert markdown to todo.txt
-                      final markdownContent = _contentController.text.trim();
-
-                      if (markdownContent.isNotEmpty) {
-                        print(
-                          'Converting markdown to todo.txt: ${markdownContent.length} chars',
-                        );
-
-                        final converted = TodoTxtConverter.markdownToTodoTxt(
-                          markdownContent,
-                        );
-                        print('Converted result: ${converted.length} chars');
-
-                        if (converted.isNotEmpty) {
-                          _todoTxtController.text = converted;
-                        }
-                      }
-                      // If markdown is empty, leave todo.txt empty too (show hint)
-                    } else if (_viewMode == 'markdown' &&
-                        previousMode == 'todotxt') {
-                      // Switching TO markdown view: convert todo.txt to markdown
-                      final todoTxtRaw = _todoTxtController.text.trim();
-
-                      if (todoTxtRaw.isNotEmpty) {
-                        print(
-                          'Converting todo.txt to markdown: ${todoTxtRaw.length} chars',
-                        );
-
-                        // Remove comment lines (starting with #)
-                        final todoTxtContent = todoTxtRaw
-                            .split('\n')
-                            .where((line) => !line.trim().startsWith('#'))
-                            .join('\n')
-                            .trim();
-
-                        print(
-                          'After removing comments: ${todoTxtContent.length} chars',
-                        );
-
-                        if (todoTxtContent.isNotEmpty) {
-                          final markdownFromTodoTxt =
-                              TodoTxtConverter.todoTxtToMarkdown(
-                                todoTxtContent,
-                              );
-                          print('Converted to markdown: $markdownFromTodoTxt');
-
-                          // Get title from existing content or create one
-                          final lines = _contentController.text.split('\n');
-                          final titleLine =
-                              lines.isNotEmpty && lines.first.trim().isNotEmpty
-                              ? lines.first
-                              : 'My Tasks';
-
-                          _contentController.text =
-                              '$titleLine\n\n$markdownFromTodoTxt';
-                        }
-                      }
-                      // If todo.txt is empty, leave markdown empty too (show hint)
-                    }
-                  });
-                },
-              ),
-            ),
             if (_saveStatus.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(right: 12.0),
@@ -432,802 +208,785 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
               ),
           ],
         ),
-        body: TabBarView(
-          controller: _tabController,
-          children: [_buildEditorTab(), _buildPreviewTab()],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEditorTab() {
-    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-
-    // Show different editor based on view mode
-    if (_viewMode == 'todotxt') {
-      return _buildTodoTxtEditor(keyboardHeight);
-    }
-
-    return Column(
-      children: [
-        // Sticky toolbar at the top
-        _buildMarkdownToolbar(),
-        // Scrollable content below
-        Expanded(
-          child: SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(
-              16.0,
-              16.0,
-              16.0,
-              keyboardHeight + 16.0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextFormField(
-                  controller: _contentController,
-                  decoration: InputDecoration(
-                    hintText:
-                        'Note title...\n\nStart writing your note here. The first line will be your title.',
-                    hintStyle: TextStyle(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurfaceVariant.withOpacity(0.6),
-                      fontStyle: FontStyle.italic,
-                    ),
-                    border: const OutlineInputBorder(),
-                    alignLabelWithHint: true,
+        body: Column(
+          children: [
+            // Editor section
+            Expanded(child: _buildMarkdownEditor()),
+            // Preview toggle button
+            Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                    width: 1,
                   ),
-                  style: _buildContentTextStyle(),
-                  minLines: 15,
-                  maxLines: null,
-                  keyboardType: TextInputType.multiline,
-                  textInputAction: TextInputAction.newline,
-                  textAlignVertical: TextAlignVertical.top,
-                  textCapitalization: TextCapitalization.none,
-                  onChanged: (value) {
+                ),
+              ),
+              child: Material(
+                color: Theme.of(context).colorScheme.surface,
+                child: InkWell(
+                  onTap: () {
                     setState(() {
-                      // Trigger rebuild to update text styling
+                      _showPreview = !_showPreview;
+                      _userToggledPreview =
+                          true; // User manually toggled, respect their choice
                     });
                   },
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Tip: First line becomes the title automatically. Use markdown syntax for formatting.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTodoTxtEditor(double keyboardHeight) {
-    return Column(
-      children: [
-        // Todo.txt toolbar
-        Material(
-          elevation: 1,
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Sort dropdown button
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: PopupMenuButton<String>(
-                      icon: const Icon(Icons.sort, size: 18),
-                      tooltip: 'Sort tasks',
-                      onSelected: (String sortType) {
-                        _sortTodoTxt(sortType);
-                      },
-                      itemBuilder: (BuildContext context) => [
-                        const PopupMenuItem(
-                          value: 'priority',
-                          child: Row(
-                            children: [
-                              Icon(Icons.priority_high, size: 18),
-                              SizedBox(width: 8),
-                              Text('By Priority'),
-                            ],
-                          ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _showPreview
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
-                        const PopupMenuItem(
-                          value: 'project',
-                          child: Row(
-                            children: [
-                              Icon(Icons.add, size: 18),
-                              SizedBox(width: 8),
-                              Text('By Project'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'context',
-                          child: Row(
-                            children: [
-                              Icon(Icons.alternate_email, size: 18),
-                              SizedBox(width: 8),
-                              Text('By Context'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'completion',
-                          child: Row(
-                            children: [
-                              Icon(Icons.check_circle, size: 18),
-                              SizedBox(width: 8),
-                              Text('Done / Not Done'),
-                            ],
-                          ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _showPreview ? 'Hide Preview' : 'Show Preview',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                         ),
                       ],
                     ),
                   ),
-                  _todoTxtButton(
-                    icon: Icons.priority_high,
-                    label: '(A)',
-                    tooltip: 'High priority',
-                    onPressed: () => _insertTodoTxtPrefix('(A) '),
-                  ),
-                  _todoTxtButton(
-                    icon: Icons.add,
-                    label: '+Project',
-                    tooltip: 'Add project tag',
-                    onPressed: () => _insertTodoTxtPrefix(' +Project'),
-                  ),
-                  _todoTxtButton(
-                    icon: Icons.alternate_email,
-                    label: '@Context',
-                    tooltip: 'Add context tag',
-                    onPressed: () => _insertTodoTxtPrefix(' @Context'),
-                  ),
-                  _todoTxtButton(
-                    icon: Icons.check_circle,
-                    label: 'Done',
-                    tooltip: 'Mark as completed',
-                    onPressed: () => _insertTodoTxtPrefix('x '),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-        // Scrollable content
-        Expanded(
-          child: SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(
-              16.0,
-              16.0,
-              16.0,
-              keyboardHeight + 16.0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Title field for todo.txt notes
-                TextFormField(
-                  controller: _todoTxtTitleController,
-                  decoration: InputDecoration(
-                    hintText: 'Note title...',
-                    hintStyle: TextStyle(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurfaceVariant.withOpacity(0.6),
-                      fontStyle: FontStyle.italic,
+            // Preview panel with draggable divider
+            if (_showPreview)
+              Container(
+                height: _previewHeight,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                  border: Border(
+                    top: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1,
                     ),
-                    border: const OutlineInputBorder(),
-                    labelText: 'Title',
-                  ),
-                  style: Theme.of(context).textTheme.titleLarge,
-                  maxLines: 1,
-                  textCapitalization: TextCapitalization.none,
-                ),
-                const SizedBox(height: 16),
-                // Tasks field
-                TextFormField(
-                  controller: _todoTxtController,
-                  decoration: InputDecoration(
-                    hintText:
-                        'Enter tasks in todo.txt format:\n\n'
-                        '(A) Call dentist tomorrow @Phone\n'
-                        '(B) Finish project report +Work @Computer\n'
-                        'Buy groceries +Shopping @Home\n'
-                        'x Completed task looks like this\n\n'
-                        'Tip: Use toolbar buttons above to add priority, projects, contexts',
-                    hintStyle: TextStyle(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurfaceVariant.withOpacity(0.6),
-                      fontStyle: FontStyle.italic,
-                    ),
-                    border: const OutlineInputBorder(),
-                    alignLabelWithHint: true,
-                  ),
-                  style: _buildContentTextStyle(),
-                  minLines: 15,
-                  maxLines: null,
-                  keyboardType: TextInputType.multiline,
-                  textInputAction: TextInputAction.newline,
-                  textAlignVertical: TextAlignVertical.top,
-                  textCapitalization: TextCapitalization.none,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Todo.txt benefits:\n'
-                  '• Plain text - works everywhere\n'
-                  '• Priority: (A-Z) for importance levels\n'
-                  '• Projects: +ProjectName to group tasks\n'
-                  '• Contexts: @Location or @Tool needed\n'
-                  '• Completion: prefix with "x" when done',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: 8),
-                // Show detected projects and contexts
-                if (_todoTxtController.text.isNotEmpty) ...[
-                  _buildTodoTxtInfo(),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+                child: Column(
+                  children: [
+                    // Draggable divider
+                    GestureDetector(
+                      onVerticalDragUpdate: (details) {
+                        setState(() {
+                          // Calculate max height based on available screen space
+                          final screenHeight = MediaQuery.of(
+                            context,
+                          ).size.height;
+                          final appBarHeight = AppBar().preferredSize.height;
+                          final statusBarHeight = MediaQuery.of(
+                            context,
+                          ).padding.top;
+                          final toggleButtonHeight =
+                              40.0; // Approximate height of toggle button
+                          final safeMaxHeight =
+                              screenHeight -
+                              appBarHeight -
+                              statusBarHeight -
+                              toggleButtonHeight -
+                              150; // Leave space for editor
 
-  Widget _todoTxtButton({
-    required IconData icon,
-    required String label,
-    required String tooltip,
-    required VoidCallback onPressed,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: OutlinedButton.icon(
-        icon: Icon(icon, size: 18),
-        label: Text(label, style: const TextStyle(fontSize: 12)),
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          minimumSize: const Size(0, 36),
+                          _previewHeight = (_previewHeight - details.delta.dy)
+                              .clamp(
+                                _minPreviewHeight,
+                                safeMaxHeight.clamp(
+                                  _minPreviewHeight,
+                                  _maxPreviewHeight,
+                                ),
+                              );
+                        });
+                      },
+                      child: Container(
+                        height: 24,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHigh,
+                        child: Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant.withOpacity(0.4),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Preview content
+                    Expanded(child: _buildPreviewContent()),
+                  ],
+                ),
+              ),
+          ],
         ),
       ),
     );
   }
 
-  void _sortTodoTxt(String sortType) {
-    String sorted;
-    switch (sortType) {
-      case 'priority':
-        sorted = TodoTxtConverter.sortByPriority(_todoTxtController.text);
-        break;
-      case 'project':
-        sorted = TodoTxtConverter.sortByProject(_todoTxtController.text);
-        break;
-      case 'context':
-        sorted = TodoTxtConverter.sortByContext(_todoTxtController.text);
-        break;
-      case 'completion':
-        sorted = TodoTxtConverter.sortByCompletion(_todoTxtController.text);
-        break;
-      default:
-        sorted = _todoTxtController.text;
-    }
-    setState(() {
-      _todoTxtController.text = sorted;
-    });
+  Widget _buildMarkdownEditor() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20.0),
+      child: TextField(
+        controller: _contentController,
+        decoration: InputDecoration(
+          hintText:
+              'Note title...\n\nStart writing your note here.\n\nType "/" for formatting options.',
+          hintStyle: TextStyle(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant.withOpacity(0.5),
+            fontStyle: FontStyle.italic,
+          ),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
+          fillColor: Colors.transparent,
+          filled: false,
+        ),
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+        maxLines: null,
+        keyboardType: TextInputType.multiline,
+        textCapitalization: TextCapitalization.sentences,
+        onChanged: (value) {
+          _detectSlashCommand(_contentController, true);
+          _updatePreviewVisibility(value);
+          setState(() {});
+        },
+      ),
+    );
   }
 
-  void _insertTodoTxtPrefix(String prefix) {
-    final controller = _todoTxtController;
+  /// Check if text contains markdown syntax
+  bool _hasMarkdownSyntax(String text) {
+    if (text.trim().isEmpty) return false;
+
+    return text.contains('**') || // bold
+        text.contains('*') || // italic (but check it's not just multiplication)
+        text.contains('~~') || // strikethrough
+        text.contains('==') || // highlight
+        text.contains('`') || // code
+        text.contains('<u>') || // underline
+        text.contains('# ') || // headers
+        text.contains('## ') ||
+        text.contains('### ') ||
+        text.contains('- [ ]') || // checkboxes
+        text.contains('- [x]') ||
+        text.contains('> ') || // quotes
+        (text.contains('[') && text.contains('](')) || // links
+        text.contains('![') || // images
+        text.contains('```') || // code blocks
+        text.contains('---'); // dividers
+  }
+
+  /// Update preview visibility based on markdown detection
+  void _updatePreviewVisibility(String text) {
+    // If user manually toggled preview, respect their choice
+    if (_userToggledPreview) return;
+
+    // Auto-show preview if markdown is detected
+    final hasMarkdown = _hasMarkdownSyntax(text);
+    if (_showPreview != hasMarkdown) {
+      setState(() {
+        _showPreview = hasMarkdown;
+      });
+    }
+  }
+
+  Widget _buildPreviewContent() {
+    final content = _contentController.text;
+    if (content.trim().isEmpty) {
+      return Center(
+        child: Text(
+          'Preview will appear here',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant.withOpacity(0.5),
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20.0),
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: _buildMarkdownPreview(content),
+      ),
+    );
+  }
+
+  Widget _buildMarkdownPreview(String markdown) {
+    return SelectableText.rich(
+      _parseMarkdownToTextSpan(markdown, context),
+      style: Theme.of(context).textTheme.bodyLarge,
+      textAlign: TextAlign.left,
+    );
+  }
+
+  TextSpan _parseMarkdownToTextSpan(String text, BuildContext context) {
+    if (text.isEmpty) return const TextSpan(text: '');
+
+    // Process line-by-line to handle block elements
+    final lines = text.split('\n');
+    List<TextSpan> allSpans = [];
+
+    for (int i = 0; i < lines.length; i++) {
+      String line = lines[i];
+      TextStyle? lineStyle;
+
+      // Handle headers
+      if (line.startsWith('# ')) {
+        line = line.substring(2);
+        lineStyle = Theme.of(context).textTheme.headlineMedium?.copyWith(
+          color: Theme.of(context).colorScheme.onSurface,
+          fontWeight: FontWeight.bold,
+        );
+      } else if (line.startsWith('## ')) {
+        line = line.substring(3);
+        lineStyle = Theme.of(context).textTheme.titleLarge?.copyWith(
+          color: Theme.of(context).colorScheme.onSurface,
+          fontWeight: FontWeight.bold,
+        );
+      } else if (line.startsWith('### ')) {
+        line = line.substring(4);
+        lineStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: Theme.of(context).colorScheme.onSurface,
+          fontWeight: FontWeight.w600,
+        );
+      }
+      // Handle lists
+      else if (line.trim().startsWith('- [ ] ')) {
+        line = '☐ ${line.trim().substring(6)}';
+      } else if (line.trim().startsWith('- [x] ')) {
+        line = '☑ ${line.trim().substring(6)}';
+      } else if (line.trim().startsWith('- ')) {
+        line = '• ${line.trim().substring(2)}';
+      }
+      // Handle quotes
+      else if (line.trim().startsWith('> ')) {
+        line = line.trim().substring(2);
+        lineStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontStyle: FontStyle.italic,
+        );
+      }
+
+      final baseStyle =
+          lineStyle ??
+          Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+            height: 1.5,
+          );
+
+      // Parse inline formatting within the line
+      final lineSpans = _parseInlineFormatting(line, context, baseStyle);
+      allSpans.addAll(lineSpans);
+
+      // Add newline if not last line
+      if (i < lines.length - 1) {
+        allSpans.add(const TextSpan(text: '\n'));
+      }
+    }
+
+    return TextSpan(children: allSpans);
+  }
+
+  List<TextSpan> _parseInlineFormatting(
+    String text,
+    BuildContext context,
+    TextStyle? baseStyle,
+  ) {
+    List<TextSpan> spans = [];
+    int currentIndex = 0;
+
+    // Define all markdown patterns
+    final patterns = <RegExp, String>{
+      RegExp(r'\*\*([^*]+)\*\*'): 'bold',
+      RegExp(r'(?<!\*)\*(?!\*)([^*]+)\*(?!\*)'): 'italic',
+      RegExp(r'~~([^~]+)~~'): 'strikethrough',
+      RegExp(r'==([^=]+)=='): 'highlight',
+      RegExp(r'`([^`]+)`'): 'code',
+      RegExp(r'<u>([^<]+)</u>'): 'underline',
+    };
+
+    // Collect all matches
+    List<MapEntry<Match, String>> allMatches = [];
+    patterns.forEach((pattern, type) {
+      for (var match in pattern.allMatches(text)) {
+        allMatches.add(MapEntry(match, type));
+      }
+    });
+
+    // Sort by position
+    allMatches.sort((a, b) => a.key.start.compareTo(b.key.start));
+
+    // Filter overlapping matches
+    List<MapEntry<Match, String>> filteredMatches = [];
+    for (var matchEntry in allMatches) {
+      final match = matchEntry.key;
+      bool overlaps = filteredMatches.any(
+        (existing) =>
+            match.start < existing.key.end && match.end > existing.key.start,
+      );
+      if (!overlaps) {
+        filteredMatches.add(matchEntry);
+      }
+    }
+
+    // Build TextSpan
+    for (var matchEntry in filteredMatches) {
+      final match = matchEntry.key;
+      final type = matchEntry.value;
+
+      // Add text before match
+      if (match.start > currentIndex) {
+        spans.add(
+          TextSpan(
+            text: text.substring(currentIndex, match.start),
+            style: baseStyle,
+          ),
+        );
+      }
+
+      // Add formatted text
+      final matchText = match.group(1) ?? '';
+      TextStyle? style;
+
+      switch (type) {
+        case 'bold':
+          style = baseStyle?.copyWith(fontWeight: FontWeight.bold);
+          break;
+        case 'italic':
+          style = baseStyle?.copyWith(fontStyle: FontStyle.italic);
+          break;
+        case 'strikethrough':
+          style = baseStyle?.copyWith(
+            decoration: TextDecoration.lineThrough,
+            decorationColor: Theme.of(context).colorScheme.onSurface,
+          );
+          break;
+        case 'underline':
+          style = baseStyle?.copyWith(
+            decoration: TextDecoration.underline,
+            decorationColor: Theme.of(context).colorScheme.onSurface,
+          );
+          break;
+        case 'highlight':
+          style = baseStyle?.copyWith(
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.primaryContainer.withOpacity(0.7),
+            color: Theme.of(context).colorScheme.onPrimaryContainer,
+          );
+          break;
+        case 'code':
+          final fontSize = baseStyle?.fontSize ?? 14.0;
+          style = baseStyle?.copyWith(
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest,
+            color: Theme.of(context).colorScheme.primary,
+            fontFamily: 'monospace',
+            fontSize: fontSize * 0.9,
+          );
+          break;
+      }
+
+      spans.add(TextSpan(text: matchText, style: style));
+      currentIndex = match.end;
+    }
+
+    // Add remaining text
+    if (currentIndex < text.length) {
+      spans.add(TextSpan(text: text.substring(currentIndex), style: baseStyle));
+    }
+
+    // Return list with at least one span
+    if (spans.isEmpty) {
+      return [TextSpan(text: text, style: baseStyle)];
+    }
+    return spans;
+  }
+
+  OverlayEntry? _slashMenuOverlay;
+
+  void _detectSlashCommand(TextEditingController controller, bool isMarkdown) {
+    final text = controller.text;
+    final selection = controller.selection;
+    if (!selection.isValid || selection.start == 0) {
+      _removeSlashMenu();
+      return;
+    }
+
+    // Check if user just typed "/"
+    final textBeforeCursor = text.substring(0, selection.start);
+    if (textBeforeCursor.endsWith('/')) {
+      // Check if it's at the start of a line or preceded by whitespace
+      if (selection.start == 1 || text[selection.start - 2].trim().isEmpty) {
+        _showSlashCommandMenu(controller, isMarkdown);
+      } else {
+        _removeSlashMenu();
+      }
+    } else if (textBeforeCursor.endsWith('/ ') ||
+        !textBeforeCursor.contains('/') ||
+        (textBeforeCursor.lastIndexOf('/') < textBeforeCursor.length - 10)) {
+      // Remove menu if user continues typing after "/", deletes "/",
+      // or moves cursor far from the "/"
+      _removeSlashMenu();
+    }
+  }
+
+  void _showSlashCommandMenu(
+    TextEditingController controller,
+    bool isMarkdown,
+  ) {
+    // Remove existing menu if any
+    _removeSlashMenu();
+
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    _slashMenuOverlay = OverlayEntry(
+      builder: (context) => Positioned(
+        left: 20,
+        right: 20,
+        top: (screenHeight - keyboardHeight) * 0.2,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            constraints: const BoxConstraints(maxHeight: 300),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              children: isMarkdown
+                  ? [
+                      _buildSlashMenuItem(
+                        icon: Icons.format_bold,
+                        title: 'Bold',
+                        hint: '**text**',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '**', '**');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.format_italic,
+                        title: 'Italic',
+                        hint: '*text*',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '*', '*');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.format_underlined,
+                        title: 'Underline',
+                        hint: '<u>text</u>',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '<u>', '</u>');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.strikethrough_s,
+                        title: 'Strikethrough',
+                        hint: '~~text~~',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '~~', '~~');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.title,
+                        title: 'Heading 1',
+                        hint: '# text',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '# ', '');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.title,
+                        title: 'Heading 2',
+                        hint: '## text',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '## ', '');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.title,
+                        title: 'Heading 3',
+                        hint: '### text',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '### ', '');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.format_list_bulleted,
+                        title: 'Bullet List',
+                        hint: '- item',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '- ', '');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.format_list_numbered,
+                        title: 'Numbered List',
+                        hint: '1. item',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '1. ', '');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.check_box,
+                        title: 'Checkbox',
+                        hint: '- [ ] task',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '- [ ] ', '');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.check_box_outlined,
+                        title: 'Checked Box',
+                        hint: '- [x] done',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '- [x] ', '');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.format_quote,
+                        title: 'Quote',
+                        hint: '> quote',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '> ', '');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.code,
+                        title: 'Inline Code',
+                        hint: '`code`',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '`', '`');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.code_outlined,
+                        title: 'Code Block',
+                        hint: '```code```',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '```\n', '\n```');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.link,
+                        title: 'Link',
+                        hint: '[text](url)',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '[', '](url)');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.image,
+                        title: 'Image',
+                        hint: '![alt](url)',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '![', '](url)');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.table_chart,
+                        title: 'Table',
+                        hint: '| col | col |',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(
+                            controller,
+                            '| Column 1 | Column 2 |\n|----------|----------|\n| ',
+                            ' | |\n',
+                          );
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.horizontal_rule,
+                        title: 'Divider',
+                        hint: '---',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '\n---\n', '');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.highlight,
+                        title: 'Highlight',
+                        hint: '==text==',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '==', '==');
+                        },
+                      ),
+                    ]
+                  : [
+                      _buildSlashMenuItem(
+                        icon: Icons.label_outline,
+                        title: 'Priority',
+                        hint: '(A)',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '(A) ', '');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.add,
+                        title: 'Project',
+                        hint: '+project',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '+', '');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.alternate_email,
+                        title: 'Context',
+                        hint: '@context',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, '@', '');
+                        },
+                      ),
+                      _buildSlashMenuItem(
+                        icon: Icons.check_circle,
+                        title: 'Mark Done',
+                        hint: 'x',
+                        onTap: () {
+                          _removeSlashMenu();
+                          _insertFormat(controller, 'x ', '');
+                        },
+                      ),
+                    ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(_slashMenuOverlay!);
+  }
+
+  Widget _buildSlashMenuItem({
+    required IconData icon,
+    required String title,
+    required String hint,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 20),
+            const SizedBox(width: 12),
+            Text(title),
+            const Spacer(),
+            if (hint.isNotEmpty)
+              Text(
+                hint,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _removeSlashMenu() {
+    _slashMenuOverlay?.remove();
+    _slashMenuOverlay = null;
+  }
+
+  void _insertFormat(
+    TextEditingController controller,
+    String prefix,
+    String suffix,
+  ) {
     final text = controller.text;
     final selection = controller.selection;
 
-    // Insert at the beginning of the current line
-    final lines = text.split('\n');
-    final cursorLine =
-        text.substring(0, selection.start).split('\n').length - 1;
+    if (!selection.isValid || selection.start == 0) return;
 
-    if (cursorLine >= 0 && cursorLine < lines.length) {
-      lines[cursorLine] = prefix + lines[cursorLine];
-      controller.text = lines.join('\n');
+    // Check if there's a "/" in the text
+    final lastSlashIndex = text.lastIndexOf('/');
+    if (lastSlashIndex == -1) return; // No slash found
 
-      // Move cursor after inserted prefix
-      final newOffset = selection.start + prefix.length;
-      controller.selection = TextSelection.collapsed(offset: newOffset);
-    }
-  }
+    // Split text: everything before the slash, and everything after the cursor
+    final beforeSlash = text.substring(0, lastSlashIndex);
+    final afterCursor = text.substring(selection.start);
 
-  Widget _buildTodoTxtInfo() {
-    final projects = TodoTxtConverter.getProjects(_todoTxtController.text);
-    final contexts = TodoTxtConverter.getContexts(_todoTxtController.text);
+    // Build new text: before + prefix + suffix + after
+    final newText = beforeSlash + prefix + suffix + afterCursor;
 
-    if (projects.isEmpty && contexts.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Card(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (projects.isNotEmpty) ...[
-              Text(
-                'Projects: ${projects.join(', ')}',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-            ],
-            if (contexts.isNotEmpty) ...[
-              Text(
-                'Contexts: ${contexts.join(', ')}',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
-              ),
-            ],
-          ],
-        ),
+    // Update controller
+    controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(
+        offset: beforeSlash.length + prefix.length,
       ),
     );
-  }
-
-  Widget _buildPreviewTab() {
-    // Show content in its native format
-    if (_viewMode == 'todotxt') {
-      // Preview todo.txt in its native format
-      return _buildTodoTxtPreview();
-    }
-
-    // Markdown preview
-    final content = _contentController.text;
-
-    // Extract title, subtitle, and remaining content separately
-    final lines = content.split('\n');
-    final firstLine = lines.isNotEmpty ? lines.first.trim() : '';
-    final secondLine = lines.length > 1 ? lines[1].trim() : '';
-
-    // Check if first line is a markdown header
-    final isFirstLineHeader = firstLine.startsWith('#');
-    final title = isFirstLineHeader
-        ? firstLine.replaceFirst(RegExp(r'^#+\s*'), '')
-        : firstLine;
-
-    // Check if second line is a subtitle (H2)
-    final isSecondLineSubtitle = secondLine.startsWith('## ');
-    final subtitle = isSecondLineSubtitle
-        ? secondLine.replaceFirst('## ', '')
-        : '';
-
-    // Extract content excluding title and subtitle lines
-    int contentStartIndex = 1; // Skip title by default
-    if (isSecondLineSubtitle) {
-      contentStartIndex = 2; // Skip both title and subtitle
-    }
-
-    final contentOnly = lines.length > contentStartIndex
-        ? lines.skip(contentStartIndex).join('\n').trim()
-        : '';
-
-    if (content.isEmpty || contentOnly.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ScaledIcon(
-              Icons.description,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Nothing to preview yet',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Switch to the Editor tab to start writing',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (title.isNotEmpty) ...[
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            if (subtitle.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-            const SizedBox(height: 16),
-            const Divider(),
-            const SizedBox(height: 16),
-          ],
-          if (contentOnly.isNotEmpty)
-            MarkdownBody(
-              data: contentOnly,
-              selectable: true,
-              checkboxBuilder: (bool value) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: Icon(
-                    value ? Icons.check_box : Icons.check_box_outline_blank,
-                    size: 20,
-                    color: value
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                );
-              },
-              styleSheet: SmartMarkdownHelper.createCompactStyleSheet(context)
-                  .copyWith(
-                    p: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge, // Larger body text
-                    listBullet: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge, // Larger list text
-                    code: AppTheme.getCodeTextStyle(context).copyWith(
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                    ),
-                  ),
-            )
-          else if (isFirstLineHeader)
-            Text(
-              'Start writing content below the title...',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTodoTxtPreview() {
-    final todoTxtContent = _todoTxtController.text;
-
-    if (todoTxtContent.trim().isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ScaledIcon(
-              Icons.checklist,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No tasks yet',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Switch to the Editor tab to add tasks',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final lines = todoTxtContent.split('\n');
-    final tasks = <Widget>[];
-
-    for (var line in lines) {
-      if (line.trim().isEmpty) continue;
-
-      // Skip comment lines but show them differently
-      if (line.trim().startsWith('#')) {
-        tasks.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4.0),
-            child: Text(
-              line,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ),
-        );
-        continue;
-      }
-
-      tasks.add(_buildTodoTxtTaskCard(line));
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  _todoTxtTitleController.text.trim().isNotEmpty
-                      ? _todoTxtTitleController.text
-                      : 'My Tasks',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ),
-              // Sort button in preview
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.sort),
-                tooltip: 'Sort tasks',
-                onSelected: (String sortType) {
-                  _sortTodoTxt(sortType);
-                },
-                itemBuilder: (BuildContext context) => [
-                  const PopupMenuItem(
-                    value: 'priority',
-                    child: Row(
-                      children: [
-                        Icon(Icons.priority_high, size: 18),
-                        SizedBox(width: 8),
-                        Text('By Priority'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'project',
-                    child: Row(
-                      children: [
-                        Icon(Icons.add, size: 18),
-                        SizedBox(width: 8),
-                        Text('By Project'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'context',
-                    child: Row(
-                      children: [
-                        Icon(Icons.alternate_email, size: 18),
-                        SizedBox(width: 8),
-                        Text('By Context'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'completion',
-                    child: Row(
-                      children: [
-                        Icon(Icons.check_circle, size: 18),
-                        SizedBox(width: 8),
-                        Text('Done / Not Done'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Divider(),
-          const SizedBox(height: 16),
-          ...tasks,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTodoTxtTaskCard(String line) {
-    var remaining = line.trim();
-    var isCompleted = false;
-    String? priority;
-
-    // Check for completion
-    if (remaining.startsWith('x ')) {
-      isCompleted = true;
-      remaining = remaining.substring(2).trim();
-    }
-
-    // Check for priority
-    final priorityMatch = RegExp(r'^\(([A-Z])\)\s+(.*)').firstMatch(remaining);
-    if (priorityMatch != null) {
-      priority = priorityMatch.group(1);
-      remaining = priorityMatch.group(2) ?? '';
-    }
-
-    // Parse dates
-    final datePattern = RegExp(r'^\d{4}-\d{2}-\d{2}\s+');
-    while (datePattern.hasMatch(remaining)) {
-      remaining = remaining.replaceFirst(datePattern, '').trim();
-    }
-
-    // Extract projects and contexts
-    final projects = <String>[];
-    final contexts = <String>[];
-    final words = remaining.split(' ');
-    final displayWords = <String>[];
-
-    for (var word in words) {
-      if (word.startsWith('+') && word.length > 1) {
-        projects.add(word);
-      } else if (word.startsWith('@') && word.length > 1) {
-        contexts.add(word);
-      } else {
-        displayWords.add(word);
-      }
-    }
-
-    // Build the card
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      color: isCompleted
-          ? Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest.withOpacity(0.5)
-          : null,
-      child: ListTile(
-        leading: Icon(
-          isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-          color: isCompleted
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-        title: Row(
-          children: [
-            if (priority != null) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _getPriorityColor(priority),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  priority,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-            Expanded(
-              child: Text(
-                displayWords.join(' '),
-                style: TextStyle(
-                  decoration: isCompleted ? TextDecoration.lineThrough : null,
-                  color: isCompleted
-                      ? Theme.of(context).colorScheme.onSurfaceVariant
-                      : Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-            ),
-          ],
-        ),
-        subtitle: (projects.isNotEmpty || contexts.isNotEmpty)
-            ? Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: [
-                  ...projects.map(
-                    (p) => Chip(
-                      label: Text(p, style: const TextStyle(fontSize: 11)),
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.primaryContainer,
-                      padding: EdgeInsets.zero,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                  ...contexts.map(
-                    (c) => Chip(
-                      label: Text(c, style: const TextStyle(fontSize: 11)),
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.secondaryContainer,
-                      padding: EdgeInsets.zero,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                ],
-              )
-            : null,
-      ),
-    );
-  }
-
-  Color _getPriorityColor(String priority) {
-    switch (priority) {
-      case 'A':
-        return Colors.red;
-      case 'B':
-        return Colors.orange;
-      case 'C':
-        return Colors.yellow.shade700;
-      default:
-        return Colors.grey;
-    }
   }
 
   Future<void> _saveNoteInternal({bool showFeedback = true}) async {
-    String rawContent;
-    String title;
+    String rawContent = _contentController.text;
+    print('DEBUG Save - Raw content from controller: "$rawContent"');
 
-    if (_viewMode == 'markdown') {
-      rawContent = _contentController.text;
-      // Auto-format content with markdown headers
-      final formattedContent = _autoFormatWithHeaders(rawContent);
-      // Extract title from first line of formatted content
-      final lines = formattedContent.split('\n');
-      final firstLine = lines.isNotEmpty ? lines.first.trim() : '';
-      // Remove markdown header symbols for clean title storage
-      title = firstLine.isNotEmpty
-          ? firstLine.replaceFirst(RegExp(r'^#+\s*'), '')
-          : 'Untitled';
-      rawContent = formattedContent;
-    } else {
-      // In todo.txt mode: title comes from the title field
-      // Content is just the tasks converted to markdown
-      final todoLines = _todoTxtController.text
-          .split('\n')
-          .where((line) => !line.trim().startsWith('#'))
-          .join('\n');
+    // Auto-format content with markdown headers
+    final formattedContent = _autoFormatWithHeaders(rawContent);
+    print('DEBUG Save - After autoformat: "$formattedContent"');
 
-      // Get title from the title field or use default
-      title = _todoTxtTitleController.text.trim().isNotEmpty
-          ? _todoTxtTitleController.text.trim()
-          : 'My Tasks';
-
-      // Convert todo.txt tasks to markdown, but don't include title
-      final markdownTasks = TodoTxtConverter.todoTxtToMarkdown(todoLines);
-      rawContent = '$title\n\n$markdownTasks';
-    }
+    // Extract title from first line of formatted content
+    final lines = formattedContent.split('\n');
+    final firstLine = lines.isNotEmpty ? lines.first.trim() : '';
+    // Remove markdown header symbols for clean title storage
+    // Use first line as title, or empty string if no content
+    final title = firstLine.replaceFirst(RegExp(r'^#+\s*'), '');
+    rawContent = formattedContent;
+    print('DEBUG Save - Final content to save: "$rawContent"');
 
     if (rawContent.trim().isEmpty) {
       if (showFeedback) {
@@ -1241,40 +1000,38 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       throw Exception('Content cannot be empty');
     }
 
-    // Sync todo.txt content
-    final todoTxtContent = _viewMode == 'todotxt'
-        ? _todoTxtController.text
-        : TodoTxtConverter.markdownToTodoTxt(rawContent);
-
     final controller = ref.read(notesControllerProvider.notifier);
     Note? savedNote;
     // Prefer an existing note id from the loaded original note, fallback to
     // the widget.noteId (when editing via route). If we have an id, update
     // the existing note; otherwise create a new one.
     final existingId = _originalNote?.id ?? widget.noteId;
-    final wasCreate = existingId == null;
     if (existingId != null) {
       savedNote = await controller.updateNote(
         id: existingId,
         title: title,
         content: rawContent,
-        todoTxtContent: todoTxtContent,
       );
       // Mark as editing from now on so subsequent saves will update.
       _isEditing = true;
     } else {
+      print(
+        'DEBUG Save - Creating note with folderId: ${widget.initialFolderId}',
+      );
       savedNote = await controller.createNote(
         title: title,
         content: rawContent,
         folderId: widget.initialFolderId, // Save to selected folder
-        todoTxtContent: todoTxtContent,
+      );
+      print(
+        'DEBUG Save - Note created with id: ${savedNote?.id}, folderId: ${savedNote?.folderId}',
       );
       // After creating, mark as editing so future autosaves update this note
       _isEditing = true;
     }
 
     // Update the controller text with formatted content to reflect the changes
-    if (_viewMode == 'markdown' && _contentController.text != rawContent) {
+    if (_contentController.text != rawContent) {
       _contentController.text = rawContent;
       // Move cursor to end to avoid disruption
       _contentController.selection = TextSelection.fromPosition(
@@ -1288,10 +1045,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         _originalNote = savedNote;
       });
       if (showFeedback) {
+        final wasUpdate = existingId != null;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              _isEditing && !wasCreate
+              wasUpdate
                   ? 'Note updated successfully'
                   : 'Note created successfully',
             ),
@@ -1301,7 +1059,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         // If this was a manual create (not an update), close the editor as
         // previous behavior expected. For autosaves showFeedback is false so
         // we won't pop.
-        if (wasCreate) {
+        if (!wasUpdate) {
           Navigator.of(context).pop();
         }
       }

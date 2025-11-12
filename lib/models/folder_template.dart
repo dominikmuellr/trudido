@@ -50,9 +50,9 @@ class FolderTemplate extends HiveObject {
     this.isCustomized = false,
     this.originalTemplateId,
     this.useCount = 0,
-  })  : id = id ?? const Uuid().v4(),
-        createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : id = id ?? const Uuid().v4(),
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   FolderTemplate copyWith({
     String? id,
@@ -111,9 +111,11 @@ class FolderTemplate extends HiveObject {
       name: json['name'],
       description: json['description'],
       keywords: List<String>.from(json['keywords'] ?? []),
-      taskTemplates: (json['taskTemplates'] as List?)
-          ?.map((t) => TaskTemplate.fromJson(t))
-          .toList() ?? [],
+      taskTemplates:
+          (json['taskTemplates'] as List?)
+              ?.map((t) => TaskTemplate.fromJson(t))
+              .toList() ??
+          [],
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
       isBuiltIn: json['isBuiltIn'] ?? false,

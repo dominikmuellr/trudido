@@ -30,7 +30,10 @@ abstract class FolderTemplateRepository {
   Future<List<FolderTemplate>> suggestTemplatesForFolder(String folderName);
 
   /// Create template from existing folder
-  Future<FolderTemplate> createTemplateFromFolder(String folderId, String templateName);
+  Future<FolderTemplate> createTemplateFromFolder(
+    String folderId,
+    String templateName,
+  );
 
   /// Track template usage
   Future<void> incrementTemplateUsage(String templateId);

@@ -25,6 +25,7 @@ class NoteFolderRepository {
     bool isVault = false,
     bool hasPassword = false,
     bool useBiometric = true,
+    String noteFormat = 'markdown',
   }) async {
     final folder = NoteFolder(
       name: name,
@@ -32,6 +33,7 @@ class NoteFolderRepository {
       isVault: isVault,
       hasPassword: hasPassword,
       useBiometric: useBiometric,
+      noteFormat: noteFormat,
     );
     await StorageService.saveNoteFolder(folder);
     return folder;
@@ -100,6 +102,7 @@ class NoteFoldersNotifier extends AsyncNotifier<List<NoteFolder>> {
     bool isVault = false,
     bool hasPassword = false,
     bool useBiometric = true,
+    String noteFormat = 'markdown',
   }) async {
     final repository = ref.read(noteFolderRepositoryProvider);
 
@@ -120,6 +123,7 @@ class NoteFoldersNotifier extends AsyncNotifier<List<NoteFolder>> {
       isVault: isVault,
       hasPassword: hasPassword,
       useBiometric: useBiometric,
+      noteFormat: noteFormat,
     );
 
     await refresh();

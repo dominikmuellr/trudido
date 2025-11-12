@@ -6,5 +6,7 @@
 // imports of this file; it will be deleted in a future cleanup.
 
 void deprecatedTodoProviderFileDoNotUse() {
-  throw UnimplementedError('todo_provider.dart is deprecated. Use new providers.');
+  throw UnimplementedError(
+    'todo_provider.dart is deprecated. Use new providers.',
+  );
 }

@@ -33,6 +33,9 @@ class NoteFolder extends HiveObject {
   @HiveField(8, defaultValue: true)
   bool useBiometric; // Whether to use biometric shortcut (if available)
 
+  @HiveField(9, defaultValue: 'markdown')
+  String noteFormat; // 'markdown' or 'todotxt' - format for all notes in this folder
+
   NoteFolder({
     String? id,
     required this.name,
@@ -43,6 +46,7 @@ class NoteFolder extends HiveObject {
     this.sortOrder = 0,
     this.hasPassword = false,
     this.useBiometric = true,
+    this.noteFormat = 'markdown',
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
@@ -57,6 +61,7 @@ class NoteFolder extends HiveObject {
     int? sortOrder,
     bool? hasPassword,
     bool? useBiometric,
+    String? noteFormat,
   }) {
     return NoteFolder(
       id: id ?? this.id,
@@ -68,6 +73,7 @@ class NoteFolder extends HiveObject {
       sortOrder: sortOrder ?? this.sortOrder,
       hasPassword: hasPassword ?? this.hasPassword,
       useBiometric: useBiometric ?? this.useBiometric,
+      noteFormat: noteFormat ?? this.noteFormat,
     );
   }
 
@@ -96,6 +102,7 @@ class NoteFolder extends HiveObject {
       'sortOrder': sortOrder,
       'hasPassword': hasPassword,
       'useBiometric': useBiometric,
+      'noteFormat': noteFormat,
     };
   }
 
@@ -110,6 +117,7 @@ class NoteFolder extends HiveObject {
       sortOrder: json['sortOrder'] as int? ?? 0,
       hasPassword: json['hasPassword'] as bool? ?? false,
       useBiometric: json['useBiometric'] as bool? ?? true,
+      noteFormat: json['noteFormat'] as String? ?? 'markdown',
     );
   }
 }

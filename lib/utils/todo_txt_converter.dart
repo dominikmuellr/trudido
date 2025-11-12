@@ -166,8 +166,32 @@ class TodoTxtConverter {
     final lines = todoTxt.split('\n');
     final tasks = <_TodoTask>[];
     final comments = <String>[];
+    final headerLines = <String>[]; // For title and subtitle
 
-    for (var line in lines) {
+    // Extract title (first line) and optional subtitle (second line if not a task)
+    int taskStartIndex = 0;
+    if (lines.isNotEmpty) {
+      final firstLine = lines.first.trim();
+      if (firstLine.isNotEmpty) {
+        headerLines.add(lines.first); // Keep original with spacing
+        taskStartIndex = 1;
+
+        // Check if second line is a subtitle (not a task)
+        if (lines.length > 1) {
+          final secondLine = lines[1].trim();
+          if (secondLine.isNotEmpty &&
+              !secondLine.startsWith('x ') &&
+              !RegExp(r'^\([A-Z]\)').hasMatch(secondLine) &&
+              !secondLine.startsWith('#')) {
+            headerLines.add(lines[1]); // Keep original with spacing
+            taskStartIndex = 2;
+          }
+        }
+      }
+    }
+
+    for (var i = taskStartIndex; i < lines.length; i++) {
+      final line = lines[i];
       if (line.trim().isEmpty) {
         continue; // Skip empty lines
       }
@@ -225,7 +249,7 @@ class TodoTxtConverter {
     tasks.sort((a, b) {
       switch (sortBy) {
         case 'priority':
-          // Incomplete first, then by priority, then alphabetically
+          // Incomplete first, then by priority, then alphabetically (case-insensitive)
           if (a.isCompleted != b.isCompleted) {
             return a.isCompleted ? 1 : -1;
           }
@@ -234,12 +258,14 @@ class TodoTxtConverter {
           }
           if (a.priority != null) return -1;
           if (b.priority != null) return 1;
-          return a.text.compareTo(b.text);
+          return a.text.toLowerCase().compareTo(b.text.toLowerCase());
 
         case 'project':
-          // Group by project
+          // Group by project (case-insensitive)
           if (a.project != null && b.project != null) {
-            final projectCompare = a.project!.compareTo(b.project!);
+            final projectCompare = a.project!.toLowerCase().compareTo(
+              b.project!.toLowerCase(),
+            );
             if (projectCompare != 0) return projectCompare;
           }
           if (a.project != null) return -1;
@@ -248,12 +274,14 @@ class TodoTxtConverter {
           if (a.isCompleted != b.isCompleted) {
             return a.isCompleted ? 1 : -1;
           }
-          return a.text.compareTo(b.text);
+          return a.text.toLowerCase().compareTo(b.text.toLowerCase());
 
         case 'context':
-          // Group by context
+          // Group by context (case-insensitive)
           if (a.context != null && b.context != null) {
-            final contextCompare = a.context!.compareTo(b.context!);
+            final contextCompare = a.context!.toLowerCase().compareTo(
+              b.context!.toLowerCase(),
+            );
             if (contextCompare != 0) return contextCompare;
           }
           if (a.context != null) return -1;
@@ -262,28 +290,40 @@ class TodoTxtConverter {
           if (a.isCompleted != b.isCompleted) {
             return a.isCompleted ? 1 : -1;
           }
-          return a.text.compareTo(b.text);
+          return a.text.toLowerCase().compareTo(b.text.toLowerCase());
 
         case 'completion':
-          // Incomplete first, then completed
+          // Incomplete first, then completed (case-insensitive text)
           if (a.isCompleted != b.isCompleted) {
             return a.isCompleted ? 1 : -1;
           }
-          return a.text.compareTo(b.text);
+          return a.text.toLowerCase().compareTo(b.text.toLowerCase());
 
         default:
-          return a.text.compareTo(b.text);
+          return a.text.toLowerCase().compareTo(b.text.toLowerCase());
       }
     });
 
-    // Combine comments and sorted tasks
+    // Combine header, comments, and sorted tasks
     final result = <String>[];
+
+    // Add title and subtitle first
+    if (headerLines.isNotEmpty) {
+      result.addAll(headerLines);
+      if (comments.isNotEmpty || tasks.isNotEmpty) {
+        result.add(''); // Empty line after header
+      }
+    }
+
+    // Then comments
     if (comments.isNotEmpty) {
       result.addAll(comments);
       if (tasks.isNotEmpty) {
         result.add(''); // Empty line after comments
       }
     }
+
+    // Finally sorted tasks
     result.addAll(tasks.map((t) => t.line));
 
     return result.join('\n');

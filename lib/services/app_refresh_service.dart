@@ -10,16 +10,16 @@ class AppRefreshService {
   Future<void> refreshAllProviders(WidgetRef ref) async {
     try {
       debugPrint('[AppRefreshService] Starting provider refresh...');
-      
+
       // Refresh tasks
       final tasksNotifier = ref.read(tasksProvider.notifier);
       await tasksNotifier.refresh();
       debugPrint('[AppRefreshService] Tasks refreshed');
-      
+
       // Refresh preferences state
       ref.invalidate(preferencesStateProvider);
       debugPrint('[AppRefreshService] Preferences state invalidated');
-      
+
       debugPrint('[AppRefreshService] All providers refreshed successfully');
     } catch (e, stackTrace) {
       debugPrint('[AppRefreshService] Error refreshing providers: $e');

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trudido/utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../models/note.dart';
 import '../controllers/notes_controller.dart';
 import '../repositories/notes_repository.dart';
@@ -8,8 +9,7 @@ import '../repositories/note_folder_repository.dart';
 import '../services/vault_auth_service.dart';
 import '../widgets/note_preview_card_markdown.dart';
 import '../widgets/notes_onboarding_tooltip.dart';
-import 'note_editor_screen.dart';
-import 'note_preview_screen.dart';
+import 'quill_note_editor_screen.dart';
 
 /// Provider for notes search mode
 final notesSearchModeProvider = StateProvider<bool>((ref) => false);
@@ -26,9 +26,10 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredNotesAsync = ref.watch(filteredNotesProvider);
+    final selectedFolderId = ref.watch(selectedNoteFolderProvider);
 
     return filteredNotesAsync.when(
-      data: (notes) => _buildBody(notes),
+      data: (notes) => _buildBody(notes, selectedFolderId == null),
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(
         child: Column(
@@ -61,7 +62,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     );
   }
 
-  Widget _buildBody(List<Note> notes) {
+  Widget _buildBody(List<Note> notes, bool isAllNotesView) {
     if (notes.isEmpty) {
       final isSearchMode = ref.watch(notesSearchModeProvider);
       final searchQuery = ref.watch(notesSearchQueryProvider);
@@ -121,9 +122,12 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
           return false;
         },
-        child: ListView.builder(
+        child: MasonryGridView.count(
           padding: const EdgeInsets.all(8),
           physics: const BouncingScrollPhysics(),
+          crossAxisCount: 2,
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
           itemCount: notes.length,
           itemBuilder: (context, index) {
             final note = notes[index];
@@ -131,24 +135,17 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
             return NotePreviewCard(
               note: note,
-              onTap: () => _previewNote(note),
-              onLongPress: () => _editNote(note.id),
+              onTap: () => _editNote(note.id),
               onPin: () => _togglePin(note.id),
               onDelete: () => _deleteNote(note.id, note.title),
               onDeleteConfirmed: () => _deleteNoteConfirmed(note.id),
               isInVault: isInVault,
               onMoveToFolder: isInVault ? null : () => _moveNoteToFolder(note),
+              showFormatIndicator: isAllNotesView,
             );
           },
         ),
       ),
-    );
-  }
-
-  void _previewNote(Note note) {
-    // No additional auth needed - user already authenticated to access the vault folder
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => NotePreviewScreen(note: note)),
     );
   }
 
@@ -186,7 +183,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     if (mounted) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => NoteEditorScreen(noteId: noteId),
+          builder: (context) => QuillNoteEditorScreen(noteId: noteId),
         ),
       );
     }

@@ -30,7 +30,12 @@ class TaskRepository {
       _cache = await StorageService.getAllTodosAsync();
       _loaded = true;
     } catch (e, st) {
-      throw AppError(AppErrorType.storageRead, 'Failed to load tasks', cause: e, stackTrace: st);
+      throw AppError(
+        AppErrorType.storageRead,
+        'Failed to load tasks',
+        cause: e,
+        stackTrace: st,
+      );
     }
   }
 
@@ -42,7 +47,8 @@ class TaskRepository {
 
   Future<Todo> update(Todo todo) async {
     final index = _cache.indexWhere((t) => t.id == todo.id);
-    if (index == -1) throw const AppError(AppErrorType.notFound, 'Task not found');
+    if (index == -1)
+      throw const AppError(AppErrorType.notFound, 'Task not found');
     await StorageService.updateTodo(todo);
     final list = [..._cache];
     list[index] = todo;
@@ -71,6 +77,6 @@ class TaskRepository {
     // Persist entire ordered list (legacy storage clears & rewrites)
     await StorageService.saveTodosOrder(ordered);
     _cache = List<Todo>.from(ordered);
-  _testSaveOrderHook?.call(_cache);
+    _testSaveOrderHook?.call(_cache);
   }
 }

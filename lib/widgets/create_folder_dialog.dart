@@ -379,7 +379,7 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
                 'Folder "$folderName" created with ${createdTodos.length} tasks from "${template.name}" template',
               ),
               backgroundColor: Colors.green,
-              duration: const Duration(seconds: 4),
+              duration: const Duration(milliseconds: 2500),
             ),
           );
         }

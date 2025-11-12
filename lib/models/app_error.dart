@@ -19,5 +19,6 @@ class AppError implements Exception {
   const AppError(this.type, this.message, {this.cause, this.stackTrace});
 
   @override
-  String toString() => 'AppError(type: $type, message: $message, cause: $cause)';
+  String toString() =>
+      'AppError(type: $type, message: $message, cause: $cause)';
 }

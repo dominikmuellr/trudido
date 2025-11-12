@@ -569,7 +569,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select a due date before setting up repeat'),
-          duration: Duration(seconds: 2),
+          duration: Duration(milliseconds: 1500),
         ),
       );
       return;

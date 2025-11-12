@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import '../utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
 import '../models/note.dart';
 import '../providers/app_providers.dart';
 import '../services/theme_service.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
 
 /// A clean, scannable preview card with lightweight markdown rendering
 ///
@@ -15,9 +17,9 @@ import '../services/theme_service.dart';
 /// user experience while maintaining visual appeal.
 ///
 /// Gestural Navigation:
-/// - Short tap (onTap): Navigate to full-screen preview
-/// - Long press (onLongPress): Navigate to edit mode
-/// - Pin/Delete: Via popup menu
+/// - Short tap (onTap): Navigate directly to edit mode
+/// - Long press: Show context menu (Edit, Pin/Unpin, Move, Delete)
+/// - Swipe: Pin or Delete (configurable in settings)
 ///
 /// Key Performance Benefits:
 /// - No heavy markdown package overhead
@@ -27,30 +29,353 @@ import '../services/theme_service.dart';
 class NotePreviewCard extends ConsumerWidget {
   final Note note;
   final VoidCallback onTap;
-  final VoidCallback? onLongPress;
   final VoidCallback? onPin;
   final VoidCallback? onDelete;
   final VoidCallback?
   onDeleteConfirmed; // For direct deletion without confirmation
   final VoidCallback? onMoveToFolder; // Move to different folder
   final bool isInVault; // Whether note is in a vault folder
+  final bool
+  showFormatIndicator; // Show .md/.txt indicator (only in All Notes view)
 
   const NotePreviewCard({
     super.key,
     required this.note,
     required this.onTap,
-    this.onLongPress,
     this.onPin,
     this.onDelete,
     this.onDeleteConfirmed,
     this.onMoveToFolder,
     this.isInVault = false, // Default to not in vault
+    this.showFormatIndicator = false, // Default to hidden
   });
+
+  /// Checks if content is Quill JSON format
+  bool _isQuillFormat() {
+    return note.content.trim().startsWith('[');
+  }
+
+  /// Migrate old font size format from "18px" to "18"
+  List<dynamic> _migrateFontSizes(List<dynamic> deltaJson) {
+    return deltaJson.map((op) {
+      if (op is Map<String, dynamic>) {
+        final attributes = op['attributes'];
+        if (attributes is Map<String, dynamic> &&
+            attributes.containsKey('size')) {
+          final sizeValue = attributes['size'];
+          if (sizeValue is String && sizeValue.endsWith('px')) {
+            final cleanedSize = sizeValue.replaceAll(RegExp(r'px$'), '');
+            final newAttributes = Map<String, dynamic>.from(attributes);
+            newAttributes['size'] = cleanedSize;
+            return {...op, 'attributes': newAttributes};
+          }
+        }
+      }
+      return op;
+    }).toList();
+  }
+
+  /// Extracts plain text content from either Quill JSON or markdown
+  String _getDisplayContent() {
+    debugPrint('_getDisplayContent called for note ${note.id}');
+    // Check if content is Quill JSON format
+    if (_isQuillFormat()) {
+      try {
+        final json = jsonDecode(note.content);
+        final migratedJson = _migrateFontSizes(json);
+        final document = quill.Document.fromJson(migratedJson);
+        final plainText = document.toPlainText();
+        debugPrint(
+          '_getDisplayContent: Extracted plain text length=${plainText.length}',
+        );
+        return plainText;
+      } catch (e) {
+        debugPrint('_getDisplayContent: Error parsing Quill JSON: $e');
+        // If parsing fails, treat as markdown
+        return note.content;
+      }
+    }
+    // Legacy markdown content
+    debugPrint('_getDisplayContent: Using markdown content');
+    return note.content;
+  }
+
+  /// Converts Quill Delta JSON to formatted TextSpan
+  TextSpan _quillToTextSpan(BuildContext context) {
+    debugPrint('=== PREVIEW CARD: Starting parse for note ${note.id} ===');
+    debugPrint(
+      'Content preview: ${note.content.substring(0, note.content.length > 100 ? 100 : note.content.length)}...',
+    );
+
+    try {
+      final json = jsonDecode(note.content) as List;
+      final migratedJson = _migrateFontSizes(json);
+      final List<TextSpan> spans = [];
+
+      final baseStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        height: 1.3,
+      );
+
+      debugPrint('PREVIEW: Parsed ${migratedJson.length} operations');
+
+      // Skip the title line if note has a title
+      bool skipFirstLine = note.title.isNotEmpty;
+      bool firstLineSkipped = false;
+
+      for (var op in migratedJson) {
+        if (op is Map && op.containsKey('insert')) {
+          final insertValue = op['insert'];
+
+          debugPrint(
+            'Preview op: insert type=${insertValue.runtimeType}, keys=${insertValue is Map ? insertValue.keys.toList() : "N/A"}',
+          );
+
+          // Skip text until we pass the first line (title) if needed
+          if (skipFirstLine && !firstLineSkipped && insertValue is String) {
+            final text = insertValue;
+            if (text.contains('\n')) {
+              // This text contains a newline - skip everything up to and including the first newline
+              final firstNewlineIndex = text.indexOf('\n');
+              final remainingText = text.substring(firstNewlineIndex + 1);
+              firstLineSkipped = true;
+
+              // If there's text after the first newline, process it
+              if (remainingText.isNotEmpty) {
+                final attributes = op['attributes'] as Map?;
+                TextStyle style = baseStyle ?? const TextStyle();
+
+                if (attributes != null) {
+                  if (attributes['bold'] == true) {
+                    style = style.copyWith(fontWeight: FontWeight.bold);
+                  }
+                  if (attributes['italic'] == true) {
+                    style = style.copyWith(fontStyle: FontStyle.italic);
+                  }
+                  if (attributes['underline'] == true) {
+                    style = style.copyWith(
+                      decoration: TextDecoration.underline,
+                    );
+                  }
+                  if (attributes['strike'] == true) {
+                    style = style.copyWith(
+                      decoration: TextDecoration.lineThrough,
+                    );
+                  }
+                }
+
+                spans.add(TextSpan(text: remainingText, style: style));
+              }
+              continue;
+            } else if (text.trim().isNotEmpty) {
+              // This is title text without newline - skip it entirely
+              continue;
+            }
+            // Empty text, just continue
+            continue;
+          }
+
+          // Check if this is a custom embed (media)
+          // Quill wraps custom embeds: {"insert": {"custom": "{\"media\":\"json_string\"}"}}
+          if (insertValue is Map) {
+            // Check for Quill custom embed wrapper
+            String? mediaJson;
+            if (insertValue.containsKey('custom')) {
+              // New format: wrapped in "custom"
+              final customData = insertValue['custom'] as String;
+              debugPrint('Preview: Found custom embed, data=$customData');
+              // Parse the custom data to check if it contains media
+              try {
+                final parsed = jsonDecode(customData) as Map<String, dynamic>;
+                if (parsed.containsKey('media')) {
+                  mediaJson = parsed['media'] as String;
+                }
+              } catch (e) {
+                debugPrint('Preview: Error parsing custom data: $e');
+              }
+            } else if (insertValue.containsKey('media')) {
+              // Old format: direct media key (fallback)
+              mediaJson = insertValue['media'] as String;
+            }
+
+            if (mediaJson != null) {
+              try {
+                final mediaData = jsonDecode(mediaJson) as Map<String, dynamic>;
+                final mediaType = mediaData['type'] as String;
+
+                // Show media placeholder icon in preview
+                String placeholder;
+                switch (mediaType) {
+                  case 'image':
+                    placeholder = '📷 ';
+                    break;
+                  case 'video':
+                    placeholder = '🎥 ';
+                    break;
+                  case 'voice':
+                    placeholder = '🎤 ';
+                    break;
+                  default:
+                    placeholder = '📎 ';
+                }
+
+                spans.add(
+                  TextSpan(
+                    text: placeholder,
+                    style: baseStyle?.copyWith(fontSize: 16),
+                  ),
+                );
+              } catch (e) {
+                debugPrint('Error parsing media embed in preview: $e');
+                // If parsing fails, just show generic attachment icon
+                spans.add(
+                  TextSpan(
+                    text: '📎 ',
+                    style: baseStyle?.copyWith(fontSize: 16),
+                  ),
+                );
+              }
+              continue;
+            }
+            // Other types of embeds (images, formulas, etc.) - skip them
+            debugPrint('Skipping unknown embed type: ${insertValue.keys}');
+            continue;
+          }
+
+          final text = op['insert'].toString();
+          final attributes = op['attributes'] as Map?;
+
+          TextStyle style = baseStyle ?? const TextStyle();
+
+          if (attributes != null) {
+            if (attributes['bold'] == true) {
+              style = style.copyWith(fontWeight: FontWeight.bold);
+            }
+            if (attributes['italic'] == true) {
+              style = style.copyWith(fontStyle: FontStyle.italic);
+            }
+            if (attributes['underline'] == true) {
+              style = style.copyWith(decoration: TextDecoration.underline);
+            }
+            if (attributes['strike'] == true) {
+              style = style.copyWith(decoration: TextDecoration.lineThrough);
+            }
+            if (attributes['header'] != null) {
+              final headerLevel = attributes['header'] as int;
+              style = style.copyWith(
+                fontSize: headerLevel == 1 ? 20 : (headerLevel == 2 ? 18 : 16),
+                fontWeight: FontWeight.bold,
+              );
+            }
+          }
+
+          spans.add(TextSpan(text: text, style: style));
+        }
+      }
+
+      return TextSpan(
+        children: spans.isEmpty
+            ? [TextSpan(text: '', style: baseStyle)]
+            : spans,
+      );
+    } catch (e, stackTrace) {
+      // Fallback to plain text
+      debugPrint('PREVIEW ERROR: Failed to parse Quill content: $e');
+      debugPrint('Stack trace: $stackTrace');
+      try {
+        final fallbackText = _getDisplayContent();
+        debugPrint('Using fallback text, length=${fallbackText.length}');
+        return TextSpan(
+          text: fallbackText,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            height: 1.3,
+          ),
+        );
+      } catch (e2) {
+        debugPrint('PREVIEW ERROR: Even fallback failed: $e2');
+        return TextSpan(
+          text: '(Error displaying preview)',
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: Colors.red, height: 1.3),
+        );
+      }
+    }
+  }
+
+  void _showContextMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Edit option
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Edit'),
+              onTap: () {
+                Navigator.pop(context);
+                onTap();
+              },
+            ),
+            // Pin/Unpin option
+            if (onPin != null)
+              ListTile(
+                leading: Icon(
+                  note.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                ),
+                title: Text(note.isPinned ? 'Unpin' : 'Pin'),
+                onTap: () {
+                  Navigator.pop(context);
+                  onPin!();
+                },
+              ),
+            // Move to folder option (only if not in vault)
+            if (!isInVault && onMoveToFolder != null)
+              ListTile(
+                leading: const Icon(Icons.drive_file_move_outline),
+                title: const Text('Move to Folder'),
+                onTap: () {
+                  Navigator.pop(context);
+                  onMoveToFolder!();
+                },
+              ),
+            // Delete option
+            if (onDelete != null)
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  onDelete!();
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Extract content structure
-    final contentLines = note.content.split('\n');
+    debugPrint('=== NotePreviewCard.build() called for note ${note.id} ===');
+    debugPrint('Note title: ${note.title}');
+
+    // Check if this is a todo.txt note
+    final isTodoTxt =
+        note.todoTxtContent != null && note.todoTxtContent!.isNotEmpty;
+
+    // Extract content structure - handle both Quill JSON and markdown
+    final displayContent = _getDisplayContent();
+    final contentLines = displayContent.split('\n');
     final subtitle = _extractSubtitle(contentLines);
 
     // Read swipe preference
@@ -62,16 +387,30 @@ class NotePreviewCard extends ConsumerWidget {
     // endToStart => user swiped left (maps to swipeLeftAction)
     final actionEnd = preferences.swipeLeftAction;
 
-    final titleSpan = _parseMarkdownToTextSpan(
-      note.title.isEmpty ? 'Untitled' : note.title,
-      context,
-      isTitle: true,
-    );
-    final bodySpan = _parseMarkdownToTextSpan(
-      _extractContentOnly(contentLines),
-      context,
-      isTitle: false,
-    );
+    // Show title or placeholder for empty titles
+    final titleSpan = note.title.isEmpty
+        ? TextSpan(
+            text: '(No title)',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withOpacity(0.5),
+              fontStyle: FontStyle.italic,
+            ),
+          )
+        : _parseMarkdownToTextSpan(note.title, context, isTitle: true);
+
+    // For Quill notes, render with formatting; for markdown, parse structure
+    debugPrint('Preview: isQuillFormat=${_isQuillFormat()}');
+    final bodySpan = _isQuillFormat()
+        ? _quillToTextSpan(context)
+        : _parseMarkdownToTextSpan(
+            _extractContentOnly(contentLines),
+            context,
+            isTitle: false,
+          );
+    debugPrint('Preview: bodySpan created successfully');
+
     final formattedDate = DateFormat(
       'MMM d, y • h:mm a',
     ).format(note.updatedAt);
@@ -219,12 +558,15 @@ class NotePreviewCard extends ConsumerWidget {
       },
       child: GestureDetector(
         onTap: onTap,
-        onLongPress: onLongPress,
+        onLongPress: () {
+          // Show context menu on long press
+          _showContextMenu(context);
+        },
         child: Card(
           margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           elevation: 0, // Modern MD3: flat design with no shadow
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
           color: Theme.of(context).brightness == Brightness.dark
               ? Theme.of(context)
@@ -265,41 +607,6 @@ class NotePreviewCard extends ConsumerWidget {
                           text: titleSpan,
                         ),
                       ),
-
-                      // Three-dot menu for moving notes (only if NOT in vault)
-                      if (!isInVault && onMoveToFolder != null)
-                        PopupMenuButton<String>(
-                          icon: Icon(
-                            Icons.more_vert,
-                            size: 20,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                          ),
-                          itemBuilder: (context) => [
-                            PopupMenuItem<String>(
-                              value: 'move',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.drive_file_move_outline,
-                                    size: 20,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text('Move to Folder'),
-                                ],
-                              ),
-                            ),
-                          ],
-                          onSelected: (value) {
-                            if (value == 'move' && onMoveToFolder != null) {
-                              onMoveToFolder!();
-                            }
-                          },
-                        ),
                     ],
                   ),
 
@@ -317,18 +624,19 @@ class NotePreviewCard extends ConsumerWidget {
                     ),
                   ],
 
-                  // Body snippet with lightweight markdown rendering
-                  if (bodySpan.text?.isNotEmpty == true ||
+                  // Body snippet - show todo.txt tasks or markdown content
+                  if (isTodoTxt)
+                    ..._buildTodoTxtPreview(context)
+                  else if (bodySpan.text?.isNotEmpty == true ||
                       bodySpan.children?.isNotEmpty == true) ...[
                     SizedBox(
                       height: subtitle.isNotEmpty ? 6 : 8,
                     ), // Less space if subtitle exists
-                    // CRITICAL: maxLines=2 prevents vertical overflow while showing content
+                    // Show more lines to allow cards to expand with content
                     RichText(
                       textScaler: MediaQuery.textScalerOf(context),
-                      maxLines: 2, // ⭐ KEY to preventing RenderFlex overflow
-                      overflow: TextOverflow
-                          .ellipsis, // ⭐ Essential for graceful truncation
+                      maxLines: 8, // Allow more lines for variable height cards
+                      overflow: TextOverflow.ellipsis,
                       text: bodySpan,
                     ),
                   ],
@@ -337,80 +645,22 @@ class NotePreviewCard extends ConsumerWidget {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      // Format indicator
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color:
-                              (note.todoTxtContent != null &&
-                                  note.todoTxtContent!.isNotEmpty)
-                              ? Theme.of(context).colorScheme.secondaryContainer
-                              : Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              (note.todoTxtContent != null &&
-                                      note.todoTxtContent!.isNotEmpty)
-                                  ? Icons.checklist
-                                  : Icons.text_fields,
-                              size: 12,
-                              color:
-                                  (note.todoTxtContent != null &&
-                                      note.todoTxtContent!.isNotEmpty)
-                                  ? Theme.of(
-                                      context,
-                                    ).colorScheme.onSecondaryContainer
-                                  : Theme.of(
-                                      context,
-                                    ).colorScheme.onPrimaryContainer,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              (note.todoTxtContent != null &&
-                                      note.todoTxtContent!.isNotEmpty)
-                                  ? '.txt'
-                                  : '.md',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color:
-                                    (note.todoTxtContent != null &&
-                                        note.todoTxtContent!.isNotEmpty)
-                                    ? Theme.of(
-                                        context,
-                                      ).colorScheme.onSecondaryContainer
-                                    : Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimaryContainer,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
                       ScaledIcon(
                         Icons.schedule,
                         size: 14,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        formattedDate,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${_getWordCount(note.content)} words',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      Flexible(
+                        child: Text(
+                          formattedDate,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -443,6 +693,8 @@ class NotePreviewCard extends ConsumerWidget {
   }) {
     if (text.isEmpty) return const TextSpan(text: '');
 
+    print('DEBUG Card Parse - Input text: "$text" (isTitle: $isTitle)');
+
     final baseStyle = isTitle
         ? Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
@@ -461,27 +713,66 @@ class NotePreviewCard extends ConsumerWidget {
       return match.group(1) ?? '';
     });
 
+    // Handle checkboxes - replace with Unicode checkbox characters
+    text = text.replaceAllMapped(RegExp(r'^- \[x\]\s+', multiLine: true), (
+      match,
+    ) {
+      return '☑ '; // Checked box
+    });
+    text = text.replaceAllMapped(RegExp(r'^- \[ \]\s+', multiLine: true), (
+      match,
+    ) {
+      return '☐ '; // Unchecked box
+    });
+
+    // Handle list items - replace "- " at start of line with bullet
+    text = text.replaceAllMapped(RegExp(r'^-\s+', multiLine: true), (match) {
+      return '• '; // Replace with bullet character
+    });
+
+    // Handle numbered lists - keep as is
+    // They already look good: 1. item, 2. item
+
+    print('DEBUG Card Parse - After header strip: "$text"');
+
     List<TextSpan> spans = [];
     int currentIndex = 0;
 
-    // Find all bold and italic patterns
+    // Find all markdown formatting patterns
+    // Use negative lookbehind/lookahead to avoid matching conflicts
     final patterns = <RegExp>[
       RegExp(r'\*\*([^*]+)\*\*'), // **bold**
-      RegExp(r'\*([^*]+)\*'), // *italic*
+      RegExp(r'(?<!\*)\*(?!\*)([^*]+)\*(?!\*)'), // *italic* but not part of **
       RegExp(r'__([^_]+)__'), // __bold__
-      RegExp(r'_([^_]+)_'), // _italic_
+      RegExp(r'(?<!_)_(?!_)([^_]+)_(?!_)'), // _italic_ but not part of __
+      RegExp(r'~~([^~]+)~~'), // ~~strikethrough~~
+      RegExp(r'==([^=]+)=='), // ==highlight==
       RegExp(r'`([^`]+)`'), // `code`
+      RegExp(r'<u>([^<]+)</u>'), // <u>underline</u>
     ];
 
     // Create a list of all matches with their positions
     List<MapEntry<Match, String>> allMatches = [];
 
     for (RegExp pattern in patterns) {
-      for (Match match in pattern.allMatches(text)) {
+      final matches = pattern.allMatches(text).toList();
+      print(
+        'DEBUG Card Parse - Pattern ${pattern.pattern} found ${matches.length} matches in "$text"',
+      );
+      for (Match match in matches) {
+        print(
+          'DEBUG Card Parse - Match: "${match.group(0)}" at position ${match.start}-${match.end}, captured: "${match.group(1)}"',
+        );
         String type = '';
         if (pattern.pattern.contains(r'\*\*') ||
             pattern.pattern.contains(r'__')) {
           type = 'bold';
+        } else if (pattern.pattern.contains(r'~~')) {
+          type = 'strikethrough';
+        } else if (pattern.pattern.contains(r'==')) {
+          type = 'highlight';
+        } else if (pattern.pattern.contains(r'<u>')) {
+          type = 'underline';
         } else if (pattern.pattern.contains(r'\*') ||
             pattern.pattern.contains(r'_')) {
           type = 'italic';
@@ -495,8 +786,37 @@ class NotePreviewCard extends ConsumerWidget {
     // Sort matches by start position
     allMatches.sort((a, b) => a.key.start.compareTo(b.key.start));
 
-    // Build TextSpan with formatted sections
+    // Filter out overlapping matches - keep longer/earlier matches
+    List<MapEntry<Match, String>> filteredMatches = [];
     for (var matchEntry in allMatches) {
+      final match = matchEntry.key;
+      bool overlaps = false;
+
+      for (var existing in filteredMatches) {
+        // Check if this match overlaps with an already-added match
+        if (match.start < existing.key.end && match.end > existing.key.start) {
+          overlaps = true;
+          print(
+            'DEBUG Card Parse - Skipping overlapping match "${match.group(0)}" at ${match.start}-${match.end} (overlaps with "${existing.key.group(0)}" at ${existing.key.start}-${existing.key.end})',
+          );
+          break;
+        }
+      }
+
+      if (!overlaps) {
+        filteredMatches.add(matchEntry);
+        print(
+          'DEBUG Card Parse - Keeping match "${match.group(0)}" (${matchEntry.value}) at ${match.start}-${match.end}',
+        );
+      }
+    }
+
+    print(
+      'DEBUG Card Parse - Filtered from ${allMatches.length} to ${filteredMatches.length} matches',
+    );
+
+    // Build TextSpan with formatted sections
+    for (var matchEntry in filteredMatches) {
       final match = matchEntry.key;
       final type = matchEntry.value;
 
@@ -520,6 +840,26 @@ class NotePreviewCard extends ConsumerWidget {
           break;
         case 'italic':
           style = baseStyle?.copyWith(fontStyle: FontStyle.italic);
+          break;
+        case 'strikethrough':
+          style = baseStyle?.copyWith(
+            decoration: TextDecoration.lineThrough,
+            decorationColor: Theme.of(context).colorScheme.onSurfaceVariant,
+          );
+          break;
+        case 'underline':
+          style = baseStyle?.copyWith(
+            decoration: TextDecoration.underline,
+            decorationColor: Theme.of(context).colorScheme.onSurfaceVariant,
+          );
+          break;
+        case 'highlight':
+          style = baseStyle?.copyWith(
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.primaryContainer.withOpacity(0.5),
+            color: Theme.of(context).colorScheme.onPrimaryContainer,
+          );
           break;
         case 'code':
           style = AppTheme.getCodeTextStyle(context).copyWith(
@@ -606,10 +946,200 @@ class NotePreviewCard extends ConsumerWidget {
     return contentOnlyLines.join(' ').trim();
   }
 
-  /// Calculates word count for metadata display
-  int _getWordCount(String content) {
-    if (content.trim().isEmpty) return 0;
-    return content.trim().split(RegExp(r'\s+')).length;
+  /// Builds a preview of todo.txt tasks (max 2 tasks shown)
+  List<Widget> _buildTodoTxtPreview(BuildContext context) {
+    final todoContent = note.todoTxtContent ?? '';
+    final lines = todoContent
+        .split('\n')
+        .where((line) => line.trim().isNotEmpty && !line.trim().startsWith('#'))
+        .take(8) // Show up to 8 tasks for variable height cards
+        .toList();
+
+    if (lines.isEmpty) {
+      return [
+        const SizedBox(height: 8),
+        Text(
+          'No tasks yet',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      ];
+    }
+
+    return [
+      const SizedBox(height: 8),
+      ...lines.map((line) => _buildTodoTxtTaskPreview(context, line)),
+    ];
+  }
+
+  /// Builds a compact preview of a single todo.txt task
+  Widget _buildTodoTxtTaskPreview(BuildContext context, String line) {
+    var remaining = line.trim();
+    var isCompleted = false;
+    String? priority;
+
+    // Check for completion
+    if (remaining.startsWith('x ')) {
+      isCompleted = true;
+      remaining = remaining.substring(2).trim();
+    }
+
+    // Check for priority
+    final priorityMatch = RegExp(r'^\(([A-Z])\)\s+(.*)').firstMatch(remaining);
+    if (priorityMatch != null) {
+      priority = priorityMatch.group(1);
+      remaining = priorityMatch.group(2) ?? '';
+    }
+
+    // Extract ALL projects and contexts
+    final projects = <String>[];
+    final contexts = <String>[];
+    final projectMatches = RegExp(r'\+(\w+)').allMatches(remaining);
+    final contextMatches = RegExp(r'@(\w+)').allMatches(remaining);
+
+    for (var match in projectMatches) {
+      projects.add(match.group(1)!);
+    }
+    for (var match in contextMatches) {
+      contexts.add(match.group(1)!);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            isCompleted ? Icons.check_box : Icons.check_box_outline_blank,
+            size: 16,
+            color: isCompleted
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Wrap(
+              spacing: 4,
+              runSpacing: 2,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                // Priority badge
+                if (priority != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getPriorityColor(priority),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                    child: Text(
+                      priority,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 9,
+                      ),
+                    ),
+                  ),
+                ],
+                // Task text with inline chips for tags
+                ..._buildInlineTextWithChips(context, remaining, isCompleted),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds inline text with chips for +project and @context tags
+  List<Widget> _buildInlineTextWithChips(
+    BuildContext context,
+    String text,
+    bool isCompleted,
+  ) {
+    final widgets = <Widget>[];
+    final words = text.split(' ');
+
+    for (var i = 0; i < words.length; i++) {
+      final word = words[i];
+
+      // Check for tags (only alphanumeric after + or @)
+      final projectMatch = RegExp(r'^(\+\w+)').firstMatch(word);
+      final contextMatch = RegExp(r'^(@\w+)').firstMatch(word);
+
+      if (projectMatch != null && word.length > 1) {
+        // Project tag - render as chip (includes punctuation in the chip)
+        widgets.add(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: Text(
+              word,
+              style: TextStyle(
+                fontSize: 10,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                decoration: isCompleted ? TextDecoration.lineThrough : null,
+              ),
+            ),
+          ),
+        );
+      } else if (contextMatch != null && word.length > 1) {
+        // Context tag - render as chip (includes punctuation in the chip)
+        widgets.add(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: Text(
+              word,
+              style: TextStyle(
+                fontSize: 10,
+                color: Theme.of(context).colorScheme.onSecondaryContainer,
+                decoration: isCompleted ? TextDecoration.lineThrough : null,
+              ),
+            ),
+          ),
+        );
+      } else {
+        // Regular text
+        widgets.add(
+          Text(
+            word,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              decoration: isCompleted ? TextDecoration.lineThrough : null,
+              color: isCompleted
+                  ? Theme.of(context).colorScheme.onSurfaceVariant
+                  : null,
+            ),
+          ),
+        );
+      }
+    }
+
+    return widgets;
+  }
+
+  Color _getPriorityColor(String priority) {
+    switch (priority) {
+      case 'A':
+        return Colors.red;
+      case 'B':
+        return Colors.orange;
+      case 'C':
+        return Colors.yellow.shade700;
+      default:
+        return Colors.grey;
+    }
   }
 }
 
@@ -773,7 +1303,7 @@ This approach gives us the **best of both worlds**: performance _and_ visual app
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Opened: ${note.title}'),
-                        duration: const Duration(seconds: 1),
+                        duration: const Duration(milliseconds: 800),
                       ),
                     );
                   },
@@ -783,7 +1313,7 @@ This approach gives us the **best of both worlds**: performance _and_ visual app
                         content: Text(
                           note.isPinned ? 'Unpinned note' : 'Pinned note',
                         ),
-                        duration: const Duration(seconds: 1),
+                        duration: const Duration(milliseconds: 800),
                       ),
                     );
                   },
@@ -791,7 +1321,7 @@ This approach gives us the **best of both worlds**: performance _and_ visual app
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Deleted: ${note.title}'),
-                        duration: const Duration(seconds: 1),
+                        duration: const Duration(milliseconds: 800),
                       ),
                     );
                   },

@@ -108,8 +108,8 @@ class TodoItem extends StatelessWidget {
               },
               child: AnimatedContainer(
                 duration: const Duration(
-                  milliseconds: 300,
-                ), // Material 3 standard
+                  milliseconds: 200,
+                ), // Material 3 standard - Faster
                 curve:
                     Curves.easeInOutCubicEmphasized, // Material 3 motion curve
                 padding: EdgeInsets.all(basePad),
@@ -122,9 +122,9 @@ class TodoItem extends StatelessWidget {
                               padding: EdgeInsets.all(controlPad),
                               child: AnimatedContainer(
                                 duration: const Duration(
-                                  milliseconds: 200,
-                                ), // Material 3 standard
-                                curve: Curves.easeInOut,
+                                  milliseconds: 150,
+                                ), // Material 3 standard - Faster
+                                curve: Curves.easeInOutCubicEmphasized,
                                 width: 24,
                                 height: 24,
                                 decoration: BoxDecoration(

@@ -11,7 +11,8 @@ String formatMinutesReadable(int minutes) {
     if (remMinutes == 0) {
       result = '$hours ${hours == 1 ? 'hour' : 'hours'} before';
     } else {
-      result = '$hours ${hours == 1 ? 'hour' : 'hours'} $remMinutes ${remMinutes == 1 ? 'minute' : 'minutes'} before';
+      result =
+          '$hours ${hours == 1 ? 'hour' : 'hours'} $remMinutes ${remMinutes == 1 ? 'minute' : 'minutes'} before';
     }
   } else {
     final days = minutes ~/ 1440;
@@ -19,7 +20,8 @@ String formatMinutesReadable(int minutes) {
     if (remHours == 0) {
       result = '$days ${days == 1 ? 'day' : 'days'} before';
     } else {
-      result = '$days ${days == 1 ? 'day' : 'days'} $remHours ${remHours == 1 ? 'hour' : 'hours'} before';
+      result =
+          '$days ${days == 1 ? 'day' : 'days'} $remHours ${remHours == 1 ? 'hour' : 'hours'} before';
     }
   }
 

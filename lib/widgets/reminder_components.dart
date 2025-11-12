@@ -29,10 +29,7 @@ class ReminderChip extends StatelessWidget {
 class AddReminderChip extends StatelessWidget {
   final VoidCallback onPressed;
 
-  const AddReminderChip({
-    super.key,
-    required this.onPressed,
-  });
+  const AddReminderChip({super.key, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {

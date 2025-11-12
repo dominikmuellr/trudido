@@ -45,16 +45,19 @@ class _NotesOnboardingTooltipState extends State<NotesOnboardingTooltip>
 
   void _initializeAnimations() {
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOutCubicEmphasized,
+      ),
     );
 
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
     );
   }
 
@@ -70,7 +73,7 @@ class _NotesOnboardingTooltipState extends State<NotesOnboardingTooltip>
 
       if (_showTooltip) {
         // Small delay to allow the UI to settle
-        await Future.delayed(const Duration(milliseconds: 500));
+        await Future.delayed(const Duration(milliseconds: 350));
         if (mounted) {
           _animationController.forward();
         }

@@ -20,7 +20,9 @@ class AlarmSettingsWatcher with WidgetsBindingObserver, ChangeNotifier {
     WidgetsBinding.instance.addObserver(this);
     // Kick off after a microtask so channel registration on cold start finishes.
     Future.microtask(() async {
-      try { await SystemSettingsService.instance.ensureReady(); } catch (_) {}
+      try {
+        await SystemSettingsService.instance.ensureReady();
+      } catch (_) {}
       if (_started) refresh();
     });
   }

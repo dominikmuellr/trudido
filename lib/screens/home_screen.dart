@@ -28,7 +28,7 @@ import '../widgets/create_folder_dialog.dart';
 import '../utils/animated_navigation.dart';
 import 'settings_screen.dart';
 import 'notes_screen.dart';
-import 'note_editor_screen.dart';
+import 'quill_note_editor_screen.dart';
 import 'folder_management_screen.dart';
 import 'notes_folder_management_screen.dart';
 
@@ -168,7 +168,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Vault locked'),
-                  duration: Duration(seconds: 2),
+                  duration: Duration(milliseconds: 1500),
                 ),
               );
             }
@@ -239,9 +239,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   child: Scaffold(
                     appBar: _buildAppBar(context),
                     body: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      switchInCurve: Curves.easeInOut,
-                      switchOutCurve: Curves.easeInOut,
+                      duration: const Duration(milliseconds: 200),
+                      switchInCurve: Curves.easeInOutCubicEmphasized,
+                      switchOutCurve: Curves.easeInOutCubicEmphasized,
                       transitionBuilder: (child, animation) {
                         return FadeTransition(opacity: animation, child: child);
                       },
@@ -282,9 +282,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           drawer: _buildNavigationDrawer(context, currentTab),
           appBar: _buildAppBar(context),
           body: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            switchInCurve: Curves.easeInOut,
-            switchOutCurve: Curves.easeInOut,
+            duration: const Duration(milliseconds: 200),
+            switchInCurve: Curves.easeInOutCubicEmphasized,
+            switchOutCurve: Curves.easeInOutCubicEmphasized,
             transitionBuilder: (child, animation) {
               return FadeTransition(opacity: animation, child: child);
             },
@@ -429,10 +429,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void _createNewNote() {
     // Get the currently selected folder to create note in
     final selectedFolderId = ref.read(selectedNoteFolderProvider);
+    print('DEBUG: Creating new note with selectedFolderId: $selectedFolderId');
 
+    // Create note with WYSIWYG Quill editor
     AnimatedNavigation.pushContainerTransform(
       context,
-      NoteEditorScreen(initialFolderId: selectedFolderId),
+      QuillNoteEditorScreen(initialFolderId: selectedFolderId),
     );
   }
 
@@ -537,11 +539,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
 
     debugPrint(
-      '[Home Screen] Pushing NoteEditorScreen with folder ID: ${defaultVault.id}',
+      '[Home Screen] Pushing QuillNoteEditorScreen with folder ID: ${defaultVault.id}',
     );
     AnimatedNavigation.pushContainerTransform(
       context,
-      NoteEditorScreen(initialFolderId: defaultVault.id),
+      QuillNoteEditorScreen(initialFolderId: defaultVault.id),
     );
     debugPrint('[Home Screen] Note editor pushed');
   }
@@ -564,7 +566,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Vault locked'),
-        duration: Duration(seconds: 2),
+        duration: Duration(milliseconds: 1500),
       ),
     );
   }
@@ -613,6 +615,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
     bool isVault = false;
+    String noteFormat = 'markdown'; // Default to markdown
 
     return showDialog(
       context: context,
@@ -650,6 +653,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     maxLines: 2,
                     textCapitalization: TextCapitalization.sentences,
                   ),
+                  const SizedBox(height: 16),
                   const SizedBox(height: 16),
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
@@ -710,6 +714,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         isVault: isVault,
                         hasPassword: isVault && vaultPassword != null,
                         useBiometric: useBiometric,
+                        noteFormat: noteFormat,
                       );
 
                   if (mounted) {
@@ -1709,7 +1714,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           crossFadeState: _isCalendarExpanded
               ? CrossFadeState.showSecond
               : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 200),
         ),
       ],
     );
@@ -1965,7 +1970,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('All filters cleared'),
-                          duration: Duration(seconds: 2),
+                          duration: Duration(milliseconds: 1500),
                         ),
                       );
                     },
@@ -1995,7 +2000,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('Showing high priority tasks'),
-                          duration: const Duration(seconds: 2),
+                          duration: const Duration(milliseconds: 1500),
                           action: SnackBarAction(
                             label: 'Clear',
                             onPressed: () {
@@ -2034,7 +2039,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('Showing tasks due today'),
-                          duration: const Duration(seconds: 2),
+                          duration: const Duration(milliseconds: 1500),
                           action: SnackBarAction(
                             label: 'Clear',
                             onPressed: () {
@@ -2069,7 +2074,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('Showing completed tasks'),
-                          duration: const Duration(seconds: 2),
+                          duration: const Duration(milliseconds: 1500),
                           action: SnackBarAction(
                             label: 'Hide',
                             onPressed: () {
@@ -2088,7 +2093,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           crossFadeState: _isFilterExpanded
               ? CrossFadeState.showSecond
               : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 200),
         ),
       ],
     );

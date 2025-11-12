@@ -805,7 +805,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                                           'Opening file manager...',
                                         ),
                                         backgroundColor: Colors.blue,
-                                        duration: Duration(seconds: 2),
+                                        duration: Duration(milliseconds: 1500),
                                       ),
                                     );
                                   } else {

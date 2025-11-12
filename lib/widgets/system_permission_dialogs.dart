@@ -20,18 +20,24 @@ Future<bool> showExactAlarmDialogIfNeeded(BuildContext context) async {
           '- Device is idle / in Doze\n'
           '- After overnight charging\n'
           '- During short snoozes (5-15 min)\n\n'
-          'Android requires a manual toggle. We\'ll open system settings; enable it then come back.'
+          'Android requires a manual toggle. We\'ll open system settings; enable it then come back.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Later')),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Open Settings')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Later'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Open Settings'),
+          ),
         ],
       ),
     );
   }
   if (proceed == true) {
     await service.openExactAlarmSettings();
-    await Future.delayed(const Duration(milliseconds: 300));
+    await Future.delayed(const Duration(milliseconds: 200));
   }
   return service.canScheduleExactAlarms();
 }
@@ -49,18 +55,24 @@ Future<bool> showBatteryOptimizationDialogIfNeeded(BuildContext context) async {
         title: const Text('Allow Unrestricted Background'),
         content: const Text(
           'To prevent the system from delaying or cancelling reminders, allow the app to bypass battery optimization. '
-          'We will open the system screen; accept the prompt (or add to the allowlist), then return here.'
+          'We will open the system screen; accept the prompt (or add to the allowlist), then return here.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Later')),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Open Settings')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Later'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Open Settings'),
+          ),
         ],
       ),
     );
   }
   if (proceed == true) {
     await service.requestIgnoreBatteryOptimizations();
-    await Future.delayed(const Duration(milliseconds: 300));
+    await Future.delayed(const Duration(milliseconds: 200));
   }
   return service.isIgnoringBatteryOptimizations();
 }
@@ -69,11 +81,14 @@ Future<bool> showBatteryOptimizationDialogIfNeeded(BuildContext context) async {
 Future<BuildContext> _materialDialogContext(BuildContext fallback) async {
   for (var i = 0; i < 12; i++) {
     final ctx = NavigationService.context ?? fallback;
-    final has = Localizations.of<MaterialLocalizations>(ctx, MaterialLocalizations) != null;
+    final has =
+        Localizations.of<MaterialLocalizations>(ctx, MaterialLocalizations) !=
+        null;
     if (has) return ctx;
-    await Future.delayed(Duration(milliseconds: 40 * (i + 1)));
+    await Future.delayed(Duration(milliseconds: 30 * (i + 1)));
   }
-  return NavigationService.context ?? fallback; // last resort (may still assert if not ready)
+  return NavigationService.context ??
+      fallback; // last resort (may still assert if not ready)
 }
 
 /// Convenience overloads that resolve context dynamically; they return false if context unavailable.
