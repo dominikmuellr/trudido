@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:audioplayers/audioplayers.dart';
+import 'package:intl/intl.dart';
 
 /// Custom embed builder for rendering media (images, videos, audio) in Quill editor
 class MediaEmbedBuilder extends quill.EmbedBuilder {
@@ -228,33 +229,49 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
     super.dispose();
   }
 
+  String _getRecordingDateTime() {
+    try {
+      final file = File(widget.filePath);
+      if (file.existsSync()) {
+        final lastModified = file.lastModifiedSync();
+        final dateFormat = DateFormat('MMM d, y · h:mm a');
+        return dateFormat.format(lastModified);
+      }
+    } catch (e) {
+      debugPrint('Error getting file date: $e');
+    }
+    return 'Voice Recording';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final fileName = widget.filePath.split('/').last;
+    final recordingDateTime = _getRecordingDateTime();
     final formattedDuration = _formatDuration(_duration);
     final formattedPosition = _formatDuration(_position);
+
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.purple[50],
+        color: primaryColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.purple[200]!),
+        border: Border.all(color: primaryColor.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.mic, color: Colors.purple[700], size: 24),
+              Icon(Icons.mic, color: primaryColor, size: 24),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  fileName,
-                  style: const TextStyle(
+                  recordingDateTime,
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w500,
-                    fontSize: 14,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -270,7 +287,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                       height: 40,
                       child: Center(
                         child: CircularProgressIndicator(
-                          color: Colors.purple[700],
+                          color: primaryColor,
                           strokeWidth: 2,
                         ),
                       ),
@@ -282,7 +299,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                             ? Icons.pause_circle_filled
                             : Icons.play_circle_filled,
                         size: 40,
-                        color: Colors.purple[700],
+                        color: primaryColor,
                       ),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -296,8 +313,8 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                       value: _duration.inMilliseconds > 0
                           ? _position.inMilliseconds / _duration.inMilliseconds
                           : 0,
-                      backgroundColor: Colors.purple[100],
-                      color: Colors.purple[700],
+                      backgroundColor: primaryColor.withOpacity(0.2),
+                      color: primaryColor,
                     ),
                     const SizedBox(height: 4),
                     Text(

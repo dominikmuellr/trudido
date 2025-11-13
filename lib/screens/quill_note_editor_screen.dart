@@ -70,6 +70,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     _quillController.addListener(_checkForSlashCommand);
     _quillController.addListener(_handleScrollOnDelete);
     _quillController.addListener(_trackMediaChanges);
+    _quillController.addListener(_handleMarkdownShortcuts);
     // Update toolbar buttons when selection changes
     _focusNode.addListener(() {
       if (mounted) setState(() {});
@@ -130,6 +131,95 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       });
     }
     _previousLineCount = lineCount;
+  }
+
+  bool _shouldShowPlaceholder() {
+    // Show placeholder when cursor is on an empty line
+    final selection = _quillController.selection;
+    if (!selection.isCollapsed) return false;
+
+    final text = _quillController.document.toPlainText();
+    if (text.isEmpty) return true;
+
+    final cursorPosition = selection.baseOffset;
+    if (cursorPosition < 0 || cursorPosition > text.length) return false;
+
+    // Find the start and end of the current line
+    int lineStart = cursorPosition;
+    while (lineStart > 0 && text[lineStart - 1] != '\n') {
+      lineStart--;
+    }
+
+    int lineEnd = cursorPosition;
+    while (lineEnd < text.length && text[lineEnd] != '\n') {
+      lineEnd++;
+    }
+
+    // Check if the line is empty or only whitespace
+    final lineContent = text.substring(lineStart, lineEnd).trim();
+    return lineContent.isEmpty;
+  }
+
+  void _handleMarkdownShortcuts() {
+    final selection = _quillController.selection;
+    if (!selection.isCollapsed) return;
+
+    final text = _quillController.document.toPlainText();
+    final cursorPosition = selection.baseOffset;
+
+    if (cursorPosition <= 0 || cursorPosition > text.length) return;
+
+    // Get the current line
+    int lineStart = cursorPosition;
+    while (lineStart > 0 && text[lineStart - 1] != '\n') {
+      lineStart--;
+    }
+
+    final lineText = text.substring(lineStart, cursorPosition);
+
+    // Check if user just typed a space after markdown syntax
+    if (cursorPosition > 0 && text[cursorPosition - 1] == ' ') {
+      // Header shortcuts: # , ## , ###
+      if (lineText == '# ') {
+        _applyMarkdownFormat(lineStart, cursorPosition, quill.Attribute.h1);
+      } else if (lineText == '## ') {
+        _applyMarkdownFormat(lineStart, cursorPosition, quill.Attribute.h2);
+      } else if (lineText == '### ') {
+        _applyMarkdownFormat(lineStart, cursorPosition, quill.Attribute.h3);
+      }
+      // List shortcuts: - , 1. , [ ]
+      else if (lineText == '- ') {
+        _applyMarkdownFormat(lineStart, cursorPosition, quill.Attribute.ul);
+      } else if (RegExp(r'^\d+\.\s$').hasMatch(lineText)) {
+        _applyMarkdownFormat(lineStart, cursorPosition, quill.Attribute.ol);
+      } else if (lineText == '[] ' || lineText == '[ ] ') {
+        _applyMarkdownFormat(
+          lineStart,
+          cursorPosition,
+          quill.Attribute.unchecked,
+        );
+      }
+      // Block quote: >
+      else if (lineText == '> ') {
+        _applyMarkdownFormat(
+          lineStart,
+          cursorPosition,
+          quill.Attribute.blockQuote,
+        );
+      }
+    }
+  }
+
+  void _applyMarkdownFormat(int start, int end, quill.Attribute attribute) {
+    // Remove the markdown syntax
+    _quillController.replaceText(
+      start,
+      end - start,
+      '',
+      TextSelection.collapsed(offset: start),
+    );
+    // Apply the formatting
+    _quillController.formatText(start, 0, attribute);
   }
 
   void _checkForSlashCommand() {
@@ -255,6 +345,12 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     return showDialog<File?>(
       context: context,
       builder: (context) => AlertDialog(
+        icon: Icon(
+          type == MediaType.photo
+              ? Icons.image_outlined
+              : Icons.videocam_outlined,
+          size: 32,
+        ),
         title: Text(type == MediaType.photo ? 'Add Photo' : 'Add Video'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -262,8 +358,8 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
             ListTile(
               leading: Icon(
                 type == MediaType.photo
-                    ? Icons.photo_library
-                    : Icons.video_library,
+                    ? Icons.photo_library_outlined
+                    : Icons.video_library_outlined,
               ),
               title: const Text('Choose from Gallery'),
               onTap: () async {
@@ -282,7 +378,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
             ),
             ListTile(
               leading: Icon(
-                type == MediaType.photo ? Icons.camera_alt : Icons.videocam,
+                type == MediaType.photo
+                    ? Icons.camera_alt_outlined
+                    : Icons.videocam_outlined,
               ),
               title: Text(
                 type == MediaType.photo ? 'Take Photo' : 'Record Video',
@@ -488,7 +586,8 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
 
     _autoSaveTimer?.cancel();
 
-    if (hasChanges != _hasUnsavedChanges) {
+    // Always update state to refresh placeholder visibility and unsaved changes
+    if (mounted) {
       setState(() {
         _hasUnsavedChanges = hasChanges;
       });
@@ -806,8 +905,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
 
   Widget _buildSlashMenu() {
     return Material(
-      elevation: 8,
+      elevation: 3,
       borderRadius: BorderRadius.circular(12),
+      shadowColor: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -821,10 +921,10 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _buildCompactMenuItem(Icons.photo_library, 'Media', () {
+            _buildCompactMenuItem(Icons.image_outlined, 'Media', () {
               _insertSlashCommand('image');
             }),
-            _buildCompactMenuItem(Icons.mic, 'Voice', () {
+            _buildCompactMenuItem(Icons.mic_outlined, 'Voice', () {
               _insertSlashCommand('voice');
             }),
             _buildCompactMenuItem(Icons.link, 'Link', () {
@@ -1204,6 +1304,10 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                           top: 16,
                           bottom: MediaQuery.of(context).viewInsets.bottom + 16,
                         ),
+                        placeholder: _shouldShowPlaceholder()
+                            ? 'Press / for media or use markdown'
+                            : null,
+                        keyboardAppearance: Brightness.light,
                       ),
                     ),
                     // Slash command menu - positioned at cursor height

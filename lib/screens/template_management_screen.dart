@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/folder_template.dart';
 import '../services/template_provider.dart';
 import '../widgets/template_editor_dialog.dart';
-import '../widgets/template_item.dart';
 
 class TemplateManagementScreen extends ConsumerStatefulWidget {
   const TemplateManagementScreen({super.key});
@@ -14,213 +13,222 @@ class TemplateManagementScreen extends ConsumerStatefulWidget {
 }
 
 class _TemplateManagementScreenState
-    extends ConsumerState<TemplateManagementScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _searchController.dispose();
-    super.dispose();
-  }
-
+    extends ConsumerState<TemplateManagementScreen> {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final templatesAsync = ref.watch(templateNotifierProvider);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Template Management'),
-        elevation: 0,
-        // Ensure proper spacing for back button
-        leadingWidth: 56, // Standard leading width
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(
-            112,
-          ), // Increased for better spacing
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8.0), // Add bottom padding
-            child: Column(
-              children: [
-                // Search bar
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    16.0,
-                    0,
-                    16.0,
-                    12.0,
-                  ), // Better spacing
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search templates...',
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => _searchQuery = '');
-                              },
-                            )
-                          : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onChanged: (value) {
-                      setState(() => _searchQuery = value);
-                    },
+      appBar: AppBar(title: const Text('Folder Templates')),
+      body: templatesAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: colorScheme.error),
+              const SizedBox(height: 16),
+              Text('Error loading templates: $error'),
+            ],
+          ),
+        ),
+        data: (allTemplates) {
+          final builtInTemplates = allTemplates
+              .where((t) => t.isBuiltIn)
+              .toList();
+          final customTemplates = allTemplates
+              .where((t) => !t.isBuiltIn)
+              .toList();
+
+          return ListView(
+            children: [
+              // Header description
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Templates help you quickly create folders with pre-configured tasks.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
-                // Tab bar
-                TabBar(
-                  controller: _tabController,
-                  tabs: const [
-                    Tab(text: 'All Templates'),
-                    Tab(text: 'Built-in'),
-                    Tab(text: 'Custom'),
-                  ],
+              ),
+
+              // Built-in templates
+              if (builtInTemplates.isNotEmpty) ...[
+                _buildSectionHeader(context, 'Built-in Templates'),
+                ...builtInTemplates.map(
+                  (template) =>
+                      _buildTemplateListTile(context, template, colorScheme),
                 ),
+              ],
+
+              // Custom templates
+              if (customTemplates.isNotEmpty) ...[
+                _buildSectionHeader(context, 'Custom Templates'),
+                ...customTemplates.map(
+                  (template) =>
+                      _buildTemplateListTile(context, template, colorScheme),
+                ),
+              ],
+
+              // Empty state for custom templates
+              if (customTemplates.isEmpty) ...[
+                _buildSectionHeader(context, 'Custom Templates'),
+                Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.folder_copy_outlined,
+                          size: 48,
+                          color: colorScheme.outline,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No custom templates yet',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Create templates to organize your workflows',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.outline,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _createNewTemplate,
+        icon: const Icon(Icons.add),
+        label: const Text('New Template'),
+      ),
+    );
+  }
+
+  Widget _buildTemplateListTile(
+    BuildContext context,
+    FolderTemplate template,
+    ColorScheme colorScheme,
+  ) {
+    final isCustomized = template.isBuiltIn && template.isCustomized;
+
+    return ListTile(
+      leading: Icon(
+        template.isBuiltIn
+            ? Icons.folder_special_outlined
+            : Icons.folder_outlined,
+        color: template.isBuiltIn ? colorScheme.tertiary : colorScheme.primary,
+      ),
+      title: Row(
+        children: [
+          Expanded(child: Text(template.name)),
+          if (isCustomized)
+            Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: Chip(
+                label: const Text('Modified', style: TextStyle(fontSize: 10)),
+                padding: EdgeInsets.zero,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+        ],
+      ),
+      subtitle: Text(
+        template.description ?? '${template.taskTemplates.length} tasks',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: PopupMenuButton<String>(
+        icon: const Icon(Icons.more_vert),
+        onSelected: (value) {
+          switch (value) {
+            case 'edit':
+              _editTemplate(template);
+              break;
+            case 'duplicate':
+              _duplicateTemplate(template);
+              break;
+            case 'reset':
+              _resetTemplate(template);
+              break;
+            case 'delete':
+              _deleteTemplate(template);
+              break;
+          }
+        },
+        itemBuilder: (context) => [
+          const PopupMenuItem(
+            value: 'edit',
+            child: Row(
+              children: [
+                Icon(Icons.edit_outlined, size: 20),
+                SizedBox(width: 12),
+                Text('Edit'),
               ],
             ),
           ),
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildTemplateList(_getAllTemplates()),
-          _buildTemplateList(_getBuiltInTemplates()),
-          _buildTemplateList(_getCustomTemplates()),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _createNewTemplate(),
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  Widget _buildTemplateList(AsyncValue<List<FolderTemplate>> templatesAsync) {
-    return templatesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) =>
-          Center(child: Text('Error loading templates: $error')),
-      data: (templates) {
-        final filteredTemplates = _filterTemplates(templates);
-
-        if (filteredTemplates.isEmpty) {
-          return _buildEmptyState();
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: filteredTemplates.length,
-          itemBuilder: (context, index) {
-            final template = filteredTemplates[index];
-            return TemplateItem(
-              template: template,
-              onTap: () => _editTemplate(template),
-              onUse: () => _useTemplate(template),
-              onDuplicate: () => _duplicateTemplate(template),
-              onDelete: template.isBuiltIn
-                  ? null
-                  : () => _deleteTemplate(template),
-              onReset: (template.isBuiltIn && template.isCustomized)
-                  ? () => _resetTemplate(template)
-                  : null,
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.folder_copy_outlined,
-            size: 64,
-            color: Theme.of(context).colorScheme.outline,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _searchQuery.isEmpty
-                ? 'No templates found'
-                : 'No templates match your search',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.outline,
+          const PopupMenuItem(
+            value: 'duplicate',
+            child: Row(
+              children: [
+                Icon(Icons.content_copy_outlined, size: 20),
+                SizedBox(width: 12),
+                Text('Duplicate'),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          if (_searchQuery.isEmpty) ...[
-            Text(
-              'Create your first custom template',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
+          if (isCustomized)
+            const PopupMenuItem(
+              value: 'reset',
+              child: Row(
+                children: [
+                  Icon(Icons.restore_outlined, size: 20),
+                  SizedBox(width: 12),
+                  Text('Reset to Default'),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: _createNewTemplate,
-              icon: const Icon(Icons.add),
-              label: const Text('Create Template'),
+          if (!template.isBuiltIn)
+            const PopupMenuItem(
+              value: 'delete',
+              child: Row(
+                children: [
+                  Icon(Icons.delete_outline, size: 20),
+                  SizedBox(width: 12),
+                  Text('Delete'),
+                ],
+              ),
             ),
-          ],
         ],
       ),
+      onTap: () => _editTemplate(template),
     );
   }
 
-  List<FolderTemplate> _filterTemplates(List<FolderTemplate> templates) {
-    if (_searchQuery.isEmpty) return templates;
-
-    return templates.where((template) {
-      final query = _searchQuery.toLowerCase();
-      return template.name.toLowerCase().contains(query) ||
-          template.description?.toLowerCase().contains(query) == true ||
-          template.keywords.any(
-            (keyword) => keyword.toLowerCase().contains(query),
-          );
-    }).toList();
-  }
-
-  AsyncValue<List<FolderTemplate>> _getAllTemplates() {
-    return ref.watch(templateNotifierProvider);
-  }
-
-  AsyncValue<List<FolderTemplate>> _getBuiltInTemplates() {
-    final templatesAsync = ref.watch(templateNotifierProvider);
-    return templatesAsync.when(
-      loading: () => const AsyncValue.loading(),
-      error: (error, stack) => AsyncValue.error(error, stack),
-      data: (templates) {
-        final builtInTemplates = templates.where((t) => t.isBuiltIn).toList();
-        return AsyncValue.data(builtInTemplates);
-      },
-    );
-  }
-
-  AsyncValue<List<FolderTemplate>> _getCustomTemplates() {
-    final templatesAsync = ref.watch(templateNotifierProvider);
-    return templatesAsync.when(
-      loading: () => const AsyncValue.loading(),
-      error: (error, stack) => AsyncValue.error(error, stack),
-      data: (templates) {
-        final customTemplates = templates.where((t) => !t.isBuiltIn).toList();
-        return AsyncValue.data(customTemplates);
-      },
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
@@ -257,12 +265,6 @@ class _TemplateManagementScreenState
         },
       ),
     );
-  }
-
-  void _useTemplate(FolderTemplate template) {
-    // This would trigger the template usage (create folder with tasks)
-    ref.read(templateNotifierProvider.notifier).incrementUsage(template.id);
-    Navigator.of(context).pop(template); // Return template to caller
   }
 
   void _duplicateTemplate(FolderTemplate template) {

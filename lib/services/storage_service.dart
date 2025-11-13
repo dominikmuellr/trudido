@@ -260,30 +260,35 @@ class StorageService {
     final welcomeNote = Note(
       title: 'Welcome to Notes',
       content:
-          '''# Welcome to Notes!\n\nCreate and organize your thoughts here. You can:\n\n- Write notes with *markdown* syntax
-- Format text with **emphasis** and *styling*
-- Create [links](https://flutter.dev)
-- Add code blocks:
+          '''# Welcome to Notes!\n\nCreate rich, beautiful notes with our powerful editor. You can:\n\n## Quick Formatting
+- Use the **toolbar** for visual formatting
+- Or type **markdown shortcuts** (# for headers, ** for bold, * for italic)
+- Press **/** to add media, voice recordings, links, and code blocks
 
-```dart
-void main() {
-  print('Hello, Flutter!');
-}
-```
+## Media Support
+📸 Add photos from gallery or camera
+🎥 Embed videos
+🎤 Record voice notes
+🔗 Insert links
 
-## Lists
-1. First item
-2. Second item
-3. Third item
+## Markdown Shortcuts
+Type these and press space:
+- # → Heading 1
+- ## → Heading 2  
+- - → Bullet list
+- 1. → Numbered list
+- [ ] → Checkbox
+- > → Block quote
 
-- Bullet point
-- Another point
+## Rich Formatting
+- **Bold**, *Italic*, Underline, ~~Strikethrough~~
+- Different font sizes and colors
+- Code blocks and inline code
+- Lists, checkboxes, and quotes
 
-> This is a blockquote with some **formatted text**.
+**Tap the + button to create your first note!**
 
-**Try creating your first note!**
-
-Enjoy taking notes! 📝''',
+Happy note-taking! ✨''',
     );
     await _notesBox!.put(welcomeNote.id, welcomeNote);
   }

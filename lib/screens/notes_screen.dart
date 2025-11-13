@@ -89,10 +89,11 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             Text(
               isSearchMode && searchQuery.isNotEmpty
                   ? 'Try a different search term'
-                  : 'Tap the + button to create your first note',
+                  : 'Create rich text notes with media, voice recordings, and markdown support',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/note.dart';
@@ -142,15 +143,15 @@ class MarkdownExportService {
     }
   }
 
-  /// Mobile-friendly import: pick individual .md files
+  /// Mobile-friendly import: pick individual .md or .json files
   static Future<ImportResult> _importFromMobileFilePicker() async {
     try {
-      // Pick multiple .md files
+      // Pick multiple .md or .json files
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['md'],
+        allowedExtensions: ['md', 'json'],
         allowMultiple: true,
-        dialogTitle: 'Select Markdown Files to Import',
+        dialogTitle: 'Select Markdown or JSON Files to Import',
       );
 
       if (result == null || result.files.isEmpty) {
@@ -272,17 +273,27 @@ class MarkdownExportService {
     return files;
   }
 
-  /// Import a single markdown file
+  /// Import a single markdown or JSON file
   static Future<ImportResult> _importSingleFile(File file) async {
     try {
       final content = await file.readAsString();
-      final note = _parseMarkdownFile(content, file.path);
+      final fileName = file.path.toLowerCase();
+
+      Note? note;
+
+      // Handle JSON files (Quill format)
+      if (fileName.endsWith('.json')) {
+        note = _parseJsonFile(content, file.path);
+      }
+      // Handle Markdown files
+      else if (fileName.endsWith('.md')) {
+        note = _parseMarkdownFile(content, file.path);
+      } else {
+        return ImportResult(success: false, message: 'Unsupported file format');
+      }
 
       if (note == null) {
-        return ImportResult(
-          success: false,
-          message: 'Could not parse markdown file',
-        );
+        return ImportResult(success: false, message: 'Could not parse file');
       }
 
       // Check if note already exists (by ID if available, or by title+content)
@@ -291,7 +302,7 @@ class MarkdownExportService {
 
       // Check for duplicate note by ID (from frontmatter)
       final existingById = existingNotes
-          .where((n) => n.id == note.id)
+          .where((n) => n.id == note!.id)
           .firstOrNull;
       if (existingById != null) {
         debugPrint(
@@ -304,7 +315,7 @@ class MarkdownExportService {
       final similarNote = existingNotes
           .where(
             (n) =>
-                n.title == note.title &&
+                n.title == note!.title &&
                 n.content.trim() == note.content.trim(),
           )
           .firstOrNull;
@@ -403,6 +414,46 @@ class MarkdownExportService {
       );
     } catch (e) {
       debugPrint('[MarkdownImport] Failed to parse markdown file: $e');
+      return null;
+    }
+  }
+
+  /// Parse a JSON file (Quill Delta format) and extract note data
+  static Note? _parseJsonFile(String content, String filePath) {
+    try {
+      final jsonData = jsonDecode(content);
+
+      // Expected format: {"title": "...", "content": "[{...}]", "createdAt": "...", ...}
+      if (jsonData is! Map<String, dynamic>) {
+        debugPrint('[MarkdownImport] Invalid JSON format - expected object');
+        return null;
+      }
+
+      final title = jsonData['title'] as String? ?? 'Imported Note';
+      final noteContent = jsonData['content'] as String? ?? '[]';
+      final noteId = jsonData['id'] as String?;
+
+      DateTime? createdAt;
+      DateTime? updatedAt;
+
+      if (jsonData['createdAt'] != null) {
+        createdAt = DateTime.tryParse(jsonData['createdAt'] as String);
+      }
+      if (jsonData['updatedAt'] != null) {
+        updatedAt = DateTime.tryParse(jsonData['updatedAt'] as String);
+      }
+
+      final now = DateTime.now();
+
+      return Note(
+        id: noteId,
+        title: title,
+        content: noteContent,
+        createdAt: createdAt ?? now,
+        updatedAt: updatedAt ?? now,
+      );
+    } catch (e) {
+      debugPrint('[MarkdownImport] Failed to parse JSON file: $e');
       return null;
     }
   }

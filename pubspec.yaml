@@ -99,6 +99,10 @@ dependencies:
   # Audio playback
   audioplayers: ^6.0.0
 
+  # PDF generation and export
+  pdf: ^3.11.1
+  printing: ^5.13.4
+
   # Encryption for vault notes
   encrypt: ^5.0.3
   flutter_secure_storage: ^9.2.2
