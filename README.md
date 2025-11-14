@@ -58,10 +58,10 @@ The links above are the only trusted sources of Trudido. Any other websites or l
 - Lock your Notes in a SHA-256 encrypted Vault
 
 ### 🎨 Design
-- Material 3 interface following Google’s latest guidelines  
+- Material 3 interface
 - Dynamic color (Material You, Android 12+)  
 - Light/Dark modes  
-- Custom accent colors when dynamic color is off like Dracula and a Hack-Theme
+- Custom accent themes (e.g., Dracula, Solarize)
 - Responsive layout across devices  
 
 ### 🔒 Privacy
@@ -83,6 +83,22 @@ The links above are the only trusted sources of Trudido. Any other websites or l
   <img src="assets/imagefiles/9.png" width="250">
 </p>
 
+## 🌍 Translations
+Translations are provided together with the community.
+If you'd like to help improve or add languages, you can join the project on Crowdin.
+
+## 🔐 Privacy Details
+
+Trudido follows a simple offline-first approach aligned with European expectations around data protection:
+
+- No network communication
+- No analytics or tracking
+- All data stored on-device
+- Notes Vault encrypted with SHA-256
+- Optional manual import/export
+
+Your tasks and notes stay with you.
+
 
 ## 🧩 License
 Licensed under the **GNU General Public License v3.0 (GPL-3.0)**.  
@@ -91,7 +107,7 @@ See the [LICENSE](LICENSE) file for details.
 
 
 ## 💬 Contributing
-Pull requests are welcome!  
+Pull requests are welcome.  
 For major changes, please open an issue first to discuss what you’d like to modify.
 
 
