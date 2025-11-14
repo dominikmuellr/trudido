@@ -18,7 +18,7 @@ class TodoListTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final filteredTodos = ref.watch(filteredTasksProvider);
     final sortBy = ref.watch(sortByProvider);
-    // hideGreeting setting removed; always show greeting header
+
     final multiMode = ref.watch(multiSelectModeProvider);
     final selectedIds = ref.watch(selectedTodoIdsProvider);
     final viewType = ref.watch(taskViewTypeProvider);
@@ -30,30 +30,20 @@ class TodoListTab extends ConsumerWidget {
 
     return Column(
       children: [
-        // Content view based on view type
         Expanded(
           child: GestureDetector(
             onPanUpdate: (details) {
-              // Only trigger in calendar view or when list is empty
               if (viewType == TaskViewType.calendar || filteredTodos.isEmpty) {
-                // Detect downward swipe gesture to trigger search
-                // require a larger downward movement to avoid accidental triggers
                 if (details.delta.dy > 60) {
-                  // stronger swipe down
-                  // open search only for clear deliberate gestures
                   ref.read(searchModeProvider.notifier).state = true;
                 }
               }
             },
             child: NotificationListener<ScrollNotification>(
               onNotification: (scrollNotification) {
-                // Only handle scroll-to-search for list views with content
                 if (viewType == TaskViewType.list && filteredTodos.isNotEmpty) {
-                  // Detect pull-to-search gesture
                   if (scrollNotification is ScrollUpdateNotification) {
-                    // Only trigger if user is at the very top of the list
                     if (scrollNotification.metrics.extentBefore <= 0) {
-                      // Check if user is pulling down far enough (strong deliberate pull)
                       if (scrollNotification.metrics.pixels <= -120) {
                         ref.read(searchModeProvider.notifier).state = true;
                         return true;
@@ -62,7 +52,6 @@ class TodoListTab extends ConsumerWidget {
                   }
 
                   if (scrollNotification is OverscrollNotification) {
-                    // Only trigger if at the top and overscroll is strong enough
                     if (scrollNotification.metrics.extentBefore <= 0) {
                       if (scrollNotification.overscroll <= -80) {
                         ref.read(searchModeProvider.notifier).state = true;
@@ -114,12 +103,10 @@ class TodoListTab extends ConsumerWidget {
                                 selectable: multiMode,
                                 selected: selectedIds.contains(todo.id),
                                 onSelectToggle: () {
-                                  // For manual reorder view, only allow selection if already in multi mode to avoid gesture conflict
                                   final wasMulti = ref.read(
                                     multiSelectModeProvider,
                                   );
-                                  if (!wasMulti)
-                                    return; // user should use toolbar icon in manual mode
+                                  if (!wasMulti) return;
                                   ref
                                       .read(selectedTodoIdsProvider.notifier)
                                       .toggle(todo.id);

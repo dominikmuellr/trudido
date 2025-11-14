@@ -28,7 +28,6 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
     );
     _keywords = List.from(widget.template?.keywords ?? []);
 
-    // Convert task templates to editable data
     _tasks =
         widget.template?.taskTemplates
             .map(
@@ -41,7 +40,6 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
             .toList() ??
         [];
 
-    // Ensure at least one empty task
     if (_tasks.isEmpty) {
       _tasks.add(TaskTemplateData());
     }
@@ -63,7 +61,6 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            // Header
             Row(
               children: [
                 Text(
@@ -82,7 +79,6 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
 
             const SizedBox(height: 16),
 
-            // Content
             Expanded(
               child: Form(
                 key: _formKey,
@@ -90,7 +86,6 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Template name
                       TextFormField(
                         controller: _nameController,
                         decoration: const InputDecoration(
@@ -107,7 +102,6 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
 
                       const SizedBox(height: 16),
 
-                      // Description
                       TextFormField(
                         controller: _descriptionController,
                         decoration: const InputDecoration(
@@ -119,7 +113,6 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
 
                       const SizedBox(height: 24),
 
-                      // Keywords section
                       Text(
                         'Keywords (for auto-suggestions)',
                         style: Theme.of(context).textTheme.titleMedium
@@ -130,7 +123,6 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
 
                       const SizedBox(height: 24),
 
-                      // Tasks section
                       Row(
                         children: [
                           Text(
@@ -158,7 +150,6 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
               ),
             ),
 
-            // Actions
             const SizedBox(height: 16),
             Row(
               children: [

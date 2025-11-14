@@ -33,10 +33,8 @@ class TemplateItem extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header row
               Row(
                 children: [
-                  // Template icon and type indicator
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
@@ -53,7 +51,6 @@ class TemplateItem extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
 
-                  // Template name and info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,7 +76,6 @@ class TemplateItem extends StatelessWidget {
                     ),
                   ),
 
-                  // Usage count and status
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -146,7 +142,6 @@ class TemplateItem extends StatelessWidget {
                 ],
               ),
 
-              // Description
               if (template.description != null &&
                   template.description!.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -160,7 +155,6 @@ class TemplateItem extends StatelessWidget {
                 ),
               ],
 
-              // Task preview
               if (template.taskTemplates.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
@@ -174,7 +168,6 @@ class TemplateItem extends StatelessWidget {
                 ),
               ],
 
-              // Action buttons
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -209,7 +202,6 @@ class TemplateItem extends StatelessWidget {
 
                   const Spacer(),
 
-                  // More actions menu
                   PopupMenuButton<String>(
                     icon: Icon(
                       Icons.more_vert,

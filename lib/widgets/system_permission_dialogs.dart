@@ -1,10 +1,7 @@
-// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import '../services/system_settings_service.dart';
 import '../services/navigation_service.dart';
 
-/// Shows rationale + navigates to exact alarm settings if user accepts.
-/// Returns true if after the potential settings navigation we can schedule exact alarms.
 Future<bool> showExactAlarmDialogIfNeeded(BuildContext context) async {
   final service = SystemSettingsService.instance;
   if (await service.canScheduleExactAlarms()) return true;
@@ -42,7 +39,6 @@ Future<bool> showExactAlarmDialogIfNeeded(BuildContext context) async {
   return service.canScheduleExactAlarms();
 }
 
-/// Shows rationale for disabling battery optimization. Returns true if ignoring optimization afterwards.
 Future<bool> showBatteryOptimizationDialogIfNeeded(BuildContext context) async {
   final service = SystemSettingsService.instance;
   if (await service.isIgnoringBatteryOptimizations()) return true;
@@ -77,7 +73,6 @@ Future<bool> showBatteryOptimizationDialogIfNeeded(BuildContext context) async {
   return service.isIgnoringBatteryOptimizations();
 }
 
-/// Ensures we have a BuildContext with MaterialLocalizations.
 Future<BuildContext> _materialDialogContext(BuildContext fallback) async {
   for (var i = 0; i < 12; i++) {
     final ctx = NavigationService.context ?? fallback;
@@ -87,11 +82,9 @@ Future<BuildContext> _materialDialogContext(BuildContext fallback) async {
     if (has) return ctx;
     await Future.delayed(Duration(milliseconds: 30 * (i + 1)));
   }
-  return NavigationService.context ??
-      fallback; // last resort (may still assert if not ready)
+  return NavigationService.context ?? fallback;
 }
 
-/// Convenience overloads that resolve context dynamically; they return false if context unavailable.
 Future<bool> showExactAlarmDialogIfNeededAuto() async {
   final ctx = NavigationService.navigatorKey.currentContext;
   if (ctx == null) return false;

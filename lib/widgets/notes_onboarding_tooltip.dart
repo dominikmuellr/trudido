@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// One-time onboarding tooltip for notes gestures
-///
-/// This widget wraps any child widget and displays a semi-transparent overlay
-/// with gesture instructions on the first app launch. Uses SharedPreferences
-/// to ensure it only shows once per device.
 ///
 /// Usage:
 /// ```dart

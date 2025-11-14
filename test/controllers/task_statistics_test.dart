@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trudido/controllers/task_controller.dart';
 import 'package:trudido/models/todo.dart';
 import 'package:trudido/providers/clock.dart';
-// No fake notifier needed now; we override rawTasksProvider directly.
 
 void main() {
   group('TaskStatistics', () {
@@ -43,8 +42,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           rawTasksProvider.overrideWithValue(seed),
-          // Make the provider use the same 'now' as the test so streak calculation
-          // is deterministic.
+
           clockProvider.overrideWithValue(FixedClock(now)),
         ],
       );
@@ -58,7 +56,7 @@ void main() {
       expect(stats.dueToday, 1);
       expect(stats.dueSoon, 1);
       expect(stats.byPriority['high'], 2);
-      expect((stats.completionRate * 100).round(), 25); // 1/4
+      expect((stats.completionRate * 100).round(), 25);
     });
 
     test('streak and motivationalMessage thresholds', () async {
@@ -76,7 +74,7 @@ void main() {
               now.day,
             ).subtract(Duration(days: i)),
           ),
-        // Pending tasks to influence completion rate boundary
+
         Todo(id: 'p1', text: 'pending1', createdAt: now),
         Todo(id: 'p2', text: 'pending2', createdAt: now),
       ];
@@ -89,7 +87,7 @@ void main() {
       addTearDown(container.dispose);
       final stats = container.read(taskStatisticsProvider);
       expect(stats.streakDays, greaterThanOrEqualTo(3));
-      // 3 completed / 5 total = 0.6 motivational boundary -> second message variant
+
       expect(stats.completionRate, closeTo(0.6, 0.0001));
       final msg = stats.motivationalMessage;
       expect(msg.contains('Great progress'), isTrue);

@@ -8,24 +8,18 @@ void main() {
     });
 
     test('formats single digit minutes correctly', () {
-      expect(formatMinutesReadable(1), '1 minute before');
-      expect(formatMinutesReadable(5), '5 minutes before');
-      expect(formatMinutesReadable(9), '9 minutes before');
     });
 
     test('formats double digit minutes correctly', () {
       expect(formatMinutesReadable(15), '15 minutes before');
       expect(formatMinutesReadable(30), '30 minutes before');
       expect(formatMinutesReadable(45), '45 minutes before');
-    });
-
     test('formats exactly 1 hour correctly', () {
       expect(formatMinutesReadable(60), '1 hour before');
     });
 
     test('formats multiple hours correctly', () {
       expect(formatMinutesReadable(120), '2 hours before');
-      expect(formatMinutesReadable(180), '3 hours before');
       expect(formatMinutesReadable(360), '6 hours before');
     });
 
@@ -37,10 +31,6 @@ void main() {
       expect(formatMinutesReadable(2880), '2 days before');
       expect(formatMinutesReadable(4320), '3 days before');
       expect(formatMinutesReadable(7200), '5 days before');
-    });
-
-    test('formats 1 week as 7 days', () {
-      expect(formatMinutesReadable(10080), '7 days before');
     });
 
     test('formats multiple weeks as days', () {

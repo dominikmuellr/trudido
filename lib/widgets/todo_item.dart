@@ -31,7 +31,7 @@ class TodoItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    // Use a more subtle selection color that works better in dark mode
+
     final selectedBg = cs.surfaceContainerHighest;
     final selectedFg = cs.onSurface;
     final appOpts =
@@ -76,12 +76,11 @@ class TodoItem extends StatelessWidget {
                     : 'Not selected. Double tap to select.')
               : 'Double tap to edit task. Long press to select.',
           child: Card(
-            elevation: todo.isCompleted ? 0 : 1, // Enhanced MD3: 1 for tasks
+            elevation: todo.isCompleted ? 0 : 1,
             color: selected
                 ? selectedBg
                 : (theme.brightness == Brightness.dark
-                      ? cs
-                            .surfaceContainerHigh // Higher surface for better visibility
+                      ? cs.surfaceContainerHigh
                       : null),
             child: InkWell(
               onTap: () {
@@ -92,12 +91,8 @@ class TodoItem extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => TaskEditorScreen(
-                      todo: todo,
-                      onSave: (updatedTask) {
-                        // The save will be handled by the TaskEditorScreen automatically
-                      },
-                    ),
+                    builder: (context) =>
+                        TaskEditorScreen(todo: todo, onSave: (updatedTask) {}),
                   ),
                 );
               },
@@ -107,11 +102,8 @@ class TodoItem extends StatelessWidget {
                 }
               },
               child: AnimatedContainer(
-                duration: const Duration(
-                  milliseconds: 200,
-                ), // Material 3 standard - Faster
-                curve:
-                    Curves.easeInOutCubicEmphasized, // Material 3 motion curve
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOutCubicEmphasized,
                 padding: EdgeInsets.all(basePad),
                 child: Row(
                   children: [
@@ -121,9 +113,7 @@ class TodoItem extends StatelessWidget {
                             child: Container(
                               padding: EdgeInsets.all(controlPad),
                               child: AnimatedContainer(
-                                duration: const Duration(
-                                  milliseconds: 150,
-                                ), // Material 3 standard - Faster
+                                duration: const Duration(milliseconds: 150),
                                 curve: Curves.easeInOutCubicEmphasized,
                                 width: 24,
                                 height: 24,

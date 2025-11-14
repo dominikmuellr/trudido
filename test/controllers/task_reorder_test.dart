@@ -20,7 +20,7 @@ void main() {
       Todo(id: 'c', text: 'C', createdAt: DateTime.now()),
       Todo(id: 'd', text: 'D', createdAt: DateTime.now()),
     ];
-    final result = computeReordered(seed, seed, 3, 1)!; // move d before b
+    final result = computeReordered(seed, seed, 3, 1)!;
     expect(result.map((t) => t.id).toList(), ['a', 'd', 'b', 'c']);
   });
 }

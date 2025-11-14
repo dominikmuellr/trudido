@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/formatters.dart';
 
-/// Reusable widget for displaying a single reminder chip with delete option
 class ReminderChip extends StatelessWidget {
   final int minutes;
   final VoidCallback onDelete;
@@ -25,7 +24,6 @@ class ReminderChip extends StatelessWidget {
   }
 }
 
-/// Reusable widget for the "Add Reminder" action chip
 class AddReminderChip extends StatelessWidget {
   final VoidCallback onPressed;
 
@@ -43,7 +41,6 @@ class AddReminderChip extends StatelessWidget {
   }
 }
 
-/// Reusable section header for reminders
 class RemindersSection extends StatelessWidget {
   final List<int> reminderOffsets;
   final Function(int) onRemoveReminder;

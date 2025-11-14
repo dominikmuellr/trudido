@@ -13,21 +13,18 @@ void main() {
         dueDate: DateTime(2025, 10, 21),
       );
 
-      // Verify fields are set
       expect(todo.repeatType, 'daily');
       expect(todo.repeatInterval, 2);
       expect(todo.repeatDays, [1, 3, 5]);
       expect(todo.repeatEndDate, DateTime(2025, 12, 31));
       expect(todo.isRecurring, true);
 
-      // Test JSON serialization
       final json = todo.toJson();
       expect(json['repeatType'], 'daily');
       expect(json['repeatInterval'], 2);
       expect(json['repeatDays'], [1, 3, 5]);
       expect(json['repeatEndDate'], isNotNull);
 
-      // Test JSON deserialization
       final fromJson = Todo.fromJson(json);
       expect(fromJson.repeatType, 'daily');
       expect(fromJson.repeatInterval, 2);

@@ -15,7 +15,6 @@ class StatsCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Progress indicator and completion rate
             Row(
               children: [
                 Expanded(
@@ -46,7 +45,7 @@ class StatsCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                // Circular progress
+
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -77,7 +76,6 @@ class StatsCard extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // Stats row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -113,7 +111,6 @@ class StatsCard extends StatelessWidget {
               ],
             ),
 
-            // Motivational message
             if (statistics.motivationalMessage.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(

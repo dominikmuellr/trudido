@@ -15,13 +15,11 @@ void main() {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(channel, (call) async {
         if (call.method == 'getApplicationDocumentsDirectory') {
-          // Return a fake path for tests.
           return 'test_documents';
         }
         return null;
       });
 
-  // Mock shared_preferences
   const MethodChannel spChannel = MethodChannel(
     'plugins.flutter.io/shared_preferences',
   );
@@ -64,7 +62,6 @@ void main() {
     test('NotesRepository should create and manage notes', () async {
       final repository = NotesRepository(NoteFolderRepository());
 
-      // Test creating a note
       final note = await repository.createNote(
         title: 'Test Note',
         content: '# Hello World\n\nThis is a **test** note.',
@@ -74,12 +71,10 @@ void main() {
       expect(note.content.contains('Hello World'), isTrue);
       expect(note.id.isNotEmpty, isTrue);
 
-      // Test retrieving notes
       final allNotes = await repository.getAllNotes();
       expect(allNotes.any((n) => n.id == note.id), isTrue);
       expect(allNotes.length, greaterThan(0));
 
-      // Test updating note
       final updatedNote = await repository.updateNote(
         id: note.id,
         title: 'Updated Title',
@@ -91,11 +86,9 @@ void main() {
       expect(updatedNote.content, 'Updated content');
       expect(updatedNote.updatedAt.isAfter(note.createdAt), isTrue);
 
-      // Test search functionality
       final searchResults = await repository.searchNotes('Updated');
       expect(searchResults.any((n) => n.id == updatedNote.id), isTrue);
 
-      // Test deletion
       final deleted = await repository.deleteNote(note.id);
       expect(deleted, isTrue);
       final notesAfterDeletion = await repository.getAllNotes();
@@ -106,12 +99,10 @@ void main() {
       final container = ProviderContainer();
       final notifier = container.read(notesProvider.notifier);
 
-      // Test initial state
       await container.read(notesProvider.future);
       final initialNotes = container.read(notesProvider).value ?? [];
       final initialCount = initialNotes.length;
 
-      // Test creating note
       final newNote = await notifier.createNote(
         title: 'Test State Note',
         content: 'Testing state management',
@@ -121,7 +112,6 @@ void main() {
       expect(notesAfterCreation.length, initialCount + 1);
       expect(notesAfterCreation.any((n) => n.id == newNote.id), isTrue);
 
-      // Test updating note
       final updatedNote = await notifier.updateNote(
         id: newNote.id,
         title: 'Updated State Note',
@@ -134,7 +124,6 @@ void main() {
         isTrue,
       );
 
-      // Test deletion
       final deleted = await notifier.deleteNote(newNote.id);
       expect(deleted, isTrue);
       final notesAfterDeletion = await container.read(notesProvider.future);
@@ -146,7 +135,6 @@ void main() {
     test('Search functionality should work correctly', () async {
       final repository = NotesRepository(NoteFolderRepository());
 
-      // Create test notes
       await repository.createNote(
         title: 'Flutter Development',
         content: 'Learning Flutter framework',
@@ -165,22 +153,18 @@ void main() {
       final allNotes = await repository.getAllNotes();
       print('All notes: ${allNotes.map((n) => n.title).toList()}');
 
-      // Test title search
       var results = await repository.searchNotes('Flutter');
       print(
         'Search results for "Flutter": ${results.map((n) => n.title).toList()}',
       );
       expect(results.length, 2);
 
-      // Test content search (more specific term)
       results = await repository.searchNotes('programming language');
       expect(results.length, 1);
 
-      // Test case-insensitive search
       results = await repository.searchNotes('flutter');
       expect(results.length, 2);
 
-      // Test empty search returns all notes
       results = await repository.searchNotes('');
       expect(results.length, greaterThanOrEqualTo(3));
     });

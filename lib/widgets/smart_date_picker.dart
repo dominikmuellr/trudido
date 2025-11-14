@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../providers/clock.dart';
 
-/// Smart date picker that supports both single date and date range selection
-/// Single tap = single day, Double tap/drag = date range
 class SmartDatePicker extends ConsumerStatefulWidget {
   final DateTime? initialStartDate;
   final DateTime? initialEndDate;
@@ -46,7 +44,6 @@ class _SmartDatePickerState extends ConsumerState<SmartDatePicker> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             Row(
               children: [
                 Icon(Icons.calendar_month, color: colorScheme.primary),
@@ -78,7 +75,6 @@ class _SmartDatePickerState extends ConsumerState<SmartDatePicker> {
             ),
             const SizedBox(height: 24),
 
-            // Calendar
             Theme(
               data: theme.copyWith(
                 colorScheme: colorScheme.copyWith(
@@ -102,7 +98,6 @@ class _SmartDatePickerState extends ConsumerState<SmartDatePicker> {
 
             const SizedBox(height: 24),
 
-            // Selected dates display
             if (_startDate != null) ...[
               Container(
                 width: double.infinity,
@@ -137,7 +132,6 @@ class _SmartDatePickerState extends ConsumerState<SmartDatePicker> {
               const SizedBox(height: 24),
             ],
 
-            // Actions
             Row(
               children: [
                 if (_startDate != null)
@@ -176,23 +170,18 @@ class _SmartDatePickerState extends ConsumerState<SmartDatePicker> {
   void _handleDateSelection(DateTime date) {
     setState(() {
       if (_startDate == null) {
-        // First selection - single date
         _startDate = date;
         _endDate = null;
       } else if (_startDate == date) {
-        // Double tap on same date - keep as single date
         _endDate = null;
       } else if (_endDate == null) {
-        // Second selection - create range
         if (date.isAfter(_startDate!)) {
           _endDate = date;
         } else {
-          // If selected date is before start, swap them
           _endDate = _startDate;
           _startDate = date;
         }
       } else {
-        // Third selection - start new selection
         _startDate = date;
         _endDate = null;
       }
@@ -200,7 +189,6 @@ class _SmartDatePickerState extends ConsumerState<SmartDatePicker> {
   }
 }
 
-/// Helper function to show the smart date picker
 Future<Map<String, DateTime?>?> showSmartDatePicker({
   required BuildContext context,
   DateTime? initialStartDate,

@@ -5,9 +5,6 @@ import '../models/todo.dart';
 import '../services/storage_service.dart';
 import '../providers/clock.dart';
 
-/// Unified Task Editor Dialog
-/// Handles both creating new tasks and editing tasks
-/// Follows Android Material Design 3 best practices
 class TaskEditorDialog extends ConsumerStatefulWidget {
   final Todo? todo;
   final Function(Todo) onAdd;
@@ -23,7 +20,6 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
   late TextEditingController _notesController;
   final _formKey = GlobalKey<FormState>();
 
-  // Core task data
   DateTime? _startDate;
   DateTime? _dueDate;
   TimeOfDay? _dueTime;
@@ -32,7 +28,6 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
   String _selectedFolderId = '';
   List<int> _reminderOffsetsMinutes = [];
 
-  // UI state
   bool _showAdvancedOptions = false;
   bool _isLoading = false;
 
@@ -42,7 +37,6 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
     _titleController = TextEditingController(text: widget.todo?.text ?? '');
     _notesController = TextEditingController(text: widget.todo?.notes ?? '');
 
-    // Initialize from todo if editing
     if (widget.todo != null) {
       _startDate = widget.todo!.startDate;
       _dueDate = widget.todo!.dueDate;
@@ -92,10 +86,8 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             _buildHeader(theme, colorScheme),
 
-            // Content
             Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
@@ -104,21 +96,17 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Title input
                       _buildTitleInput(theme),
                       const SizedBox(height: 20),
 
-                      // Quick actions row
                       _buildQuickActions(theme, colorScheme),
                       const SizedBox(height: 20),
 
-                      // Advanced options
                       if (_showAdvancedOptions) ...[
                         _buildAdvancedOptions(theme, colorScheme),
                         const SizedBox(height: 20),
                       ],
 
-                      // Advanced toggle
                       _buildAdvancedToggle(theme),
                     ],
                   ),
@@ -126,7 +114,6 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
               ),
             ),
 
-            // Actions
             _buildActions(theme, colorScheme),
           ],
         ),
@@ -147,7 +134,6 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
       padding: const EdgeInsets.fromLTRB(24, 24, 8, 16),
       child: Row(
         children: [
-          // Icon
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -158,7 +144,6 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           ),
           const SizedBox(width: 16),
 
-          // Title
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,7 +165,6 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
             ),
           ),
 
-          // Close button
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
             icon: Icon(Icons.close),
@@ -227,7 +211,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           ),
         ),
         const SizedBox(height: 12),
-        // Date selection (full width for better display of ranges)
+
         _buildQuickActionChip(
           icon: Icons.event,
           label: _getDueDateLabel(),
@@ -238,7 +222,6 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
         ),
         const SizedBox(height: 12),
 
-        // Time selection (only show if date is selected)
         if (_dueDate != null) ...[
           _buildQuickActionChip(
             icon: Icons.schedule,
@@ -251,7 +234,6 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           const SizedBox(height: 12),
         ],
 
-        // Priority selection
         _buildQuickActionChip(
           icon: _getPriorityIcon(_priority),
           label: 'Priority: ${_priority.toUpperCase()}',
@@ -268,10 +250,8 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
     if (_dueDate == null) {
       return 'Select date or date range';
     } else if (_isMultiDay && _startDate != null && _startDate != _dueDate) {
-      // Multi-day: show date range only if start and end are different
       return '${DateFormat('MMM d').format(_startDate!)} - ${DateFormat('MMM d').format(_dueDate!)}';
     } else {
-      // Single day: show just the date (even if _isMultiDay is true but dates are same)
       return DateFormat('MMM d, yyyy').format(_dueDate!);
     }
   }
@@ -355,7 +335,6 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
         ),
         const SizedBox(height: 16),
 
-        // Notes input
         TextFormField(
           controller: _notesController,
           decoration: InputDecoration(
@@ -394,7 +373,6 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
       ),
       child: Row(
         children: [
-          // Cancel button
           Expanded(
             child: OutlinedButton(
               onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
@@ -403,7 +381,6 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           ),
           const SizedBox(width: 16),
 
-          // Save button
           Expanded(
             flex: 2,
             child: FilledButton(
@@ -422,7 +399,6 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
     );
   }
 
-  // Helper methods
   IconData _getPriorityIcon(String priority) {
     switch (priority) {
       case 'high':
@@ -431,7 +407,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
         return Icons.keyboard_arrow_down;
       case 'medium':
         return Icons.remove;
-      default: // 'none'
+      default:
         return Icons.radio_button_unchecked;
     }
   }
@@ -447,7 +423,6 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
@@ -459,7 +434,6 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
               ),
               const Divider(height: 1),
 
-              // Priority options
               _buildPriorityOption(
                 'none',
                 'None',
@@ -536,7 +510,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
 
   Future<void> _selectDueDate() async {
     final now = ref.read(clockProvider).now();
-    // Show Material's built-in date range picker
+
     final picked = await showDateRangePicker(
       context: context,
       firstDate: now,
@@ -552,7 +526,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
       setState(() {
         _startDate = picked.start;
         _dueDate = picked.end;
-        // Only consider it multi-day if the dates are actually different
+
         _isMultiDay = picked.start != picked.end;
       });
     }
@@ -571,15 +545,12 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
     }
   }
 
-  // Remove the old _askForTime method since we now have separate time selection
-
   Future<void> _saveTodo() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      // Combine date and time
       DateTime? finalDueDate;
       if (_dueDate != null) {
         if (_dueTime != null) {
