@@ -894,21 +894,6 @@ class AppTheme {
     }
   }
 
-  // Legacy method - kept for backwards compatibility
-  @deprecated
-  static Color getPriorityColorLegacy(String priority, {bool isDark = false}) {
-    switch (priority.toLowerCase()) {
-      case 'high':
-        return highPriority;
-      case 'medium':
-        return mediumPriority;
-      case 'low':
-        return lowPriority;
-      default:
-        return isDark ? Colors.grey.shade600 : Colors.grey.shade400;
-    }
-  }
-
   static IconData getPriorityIcon(String priority) {
     switch (priority.toLowerCase()) {
       case 'high':

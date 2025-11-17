@@ -60,16 +60,12 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage>
 
   Future<void> _refreshAllProviders() async {
     try {
-      debugPrint('[Settings] Starting provider refresh after import...');
-
       // Refresh tasks
       final tasksNotifier = ref.read(tasksProvider.notifier);
       await tasksNotifier.refresh();
 
       // Refresh preferences state
       ref.invalidate(preferencesStateProvider);
-
-      debugPrint('[Settings] All providers refreshed successfully');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -83,7 +79,6 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage>
         );
       }
     } catch (e) {
-      debugPrint('[Settings] Error refreshing providers: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

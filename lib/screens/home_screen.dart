@@ -441,6 +441,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         Scaffold(
           key: _scaffoldKey,
           drawer: _buildNavigationDrawer(context, currentTab),
+          drawerEdgeDragWidth: 0.0,
           appBar: _buildAppBar(context),
           body: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),

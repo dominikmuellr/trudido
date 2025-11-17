@@ -74,7 +74,6 @@ class _FabMenuState extends ConsumerState<FabMenu>
   }
 
   void _toggleMenu() {
-    print('[FAB Menu] Toggle menu - isExpanded: $_isExpanded');
     setState(() {
       _isExpanded = !_isExpanded;
       // Update the provider
@@ -85,7 +84,6 @@ class _FabMenuState extends ConsumerState<FabMenu>
         _animationController.reverse();
       }
     });
-    print('[FAB Menu] New state - isExpanded: $_isExpanded');
   }
 
   List<_MenuItem> _getMenuItems(WidgetRef ref) {
@@ -176,7 +174,6 @@ class _FabMenuState extends ConsumerState<FabMenu>
     // Watch the provider to sync with external close events (like backdrop tap)
     ref.listen<bool>(fabMenuExpandedProvider, (previous, next) {
       if (next != _isExpanded) {
-        print('[FAB Menu] Provider changed to: $next, syncing menu state');
         setState(() {
           _isExpanded = next;
           if (_isExpanded) {
@@ -223,11 +220,9 @@ class _FabMenuState extends ConsumerState<FabMenu>
                       label: item.label,
                       icon: item.icon,
                       onTap: () {
-                        print('[FAB Menu] Item tapped: ${item.label}');
                         _toggleMenu();
                         // Add a small delay to allow the animation to start
                         Future.delayed(const Duration(milliseconds: 50), () {
-                          print('[FAB Menu] Executing action: ${item.label}');
                           item.onTap();
                         });
                       },
@@ -275,7 +270,6 @@ class _FabMenuItem extends StatelessWidget {
     return FloatingActionButton.extended(
       heroTag: null,
       onPressed: () {
-        print('[FAB Menu Item] Button pressed: $label');
         onTap();
       },
       label: Text(label),
@@ -303,7 +297,6 @@ class FabMenuBackdrop extends ConsumerWidget {
           Positioned.fill(
             child: GestureDetector(
               onTap: () {
-                print('[FAB Menu Backdrop] Tapped - closing menu');
                 ref.read(fabMenuExpandedProvider.notifier).state = false;
               },
               child: Container(
@@ -331,7 +324,6 @@ class FabMenuScreenBackdrop extends ConsumerWidget {
     return Positioned.fill(
       child: GestureDetector(
         onTap: () {
-          print('[FAB Menu Backdrop] Tapped - closing menu');
           ref.read(fabMenuExpandedProvider.notifier).state = false;
         },
         child: Container(color: Colors.black.withOpacity(0.5)),

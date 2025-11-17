@@ -77,7 +77,6 @@ class NotePreviewCard extends ConsumerWidget {
 
   /// Extracts plain text content from either Quill JSON or markdown
   String _getDisplayContent() {
-    debugPrint('_getDisplayContent called for note ${note.id}');
     // Check if content is Quill JSON format
     if (_isQuillFormat()) {
       try {
@@ -85,28 +84,18 @@ class NotePreviewCard extends ConsumerWidget {
         final migratedJson = _migrateFontSizes(json);
         final document = quill.Document.fromJson(migratedJson);
         final plainText = document.toPlainText();
-        debugPrint(
-          '_getDisplayContent: Extracted plain text length=${plainText.length}',
-        );
         return plainText;
       } catch (e) {
-        debugPrint('_getDisplayContent: Error parsing Quill JSON: $e');
         // If parsing fails, treat as markdown
         return note.content;
       }
     }
     // Legacy markdown content
-    debugPrint('_getDisplayContent: Using markdown content');
     return note.content;
   }
 
   /// Converts Quill Delta JSON to formatted TextSpan
   TextSpan _quillToTextSpan(BuildContext context) {
-    debugPrint('=== PREVIEW CARD: Starting parse for note ${note.id} ===');
-    debugPrint(
-      'Content preview: ${note.content.substring(0, note.content.length > 100 ? 100 : note.content.length)}...',
-    );
-
     try {
       final json = jsonDecode(note.content) as List;
       final migratedJson = _migrateFontSizes(json);
@@ -117,8 +106,6 @@ class NotePreviewCard extends ConsumerWidget {
         height: 1.3,
       );
 
-      debugPrint('PREVIEW: Parsed ${migratedJson.length} operations');
-
       // Skip the title line if note has a title
       bool skipFirstLine = note.title.isNotEmpty;
       bool firstLineSkipped = false;
@@ -126,10 +113,6 @@ class NotePreviewCard extends ConsumerWidget {
       for (var op in migratedJson) {
         if (op is Map && op.containsKey('insert')) {
           final insertValue = op['insert'];
-
-          debugPrint(
-            'Preview op: insert type=${insertValue.runtimeType}, keys=${insertValue is Map ? insertValue.keys.toList() : "N/A"}',
-          );
 
           // Skip text until we pass the first line (title) if needed
           if (skipFirstLine && !firstLineSkipped && insertValue is String) {
@@ -183,16 +166,13 @@ class NotePreviewCard extends ConsumerWidget {
             if (insertValue.containsKey('custom')) {
               // New format: wrapped in "custom"
               final customData = insertValue['custom'] as String;
-              debugPrint('Preview: Found custom embed, data=$customData');
               // Parse the custom data to check if it contains media
               try {
                 final parsed = jsonDecode(customData) as Map<String, dynamic>;
                 if (parsed.containsKey('media')) {
                   mediaJson = parsed['media'] as String;
                 }
-              } catch (e) {
-                debugPrint('Preview: Error parsing custom data: $e');
-              }
+              } catch (e) {}
             } else if (insertValue.containsKey('media')) {
               // Old format: direct media key (fallback)
               mediaJson = insertValue['media'] as String;
@@ -226,7 +206,6 @@ class NotePreviewCard extends ConsumerWidget {
                   ),
                 );
               } catch (e) {
-                debugPrint('Error parsing media embed in preview: $e');
                 // If parsing fails, just show generic attachment icon
                 spans.add(
                   TextSpan(
@@ -238,7 +217,6 @@ class NotePreviewCard extends ConsumerWidget {
               continue;
             }
             // Other types of embeds (images, formulas, etc.) - skip them
-            debugPrint('Skipping unknown embed type: ${insertValue.keys}');
             continue;
           }
 
@@ -278,29 +256,16 @@ class NotePreviewCard extends ConsumerWidget {
             ? [TextSpan(text: '', style: baseStyle)]
             : spans,
       );
-    } catch (e, stackTrace) {
+    } catch (e) {
       // Fallback to plain text
-      debugPrint('PREVIEW ERROR: Failed to parse Quill content: $e');
-      debugPrint('Stack trace: $stackTrace');
-      try {
-        final fallbackText = _getDisplayContent();
-        debugPrint('Using fallback text, length=${fallbackText.length}');
-        return TextSpan(
-          text: fallbackText,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-            height: 1.3,
-          ),
-        );
-      } catch (e2) {
-        debugPrint('PREVIEW ERROR: Even fallback failed: $e2');
-        return TextSpan(
-          text: '(Error displaying preview)',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: Colors.red, height: 1.3),
-        );
-      }
+      final fallbackText = _getDisplayContent();
+      return TextSpan(
+        text: fallbackText,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          height: 1.3,
+        ),
+      );
     }
   }
 
@@ -366,7 +331,6 @@ class NotePreviewCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    debugPrint('=== NotePreviewCard.build() called for note ${note.id} ===');
     debugPrint('Note title: ${note.title}');
 
     // Check if this is a todo.txt note
@@ -401,7 +365,6 @@ class NotePreviewCard extends ConsumerWidget {
         : _parseMarkdownToTextSpan(note.title, context, isTitle: true);
 
     // For Quill notes, render with formatting; for markdown, parse structure
-    debugPrint('Preview: isQuillFormat=${_isQuillFormat()}');
     final bodySpan = _isQuillFormat()
         ? _quillToTextSpan(context)
         : _parseMarkdownToTextSpan(
@@ -535,9 +498,7 @@ class NotePreviewCard extends ConsumerWidget {
               } else {
                 onDelete?.call();
               }
-            } catch (e) {
-              debugPrint('Error during note deletion: $e');
-            }
+            } catch (e) {}
           }
 
           return confirmed; // Allow dismissal only if confirmed and deleted
@@ -693,8 +654,6 @@ class NotePreviewCard extends ConsumerWidget {
   }) {
     if (text.isEmpty) return const TextSpan(text: '');
 
-    print('DEBUG Card Parse - Input text: "$text" (isTitle: $isTitle)');
-
     final baseStyle = isTitle
         ? Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
@@ -733,8 +692,6 @@ class NotePreviewCard extends ConsumerWidget {
     // Handle numbered lists - keep as is
     // They already look good: 1. item, 2. item
 
-    print('DEBUG Card Parse - After header strip: "$text"');
-
     List<TextSpan> spans = [];
     int currentIndex = 0;
 
@@ -756,13 +713,7 @@ class NotePreviewCard extends ConsumerWidget {
 
     for (RegExp pattern in patterns) {
       final matches = pattern.allMatches(text).toList();
-      print(
-        'DEBUG Card Parse - Pattern ${pattern.pattern} found ${matches.length} matches in "$text"',
-      );
       for (Match match in matches) {
-        print(
-          'DEBUG Card Parse - Match: "${match.group(0)}" at position ${match.start}-${match.end}, captured: "${match.group(1)}"',
-        );
         String type = '';
         if (pattern.pattern.contains(r'\*\*') ||
             pattern.pattern.contains(r'__')) {
@@ -805,15 +756,8 @@ class NotePreviewCard extends ConsumerWidget {
 
       if (!overlaps) {
         filteredMatches.add(matchEntry);
-        print(
-          'DEBUG Card Parse - Keeping match "${match.group(0)}" (${matchEntry.value}) at ${match.start}-${match.end}',
-        );
       }
     }
-
-    print(
-      'DEBUG Card Parse - Filtered from ${allMatches.length} to ${filteredMatches.length} matches',
-    );
 
     // Build TextSpan with formatted sections
     for (var matchEntry in filteredMatches) {

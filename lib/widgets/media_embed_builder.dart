@@ -15,14 +15,11 @@ class MediaEmbedBuilder extends quill.EmbedBuilder {
     final node = embedContext.node;
     final dataString = node.value.data as String;
 
-    debugPrint('MediaEmbedBuilder: Building embed with data: $dataString');
-
     // Parse JSON string to map
     Map<String, dynamic> data;
     try {
       data = jsonDecode(dataString) as Map<String, dynamic>;
     } catch (e) {
-      debugPrint('MediaEmbedBuilder: Error parsing JSON: $e');
       // If parsing fails, show error widget
       return Container(
         padding: const EdgeInsets.all(16),
@@ -38,8 +35,6 @@ class MediaEmbedBuilder extends quill.EmbedBuilder {
     final mediaType = data['type'] as String;
     final filePath = data['path'] as String;
 
-    debugPrint('MediaEmbedBuilder: type=$mediaType, path=$filePath');
-
     switch (mediaType) {
       case 'image':
         return _buildImage(filePath);
@@ -48,7 +43,6 @@ class MediaEmbedBuilder extends quill.EmbedBuilder {
       case 'voice':
         return _buildAudioPlayer(filePath);
       default:
-        debugPrint('MediaEmbedBuilder: Unknown type: $mediaType');
         return const SizedBox.shrink();
     }
   }
@@ -219,7 +213,6 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
           _isLoading = false;
         });
       }
-      debugPrint('Error initializing audio player: $e');
     }
   }
 
@@ -237,9 +230,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
         final dateFormat = DateFormat('MMM d, y · h:mm a');
         return dateFormat.format(lastModified);
       }
-    } catch (e) {
-      debugPrint('Error getting file date: $e');
-    }
+    } catch (e) {}
     return 'Voice Recording';
   }
 
@@ -341,9 +332,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
       setState(() {
         _isPlaying = !_isPlaying;
       });
-    } catch (e) {
-      debugPrint('Error toggling play/pause: $e');
-    }
+    } catch (e) {}
   }
 
   String _formatDuration(Duration duration) {

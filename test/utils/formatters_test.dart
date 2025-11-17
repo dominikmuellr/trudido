@@ -7,13 +7,14 @@ void main() {
       expect(formatMinutesReadable(0), 'At time of due date');
     });
 
-    test('formats single digit minutes correctly', () {
-    });
+    test('formats single digit minutes correctly', () {});
 
     test('formats double digit minutes correctly', () {
       expect(formatMinutesReadable(15), '15 minutes before');
       expect(formatMinutesReadable(30), '30 minutes before');
       expect(formatMinutesReadable(45), '45 minutes before');
+    });
+
     test('formats exactly 1 hour correctly', () {
       expect(formatMinutesReadable(60), '1 hour before');
     });

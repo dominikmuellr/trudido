@@ -25,7 +25,7 @@ class MatrixNameAnimation extends StatefulWidget {
 class _MatrixNameAnimationState extends State<MatrixNameAnimation>
     with TickerProviderStateMixin {
   late AnimationController _controller;
-  late List<String> _currentChars;
+  final ValueNotifier<List<String>> _currentCharsNotifier = ValueNotifier([]);
   final Random _random = Random();
 
   // Matrix-style characters for the animation
@@ -159,7 +159,7 @@ class _MatrixNameAnimationState extends State<MatrixNameAnimation>
   }
 
   void _initializeAnimation() {
-    _currentChars = widget.text.split('');
+    _currentCharsNotifier.value = widget.text.split('');
     // Generate consistent Matrix characters for the final state
     _finalMatrixChars = widget.text
         .split('')
@@ -178,22 +178,22 @@ class _MatrixNameAnimationState extends State<MatrixNameAnimation>
     if (!mounted) return;
 
     final progress = _controller.value;
-    setState(() {
-      if (progress < 0.8) {
-        // Still animating - show random characters for the entire string
-        if (_random.nextDouble() < 0.3) {
-          for (int i = 0; i < _currentChars.length; i++) {
-            _currentChars[i] =
-                _matrixChars[_random.nextInt(_matrixChars.length)];
-          }
+    final current = List<String>.from(_currentCharsNotifier.value);
+    if (progress < 0.8) {
+      // Still animating - show random characters for the entire string
+      if (_random.nextDouble() < 0.3) {
+        for (int i = 0; i < current.length; i++) {
+          current[i] = _matrixChars[_random.nextInt(_matrixChars.length)];
         }
-      } else {
-        // Animation complete - show final Matrix characters instead of original text
-        for (int i = 0; i < _currentChars.length; i++) {
-          _currentChars[i] = _finalMatrixChars[i];
-        }
+        _currentCharsNotifier.value = current;
       }
-    });
+    } else {
+      // Animation complete - show final Matrix characters instead of original text
+      for (int i = 0; i < current.length; i++) {
+        current[i] = _finalMatrixChars[i];
+      }
+      _currentCharsNotifier.value = current;
+    }
   }
 
   @override
@@ -208,27 +208,33 @@ class _MatrixNameAnimationState extends State<MatrixNameAnimation>
   @override
   void dispose() {
     _controller.dispose();
+    _currentCharsNotifier.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      _currentChars.join(''),
-      style: widget.style.copyWith(
-        color: const Color(0xFF00FF00), // Matrix green
-        shadows: [
-          Shadow(
-            color: const Color(0xFF00FF00).withValues(alpha: 0.8),
-            blurRadius: 8,
+    return AnimatedBuilder(
+      animation: _currentCharsNotifier,
+      builder: (context, child) {
+        return Text(
+          _currentCharsNotifier.value.join(''),
+          style: widget.style.copyWith(
+            color: const Color(0xFF00FF00), // Matrix green
+            shadows: [
+              Shadow(
+                color: const Color(0xFF00FF00).withValues(alpha: 0.8),
+                blurRadius: 8,
+              ),
+              Shadow(
+                color: const Color(0xFF00FF00).withValues(alpha: 0.4),
+                blurRadius: 16,
+              ),
+            ],
           ),
-          Shadow(
-            color: const Color(0xFF00FF00).withValues(alpha: 0.4),
-            blurRadius: 16,
-          ),
-        ],
-      ),
-      overflow: TextOverflow.ellipsis,
+          overflow: TextOverflow.ellipsis,
+        );
+      },
     );
   }
 }

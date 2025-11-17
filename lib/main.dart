@@ -1,4 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -127,18 +126,6 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
         ref.read(preferencesStateProvider.notifier).state = svc.snapshot;
       }
     }
-
-    // TODO: Re-enable migration after fixing StorageService category references
-    /*
-    // Run category to folder migration (creates default folders)
-    try {
-      final migrationService = ref.read(categoryMigrationProvider);
-      await migrationService.migrateFromCategories();
-    } catch (e) {
-      // Log error but don't fail the app initialization
-      debugPrint('Migration error: $e');
-    }
-    */
   }
 
   Future<void> _maybeRunInitialReliabilityFlow() async {
