@@ -1,4 +1,4 @@
-Version 1.1.0 - Major UI & Feature Update
+Version 1.1.1 - Major UI & Feature Update
 
 NEW FEATURES:
 • Customizable greeting language in Settings → Display & Theme

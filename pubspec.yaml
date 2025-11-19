@@ -16,7 +16,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.1.0+10 # Release tag for v1.1.0 (build 10)
+version: 1.2.0+11 # Release tag for v1.2.0 (build 11)
 
 environment:
   sdk: ^3.8.1
@@ -27,11 +27,11 @@ platforms:
 
 # Build metadata (helpful for reproducible builds and support requests)
 build_info:
-  commit: 39c4217ce576487945d98f0013d055e1bf82b60e
-  tag: v1.1.0
+  commit: TBD
+  tag: v1.2.0
   flutter: "3.35.5"
   flutter_path: "/c/dev/flutter/bin/flutter"
-  build_command: "flutter build apk --release --build-name=1.1.0 --build-number=10"
+  build_command: "flutter build apk --release --build-name=1.2.0 --build-number=11"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -91,6 +91,12 @@ dependencies:
 
   # Image/video picker with camera support
   image_picker: ^1.1.2
+
+  # Video thumbnail generation
+  video_thumbnail: ^0.5.3
+
+  # Video player
+  video_player: ^2.9.2
 
   # Audio recording
   record: ^5.1.2

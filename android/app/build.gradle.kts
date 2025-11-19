@@ -22,7 +22,7 @@ android {
 
     defaultConfig {
         applicationId = "com.trudido.app"
-        minSdk = flutter.minSdkVersion
+        minSdk = 24  // Required for video_player and other media features
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -63,4 +63,5 @@ flutter {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("com.google.guava:guava:31.1-android")
 }

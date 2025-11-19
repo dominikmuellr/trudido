@@ -69,7 +69,7 @@ class _AboutScreenState extends State<AboutScreen> {
           ListTile(
             leading: Icon(Icons.tag, color: cs.primary),
             title: const Text('Version'),
-            subtitle: const Text('v1.1.0'),
+            subtitle: const Text('v1.2.0'),
           ),
           ListTile(
             leading: Icon(Icons.code, color: cs.primary),
@@ -108,7 +108,7 @@ class _AboutScreenState extends State<AboutScreen> {
             onTap: () => showLicensePage(
               context: context,
               applicationName: 'Trudido',
-              applicationVersion: 'v1.1.0',
+              applicationVersion: 'v1.2.0',
             ),
           ),
 
@@ -145,6 +145,8 @@ class _AboutScreenState extends State<AboutScreen> {
           _buildSectionHeader(context, 'Media & Files'),
           _buildPackageTile('File Picker', 'file_picker', '^10.3.2'),
           _buildPackageTile('Image Picker', 'image_picker', '^1.1.2'),
+          _buildPackageTile('Video Player', 'video_player', '^2.9.2'),
+          _buildPackageTile('Video Thumbnails', 'video_thumbnail', '^0.5.3'),
           _buildPackageTile('Audio Recording', 'record', '^5.1.2'),
           _buildPackageTile('Audio Playback', 'audioplayers', '^6.0.0'),
           _buildPackageTile('PDF Generation', 'pdf', '^3.11.1'),

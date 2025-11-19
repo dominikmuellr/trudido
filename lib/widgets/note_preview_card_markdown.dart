@@ -3,6 +3,8 @@ import '../utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
+import 'dart:io';
+import 'package:video_thumbnail/video_thumbnail.dart';
 import '../models/note.dart';
 import '../providers/app_providers.dart';
 import '../services/theme_service.dart';
@@ -99,7 +101,7 @@ class NotePreviewCard extends ConsumerWidget {
     try {
       final json = jsonDecode(note.content) as List;
       final migratedJson = _migrateFontSizes(json);
-      final List<TextSpan> spans = [];
+      final List<InlineSpan> spans = [];
 
       final baseStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -182,35 +184,118 @@ class NotePreviewCard extends ConsumerWidget {
               try {
                 final mediaData = jsonDecode(mediaJson) as Map<String, dynamic>;
                 final mediaType = mediaData['type'] as String;
+                final mediaPath = mediaData['path'] as String?;
 
-                // Show media placeholder icon in preview
-                String placeholder;
-                switch (mediaType) {
-                  case 'image':
-                    placeholder = '📷 ';
-                    break;
-                  case 'video':
-                    placeholder = '🎥 ';
-                    break;
-                  case 'voice':
-                    placeholder = '🎤 ';
-                    break;
-                  default:
-                    placeholder = '📎 ';
+                Widget thumbnail;
+                if (mediaType == 'image' && mediaPath != null) {
+                  // Show actual image thumbnail
+                  thumbnail = ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Image.file(
+                      File(mediaPath),
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Icon(
+                            Icons.image,
+                            size: 20,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                } else if (mediaType == 'video' && mediaPath != null) {
+                  // Show actual video thumbnail with play icon overlay
+                  thumbnail = VideoThumbnailWidget(videoPath: mediaPath);
+                } else if (mediaType == 'voice') {
+                  // Show audio waveform icon
+                  thumbnail = Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Icon(
+                      Icons.mic,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  );
+                } else {
+                  // Generic attachment icon
+                  thumbnail = Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Icon(
+                      Icons.attachment,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  );
                 }
 
                 spans.add(
-                  TextSpan(
-                    text: placeholder,
-                    style: baseStyle?.copyWith(fontSize: 16),
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        right: 4,
+                        top: 2,
+                        bottom: 2,
+                      ),
+                      child: thumbnail,
+                    ),
                   ),
                 );
               } catch (e) {
-                // If parsing fails, just show generic attachment icon
+                // If parsing fails, show generic attachment icon
                 spans.add(
-                  TextSpan(
-                    text: '📎 ',
-                    style: baseStyle?.copyWith(fontSize: 16),
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        right: 4,
+                        top: 2,
+                        bottom: 2,
+                      ),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Icon(
+                          Icons.attachment,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   ),
                 );
               }
@@ -374,9 +459,7 @@ class NotePreviewCard extends ConsumerWidget {
           );
     debugPrint('Preview: bodySpan created successfully');
 
-    final formattedDate = DateFormat(
-      'MMM d, y • h:mm a',
-    ).format(note.updatedAt);
+    final formattedDate = _formatCompactDate(note.updatedAt);
 
     return Dismissible(
       key: ValueKey(
@@ -1085,6 +1168,29 @@ class NotePreviewCard extends ConsumerWidget {
         return Colors.grey;
     }
   }
+
+  String _formatCompactDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final dateDay = DateTime(date.year, date.month, date.day);
+    final timeFormat = DateFormat('HH:mm');
+
+    if (dateDay == today) {
+      return 'Today ${timeFormat.format(date)}';
+    } else if (dateDay == yesterday) {
+      return 'Yesterday ${timeFormat.format(date)}';
+    } else if (now.difference(date).inDays < 7) {
+      // Within the last week, show day name and time
+      return '${DateFormat('EEEE').format(date)} ${timeFormat.format(date)}';
+    } else if (date.year == now.year) {
+      // Same year, show day and month
+      return DateFormat('d MMM').format(date);
+    } else {
+      // Different year, show full date
+      return DateFormat('d MMM y').format(date);
+    }
+  }
 }
 
 // Demo implementation showing lightweight markdown rendering in action
@@ -1301,3 +1407,109 @@ class MarkdownPreviewApp extends StatelessWidget {
 // void main() {
 //   runApp(const MarkdownPreviewApp());
 // }
+
+/// Widget to display video thumbnail with play button overlay
+class VideoThumbnailWidget extends StatefulWidget {
+  final String videoPath;
+
+  const VideoThumbnailWidget({super.key, required this.videoPath});
+
+  @override
+  State<VideoThumbnailWidget> createState() => _VideoThumbnailWidgetState();
+}
+
+class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
+  String? _thumbnailPath;
+  bool _isLoading = true;
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _generateThumbnail();
+  }
+
+  Future<void> _generateThumbnail() async {
+    try {
+      final thumbnail = await VideoThumbnail.thumbnailFile(
+        video: widget.videoPath,
+        imageFormat: ImageFormat.JPEG,
+        maxWidth: 120, // Higher resolution for better quality
+        quality: 75,
+      );
+
+      if (mounted) {
+        setState(() {
+          _thumbnailPath = thumbnail;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: const SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (_hasError || _thumbnailPath == null) {
+      return Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Icon(
+          Icons.videocam,
+          size: 20,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: Stack(
+        children: [
+          Image.file(
+            File(_thumbnailPath!),
+            width: 40,
+            height: 40,
+            fit: BoxFit.cover,
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(color: Colors.black.withOpacity(0.2)),
+              child: Icon(
+                Icons.play_circle_outline,
+                size: 20,
+                color: Colors.white.withOpacity(0.9),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

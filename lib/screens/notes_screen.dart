@@ -8,7 +8,6 @@ import '../repositories/notes_repository.dart';
 import '../repositories/note_folder_repository.dart';
 import '../services/vault_auth_service.dart';
 import '../widgets/note_preview_card_markdown.dart';
-import '../widgets/notes_onboarding_tooltip.dart';
 import 'quill_note_editor_screen.dart';
 
 /// Provider for notes search mode
@@ -100,52 +99,50 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       );
     }
 
-    return NotesOnboardingTooltip(
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (scrollNotification) {
-          // Detect pull-to-search gesture
-          if (scrollNotification is ScrollUpdateNotification) {
-            // Check if user is pulling down at the top (overscroll)
-            if (scrollNotification.metrics.pixels < -20) {
-              // Trigger search mode
-              ref.read(notesSearchModeProvider.notifier).state = true;
-              return true; // Consume the notification
-            }
+    return NotificationListener<ScrollNotification>(
+      onNotification: (scrollNotification) {
+        // Detect pull-to-search gesture
+        if (scrollNotification is ScrollUpdateNotification) {
+          // Check if user is pulling down at the top (overscroll)
+          if (scrollNotification.metrics.pixels < -20) {
+            // Trigger search mode
+            ref.read(notesSearchModeProvider.notifier).state = true;
+            return true; // Consume the notification
           }
+        }
 
-          // Also listen for overscroll notifications
-          if (scrollNotification is OverscrollNotification) {
-            if (scrollNotification.overscroll < -20) {
-              ref.read(notesSearchModeProvider.notifier).state = true;
-              return true;
-            }
+        // Also listen for overscroll notifications
+        if (scrollNotification is OverscrollNotification) {
+          if (scrollNotification.overscroll < -20) {
+            ref.read(notesSearchModeProvider.notifier).state = true;
+            return true;
           }
+        }
 
-          return false;
+        return false;
+      },
+      child: MasonryGridView.count(
+        padding: const EdgeInsets.all(8),
+        physics: const BouncingScrollPhysics(),
+        crossAxisCount: 2,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        itemCount: notes.length,
+        itemBuilder: (context, index) {
+          final note = notes[index];
+          final isInVault = _isNoteInVault(note);
+
+          return NotePreviewCard(
+            note: note,
+            onTap: () => _editNote(note.id),
+            onPin: () => _togglePin(note.id),
+            onDelete: () => _deleteNote(note.id, note.title),
+            onDeleteConfirmed: () => _deleteNoteConfirmed(note.id),
+            isInVault: isInVault,
+            onMoveToFolder: isInVault ? null : () => _moveNoteToFolder(note),
+            showFormatIndicator: isAllNotesView,
+          );
         },
-        child: MasonryGridView.count(
-          padding: const EdgeInsets.all(8),
-          physics: const BouncingScrollPhysics(),
-          crossAxisCount: 2,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          itemCount: notes.length,
-          itemBuilder: (context, index) {
-            final note = notes[index];
-            final isInVault = _isNoteInVault(note);
-
-            return NotePreviewCard(
-              note: note,
-              onTap: () => _editNote(note.id),
-              onPin: () => _togglePin(note.id),
-              onDelete: () => _deleteNote(note.id, note.title),
-              onDeleteConfirmed: () => _deleteNoteConfirmed(note.id),
-              isInVault: isInVault,
-              onMoveToFolder: isInVault ? null : () => _moveNoteToFolder(note),
-              showFormatIndicator: isAllNotesView,
-            );
-          },
-        ),
       ),
     );
   }

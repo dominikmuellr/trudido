@@ -1,0 +1,27 @@
+Version 1.2.0 - Video & Media Enhancement Update
+
+🎥 Video Features:
+- Added video recording capability via slash menu
+- Full video playback with tap-to-play/pause controls
+- Video progress bar with scrubbing support
+- Video thumbnails in note previews (first frame extraction)
+
+📸 Photo Enhancements:
+- Tap photos to view fullscreen with pinch-to-zoom
+- Swipe to dismiss fullscreen viewer
+- Pan and zoom support (0.5x - 4x)
+
+📅 Date Display Improvements:
+- More compact date format in note previews
+- European format (24-hour time, day before month)
+- Smart relative dates (Today, Yesterday, day names)
+
+🎨 UI Improvements:
+- Small media thumbnails in note preview instead of emojis
+- Media-only notes now show "Media" as title instead of placeholder
+- Separated Photo and Video options in slash menu
+
+🔧 Technical Updates:
+- Updated minSdk to 24 for better media support
+- Added video_player and video_thumbnail packages
+- Improved error handling for media operations

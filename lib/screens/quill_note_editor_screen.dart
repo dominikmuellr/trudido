@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -10,6 +11,7 @@ import '../repositories/notes_repository.dart';
 import '../utils/markdown_to_quill_converter.dart';
 import '../services/media_service.dart';
 import '../widgets/media_embed_builder.dart';
+import '../widgets/link_embed_builder.dart';
 
 /// Media type enum
 enum MediaType { photo, video }
@@ -179,47 +181,56 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
 
     // Check if user just typed a space after markdown syntax
     if (cursorPosition > 0 && text[cursorPosition - 1] == ' ') {
+      quill.Attribute? attribute;
+
       // Header shortcuts: # , ## , ###
       if (lineText == '# ') {
-        _applyMarkdownFormat(lineStart, cursorPosition, quill.Attribute.h1);
+        attribute = quill.Attribute.h1;
       } else if (lineText == '## ') {
-        _applyMarkdownFormat(lineStart, cursorPosition, quill.Attribute.h2);
+        attribute = quill.Attribute.h2;
       } else if (lineText == '### ') {
-        _applyMarkdownFormat(lineStart, cursorPosition, quill.Attribute.h3);
+        attribute = quill.Attribute.h3;
       }
       // List shortcuts: - , 1. , [ ]
       else if (lineText == '- ') {
-        _applyMarkdownFormat(lineStart, cursorPosition, quill.Attribute.ul);
+        attribute = quill.Attribute.ul;
       } else if (RegExp(r'^\d+\.\s$').hasMatch(lineText)) {
-        _applyMarkdownFormat(lineStart, cursorPosition, quill.Attribute.ol);
+        attribute = quill.Attribute.ol;
       } else if (lineText == '[] ' || lineText == '[ ] ') {
-        _applyMarkdownFormat(
-          lineStart,
-          cursorPosition,
-          quill.Attribute.unchecked,
-        );
+        attribute = quill.Attribute.unchecked;
       }
       // Block quote: >
       else if (lineText == '> ') {
-        _applyMarkdownFormat(
-          lineStart,
-          cursorPosition,
-          quill.Attribute.blockQuote,
-        );
+        attribute = quill.Attribute.blockQuote;
+      }
+
+      if (attribute != null) {
+        // Schedule the format application after the current event loop
+        Future.microtask(() {
+          _applyMarkdownFormat(lineStart, cursorPosition, attribute!);
+        });
       }
     }
   }
 
   void _applyMarkdownFormat(int start, int end, quill.Attribute attribute) {
-    // Remove the markdown syntax
-    _quillController.replaceText(
-      start,
-      end - start,
-      '',
-      TextSelection.collapsed(offset: start),
-    );
-    // Apply the formatting
-    _quillController.formatText(start, 0, attribute);
+    try {
+      final markdownLength = end - start;
+
+      // Remove the markdown syntax (e.g., "# ", "- ", etc.)
+      _quillController.replaceText(
+        start,
+        markdownLength,
+        '',
+        TextSelection.collapsed(offset: start),
+      );
+
+      // Apply block-level formatting (header, list, etc.) to current position
+      // This will format the entire paragraph/block at the cursor position
+      _quillController.formatSelection(attribute);
+    } catch (e) {
+      print('Error applying markdown format: $e');
+    }
   }
 
   void _checkForSlashCommand() {
@@ -254,14 +265,17 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
             (cursorPosition > 1 &&
                 (text[cursorPosition - 2] == ' ' ||
                     text[cursorPosition - 2] == '\n'))) {
-          // Calculate approximate vertical position based on line count
-          final textBeforeCursor = text.substring(0, cursorPosition);
-          final lineCount = '\n'.allMatches(textBeforeCursor).length;
-          final lineHeight = 24.0; // Approximate line height
-          final calculatedTop = 16 + (lineCount * lineHeight);
+          // Get screen and keyboard dimensions
+          final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+          final screenHeight = MediaQuery.of(context).size.height;
+          final menuHeight = 120.0;
 
-          // Clamp between 50 and 300 to keep it visible
-          final clampedTop = calculatedTop.clamp(50.0, 300.0);
+          // Calculate available space above keyboard
+          final availableHeight = screenHeight - keyboardHeight;
+
+          // Simple positioning: place menu in the middle of available space
+          // This ensures it's always visible regardless of scroll position
+          final clampedTop = (availableHeight - menuHeight) / 2;
 
           setState(() {
             _showSlashMenu = true;
@@ -486,8 +500,24 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       builder: (context) => _LinkDialog(
         onInsert: (url, text) {
           final index = _quillController.selection.baseOffset;
-          _quillController.document.insert(index, text.isNotEmpty ? text : url);
-          // TODO: Add link attribute when Quill supports it properly
+          final displayText = text.isNotEmpty ? text : url;
+
+          // Insert link text with link attribute (inline)
+          _quillController.replaceText(
+            index,
+            0,
+            displayText,
+            TextSelection.collapsed(offset: index + displayText.length),
+          );
+
+          // Apply link attribute
+          _quillController.formatText(
+            index,
+            displayText.length,
+            quill.LinkAttribute(url),
+          );
+
+          print('Inserted inline link: text="$displayText", url="$url"');
         },
       ),
     );
@@ -564,13 +594,50 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   String _getTitleFromDocument() {
     final plainText = _quillController.document.toPlainText();
     final lines = plainText.split('\n');
-    // Find the first non-empty line
+    // Find the first non-empty line that isn't just embed placeholders
+    String? firstNonEmptyLine;
     for (var line in lines) {
       final trimmed = line.trim();
       if (trimmed.isNotEmpty) {
-        return trimmed;
+        // Check if line contains only embed placeholder characters (U+FFFC)
+        final hasOnlyPlaceholders = trimmed.runes.every((r) => r == 0xFFFC);
+        if (!hasOnlyPlaceholders) {
+          return trimmed;
+        } else if (firstNonEmptyLine == null) {
+          firstNonEmptyLine = trimmed;
+        }
       }
     }
+
+    // If we only found placeholder lines, check if document has media embeds
+    if (firstNonEmptyLine != null) {
+      final delta = _quillController.document.toDelta();
+      bool hasMedia = false;
+
+      for (var op in delta.toList()) {
+        if (op.data is Map) {
+          final data = op.data as Map;
+          if (data.containsKey('custom')) {
+            try {
+              final customData =
+                  jsonDecode(data['custom'] as String) as Map<String, dynamic>;
+              if (customData.containsKey('media')) {
+                hasMedia = true;
+                break;
+              }
+            } catch (e) {
+              // Ignore decode errors
+            }
+          }
+        }
+      }
+
+      if (hasMedia) {
+        // Return "Media" as title for media-only notes
+        return 'Media';
+      }
+    }
+
     // Return empty string to allow notes without titles
     return '';
   }
@@ -896,9 +963,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
 
   Color _getStatusColor() {
     if (_saveStatus.contains('saved')) {
-      return Colors.green;
+      return Theme.of(context).colorScheme.primary;
     } else if (_saveStatus.contains('failed')) {
-      return Colors.red;
+      return Theme.of(context).colorScheme.error;
     }
     return Theme.of(context).colorScheme.onSurfaceVariant;
   }
@@ -921,8 +988,11 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _buildCompactMenuItem(Icons.image_outlined, 'Media', () {
+            _buildCompactMenuItem(Icons.image_outlined, 'Photo', () {
               _insertSlashCommand('image');
+            }),
+            _buildCompactMenuItem(Icons.videocam_outlined, 'Video', () {
+              _insertSlashCommand('video');
             }),
             _buildCompactMenuItem(Icons.mic_outlined, 'Voice', () {
               _insertSlashCommand('voice');
@@ -963,6 +1033,35 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openLink(String url) async {
+    try {
+      // Add scheme if not present
+      String urlString = url;
+      if (!urlString.startsWith('http://') &&
+          !urlString.startsWith('https://')) {
+        urlString = 'https://$urlString';
+      }
+
+      // Use url_launcher to open the link in the system browser
+      final uri = Uri.parse(urlString);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else if (mounted) {
+        // Fallback: show snackbar if URL can't be launched
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open link: $urlString')),
+        );
+      }
+    } catch (e) {
+      print('Error opening link: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Error opening link')));
+      }
+    }
   }
 
   Widget _buildFontSizeDropdown() {
@@ -1020,10 +1119,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant,
-            width: 1,
-          ),
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Row(
@@ -1064,6 +1160,166 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
           quill.Attribute.fromKeyValue('size', '$newSize'),
         );
         setState(() {}); // Refresh to show new size
+      },
+    );
+  }
+
+  Widget _buildHeaderStyleDropdown() {
+    final headers = [
+      (label: 'Normal', value: 0),
+      (label: 'Header 1', value: 1),
+      (label: 'Header 2', value: 2),
+      (label: 'Header 3', value: 3),
+    ];
+
+    // Get current header style
+    int currentHeader = 0;
+    try {
+      final style = _quillController.getSelectionStyle();
+      final headerAttr = style.attributes[quill.Attribute.header.key]?.value;
+      if (headerAttr != null) {
+        if (headerAttr is int) {
+          currentHeader = headerAttr;
+        }
+      }
+    } catch (e) {
+      // Ignore errors and use default
+    }
+
+    final currentLabel = headers
+        .firstWhere((h) => h.value == currentHeader, orElse: () => headers[0])
+        .label;
+
+    return PopupMenuButton<int>(
+      tooltip: 'Header style',
+      offset: const Offset(0, 40),
+      child: Container(
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              currentLabel,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontSize: 14),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_drop_down,
+              size: 20,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => headers.map((header) {
+        return PopupMenuItem<int>(
+          value: header.value,
+          child: Text(
+            header.label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: header.value == currentHeader
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+            ),
+          ),
+        );
+      }).toList(),
+      onSelected: (headerLevel) {
+        if (headerLevel == 0) {
+          // Remove header attribute
+          _quillController.formatSelection(quill.Attribute.header);
+        } else {
+          // Apply header attribute
+          _quillController.formatSelection(
+            quill.Attribute.fromKeyValue('header', headerLevel),
+          );
+        }
+        setState(() {});
+      },
+    );
+  }
+
+  Widget _buildFontFamilyDropdown() {
+    final fontFamilies = [
+      'Roboto',
+      'Courier',
+      'Monospace',
+      'Sans-serif',
+      'Serif',
+    ];
+
+    // Get current font family
+    String currentFamily = 'Roboto';
+    try {
+      final style = _quillController.getSelectionStyle();
+      final fontAttr = style.attributes[quill.Attribute.font.key]?.value;
+      if (fontAttr != null && fontAttr is String) {
+        currentFamily = fontAttr;
+      }
+    } catch (e) {
+      // Ignore errors and use default
+    }
+
+    return PopupMenuButton<String>(
+      tooltip: 'Font family',
+      offset: const Offset(0, 40),
+      child: Container(
+        height: 36,
+        constraints: const BoxConstraints(maxWidth: 140),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                currentFamily,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontSize: 14),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_drop_down,
+              size: 20,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => fontFamilies.map((family) {
+        return PopupMenuItem<String>(
+          value: family,
+          child: Text(
+            family,
+            style: TextStyle(
+              fontSize: 14,
+              fontFamily: family,
+              fontWeight: family == currentFamily
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+            ),
+          ),
+        );
+      }).toList(),
+      onSelected: (newFamily) {
+        _quillController.formatSelection(
+          quill.Attribute.fromKeyValue('font', newFamily),
+        );
+        setState(() {});
       },
     );
   }
@@ -1118,11 +1374,6 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
             Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
-                border: Border(
-                  bottom: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                ),
               ),
               child: Column(
                 children: [
@@ -1131,12 +1382,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
+                        const SizedBox(width: 12),
                         // Font family dropdown - first, like Google Docs
-                        quill.QuillToolbarFontFamilyButton(
-                          controller: _quillController,
-                          options:
-                              const quill.QuillToolbarFontFamilyButtonOptions(),
-                        ),
+                        _buildFontFamilyDropdown(),
                         const SizedBox(width: 8),
                         // Font size dropdown - numeric sizes like Word
                         _buildFontSizeDropdown(),
@@ -1162,11 +1410,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                         ),
                         const SizedBox(width: 8),
                         // Header style dropdown - paragraph formatting
-                        quill.QuillToolbarSelectHeaderStyleDropdownButton(
-                          controller: _quillController,
-                          options:
-                              const quill.QuillToolbarSelectHeaderStyleDropdownButtonOptions(),
-                        ),
+                        _buildHeaderStyleDropdown(),
                         const SizedBox(width: 8),
                         // Lists
                         quill.QuillToolbarToggleStyleButton(
@@ -1187,12 +1431,6 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                               const quill.QuillToolbarToggleCheckListButtonOptions(),
                         ),
                         const SizedBox(width: 8),
-                        // Link
-                        quill.QuillToolbarLinkStyleButton(
-                          controller: _quillController,
-                          options:
-                              const quill.QuillToolbarLinkStyleButtonOptions(),
-                        ),
                         // More options toggle button
                         IconButton(
                           icon: Icon(
@@ -1284,20 +1522,40 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
             ),
             // Quill editor
             Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: () {
-                  // Request focus when tapping anywhere in the editor area
-                  _focusNode.requestFocus();
-                },
-                child: Stack(
-                  children: [
-                    quill.QuillEditor(
-                      scrollController: _scrollController,
+              child: Stack(
+                children: [
+                  GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onLongPress: () {
+                      // Check if cursor is on a link
+                      final selection = _quillController.selection;
+                      if (selection.isValid) {
+                        final offset = selection.baseOffset;
+                        if (offset > 0) {
+                          final checkOffset = offset - 1;
+                          final leaf = _quillController.document.queryChild(
+                            checkOffset,
+                          );
+                          if (leaf.node != null) {
+                            final style = leaf.node!.style;
+                            final linkAttr =
+                                style.attributes[quill.Attribute.link.key];
+                            if (linkAttr != null && linkAttr.value != null) {
+                              _openLink(linkAttr.value.toString());
+                            }
+                          }
+                        }
+                      }
+                    },
+                    child: quill.QuillEditor(
                       focusNode: _focusNode,
+                      scrollController: _scrollController,
                       controller: _quillController,
                       config: quill.QuillEditorConfig(
-                        embedBuilders: [MediaEmbedBuilder()],
+                        embedBuilders: [
+                          MediaEmbedBuilder(),
+                          LinkEmbedBuilder(),
+                        ],
                         padding: EdgeInsets.only(
                           left: 16,
                           right: 16,
@@ -1305,21 +1563,20 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                           bottom: MediaQuery.of(context).viewInsets.bottom + 16,
                         ),
                         placeholder: _shouldShowPlaceholder()
-                            ? 'Press / for media or use markdown'
+                            ? 'Type "/" for media or use markdown syntax'
                             : null,
-                        keyboardAppearance: Brightness.light,
                       ),
                     ),
-                    // Slash command menu - positioned at cursor height
-                    if (_showSlashMenu)
-                      Positioned(
-                        left: 16,
-                        right: 16,
-                        top: _slashMenuTop,
-                        child: _buildSlashMenu(),
-                      ),
-                  ],
-                ),
+                  ),
+                  // Slash command menu - positioned at cursor height
+                  if (_showSlashMenu)
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      top: _slashMenuTop,
+                      child: _buildSlashMenu(),
+                    ),
+                ],
               ),
             ),
           ],
@@ -1365,6 +1622,8 @@ class _LinkDialogState extends State<_LinkDialog> {
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.url,
+            autocorrect: false,
+            enableSuggestions: false,
           ),
           const SizedBox(height: 16),
           TextField(
@@ -1494,7 +1753,11 @@ class _VoiceRecordingDialogState extends State<_VoiceRecordingDialog> {
         children: [
           if (_isRecording) ...[
             const SizedBox(height: 20),
-            const Icon(Icons.mic, size: 64, color: Colors.red),
+            Icon(
+              Icons.mic,
+              size: 64,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(height: 20),
             Text(
               _formatDuration(_recordingDuration),
@@ -1532,8 +1795,8 @@ class _VoiceRecordingDialogState extends State<_VoiceRecordingDialog> {
             icon: const Icon(Icons.stop),
             label: const Text('Stop & Save'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
             ),
           ),
         ],
