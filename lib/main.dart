@@ -6,8 +6,9 @@ import 'package:flutter/foundation.dart'
         defaultTargetPlatform,
         TargetPlatform; // platform check without BuildContext
 
-import 'package:flutter_quill/flutter_quill.dart'
-    show FlutterQuillLocalizations;
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_quill/flutter_quill.dart' show FlutterQuillLocalizations;
+
 
 import 'services/storage_service.dart';
 import 'services/permissions_channel.dart';
@@ -306,6 +307,13 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
               theme: themes.$1,
               darkTheme: darkThemeEffective,
               themeMode: themeMode,
+              localizationsDelegates: [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+                FlutterQuillLocalizations.delegate,
+              ],
+              supportedLocales: const [Locale('en')],
               // Ensure MaterialApp uses theme background color to prevent visual gaps
               // This helps eliminate the colored band issue on Samsung Galaxy devices
               builder: (context, child) {
