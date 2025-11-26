@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="App Icon" width="150" height="150">
+  <img src="assets/icon/2.png" alt="App Icon" width="150" height="150">
 </p>
 
 
