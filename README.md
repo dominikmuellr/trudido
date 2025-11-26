@@ -2,12 +2,7 @@
   <img src="assets/imagefiles/trudiconRound.png" alt="App Icon" width="150" height="150">
 </p>
 
-<div align="center">
 
-<a href="https://crowdin.com/project/trudido">
-    <img src="https://badges.crowdin.net/trudido/localized.svg" alt="Crowdin">
-  </a>
-</div>
 
 <p align="center">
   <a href="https://github.com/dominikmuellr/trudido/commits/main">
