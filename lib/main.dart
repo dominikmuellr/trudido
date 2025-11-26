@@ -5,10 +5,10 @@ import 'package:flutter/foundation.dart'
     show
         defaultTargetPlatform,
         TargetPlatform; // platform check without BuildContext
-import 'package:flutter_localizations/flutter_localizations.dart';
+
 import 'package:flutter_quill/flutter_quill.dart'
     show FlutterQuillLocalizations;
-import 'l10n/app_localizations.dart';
+
 import 'services/storage_service.dart';
 import 'services/permissions_channel.dart';
 import 'services/theme_service.dart';
@@ -327,47 +327,6 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
                   data: mq.copyWith(textScaleFactor: effective),
                   child: child ?? const SizedBox.shrink(),
                 );
-              },
-              localizationsDelegates: const [
-                AppLocalizations.delegate,
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-                FlutterQuillLocalizations.delegate,
-              ],
-              supportedLocales: const [
-                Locale('en'), // English
-                Locale('de'), // German
-                Locale('fr'), // French
-                Locale('es'), // Spanish
-                Locale('it'), // Italian
-                Locale('nl'), // Dutch
-                Locale('pt'), // Portuguese
-                Locale('pl'), // Polish
-                Locale('uk'), // Ukrainian
-                Locale('da'), // Danish
-                Locale('ro'), // Romanian
-                Locale('cs'), // Czech
-              ],
-              // Let the system determine locale, but prefer European format
-              localeResolutionCallback: (locale, supportedLocales) {
-                // If system locale is supported, use it
-                if (locale != null) {
-                  for (var supportedLocale in supportedLocales) {
-                    if (supportedLocale.languageCode == locale.languageCode &&
-                        supportedLocale.countryCode == locale.countryCode) {
-                      return supportedLocale;
-                    }
-                  }
-                  // If only language matches, find the best European match
-                  for (var supportedLocale in supportedLocales) {
-                    if (supportedLocale.languageCode == locale.languageCode) {
-                      return supportedLocale;
-                    }
-                  }
-                }
-                // Default to British English (European format)
-                return const Locale('en', 'GB');
               },
               home: const SystemNavigationBarHandler(child: AppBootstrap()),
             );

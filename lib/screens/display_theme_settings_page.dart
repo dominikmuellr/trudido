@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
 import '../controllers/preferences_controller.dart';
 import '../services/default_tab_service.dart';
-import '../l10n/app_localizations.dart';
+
 import 'default_tab_settings_screen.dart';
 
 class DisplayThemeSettingsPage extends ConsumerWidget {
@@ -12,18 +12,17 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.displayTheme),
+        title: const Text('Theme'),
         backgroundColor: theme.colorScheme.surface,
         surfaceTintColor: theme.colorScheme.surfaceTint,
       ),
       body: ListView(
         children: [
           // Theme Section
-          _buildSectionHeader(context, l10n.theme),
+          _buildSectionHeader(context, 'Theme'),
           _ThemeModeSelector(),
           Consumer(
             builder: (context, ref, _) {
@@ -53,7 +52,7 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
           ),
 
           // Display Section
-          _buildSectionHeader(context, l10n.display),
+          _buildSectionHeader(context, 'Display'),
           _DefaultTabSelector(),
 
           // Interface Section
