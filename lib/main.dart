@@ -7,8 +7,8 @@ import 'package:flutter/foundation.dart'
         TargetPlatform; // platform check without BuildContext
 
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_quill/flutter_quill.dart' show FlutterQuillLocalizations;
-
+import 'package:flutter_quill/flutter_quill.dart'
+    show FlutterQuillLocalizations;
 
 import 'services/storage_service.dart';
 import 'services/permissions_channel.dart';

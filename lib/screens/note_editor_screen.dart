@@ -5,6 +5,8 @@ import 'dart:async';
 import '../models/note.dart';
 import '../controllers/notes_controller.dart';
 import '../repositories/notes_repository.dart';
+import '../repositories/note_folder_repository.dart';
+import '../services/note_export_service.dart';
 
 /// Screen for creating and editing markdown notes
 class NoteEditorScreen extends ConsumerStatefulWidget {
@@ -206,6 +208,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                   color: _getStatusColor(),
                 ),
               ),
+            IconButton(
+              icon: const Icon(Icons.share_outlined),
+              tooltip: 'Export',
+              onPressed: () => _showExportOptions(),
+            ),
           ],
         ),
         body: Column(
@@ -1091,6 +1098,145 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     }
 
     return processedLines.join('\n');
+  }
+
+  Future<void> _showExportOptions() async {
+    // Build a Note from current editor content (use formatted content)
+    final rawContent = _contentController.text.trim();
+    final formatted = _autoFormatWithHeaders(rawContent);
+    final lines = formatted.split('\n');
+    final firstLine = lines.isNotEmpty ? lines.first.trim() : '';
+    final title = firstLine.replaceFirst(RegExp(r'^#+\s*'), '');
+
+    final noteToExport = Note(
+      title: title,
+      content: formatted,
+      createdAt: _originalNote?.createdAt ?? DateTime.now(),
+      updatedAt: DateTime.now(),
+      folderId: _originalNote?.folderId ?? widget.initialFolderId,
+    );
+
+    // Check vault folder
+    final folder = noteToExport.folderId == null
+        ? null
+        : NoteFolderRepository().getNoteFolderById(noteToExport.folderId!);
+
+    if (folder != null && folder.isVault) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Export is disabled for vault notes'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Show bottom-sheet export menu (only PDF for now)
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.25,
+          minChildSize: 0.15,
+          maxChildSize: 0.6,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
+              ),
+              child: ListView(
+                controller: scrollController,
+                children: [
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Text(
+                      'Export',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.picture_as_pdf_outlined),
+                    title: const Text('Export as PDF'),
+                    subtitle: const Text('Create a PDF of this note'),
+                    onTap: () => Navigator.pop(context, 'pdf'),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (choice == null) return;
+
+    if (choice == 'pdf') {
+      await _exportAsPdf(noteToExport);
+    }
+  }
+
+  Future<void> _exportAsPdf(Note note) async {
+    // Show progress
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 12),
+              Text('Generating PDF...'),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final bytes = await NoteExportService.generatePdfBytes(note);
+      final safeTitle = (note.title.isEmpty ? 'note' : note.title).replaceAll(
+        RegExp(r'[^A-Za-z0-9_\-]'),
+        '_',
+      );
+      final filename =
+          '$safeTitle-${DateTime.now().toIso8601String().split('T').first}.pdf';
+      await NoteExportService.sharePdf(bytes, filename, context);
+      if (mounted) {
+        Navigator.of(context).pop(); // dismiss progress
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Exported "$filename"')));
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // dismiss progress
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      }
+    }
   }
 
   Future<bool?> _showDiscardDialog() {
