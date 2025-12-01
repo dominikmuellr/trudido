@@ -350,11 +350,22 @@ class CalendarSyncService {
   }
 
   /// Create or update a calendar event for a task (exports to primary calendar only)
+  /// Only creates a new event if one doesn't already exist for this task
+  /// Skips tasks that were imported from a calendar to avoid duplicates
   Future<bool> syncTaskToCalendar(Todo task) async {
     if (!isEnabled) return false;
     final exportCal = primaryExportCalendar;
     if (exportCal == null) return false;
     if (task.dueDate == null) return false;
+
+    // Skip tasks that were imported from a calendar - they already exist there!
+    if (task.sourceCalendarColor != null) {
+      debugPrint(
+        'CalendarSyncService: Skipping imported task ${task.id} (already from calendar)',
+      );
+      return false;
+    }
+
     if (task.isCompleted && !syncCompletedTasks) {
       // If task is completed and we don't sync completed tasks, delete it
       await deleteTaskFromCalendar(task.id);
@@ -367,15 +378,51 @@ class CalendarSyncService {
 
       final existingEventId = _getEventId(task.id, exportCal.id);
 
+      // If we already have an event ID mapped, verify it still exists
+      // If it exists, update it; if not, we'll create a new one
+      String? eventIdToUse = existingEventId;
+
+      if (existingEventId != null) {
+        // Check if the event still exists in the calendar
+        final eventExists = await _checkEventExists(
+          exportCal.id,
+          existingEventId,
+          task.dueDate!,
+        );
+        if (!eventExists) {
+          // Event was deleted from calendar, remove our mapping
+          await _removeEventMapping(task.id, exportCal.id);
+          eventIdToUse = null;
+        }
+      }
+
       // Create the event
+      final isAllDay = _isAllDayEvent(task);
+
+      // For all-day events, use the date at noon UTC to avoid timezone issues
+      // This ensures the date is correct regardless of timezone
+      TZDateTime startTime;
+      TZDateTime endTime;
+
+      if (isAllDay) {
+        // Use noon UTC for all-day events to avoid date shifting
+        final date = task.dueDate!;
+        startTime = TZDateTime.utc(date.year, date.month, date.day, 12, 0, 0);
+        endTime = TZDateTime.utc(date.year, date.month, date.day, 12, 0, 0);
+      } else {
+        // For timed events, use local timezone
+        startTime = TZDateTime.from(task.startDate ?? task.dueDate!, local);
+        endTime = TZDateTime.from(task.dueDate!, local);
+      }
+
       final event = Event(
         exportCal.id,
-        eventId: existingEventId,
+        eventId: eventIdToUse,
         title: _formatEventTitle(task),
         description: _formatEventDescription(task),
-        start: TZDateTime.from(task.startDate ?? task.dueDate!, local),
-        end: TZDateTime.from(task.dueDate!, local),
-        allDay: _isAllDayEvent(task),
+        start: startTime,
+        end: endTime,
+        allDay: isAllDay,
       );
 
       final result = await _calendarPlugin.createOrUpdateEvent(event);
@@ -383,7 +430,7 @@ class CalendarSyncService {
       if (result?.isSuccess == true && result?.data != null) {
         await _storeEventMapping(task.id, result!.data!, exportCal.id);
         debugPrint(
-          'CalendarSyncService: Synced task ${task.id} to event ${result.data}',
+          'CalendarSyncService: Synced task ${task.id} to event ${result.data} (${eventIdToUse != null ? 'updated' : 'created'})',
         );
         return true;
       }
@@ -392,6 +439,32 @@ class CalendarSyncService {
       return false;
     } catch (e) {
       debugPrint('CalendarSyncService: Error syncing task: $e');
+      return false;
+    }
+  }
+
+  /// Check if an event exists in a calendar
+  Future<bool> _checkEventExists(
+    String calendarId,
+    String eventId,
+    DateTime aroundDate,
+  ) async {
+    try {
+      // Search in a range around the expected date
+      final startDate = aroundDate.subtract(const Duration(days: 30));
+      final endDate = aroundDate.add(const Duration(days: 30));
+
+      final result = await _calendarPlugin.retrieveEvents(
+        calendarId,
+        RetrieveEventsParams(startDate: startDate, endDate: endDate),
+      );
+
+      if (result.isSuccess && result.data != null) {
+        return result.data!.any((e) => e.eventId == eventId);
+      }
+      return false;
+    } catch (e) {
+      debugPrint('CalendarSyncService: Error checking event exists: $e');
       return false;
     }
   }
@@ -425,6 +498,7 @@ class CalendarSyncService {
   }
 
   /// Sync all tasks to calendar (initial sync or full resync)
+  /// Only exports tasks that haven't been exported yet, or updates existing ones
   Future<int> syncAllTasks(List<Todo> tasks) async {
     if (!isEnabled || exportCalendars.isEmpty) return 0;
 
@@ -438,6 +512,27 @@ class CalendarSyncService {
     await _updateLastSyncTime();
     debugPrint('CalendarSyncService: Synced $synced tasks to calendar');
     return synced;
+  }
+
+  /// Check if a task has already been exported to the calendar
+  bool isTaskExported(String taskId) {
+    final exportCal = primaryExportCalendar;
+    if (exportCal == null) return false;
+    return _getEventId(taskId, exportCal.id) != null;
+  }
+
+  /// Get the count of tasks that would be exported (not already in calendar)
+  /// Excludes tasks imported from calendars
+  int getNewTasksToExportCount(List<Todo> tasks) {
+    return tasks
+        .where(
+          (t) =>
+              t.dueDate != null &&
+              t.sourceCalendarColor == null && // Not imported from calendar
+              !isTaskExported(t.id) &&
+              (syncCompletedTasks || !t.isCompleted),
+        )
+        .length;
   }
 
   /// Import events from all import-enabled calendars as tasks
@@ -688,6 +783,125 @@ class CalendarSyncService {
       autoSyncOnStartup: autoSyncOnStartup,
       lastSyncTime: lastSyncTime,
     );
+  }
+
+  /// Delete all duplicate Trudido events from a calendar
+  /// Keeps only one event per unique title+date combination
+  Future<int> deleteDuplicateTrudidoEvents({
+    required String calendarId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      final hasPerms = await hasPermissions();
+      if (!hasPerms) return 0;
+
+      final result = await _calendarPlugin.retrieveEvents(
+        calendarId,
+        RetrieveEventsParams(startDate: startDate, endDate: endDate),
+      );
+
+      if (!result.isSuccess || result.data == null) {
+        return 0;
+      }
+
+      // Find Trudido events and group by title+date
+      final trudiloEvents = result.data!
+          .where((e) => e.description?.contains('Synced from Trudido') == true)
+          .toList();
+
+      // Group by title and start date
+      final groups = <String, List<Event>>{};
+      for (final event in trudiloEvents) {
+        final key = '${event.title}_${event.start?.toIso8601String()}';
+        groups.putIfAbsent(key, () => []).add(event);
+      }
+
+      // Delete duplicates (keep first one of each group)
+      int deleted = 0;
+      for (final group in groups.values) {
+        if (group.length > 1) {
+          // Sort by event ID to keep consistent which one we keep
+          group.sort((a, b) => (a.eventId ?? '').compareTo(b.eventId ?? ''));
+          // Delete all except the first one
+          for (int i = 1; i < group.length; i++) {
+            final eventId = group[i].eventId;
+            if (eventId != null) {
+              final deleteResult = await _calendarPlugin.deleteEvent(
+                calendarId,
+                eventId,
+              );
+              if (deleteResult.isSuccess) {
+                deleted++;
+                debugPrint(
+                  'CalendarSyncService: Deleted duplicate event $eventId',
+                );
+              }
+            }
+          }
+        }
+      }
+
+      debugPrint('CalendarSyncService: Deleted $deleted duplicate events');
+      return deleted;
+    } catch (e) {
+      debugPrint('CalendarSyncService: Error deleting duplicates: $e');
+      return 0;
+    }
+  }
+
+  /// Delete ALL Trudido events from a calendar (useful for resetting)
+  Future<int> deleteAllTrudidoEvents({
+    required String calendarId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      final hasPerms = await hasPermissions();
+      if (!hasPerms) return 0;
+
+      final result = await _calendarPlugin.retrieveEvents(
+        calendarId,
+        RetrieveEventsParams(startDate: startDate, endDate: endDate),
+      );
+
+      if (!result.isSuccess || result.data == null) {
+        return 0;
+      }
+
+      int deleted = 0;
+      for (final event in result.data!) {
+        if (event.description?.contains('Synced from Trudido') == true) {
+          final eventId = event.eventId;
+          if (eventId != null) {
+            final deleteResult = await _calendarPlugin.deleteEvent(
+              calendarId,
+              eventId,
+            );
+            if (deleteResult.isSuccess) {
+              deleted++;
+            }
+          }
+        }
+      }
+
+      // Clear all event mappings
+      final keys =
+          _prefs
+              ?.getKeys()
+              .where((k) => k.startsWith(_keyEventMappingPrefix))
+              .toList() ??
+          [];
+      for (final key in keys) {
+        await _prefs?.remove(key);
+      }
+
+      debugPrint('CalendarSyncService: Deleted $deleted Trudido events');
+      return deleted;
+    } catch (e) {
+      debugPrint('CalendarSyncService: Error deleting events: $e');
+      return 0;
+    }
   }
 }
 

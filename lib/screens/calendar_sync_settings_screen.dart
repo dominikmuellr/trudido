@@ -280,6 +280,31 @@ class _CalendarSyncSettingsScreenState
                   enabled: !_isSyncing && !_isImporting,
                   onTap: () => _performTwoWaySync(context),
                 ),
+
+              _buildSectionHeader(context, 'Maintenance'),
+              ListTile(
+                leading: ScaledIcon(
+                  Icons.cleaning_services,
+                  color: cs.secondary,
+                ),
+                title: const Text('Remove Duplicate Events'),
+                subtitle: const Text('Clean up duplicate Trudido events'),
+                enabled: !_isSyncing && !_isImporting,
+                onTap: () => _showCleanupDuplicatesDialog(context, status),
+              ),
+              ListTile(
+                leading: ScaledIcon(Icons.delete_forever, color: cs.error),
+                title: Text(
+                  'Delete All Trudido Events',
+                  style: TextStyle(color: cs.error),
+                ),
+                subtitle: const Text(
+                  'Remove all exported events from calendar',
+                ),
+                enabled: !_isSyncing && !_isImporting,
+                onTap: () => _showDeleteAllEventsDialog(context, status),
+              ),
+
               if (status.lastSyncTime != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(
@@ -853,6 +878,149 @@ class _CalendarSyncSettingsScreenState
         _isSyncing = false;
         _isImporting = false;
       });
+    }
+  }
+
+  void _showCleanupDuplicatesDialog(
+    BuildContext context,
+    CalendarSyncStatus status,
+  ) {
+    final primaryCal = status.primaryExportCalendar;
+    if (primaryCal == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No primary export calendar set')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Duplicate Events'),
+        content: Text(
+          'This will search for duplicate events created by Trudido in "${primaryCal.name}" '
+          'and remove them, keeping only one event per task.\n\n'
+          'This is useful if you accidentally synced the same tasks multiple times.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _cleanupDuplicates(primaryCal.id);
+            },
+            child: const Text('Clean Up'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _cleanupDuplicates(String calendarId) async {
+    setState(() => _isSyncing = true);
+
+    try {
+      final service = ref.read(calendarSyncServiceProvider);
+      final now = DateTime.now();
+
+      final deleted = await service.deleteDuplicateTrudidoEvents(
+        calendarId: calendarId,
+        startDate: now.subtract(const Duration(days: 365)),
+        endDate: now.add(const Duration(days: 730)),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              deleted > 0
+                  ? 'Removed $deleted duplicate events'
+                  : 'No duplicates found',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Cleanup failed: $e')));
+      }
+    } finally {
+      setState(() => _isSyncing = false);
+    }
+  }
+
+  void _showDeleteAllEventsDialog(
+    BuildContext context,
+    CalendarSyncStatus status,
+  ) {
+    final primaryCal = status.primaryExportCalendar;
+    if (primaryCal == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No primary export calendar set')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete All Trudido Events'),
+        icon: Icon(Icons.warning, color: Theme.of(context).colorScheme.error),
+        content: Text(
+          'This will permanently delete ALL events created by Trudido from "${primaryCal.name}".\n\n'
+          'This cannot be undone. Your tasks in Trudido will not be affected.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () async {
+              Navigator.pop(context);
+              await _deleteAllTrudidoEvents(primaryCal.id);
+            },
+            child: const Text('Delete All'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteAllTrudidoEvents(String calendarId) async {
+    setState(() => _isSyncing = true);
+
+    try {
+      final service = ref.read(calendarSyncServiceProvider);
+      final now = DateTime.now();
+
+      final deleted = await service.deleteAllTrudidoEvents(
+        calendarId: calendarId,
+        startDate: now.subtract(const Duration(days: 365)),
+        endDate: now.add(const Duration(days: 730)),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Deleted $deleted events from calendar')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+      }
+    } finally {
+      setState(() => _isSyncing = false);
     }
   }
 }
