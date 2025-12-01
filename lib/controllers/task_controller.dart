@@ -4,6 +4,7 @@ import '../repositories/task_repository.dart';
 import '../providers/app_providers.dart';
 import '../providers/clock.dart';
 import '../services/notification_service.dart';
+import '../services/calendar_sync_service.dart';
 import '../models/app_error.dart';
 
 final taskControllerProvider =
@@ -16,6 +17,7 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
   TaskController(this.ref) : super(const AsyncData(null));
   TaskRepository get _repo => ref.read(taskRepositoryProvider);
   final _notifications = NotificationBridge.instance;
+  final _calendarSync = CalendarSyncService();
 
   List<Todo> get tasks => ref.read(tasksProvider);
 
@@ -24,6 +26,7 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
     try {
       await _repo.add(todo);
       await _scheduleNotifications(todo);
+      await _syncToCalendar(todo);
       await ref.read(tasksProvider.notifier).refresh();
       state = const AsyncData(null);
     } catch (e, st) {
@@ -42,6 +45,7 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
       await _cancelNotifications(existing);
       await _repo.update(updated);
       if (!updated.isCompleted) await _scheduleNotifications(updated);
+      await _syncToCalendar(updated);
       await ref.read(tasksProvider.notifier).refresh();
       state = const AsyncData(null);
     } catch (e, st) {
@@ -169,6 +173,7 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
             throw const AppError(AppErrorType.notFound, 'Task not found'),
       );
       await _cancelNotifications(existing);
+      await _deleteFromCalendar(id);
       await _repo.delete(id);
       await ref.read(tasksProvider.notifier).refresh();
       state = const AsyncData(null);
@@ -184,6 +189,7 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
         try {
           final task = tasks.firstWhere((t) => t.id == id);
           await _cancelNotifications(task);
+          await _deleteFromCalendar(id);
         } catch (_) {
           // ignore missing task
         }
@@ -240,6 +246,32 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
       await _notifications.cancelTaskNotification('${todo.id}_$offset');
     }
     await _notifications.cancelTaskNotification(todo.id);
+  }
+
+  /// Sync a task to the device calendar (for DAVx5 integration)
+  Future<void> _syncToCalendar(Todo todo) async {
+    try {
+      await _calendarSync.ensureInitialized();
+      if (_calendarSync.isEnabled) {
+        await _calendarSync.syncTaskToCalendar(todo);
+      }
+    } catch (e) {
+      // Calendar sync errors should not block task operations
+      // Log silently
+    }
+  }
+
+  /// Delete a task from the device calendar
+  Future<void> _deleteFromCalendar(String taskId) async {
+    try {
+      await _calendarSync.ensureInitialized();
+      if (_calendarSync.isEnabled) {
+        await _calendarSync.deleteTaskFromCalendar(taskId);
+      }
+    } catch (e) {
+      // Calendar sync errors should not block task operations
+      // Log silently
+    }
   }
 }
 

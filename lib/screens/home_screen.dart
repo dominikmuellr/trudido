@@ -1779,9 +1779,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   markerBuilder: (context, day, events) {
                     if (events.isEmpty) return const SizedBox.shrink();
 
-                    // Sort events by priority: high → medium → low → none
+                    // Sort events: tasks with calendar colors first, then by priority
                     final sortedEvents = events.toList()
                       ..sort((a, b) {
+                        // First sort by whether they have a calendar color
+                        final aHasColor = a.sourceCalendarColor != null;
+                        final bHasColor = b.sourceCalendarColor != null;
+                        if (aHasColor != bHasColor) {
+                          return aHasColor ? -1 : 1;
+                        }
+                        // Then by priority
                         const priorityOrder = {
                           'high': 0,
                           'medium': 1,
@@ -1813,10 +1820,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               width: 3,
                               height: 6,
                               decoration: BoxDecoration(
-                                color: _getColorForPriority(
-                                  event.priority,
-                                  colorScheme,
-                                ),
+                                // Use calendar color if available, otherwise priority color
+                                color: event.sourceCalendarColor != null
+                                    ? Color(event.sourceCalendarColor!)
+                                    : _getColorForPriority(
+                                        event.priority,
+                                        colorScheme,
+                                      ),
                                 borderRadius: BorderRadius.circular(1.5),
                                 boxShadow: [
                                   BoxShadow(

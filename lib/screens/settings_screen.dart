@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
 import '../controllers/task_controller.dart';
 import '../utils/responsive_size.dart';
+import '../widgets/update_dialog.dart';
 import 'backup_settings_page.dart';
 import 'about_screen.dart';
 import 'display_theme_settings_page.dart';
 import 'comprehensive_notification_settings.dart';
 import 'template_management_screen.dart';
 import 'font_size_settings_screen.dart';
+import 'calendar_sync_settings_screen.dart';
 import '../controllers/preferences_controller.dart';
 
 // Moved _SwipeActionSheet and _getSwipeActionName outside the class
@@ -364,6 +366,19 @@ class SettingsScreen extends ConsumerWidget {
           // Data & Storage Section
           _buildSectionHeader(context, 'Data & Storage'),
           ListTile(
+            leading: ScaledIcon(Icons.calendar_month_outlined),
+            title: const Text('Calendar Sync'),
+            subtitle: const Text('Sync tasks with Android/DAVx5 calendar'),
+            trailing: ScaledIcon(Icons.arrow_forward_ios),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const CalendarSyncSettingsScreen(),
+                ),
+              );
+            },
+          ),
+          ListTile(
             leading: ScaledIcon(Icons.save_alt),
             title: const Text('Backup & Data'),
             subtitle: const Text('Export, import and automatic backups'),
@@ -392,6 +407,13 @@ class SettingsScreen extends ConsumerWidget {
 
           // About Section
           _buildSectionHeader(context, 'About'),
+          ListTile(
+            leading: ScaledIcon(Icons.system_update),
+            title: const Text('Check for Updates'),
+            subtitle: const Text('Download latest version from GitHub'),
+            trailing: ScaledIcon(Icons.arrow_forward_ios),
+            onTap: () => showUpdateDialogIfAvailable(context, ref, force: true),
+          ),
           ListTile(
             leading: ScaledIcon(Icons.info_outline),
             title: const Text('About & Licenses'),

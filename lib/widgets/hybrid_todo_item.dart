@@ -123,6 +123,9 @@ class HybridTodoItem extends ConsumerWidget {
                           spacing: 12,
                           runSpacing: 4,
                           children: [
+                            // Calendar source color indicator (for imported tasks)
+                            if (todo.sourceCalendarColor != null)
+                              _buildCalendarSourceChip(context),
                             // Priority indicator (only show if not 'none')
                             if (todo.priority != 'none')
                               _buildPriorityChip(context),
@@ -147,6 +150,31 @@ class HybridTodoItem extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCalendarSourceChip(BuildContext context) {
+    final color = Color(todo.sourceCalendarColor!);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 4),
+          Icon(Icons.event, size: 12, color: color),
+        ],
       ),
     );
   }

@@ -34,13 +34,14 @@ class TodoAdapter extends TypeAdapter<Todo> {
       repeatDays: (fields[15] as List?)?.cast<int>(),
       repeatEndDate: fields[16] as DateTime?,
       parentRecurringTaskId: fields[17] as String?,
+      sourceCalendarColor: fields[18] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Todo obj) {
     writer
-      ..writeByte(17)
+      ..writeByte(18)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -74,7 +75,9 @@ class TodoAdapter extends TypeAdapter<Todo> {
       ..writeByte(16)
       ..write(obj.repeatEndDate)
       ..writeByte(17)
-      ..write(obj.parentRecurringTaskId);
+      ..write(obj.parentRecurringTaskId)
+      ..writeByte(18)
+      ..write(obj.sourceCalendarColor);
   }
 
   @override

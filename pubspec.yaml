@@ -119,6 +119,14 @@ dependencies:
   # Cryptographic hashing for secure password storage
   crypto: ^3.0.3
 
+  # Calendar integration (for DAVx5/Android Calendar sync)
+  device_calendar: ^4.3.3
+
+  # App update checker
+  package_info_plus: ^8.0.0
+  http: ^1.2.0
+  open_filex: ^4.5.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
