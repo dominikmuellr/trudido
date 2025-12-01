@@ -1,56 +1,24 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:open_filex/open_filex.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// GitHub release information
 class ReleaseInfo {
   final String tagName;
   final String version;
   final String? releaseNotes;
-  final String? apkDownloadUrl;
+  final String releaseUrl;
   final DateTime? publishedAt;
 
   const ReleaseInfo({
     required this.tagName,
     required this.version,
     this.releaseNotes,
-    this.apkDownloadUrl,
+    required this.releaseUrl,
     this.publishedAt,
   });
-
-  factory ReleaseInfo.fromJson(Map<String, dynamic> json) {
-    // Find APK asset in release
-    String? apkUrl;
-    final assets = json['assets'] as List<dynamic>?;
-    if (assets != null) {
-      for (final asset in assets) {
-        final name = asset['name'] as String?;
-        if (name != null && name.endsWith('.apk')) {
-          apkUrl = asset['browser_download_url'] as String?;
-          break;
-        }
-      }
-    }
-
-    final tagName = json['tag_name'] as String;
-    // Remove 'v' prefix if present (e.g., 'v1.2.0' -> '1.2.0')
-    final version = tagName.startsWith('v') ? tagName.substring(1) : tagName;
-
-    return ReleaseInfo(
-      tagName: tagName,
-      version: version,
-      releaseNotes: json['body'] as String?,
-      apkDownloadUrl: apkUrl,
-      publishedAt: json['published_at'] != null
-          ? DateTime.tryParse(json['published_at'] as String)
-          : null,
-    );
-  }
 }
 
 /// Update check result
@@ -68,13 +36,14 @@ class UpdateCheckResult {
   });
 }
 
-/// Service for checking and downloading app updates from GitHub
+/// Service for checking app updates from GitHub using the public Atom feed
+/// This approach has NO rate limits and works for unlimited users
 class UpdateService {
   static const String _repoOwner = 'dominikmuellr';
   static const String _repoName = 'trudido';
-
-  // GitHub Personal Access Token (read-only public repo access)
-  static const String _githubToken = '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';
+  static const String _releasesUrl =
+      'https://github.com/$_repoOwner/$_repoName/releases';
+  static const String _atomFeedUrl = '$_releasesUrl.atom';
 
   static const String _keyLastCheckTime = 'update_last_check_time';
   static const String _keySkippedVersion = 'update_skipped_version';
@@ -127,7 +96,10 @@ class UpdateService {
     await _prefs?.remove(_keySkippedVersion);
   }
 
-  /// Check for updates from GitHub
+  /// Get the releases page URL
+  String get releasesUrl => _releasesUrl;
+
+  /// Check for updates from GitHub using the public Atom feed (NO rate limits!)
   Future<UpdateCheckResult> checkForUpdates({bool force = false}) async {
     try {
       // Check if we should skip this check (unless forced)
@@ -138,20 +110,8 @@ class UpdateService {
         );
       }
 
-      final url = Uri.parse(
-        'https://api.github.com/repos/$_repoOwner/$_repoName/releases/latest',
-      );
-
-      final headers = <String, String>{
-        'Accept': 'application/vnd.github.v3+json',
-      };
-
-      // Add authorization if token is set
-      if (_githubToken != 'YOUR_GITHUB_TOKEN_HERE' && _githubToken.isNotEmpty) {
-        headers['Authorization'] = 'token $_githubToken';
-      }
-
-      final response = await http.get(url, headers: headers);
+      final url = Uri.parse(_atomFeedUrl);
+      final response = await http.get(url);
 
       // Update last check time
       await _prefs?.setInt(
@@ -160,8 +120,15 @@ class UpdateService {
       );
 
       if (response.statusCode == 200) {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
-        final release = ReleaseInfo.fromJson(json);
+        final release = _parseAtomFeed(response.body);
+
+        if (release == null) {
+          return UpdateCheckResult(
+            updateAvailable: false,
+            currentVersion: currentVersion,
+            error: 'Could not parse release info',
+          );
+        }
 
         final updateAvailable = _isNewerVersion(
           release.version,
@@ -182,17 +149,11 @@ class UpdateService {
           latestRelease: release,
           currentVersion: currentVersion,
         );
-      } else if (response.statusCode == 404) {
-        return UpdateCheckResult(
-          updateAvailable: false,
-          currentVersion: currentVersion,
-          error: 'No releases found',
-        );
       } else {
         return UpdateCheckResult(
           updateAvailable: false,
           currentVersion: currentVersion,
-          error: 'GitHub API error: ${response.statusCode}',
+          error: 'Failed to check for updates: ${response.statusCode}',
         );
       }
     } catch (e) {
@@ -202,6 +163,83 @@ class UpdateService {
         currentVersion: currentVersion,
         error: e.toString(),
       );
+    }
+  }
+
+  /// Parse the Atom feed XML to extract the latest release info
+  ReleaseInfo? _parseAtomFeed(String xml) {
+    try {
+      // Find the first entry (latest release)
+      final entryStart = xml.indexOf('<entry>');
+      final entryEnd = xml.indexOf('</entry>');
+
+      if (entryStart == -1 || entryEnd == -1) {
+        return null;
+      }
+
+      final entry = xml.substring(entryStart, entryEnd);
+
+      // Extract tag name from <id> tag
+      // Format: tag:github.com,2008:Repository/.../v1.2.0
+      final idMatch = RegExp(
+        r'<id>tag:github\.com,\d+:Repository/\d+/(.+?)</id>',
+      ).firstMatch(entry);
+      if (idMatch == null) return null;
+
+      final tagName = idMatch.group(1)!;
+      final version = tagName.startsWith('v') ? tagName.substring(1) : tagName;
+
+      // Extract release URL from <link> tag
+      final linkMatch = RegExp(
+        r'<link[^>]*href="([^"]+)"[^>]*rel="alternate"',
+      ).firstMatch(entry);
+      final releaseUrl = linkMatch?.group(1) ?? '$_releasesUrl/tag/$tagName';
+
+      // Extract title (release name)
+      final titleMatch = RegExp(r'<title>([^<]*)</title>').firstMatch(entry);
+      final title = titleMatch?.group(1);
+
+      // Extract content (release notes) - it's HTML encoded
+      final contentMatch = RegExp(
+        r'<content[^>]*>([^<]*)</content>',
+      ).firstMatch(entry);
+      String? releaseNotes = contentMatch?.group(1);
+      if (releaseNotes != null) {
+        // Decode HTML entities
+        releaseNotes = releaseNotes
+            .replaceAll('&lt;', '<')
+            .replaceAll('&gt;', '>')
+            .replaceAll('&amp;', '&')
+            .replaceAll('&quot;', '"')
+            .replaceAll('&#39;', "'");
+        // Strip HTML tags for plain text
+        releaseNotes = releaseNotes.replaceAll(RegExp(r'<[^>]*>'), '');
+        releaseNotes = releaseNotes.trim();
+        if (releaseNotes.isEmpty) releaseNotes = null;
+      }
+
+      // Use title as release notes if content is empty
+      releaseNotes ??= title;
+
+      // Extract updated date
+      final updatedMatch = RegExp(
+        r'<updated>([^<]*)</updated>',
+      ).firstMatch(entry);
+      DateTime? publishedAt;
+      if (updatedMatch != null) {
+        publishedAt = DateTime.tryParse(updatedMatch.group(1)!);
+      }
+
+      return ReleaseInfo(
+        tagName: tagName,
+        version: version,
+        releaseNotes: releaseNotes,
+        releaseUrl: releaseUrl,
+        publishedAt: publishedAt,
+      );
+    } catch (e) {
+      debugPrint('UpdateService: Error parsing Atom feed: $e');
+      return null;
     }
   }
 
@@ -227,77 +265,24 @@ class UpdateService {
     }
   }
 
-  /// Download the APK update
-  Future<String?> downloadUpdate(
-    ReleaseInfo release, {
-    void Function(double progress)? onProgress,
-  }) async {
-    if (release.apkDownloadUrl == null) {
-      debugPrint('UpdateService: No APK download URL available');
-      return null;
-    }
-
+  /// Open the releases page in the browser
+  Future<bool> openReleasesPage() async {
     try {
-      final dir = await getExternalStorageDirectory();
-      if (dir == null) {
-        debugPrint('UpdateService: Could not get storage directory');
-        return null;
-      }
-
-      final fileName = 'trudido-${release.version}.apk';
-      final filePath = '${dir.path}/$fileName';
-      final file = File(filePath);
-
-      // Delete old file if exists
-      if (await file.exists()) {
-        await file.delete();
-      }
-
-      // Download with progress tracking
-      final request = http.Request('GET', Uri.parse(release.apkDownloadUrl!));
-
-      // Add auth header if token is set
-      if (_githubToken != 'YOUR_GITHUB_TOKEN_HERE' && _githubToken.isNotEmpty) {
-        request.headers['Authorization'] = 'token $_githubToken';
-      }
-
-      final streamedResponse = await http.Client().send(request);
-
-      if (streamedResponse.statusCode != 200) {
-        debugPrint(
-          'UpdateService: Download failed: ${streamedResponse.statusCode}',
-        );
-        return null;
-      }
-
-      final totalBytes = streamedResponse.contentLength ?? 0;
-      int receivedBytes = 0;
-
-      final sink = file.openWrite();
-      await for (final chunk in streamedResponse.stream) {
-        sink.add(chunk);
-        receivedBytes += chunk.length;
-        if (totalBytes > 0 && onProgress != null) {
-          onProgress(receivedBytes / totalBytes);
-        }
-      }
-      await sink.close();
-
-      debugPrint('UpdateService: Downloaded update to $filePath');
-      return filePath;
+      final uri = Uri.parse(_releasesUrl);
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (e) {
-      debugPrint('UpdateService: Error downloading update: $e');
-      return null;
+      debugPrint('UpdateService: Error opening releases page: $e');
+      return false;
     }
   }
 
-  /// Install the downloaded APK
-  Future<bool> installUpdate(String apkPath) async {
+  /// Open a specific release page in the browser
+  Future<bool> openReleaseUrl(String url) async {
     try {
-      final result = await OpenFilex.open(apkPath);
-      return result.type == ResultType.done;
+      final uri = Uri.parse(url);
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (e) {
-      debugPrint('UpdateService: Error installing update: $e');
+      debugPrint('UpdateService: Error opening release URL: $e');
       return false;
     }
   }

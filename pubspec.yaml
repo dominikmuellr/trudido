@@ -122,10 +122,9 @@ dependencies:
   # Calendar integration (for DAVx5/Android Calendar sync)
   device_calendar: ^4.3.3
 
-  # App update checker
+  # App update checker (uses GitHub Atom feed - no rate limits!)
   package_info_plus: ^8.0.0
   http: ^1.2.0
-  open_filex: ^4.5.0
 
 dev_dependencies:
   flutter_test:
