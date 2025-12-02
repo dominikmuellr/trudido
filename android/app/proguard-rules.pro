@@ -10,8 +10,21 @@
 ## Remove Google Play Core classes (required for F-Droid)
 ## These are included by Flutter but not used by this app
 -dontwarn com.google.android.play.**
+-dontwarn com.google.android.play.core.**
+-dontwarn com.google.android.play.core.splitcompat.**
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
+
+## Explicitly remove Play Core classes - don't keep them
 -assumenosideeffects class com.google.android.play.** { *; }
 -assumenosideeffects class com.google.android.play.core.** { *; }
+-assumenosideeffects class com.google.android.play.core.splitcompat.** { *; }
+-assumenosideeffects class com.google.android.play.core.splitinstall.** { *; }
+-assumenosideeffects class com.google.android.play.core.tasks.** { *; }
+
+## Allow R8 to fully remove unused Play Core classes
+-allowaccessmodification
+-repackageclasses
 
 ## Gson (if used)
 -keepattributes Signature
