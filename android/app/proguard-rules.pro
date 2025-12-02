@@ -5,8 +5,13 @@
 -keep class io.flutter.view.** { *; }
 -keep class io.flutter.** { *; }
 -keep class io.flutter.plugins.** { *; }
--keep class com.google.firebase.** { *; }
 -dontwarn io.flutter.embedding.**
+
+## Remove Google Play Core classes (required for F-Droid)
+## These are included by Flutter but not used by this app
+-dontwarn com.google.android.play.**
+-assumenosideeffects class com.google.android.play.** { *; }
+-assumenosideeffects class com.google.android.play.core.** { *; }
 
 ## Gson (if used)
 -keepattributes Signature
