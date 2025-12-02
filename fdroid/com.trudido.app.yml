@@ -38,7 +38,7 @@ Builds:
       - export PATH="$$flutter$$/bin:$PATH"
       - flutter config --no-analytics
       - flutter pub get
-      - flutter build apk --release
+      - flutter build apk --release --no-deferred-components
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
