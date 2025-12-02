@@ -1,0 +1,55 @@
+Categories:
+  - Office
+  - Writing
+
+License: GPL-3.0-or-later
+
+AuthorName: Dominik Müller
+AuthorWebSite: https://github.com/dominikmuellr
+
+SourceCode: https://github.com/dominikmuellr/trudido
+IssueTracker: https://github.com/dominikmuellr/trudido/issues
+
+Name: Trudido
+Summary: A feature-rich todo and notes app
+
+Description: |
+  Trudido is a privacy-focused todo and notes app with rich features.
+  
+  Features:
+  * Task management with categories, priorities, and due dates
+  * Rich text notes with markdown support
+  * Encrypted vault for private notes (biometric unlock)
+  * Calendar integration (DAVx5/Android Calendar sync)
+  * Audio recordings, images, and video attachments
+  * PDF export
+  * Material You dynamic theming
+  * Fully offline - no internet required
+  * No ads, no tracking
+
+RepoType: git
+Repo: https://github.com/dominikmuellr/trudido.git
+
+Builds:
+  - versionName: 1.2.2
+    versionCode: 13
+    commit: v1.2.2
+    output: build/app/outputs/flutter-apk/app-release.apk
+    srclibs:
+      - flutter@3.24.5
+    rm:
+      - ios
+      - web
+      - linux
+      - macos
+      - windows
+    build:
+      - export PATH="$$flutter$$/bin:$PATH"
+      - flutter config --no-analytics
+      - flutter pub get
+      - flutter build apk --release
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 1.2.2
+CurrentVersionCode: 13
