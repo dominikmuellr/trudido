@@ -6,7 +6,7 @@
 .flutter-plugins
 .flutter-plugins-dependencies
 **/doc/api/
-pubspec.lock
+# pubspec.lock - MUST be committed for F-Droid reproducible builds
 
 # Build outputs
 /build/
@@ -184,7 +184,6 @@ macos/Pods/
 *.so
 *.dylib
 *.key
-*.lock
 *.pem
 *.jks
 *.log
