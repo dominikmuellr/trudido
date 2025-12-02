@@ -6,6 +6,7 @@ AuthorName: Dominik Müller
 AuthorWebSite: https://github.com/dominikmuellr
 SourceCode: https://github.com/dominikmuellr/trudido
 IssueTracker: https://github.com/dominikmuellr/trudido/issues
+
 Name: Trudido
 AutoName: trudido
 Summary: A feature-rich todo and notes app
@@ -32,7 +33,7 @@ Builds:
     commit: v1.2.2
     output: build/app/outputs/flutter-apk/app-release.apk
     srclibs:
-      - flutter@3.32.0
+      - flutter@3.35.0
     build:
       - export PATH="$$flutter$$/bin:$PATH"
       - flutter config --no-analytics
