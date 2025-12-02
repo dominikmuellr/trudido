@@ -14,8 +14,6 @@ import 'services/storage_service.dart';
 import 'services/permissions_channel.dart';
 import 'services/theme_service.dart';
 import 'services/text_scale_service.dart';
-import 'services/update_service.dart';
-import 'widgets/update_dialog.dart';
 import 'providers/app_providers.dart';
 import 'services/navigation_service.dart';
 import 'services/system_settings_service.dart';
@@ -144,38 +142,6 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
     await Future.delayed(const Duration(milliseconds: 250));
     if (!mounted) return;
     await showBatteryOptimizationDialogIfNeededAuto();
-    if (!mounted) return;
-    // Check for app updates after other dialogs
-    await _checkForUpdates();
-  }
-
-  Future<void> _checkForUpdates() async {
-    if (!mounted) return;
-    try {
-      final updateService = UpdateService();
-      await updateService.init();
-
-      // Only check if auto-check is enabled
-      if (!updateService.autoCheckEnabled) return;
-
-      final result = await updateService.checkForUpdates();
-
-      if (result.updateAvailable && result.latestRelease != null && mounted) {
-        // Wait for navigator to be ready
-        await Future.delayed(const Duration(milliseconds: 500));
-        if (!mounted) return;
-
-        final ctx = NavigationService.navigatorKey.currentContext;
-        if (ctx != null) {
-          showDialog(
-            context: ctx,
-            builder: (context) => UpdateDialog(result: result),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('Update check failed: $e');
-    }
   }
 
   Future<void> _maybeRequestNotificationsOnce() async {

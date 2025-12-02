@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
 import '../controllers/task_controller.dart';
 import '../utils/responsive_size.dart';
-import '../widgets/update_dialog.dart';
 import 'backup_settings_page.dart';
 import 'about_screen.dart';
 import 'display_theme_settings_page.dart';
@@ -407,13 +406,6 @@ class SettingsScreen extends ConsumerWidget {
 
           // About Section
           _buildSectionHeader(context, 'About'),
-          ListTile(
-            leading: ScaledIcon(Icons.system_update),
-            title: const Text('Check for Updates'),
-            subtitle: const Text('Download latest version from GitHub'),
-            trailing: ScaledIcon(Icons.arrow_forward_ios),
-            onTap: () => showUpdateDialogIfAvailable(context, ref, force: true),
-          ),
           ListTile(
             leading: ScaledIcon(Icons.info_outline),
             title: const Text('About & Licenses'),

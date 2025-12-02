@@ -714,7 +714,7 @@ Happy note-taking! ✨''',
           'show_completed_tasks': getShowCompletedTasks(),
         },
         'exported_at': DateTime.now().toIso8601String(),
-        'version': '1.2.0', // Version for v1.2.0 release
+        'version': '1.2.2', // Version for v1.2.2 release
       };
 
       debugPrint('[StorageService] Export data prepared successfully');

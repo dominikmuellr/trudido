@@ -1,0 +1,9 @@
+Version 1.2.2 - Calendar Sync & Update Checker Fixes
+
+• Fixed calendar sync duplicate events - tasks are no longer exported multiple times
+• Fixed imported calendar events being re-exported (prevents duplicates)
+• Fixed all-day event timezone issue - dates now sync correctly
+• Added "Remove Duplicate Events" maintenance option
+• Added "Delete All Trudido Events" option for calendar cleanup
+• Switched update checker to GitHub Atom feed (unlimited checks, no rate limits)
+• Update dialog now opens browser to download instead of in-app download
