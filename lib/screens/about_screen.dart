@@ -57,6 +57,7 @@ class _AboutScreenState extends State<AboutScreen> {
   Future<void> _openGitHub() async {
     const url = 'https://github.com/dominikmuellr/trudido';
     final uri = Uri.parse(url);
+    // Open in external browser app (not in-app webview)
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         ScaffoldMessenger.of(

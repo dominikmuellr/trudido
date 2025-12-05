@@ -62,11 +62,14 @@ class LinkEmbedBuilder extends quill.EmbedBuilder {
         urlString = 'https://$urlString';
       }
 
-      // Use url_launcher to open the link
+      // Use url_launcher to open the link in external browser
       final uri = Uri.parse(urlString);
 
-      // Try launching without specifying mode - let the system decide
-      final launched = await launchUrl(uri);
+      // Open in external browser app (not in-app webview)
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
 
       if (!launched && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1197,7 +1197,8 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       // Use url_launcher to open the link in the system browser
       final uri = Uri.parse(urlString);
       if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
+        // Open in external browser app (not in-app webview)
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else if (mounted) {
         // Fallback: show snackbar if URL can't be launched
         ScaffoldMessenger.of(context).showSnackBar(
