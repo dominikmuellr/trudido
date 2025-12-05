@@ -1159,34 +1159,6 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
               color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: () {
-              final dateOnly = _selectedDay != null
-                  ? DateTime(
-                      _selectedDay!.year,
-                      _selectedDay!.month,
-                      _selectedDay!.day,
-                    )
-                  : null;
-              // Ensure provider is set to current selected day
-              if (dateOnly != null) {
-                ref.read(selectedCalendarDateProvider.notifier).state =
-                    dateOnly;
-              }
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => TaskEditorScreen(
-                    presetDueDate: dateOnly,
-                    onSave: (t) =>
-                        ref.read(taskControllerProvider.notifier).add(t),
-                  ),
-                ),
-              );
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Add task'),
-          ),
         ],
       ),
     );
