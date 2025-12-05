@@ -15,7 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'dart:convert';
-import 'package:device_calendar/device_calendar.dart';
+import 'package:device_calendar_plus/device_calendar_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/todo.dart';
@@ -82,7 +82,7 @@ class CalendarSyncService {
   factory CalendarSyncService() => _instance;
   CalendarSyncService._internal();
 
-  final DeviceCalendarPlugin _calendarPlugin = DeviceCalendarPlugin();
+  final DeviceCalendar _calendarPlugin = DeviceCalendar.instance;
   SharedPreferences? _prefs;
 
   // Preference keys
@@ -151,12 +151,11 @@ class CalendarSyncService {
           .map((e) => SelectedCalendar.fromJson(e as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      debugPrint('CalendarSyncService: Error parsing selected calendars: $e');
       return [];
     }
   }
 
-  /// Get primary export calendar ID (where new tasks are exported)
+  /// Get primary export calendar ID
   String? get primaryExportCalendarId =>
       _prefs?.getString(_keyPrimaryExportCalendarId);
 
@@ -185,62 +184,52 @@ class CalendarSyncService {
   /// Check if auto-sync on startup is enabled
   bool get autoSyncOnStartup => _prefs?.getBool(_keyAutoSyncOnStartup) ?? false;
 
-  /// Get the last sync time
+  /// Get last sync time
   DateTime? get lastSyncTime {
-    final ms = _prefs?.getInt(_keyLastSyncTime);
-    return ms != null ? DateTime.fromMillisecondsSinceEpoch(ms) : null;
+    final timestamp = _prefs?.getInt(_keyLastSyncTime);
+    if (timestamp == null) return null;
+    return DateTime.fromMillisecondsSinceEpoch(timestamp);
   }
 
   /// Enable or disable calendar sync
-  Future<void> setEnabled(bool enabled) async {
-    await _prefs?.setBool(_keyCalendarSyncEnabled, enabled);
+  Future<void> setEnabled(bool value) async {
+    await _prefs?.setBool(_keyCalendarSyncEnabled, value);
   }
 
-  /// Add a selected calendar
+  /// Add a calendar to the selected list
   Future<void> addSelectedCalendar(SelectedCalendar calendar) async {
-    final calendars = List<SelectedCalendar>.from(selectedCalendars);
-    // Remove existing entry with same ID if present
-    calendars.removeWhere((c) => c.id == calendar.id);
-    calendars.add(calendar);
-    await _saveSelectedCalendars(calendars);
-
-    // If this is the first calendar and it's for export, make it primary
-    if (calendar.isForExport && primaryExportCalendarId == null) {
-      await setPrimaryExportCalendar(calendar.id);
+    final current = selectedCalendars;
+    if (!current.any((c) => c.id == calendar.id)) {
+      current.add(calendar);
+      await _saveSelectedCalendars(current);
+      // If this is the first calendar, set it as primary export
+      if (current.length == 1) {
+        await setPrimaryExportCalendar(calendar.id);
+      }
     }
   }
 
-  /// Remove a selected calendar
+  /// Remove a calendar from the selected list
   Future<void> removeSelectedCalendar(String calendarId) async {
-    final calendars = List<SelectedCalendar>.from(selectedCalendars);
-    calendars.removeWhere((c) => c.id == calendarId);
-    await _saveSelectedCalendars(calendars);
-
-    // If we removed the primary export calendar, select a new one
-    if (primaryExportCalendarId == calendarId) {
-      final exportCals = calendars.where((c) => c.isForExport).toList();
-      if (exportCals.isNotEmpty) {
-        await setPrimaryExportCalendar(exportCals.first.id);
-      } else {
-        await _prefs?.remove(_keyPrimaryExportCalendarId);
-      }
+    final current = selectedCalendars;
+    current.removeWhere((c) => c.id == calendarId);
+    await _saveSelectedCalendars(current);
+    // If we removed the primary export calendar, select the first one
+    if (primaryExportCalendarId == calendarId && current.isNotEmpty) {
+      await setPrimaryExportCalendar(current.first.id);
+    } else if (current.isEmpty) {
+      await _prefs?.remove(_keyPrimaryExportCalendarId);
     }
   }
 
   /// Update a selected calendar's settings
   Future<void> updateSelectedCalendar(SelectedCalendar calendar) async {
-    final calendars = List<SelectedCalendar>.from(selectedCalendars);
-    final index = calendars.indexWhere((c) => c.id == calendar.id);
+    final current = selectedCalendars;
+    final index = current.indexWhere((c) => c.id == calendar.id);
     if (index >= 0) {
-      calendars[index] = calendar;
-      await _saveSelectedCalendars(calendars);
+      current[index] = calendar;
+      await _saveSelectedCalendars(current);
     }
-  }
-
-  /// Save selected calendars to preferences
-  Future<void> _saveSelectedCalendars(List<SelectedCalendar> calendars) async {
-    final json = jsonEncode(calendars.map((c) => c.toJson()).toList());
-    await _prefs?.setString(_keySelectedCalendars, json);
   }
 
   /// Set the primary export calendar
@@ -248,19 +237,25 @@ class CalendarSyncService {
     await _prefs?.setString(_keyPrimaryExportCalendarId, calendarId);
   }
 
-  /// Set whether to sync completed tasks
-  Future<void> setSyncCompletedTasks(bool sync) async {
-    await _prefs?.setBool(_keySyncCompletedTasks, sync);
+  /// Save selected calendars list
+  Future<void> _saveSelectedCalendars(List<SelectedCalendar> calendars) async {
+    final json = jsonEncode(calendars.map((c) => c.toJson()).toList());
+    await _prefs?.setString(_keySelectedCalendars, json);
   }
 
-  /// Enable or disable two-way sync
-  Future<void> setTwoWaySyncEnabled(bool enabled) async {
-    await _prefs?.setBool(_keyTwoWaySyncEnabled, enabled);
+  /// Set sync completed tasks preference
+  Future<void> setSyncCompletedTasks(bool value) async {
+    await _prefs?.setBool(_keySyncCompletedTasks, value);
   }
 
-  /// Enable or disable auto-sync on startup
-  Future<void> setAutoSyncOnStartup(bool enabled) async {
-    await _prefs?.setBool(_keyAutoSyncOnStartup, enabled);
+  /// Set two-way sync preference
+  Future<void> setTwoWaySyncEnabled(bool value) async {
+    await _prefs?.setBool(_keyTwoWaySyncEnabled, value);
+  }
+
+  /// Set auto-sync on startup preference
+  Future<void> setAutoSyncOnStartup(bool value) async {
+    await _prefs?.setBool(_keyAutoSyncOnStartup, value);
   }
 
   /// Update last sync time
@@ -283,22 +278,18 @@ class CalendarSyncService {
       debugPrint(
         'CalendarSyncService: Checking if permissions already granted...',
       );
-      final permissionsGranted = await _calendarPlugin.hasPermissions();
-      debugPrint(
-        'CalendarSyncService: hasPermissions result - isSuccess: ${permissionsGranted.isSuccess}, data: ${permissionsGranted.data}',
-      );
+      final status = await _calendarPlugin.hasPermissions();
+      debugPrint('CalendarSyncService: hasPermissions result: $status');
 
-      if (permissionsGranted.isSuccess && permissionsGranted.data == true) {
+      if (status == CalendarPermissionStatus.granted) {
         debugPrint('CalendarSyncService: Permissions already granted');
         return true;
       }
 
       debugPrint('CalendarSyncService: Requesting permissions...');
       final result = await _calendarPlugin.requestPermissions();
-      debugPrint(
-        'CalendarSyncService: requestPermissions result - isSuccess: ${result.isSuccess}, data: ${result.data}',
-      );
-      return result.isSuccess && result.data == true;
+      debugPrint('CalendarSyncService: requestPermissions result: $result');
+      return result == CalendarPermissionStatus.granted;
     } catch (e, stackTrace) {
       debugPrint('CalendarSyncService: Error requesting permissions: $e');
       debugPrint('CalendarSyncService: Stack trace: $stackTrace');
@@ -309,11 +300,9 @@ class CalendarSyncService {
   /// Check if permissions are granted
   Future<bool> hasPermissions() async {
     try {
-      final result = await _calendarPlugin.hasPermissions();
-      debugPrint(
-        'CalendarSyncService: hasPermissions check - isSuccess: ${result.isSuccess}, data: ${result.data}',
-      );
-      return result.isSuccess && result.data == true;
+      final status = await _calendarPlugin.hasPermissions();
+      debugPrint('CalendarSyncService: hasPermissions check: $status');
+      return status == CalendarPermissionStatus.granted;
     } catch (e, stackTrace) {
       debugPrint('CalendarSyncService: Error checking permissions: $e');
       debugPrint('CalendarSyncService: Stack trace: $stackTrace');
@@ -326,38 +315,20 @@ class CalendarSyncService {
     final buffer = StringBuffer();
 
     try {
-      final permResult = await _calendarPlugin.hasPermissions();
-      buffer.writeln(
-        'Permission check: isSuccess=${permResult.isSuccess}, data=${permResult.data}',
-      );
+      final status = await _calendarPlugin.hasPermissions();
+      buffer.writeln('Permission status: $status');
 
-      if (permResult.isSuccess && permResult.data == true) {
-        final calResult = await _calendarPlugin.retrieveCalendars();
-        buffer.writeln(
-          'Calendars: isSuccess=${calResult.isSuccess}, count=${calResult.data?.length ?? 0}',
-        );
+      if (status == CalendarPermissionStatus.granted) {
+        final calendars = await _calendarPlugin.listCalendars();
+        buffer.writeln('Calendars found: ${calendars.length}');
 
-        if (calResult.isSuccess && calResult.data != null) {
-          for (final cal in calResult.data!) {
-            buffer.writeln(
-              '  - ${cal.name}: id=${cal.id}, readOnly=${cal.isReadOnly}, account=${cal.accountName}, type=${cal.accountType}',
-            );
-          }
-        } else {
-          buffer.writeln('  Error or null data from retrieveCalendars');
-          if (calResult.errors.isNotEmpty) {
-            for (final err in calResult.errors) {
-              buffer.writeln('  Error: ${err.errorCode} - ${err.errorMessage}');
-            }
-          }
+        for (final cal in calendars) {
+          buffer.writeln(
+            '  - ${cal.name}: id=${cal.id}, readOnly=${cal.readOnly}, account=${cal.accountName}, color=${cal.colorHex}',
+          );
         }
       } else {
         buffer.writeln('Permissions not granted');
-        if (permResult.errors.isNotEmpty) {
-          for (final err in permResult.errors) {
-            buffer.writeln('  Error: ${err.errorCode} - ${err.errorMessage}');
-          }
-        }
       }
     } catch (e, stack) {
       buffer.writeln('Exception: $e');
@@ -376,35 +347,27 @@ class CalendarSyncService {
         return [];
       }
 
-      final result = await _calendarPlugin.retrieveCalendars();
+      final calendars = await _calendarPlugin.listCalendars();
       debugPrint(
-        'CalendarSyncService: retrieveCalendars result - isSuccess: ${result.isSuccess}, data length: ${result.data?.length ?? 0}',
+        'CalendarSyncService: listCalendars returned ${calendars.length} calendars',
       );
 
-      if (result.isSuccess && result.data != null) {
-        // Log all calendars for debugging
-        for (final cal in result.data!) {
-          debugPrint(
-            'CalendarSyncService: Found calendar: ${cal.name}, id: ${cal.id}, isReadOnly: ${cal.isReadOnly}, accountName: ${cal.accountName}, accountType: ${cal.accountType}',
-          );
-        }
-
-        if (includeReadOnly) {
-          return result.data!;
-        }
-        // Filter to only writable calendars
-        final writable = result.data!
-            .where((c) => c.isReadOnly != true)
-            .toList();
+      // Log all calendars for debugging
+      for (final cal in calendars) {
         debugPrint(
-          'CalendarSyncService: Writable calendars count: ${writable.length}',
+          'CalendarSyncService: Found calendar: ${cal.name}, id: ${cal.id}, readOnly: ${cal.readOnly}, accountName: ${cal.accountName}',
         );
-        return writable;
       }
+
+      if (includeReadOnly) {
+        return calendars;
+      }
+      // Filter to only writable calendars
+      final writable = calendars.where((c) => !c.readOnly).toList();
       debugPrint(
-        'CalendarSyncService: retrieveCalendars failed or returned null data',
+        'CalendarSyncService: Writable calendars count: ${writable.length}',
       );
-      return [];
+      return writable;
     } catch (e, stackTrace) {
       debugPrint('CalendarSyncService: Error retrieving calendars: $e');
       debugPrint('CalendarSyncService: Stack trace: $stackTrace');
@@ -450,15 +413,13 @@ class CalendarSyncService {
   }
 
   /// Create or update a calendar event for a task (exports to primary calendar only)
-  /// Only creates a new event if one doesn't already exist for this task
-  /// Skips tasks that were imported from a calendar to avoid duplicates
   Future<bool> syncTaskToCalendar(Todo task) async {
     if (!isEnabled) return false;
     final exportCal = primaryExportCalendar;
     if (exportCal == null) return false;
     if (task.dueDate == null) return false;
 
-    // Skip tasks that were imported from a calendar - they already exist there!
+    // Skip tasks that were imported from a calendar
     if (task.sourceCalendarColor != null) {
       debugPrint(
         'CalendarSyncService: Skipping imported task ${task.id} (already from calendar)',
@@ -467,7 +428,6 @@ class CalendarSyncService {
     }
 
     if (task.isCompleted && !syncCompletedTasks) {
-      // If task is completed and we don't sync completed tasks, delete it
       await deleteTaskFromCalendar(task.id);
       return true;
     }
@@ -477,94 +437,60 @@ class CalendarSyncService {
       if (!hasPerms) return false;
 
       final existingEventId = _getEventId(task.id, exportCal.id);
+      final isAllDay = _isAllDayEvent(task);
 
-      // If we already have an event ID mapped, verify it still exists
-      // If it exists, update it; if not, we'll create a new one
-      String? eventIdToUse = existingEventId;
+      // Determine start and end times
+      DateTime startTime;
+      DateTime endTime;
+
+      if (isAllDay) {
+        final date = task.dueDate!;
+        startTime = DateTime(date.year, date.month, date.day);
+        endTime = DateTime(date.year, date.month, date.day);
+      } else {
+        startTime = task.startDate ?? task.dueDate!;
+        endTime = task.dueDate!;
+      }
 
       if (existingEventId != null) {
-        // Check if the event still exists in the calendar
-        final eventExists = await _checkEventExists(
-          exportCal.id,
-          existingEventId,
-          task.dueDate!,
-        );
-        if (!eventExists) {
-          // Event was deleted from calendar, remove our mapping
+        // Update existing event
+        try {
+          await _calendarPlugin.updateEvent(
+            eventId: existingEventId,
+            title: _formatEventTitle(task),
+            description: _formatEventDescription(task),
+            startDate: startTime,
+            endDate: endTime,
+            isAllDay: isAllDay,
+          );
+          debugPrint(
+            'CalendarSyncService: Updated event $existingEventId for task ${task.id}',
+          );
+          return true;
+        } catch (e) {
+          // Event might have been deleted, try creating new one
+          debugPrint('CalendarSyncService: Update failed, will create new: $e');
           await _removeEventMapping(task.id, exportCal.id);
-          eventIdToUse = null;
         }
       }
 
-      // Create the event
-      final isAllDay = _isAllDayEvent(task);
-
-      // For all-day events, use the date at noon UTC to avoid timezone issues
-      // This ensures the date is correct regardless of timezone
-      TZDateTime startTime;
-      TZDateTime endTime;
-
-      if (isAllDay) {
-        // Use noon UTC for all-day events to avoid date shifting
-        final date = task.dueDate!;
-        startTime = TZDateTime.utc(date.year, date.month, date.day, 12, 0, 0);
-        endTime = TZDateTime.utc(date.year, date.month, date.day, 12, 0, 0);
-      } else {
-        // For timed events, use local timezone
-        startTime = TZDateTime.from(task.startDate ?? task.dueDate!, local);
-        endTime = TZDateTime.from(task.dueDate!, local);
-      }
-
-      final event = Event(
-        exportCal.id,
-        eventId: eventIdToUse,
+      // Create new event
+      final eventId = await _calendarPlugin.createEvent(
+        calendarId: exportCal.id,
         title: _formatEventTitle(task),
         description: _formatEventDescription(task),
-        start: startTime,
-        end: endTime,
-        allDay: isAllDay,
+        startDate: startTime,
+        endDate: endTime,
+        isAllDay: isAllDay,
       );
 
-      final result = await _calendarPlugin.createOrUpdateEvent(event);
-
-      if (result?.isSuccess == true && result?.data != null) {
-        await _storeEventMapping(task.id, result!.data!, exportCal.id);
-        debugPrint(
-          'CalendarSyncService: Synced task ${task.id} to event ${result.data} (${eventIdToUse != null ? 'updated' : 'created'})',
-        );
-        return true;
-      }
-
-      debugPrint('CalendarSyncService: Failed to sync task ${task.id}');
-      return false;
+      await _storeEventMapping(task.id, eventId, exportCal.id);
+      debugPrint(
+        'CalendarSyncService: Created event $eventId for task ${task.id}',
+      );
+      return true;
     } catch (e) {
       debugPrint('CalendarSyncService: Error syncing task: $e');
-      return false;
-    }
-  }
-
-  /// Check if an event exists in a calendar
-  Future<bool> _checkEventExists(
-    String calendarId,
-    String eventId,
-    DateTime aroundDate,
-  ) async {
-    try {
-      // Search in a range around the expected date
-      final startDate = aroundDate.subtract(const Duration(days: 30));
-      final endDate = aroundDate.add(const Duration(days: 30));
-
-      final result = await _calendarPlugin.retrieveEvents(
-        calendarId,
-        RetrieveEventsParams(startDate: startDate, endDate: endDate),
-      );
-
-      if (result.isSuccess && result.data != null) {
-        return result.data!.any((e) => e.eventId == eventId);
-      }
-      return false;
-    } catch (e) {
-      debugPrint('CalendarSyncService: Error checking event exists: $e');
       return false;
     }
   }
@@ -579,15 +505,12 @@ class CalendarSyncService {
         final eventId = _getEventId(taskId, cal.id);
         if (eventId == null) continue;
 
-        final result = await _calendarPlugin.deleteEvent(cal.id, eventId);
-
-        if (result.isSuccess) {
-          await _removeEventMapping(taskId, cal.id);
-          debugPrint(
-            'CalendarSyncService: Deleted event $eventId for task $taskId from ${cal.name}',
-          );
-          anyDeleted = true;
-        }
+        await _calendarPlugin.deleteEvent(eventId: eventId);
+        await _removeEventMapping(taskId, cal.id);
+        debugPrint(
+          'CalendarSyncService: Deleted event $eventId for task $taskId from ${cal.name}',
+        );
+        anyDeleted = true;
       } catch (e) {
         debugPrint(
           'CalendarSyncService: Error deleting event from ${cal.name}: $e',
@@ -597,254 +520,182 @@ class CalendarSyncService {
     return anyDeleted;
   }
 
-  /// Sync all tasks to calendar (initial sync or full resync)
-  /// Only exports tasks that haven't been exported yet, or updates existing ones
-  Future<int> syncAllTasks(List<Todo> tasks) async {
-    if (!isEnabled || exportCalendars.isEmpty) return 0;
+  /// Sync all tasks to calendar
+  Future<int> syncAllTasksToCalendar(List<Todo> tasks) async {
+    if (!isEnabled || primaryExportCalendar == null) return 0;
 
     int synced = 0;
     for (final task in tasks) {
       if (task.dueDate != null) {
-        final success = await syncTaskToCalendar(task);
-        if (success) synced++;
+        if (task.isCompleted && !syncCompletedTasks) continue;
+        if (await syncTaskToCalendar(task)) {
+          synced++;
+        }
       }
     }
+
     await _updateLastSyncTime();
     debugPrint('CalendarSyncService: Synced $synced tasks to calendar');
     return synced;
   }
 
-  /// Check if a task has already been exported to the calendar
-  bool isTaskExported(String taskId) {
-    final exportCal = primaryExportCalendar;
-    if (exportCal == null) return false;
-    return _getEventId(taskId, exportCal.id) != null;
-  }
-
-  /// Get the count of tasks that would be exported (not already in calendar)
-  /// Excludes tasks imported from calendars
-  int getNewTasksToExportCount(List<Todo> tasks) {
-    return tasks
-        .where(
-          (t) =>
-              t.dueDate != null &&
-              t.sourceCalendarColor == null && // Not imported from calendar
-              !isTaskExported(t.id) &&
-              (syncCompletedTasks || !t.isCompleted),
-        )
-        .length;
-  }
-
-  /// Import events from all import-enabled calendars as tasks
-  Future<List<Todo>> importEventsFromCalendar({
-    String? calendarId, // If null, imports from all import calendars
+  /// Get events from import calendars for a date range
+  Future<List<CalendarEventInfo>> getEventsForImport({
     required DateTime startDate,
     required DateTime endDate,
-    bool skipAlreadyImported = true,
+    bool includeAlreadyImported = false,
   }) async {
-    if (!isEnabled) return [];
+    if (!isEnabled || !twoWaySyncEnabled) return [];
 
-    try {
-      final hasPerms = await hasPermissions();
-      if (!hasPerms) return [];
+    final events = <CalendarEventInfo>[];
 
-      final calendarsToImport = calendarId != null
-          ? [selectedCalendars.firstWhere((c) => c.id == calendarId)]
-          : importCalendars;
-
-      final todos = <Todo>[];
-
-      for (final cal in calendarsToImport) {
-        final result = await _calendarPlugin.retrieveEvents(
-          cal.id,
-          RetrieveEventsParams(startDate: startDate, endDate: endDate),
+    for (final cal in importCalendars) {
+      try {
+        final calendarEvents = await _calendarPlugin.listEvents(
+          startDate,
+          endDate,
+          calendarIds: [cal.id],
         );
 
-        if (!result.isSuccess || result.data == null) {
-          debugPrint(
-            'CalendarSyncService: Failed to retrieve events from ${cal.name}',
+        for (final event in calendarEvents) {
+          final isFromTrudido =
+              event.description?.contains('Synced from Trudido') == true;
+          final isAlreadyImported = _isEventImported(event.instanceId);
+
+          if (!includeAlreadyImported && isAlreadyImported) continue;
+          if (isFromTrudido) continue; // Don't re-import our own events
+
+          events.add(
+            CalendarEventInfo(
+              eventId: event.instanceId,
+              title: event.title,
+              description: event.description,
+              startDate: event.startDate,
+              endDate: event.endDate,
+              isAllDay: event.isAllDay,
+              isFromTrudido: isFromTrudido,
+              isAlreadyImported: isAlreadyImported,
+              linkedTaskId: _getTaskIdForEvent(event.instanceId),
+            ),
           );
-          continue;
         }
-
-        for (final event in result.data!) {
-          // Skip if already imported
-          if (skipAlreadyImported &&
-              event.eventId != null &&
-              _isEventImported(event.eventId!)) {
-            continue;
-          }
-
-          // Skip events that were created by Trudido (to avoid duplicates)
-          if (event.description?.contains('Synced from Trudido') == true) {
-            continue;
-          }
-
-          final todo = _eventToTodo(event, cal.name, cal.color);
-          if (todo != null) {
-            todos.add(todo);
-            if (event.eventId != null) {
-              await _markEventImported(event.eventId!, todo.id);
-            }
-          }
-        }
-      }
-
-      await _updateLastSyncTime();
-      debugPrint(
-        'CalendarSyncService: Imported ${todos.length} events as tasks',
-      );
-      return todos;
-    } catch (e) {
-      debugPrint('CalendarSyncService: Error importing events: $e');
-      return [];
-    }
-  }
-
-  /// Get events from a calendar without importing
-  Future<List<CalendarEventInfo>> getCalendarEvents({
-    required String calendarId,
-    required DateTime startDate,
-    required DateTime endDate,
-  }) async {
-    try {
-      final hasPerms = await hasPermissions();
-      if (!hasPerms) return [];
-
-      final result = await _calendarPlugin.retrieveEvents(
-        calendarId,
-        RetrieveEventsParams(startDate: startDate, endDate: endDate),
-      );
-
-      if (!result.isSuccess || result.data == null) {
-        return [];
-      }
-
-      return result.data!.map((event) {
-        final isFromTrudido =
-            event.description?.contains('Synced from Trudido') == true;
-        final isImported =
-            event.eventId != null && _isEventImported(event.eventId!);
-
-        return CalendarEventInfo(
-          eventId: event.eventId ?? '',
-          title: event.title ?? 'Untitled',
-          description: event.description,
-          startDate: event.start?.toLocal(),
-          endDate: event.end?.toLocal(),
-          isAllDay: event.allDay ?? false,
-          isFromTrudido: isFromTrudido,
-          isAlreadyImported: isImported,
-          linkedTaskId: isImported ? _getTaskIdForEvent(event.eventId!) : null,
+      } catch (e) {
+        debugPrint(
+          'CalendarSyncService: Error getting events from ${cal.name}: $e',
         );
-      }).toList();
+      }
+    }
+
+    return events;
+  }
+
+  /// Import a calendar event as a task
+  Future<Todo?> importEventAsTask(String eventId) async {
+    if (!isEnabled || !twoWaySyncEnabled) return null;
+
+    try {
+      final event = await _calendarPlugin.getEvent(eventId);
+      if (event == null) return null;
+
+      // Find which calendar this event belongs to
+      SelectedCalendar? sourceCalendar;
+      for (final cal in importCalendars) {
+        try {
+          final calEvents = await _calendarPlugin.listEvents(
+            event.startDate.subtract(const Duration(days: 1)),
+            event.endDate.add(const Duration(days: 1)),
+            calendarIds: [cal.id],
+          );
+          if (calEvents.any((e) => e.instanceId == eventId)) {
+            sourceCalendar = cal;
+            break;
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+
+      // Create task from event
+      final task = Todo(
+        text: event.title,
+        notes: event.description,
+        dueDate: event.isAllDay
+            ? DateTime(
+                event.startDate.year,
+                event.startDate.month,
+                event.startDate.day,
+              )
+            : event.endDate,
+        startDate: event.isAllDay ? null : event.startDate,
+        sourceCalendarColor: sourceCalendar?.color,
+      );
+
+      // Mark as imported
+      await _markEventImported(eventId, task.id);
+
+      debugPrint(
+        'CalendarSyncService: Imported event $eventId as task ${task.id}',
+      );
+      return task;
     } catch (e) {
-      debugPrint('CalendarSyncService: Error getting events: $e');
-      return [];
+      debugPrint('CalendarSyncService: Error importing event: $e');
+      return null;
     }
   }
 
-  /// Convert a calendar event to a Todo
-  Todo? _eventToTodo(Event event, [String? calendarName, int? calendarColor]) {
-    if (event.title == null || event.title!.isEmpty) return null;
+  /// Get sync status info
+  Future<CalendarSyncStatus> getSyncStatus() async {
+    final hasPerms = await hasPermissions();
+    final allCalendars = hasPerms
+        ? await getCalendars(includeReadOnly: true)
+        : <Calendar>[];
+    final writableCalendars = allCalendars.where((c) => !c.readOnly).toList();
 
-    final startTime = event.start?.toLocal();
-    final endTime = event.end?.toLocal();
-
-    if (endTime == null) return null;
-
-    // Clean up title (remove any status prefixes we might have added)
-    String title = event.title!;
-    if (title.startsWith('✓ ')) {
-      title = title.substring(2);
-    } else if (title.startsWith('❗ ')) {
-      title = title.substring(2);
-    } else if (title.startsWith('• ')) {
-      title = title.substring(2);
-    }
-
-    // Parse notes from description (exclude our metadata)
-    String? notes;
-    if (event.description != null) {
-      final descLines = event.description!.split('\n');
-      final notesLines = <String>[];
-      for (final line in descLines) {
-        if (line.startsWith('Tags:') ||
-            line.startsWith('Priority:') ||
-            line.startsWith('Status:') ||
-            line.contains('Synced from Trudido') ||
-            line == '---') {
-          continue;
-        }
-        notesLines.add(line);
-      }
-      final cleanNotes = notesLines.join('\n').trim();
-      if (cleanNotes.isNotEmpty) {
-        notes = cleanNotes;
-      }
-    }
-
-    // Add calendar source info to notes
-    if (calendarName != null) {
-      final sourceInfo = 'Imported from: $calendarName';
-      notes = notes != null ? '$notes\n\n$sourceInfo' : sourceInfo;
-    }
-
-    return Todo(
-      text: title,
-      dueDate: endTime,
-      startDate: (startTime != null && startTime != endTime) ? startTime : null,
-      notes: notes,
-      priority: 'none',
-      sourceCalendarColor: calendarColor,
+    return CalendarSyncStatus(
+      isEnabled: isEnabled,
+      hasPermissions: hasPerms,
+      selectedCalendars: selectedCalendars,
+      primaryExportCalendarId: primaryExportCalendarId,
+      availableCalendars: writableCalendars,
+      allCalendars: allCalendars,
+      syncCompletedTasks: syncCompletedTasks,
+      twoWaySyncEnabled: twoWaySyncEnabled,
+      autoSyncOnStartup: autoSyncOnStartup,
+      lastSyncTime: lastSyncTime,
     );
   }
 
-  /// Perform full two-way sync with all configured calendars
-  Future<({int exported, List<Todo> imported})> performTwoWaySync({
-    required List<Todo> existingTasks,
-    required DateTime syncStartDate,
-    required DateTime syncEndDate,
-  }) async {
-    if (!isEnabled || selectedCalendars.isEmpty) {
-      return (exported: 0, imported: <Todo>[]);
-    }
-
-    // First, export tasks to calendar
-    final exported = await syncAllTasks(existingTasks);
-
-    // Then, import events from all import calendars (if two-way sync is enabled)
-    List<Todo> imported = [];
-    if (twoWaySyncEnabled) {
-      imported = await importEventsFromCalendar(
-        startDate: syncStartDate,
-        endDate: syncEndDate,
-        skipAlreadyImported: true,
-      );
-    }
-
-    return (exported: exported, imported: imported);
-  }
-
-  /// Format the event title
+  /// Format event title from task
   String _formatEventTitle(Todo task) {
     String title = task.text;
-    if (task.isCompleted) {
-      title = '✓ $title';
-    } else if (task.priority == 'high') {
-      title = '❗ $title';
-    } else if (task.priority == 'medium') {
-      title = '• $title';
+    final priorityLevel = _getPriorityLevel(task.priority);
+    if (priorityLevel > 0) {
+      title = '${'!' * priorityLevel} $title';
     }
     return title;
   }
 
-  /// Format the event description
+  /// Convert priority string to level
+  int _getPriorityLevel(String priority) {
+    switch (priority) {
+      case 'high':
+        return 3;
+      case 'medium':
+        return 2;
+      case 'low':
+        return 1;
+      default:
+        return 0;
+    }
+  }
+
+  /// Format event description from task
   String _formatEventDescription(Todo task) {
     final parts = <String>[];
 
-    if (task.notes?.isNotEmpty == true) {
+    if (task.notes != null && task.notes!.isNotEmpty) {
       parts.add(task.notes!);
+      parts.add('');
     }
 
     if (task.tags.isNotEmpty) {
@@ -862,38 +713,12 @@ class CalendarSyncService {
   bool _isAllDayEvent(Todo task) {
     if (task.dueDate == null) return true;
 
-    // If due date has no time component (midnight), treat as all-day
     final due = task.dueDate!;
     return due.hour == 0 && due.minute == 0 && due.second == 0;
   }
 
-  /// Get sync status info
-  Future<CalendarSyncStatus> getSyncStatus() async {
-    final hasPerms = await hasPermissions();
-    final allCalendars = hasPerms
-        ? await getCalendars(includeReadOnly: true)
-        : <Calendar>[];
-    final writableCalendars = allCalendars
-        .where((c) => c.isReadOnly != true)
-        .toList();
-
-    return CalendarSyncStatus(
-      isEnabled: isEnabled,
-      hasPermissions: hasPerms,
-      selectedCalendars: selectedCalendars,
-      primaryExportCalendarId: primaryExportCalendarId,
-      availableCalendars: writableCalendars,
-      allCalendars: allCalendars,
-      syncCompletedTasks: syncCompletedTasks,
-      twoWaySyncEnabled: twoWaySyncEnabled,
-      autoSyncOnStartup: autoSyncOnStartup,
-      lastSyncTime: lastSyncTime,
-    );
-  }
-
-  /// Delete all duplicate Trudido events from a calendar
-  /// Keeps only one event per unique title+date combination
-  Future<int> deleteDuplicateTrudidoEvents({
+  /// Delete all Trudido events from a calendar
+  Future<int> deleteTrudidoEventsFromCalendar({
     required String calendarId,
     required DateTime startDate,
     required DateTime endDate,
@@ -902,96 +727,25 @@ class CalendarSyncService {
       final hasPerms = await hasPermissions();
       if (!hasPerms) return 0;
 
-      final result = await _calendarPlugin.retrieveEvents(
-        calendarId,
-        RetrieveEventsParams(startDate: startDate, endDate: endDate),
+      final events = await _calendarPlugin.listEvents(
+        startDate,
+        endDate,
+        calendarIds: [calendarId],
       );
 
-      if (!result.isSuccess || result.data == null) {
-        return 0;
-      }
-
-      // Find Trudido events and group by title+date
-      final trudiloEvents = result.data!
-          .where((e) => e.description?.contains('Synced from Trudido') == true)
-          .toList();
-
-      // Group by title and start date
-      final groups = <String, List<Event>>{};
-      for (final event in trudiloEvents) {
-        final key = '${event.title}_${event.start?.toIso8601String()}';
-        groups.putIfAbsent(key, () => []).add(event);
-      }
-
-      // Delete duplicates (keep first one of each group)
       int deleted = 0;
-      for (final group in groups.values) {
-        if (group.length > 1) {
-          // Sort by event ID to keep consistent which one we keep
-          group.sort((a, b) => (a.eventId ?? '').compareTo(b.eventId ?? ''));
-          // Delete all except the first one
-          for (int i = 1; i < group.length; i++) {
-            final eventId = group[i].eventId;
-            if (eventId != null) {
-              final deleteResult = await _calendarPlugin.deleteEvent(
-                calendarId,
-                eventId,
-              );
-              if (deleteResult.isSuccess) {
-                deleted++;
-                debugPrint(
-                  'CalendarSyncService: Deleted duplicate event $eventId',
-                );
-              }
-            }
-          }
-        }
-      }
-
-      debugPrint('CalendarSyncService: Deleted $deleted duplicate events');
-      return deleted;
-    } catch (e) {
-      debugPrint('CalendarSyncService: Error deleting duplicates: $e');
-      return 0;
-    }
-  }
-
-  /// Delete ALL Trudido events from a calendar (useful for resetting)
-  Future<int> deleteAllTrudidoEvents({
-    required String calendarId,
-    required DateTime startDate,
-    required DateTime endDate,
-  }) async {
-    try {
-      final hasPerms = await hasPermissions();
-      if (!hasPerms) return 0;
-
-      final result = await _calendarPlugin.retrieveEvents(
-        calendarId,
-        RetrieveEventsParams(startDate: startDate, endDate: endDate),
-      );
-
-      if (!result.isSuccess || result.data == null) {
-        return 0;
-      }
-
-      int deleted = 0;
-      for (final event in result.data!) {
+      for (final event in events) {
         if (event.description?.contains('Synced from Trudido') == true) {
-          final eventId = event.eventId;
-          if (eventId != null) {
-            final deleteResult = await _calendarPlugin.deleteEvent(
-              calendarId,
-              eventId,
-            );
-            if (deleteResult.isSuccess) {
-              deleted++;
-            }
+          try {
+            await _calendarPlugin.deleteEvent(eventId: event.instanceId);
+            deleted++;
+          } catch (e) {
+            debugPrint('CalendarSyncService: Error deleting event: $e');
           }
         }
       }
 
-      // Clear all event mappings
+      // Clear event mappings
       final keys =
           _prefs
               ?.getKeys()
@@ -1009,6 +763,188 @@ class CalendarSyncService {
       return 0;
     }
   }
+
+  /// Import events from a specific calendar as tasks
+  Future<List<Todo>> importEventsFromCalendar({
+    required String calendarId,
+    required DateTime startDate,
+    required DateTime endDate,
+    bool skipAlreadyImported = true,
+  }) async {
+    final todos = <Todo>[];
+
+    try {
+      final hasPerms = await hasPermissions();
+      if (!hasPerms) return todos;
+
+      final events = await _calendarPlugin.listEvents(
+        startDate,
+        endDate,
+        calendarIds: [calendarId],
+      );
+
+      // Find the calendar's color
+      final calendars = await _calendarPlugin.listCalendars();
+      final calendar = calendars.where((c) => c.id == calendarId).firstOrNull;
+      final calendarColor = calendar != null
+          ? parseColorHex(calendar.colorHex)
+          : 0xFF2196F3;
+
+      for (final event in events) {
+        // Skip our own events
+        if (event.description?.contains('Synced from Trudido') == true) {
+          continue;
+        }
+
+        // Skip already imported
+        if (skipAlreadyImported && _isEventImported(event.instanceId)) {
+          continue;
+        }
+
+        final todo = Todo(
+          text: event.title,
+          notes: event.description,
+          dueDate: event.isAllDay
+              ? DateTime(
+                  event.startDate.year,
+                  event.startDate.month,
+                  event.startDate.day,
+                )
+              : event.endDate,
+          startDate: event.isAllDay ? null : event.startDate,
+          sourceCalendarColor: calendarColor,
+        );
+
+        await _markEventImported(event.instanceId, todo.id);
+        todos.add(todo);
+      }
+    } catch (e) {
+      debugPrint('CalendarSyncService: Error importing events: $e');
+    }
+
+    return todos;
+  }
+
+  /// Perform two-way sync
+  Future<TwoWaySyncResult> performTwoWaySync({
+    required List<Todo> existingTasks,
+    required DateTime syncStartDate,
+    required DateTime syncEndDate,
+  }) async {
+    final exported = <String>[];
+    final imported = <Todo>[];
+
+    // Export tasks to calendar
+    for (final task in existingTasks) {
+      if (task.dueDate != null && !task.isCompleted) {
+        if (await syncTaskToCalendar(task)) {
+          exported.add(task.id);
+        }
+      }
+    }
+
+    // Import events from calendars
+    for (final cal in importCalendars) {
+      final todos = await importEventsFromCalendar(
+        calendarId: cal.id,
+        startDate: syncStartDate,
+        endDate: syncEndDate,
+        skipAlreadyImported: true,
+      );
+      imported.addAll(todos);
+    }
+
+    await _updateLastSyncTime();
+
+    return TwoWaySyncResult(exported: exported, imported: imported);
+  }
+
+  /// Delete duplicate Trudido events from a calendar
+  Future<int> deleteDuplicateTrudidoEvents({
+    required String calendarId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      final hasPerms = await hasPermissions();
+      if (!hasPerms) return 0;
+
+      final events = await _calendarPlugin.listEvents(
+        startDate,
+        endDate,
+        calendarIds: [calendarId],
+      );
+
+      // Group events by title
+      final eventsByTitle = <String, List<Event>>{};
+      for (final event in events) {
+        if (event.description?.contains('Synced from Trudido') == true) {
+          eventsByTitle.putIfAbsent(event.title, () => []).add(event);
+        }
+      }
+
+      int deleted = 0;
+      for (final entry in eventsByTitle.entries) {
+        if (entry.value.length > 1) {
+          // Keep the first, delete duplicates
+          for (var i = 1; i < entry.value.length; i++) {
+            try {
+              await _calendarPlugin.deleteEvent(
+                eventId: entry.value[i].instanceId,
+              );
+              deleted++;
+            } catch (e) {
+              debugPrint('CalendarSyncService: Error deleting duplicate: $e');
+            }
+          }
+        }
+      }
+
+      debugPrint('CalendarSyncService: Deleted $deleted duplicate events');
+      return deleted;
+    } catch (e) {
+      debugPrint('CalendarSyncService: Error cleaning duplicates: $e');
+      return 0;
+    }
+  }
+
+  /// Delete all Trudido events from a calendar
+  Future<int> deleteAllTrudidoEvents({
+    required String calendarId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    // Reuse the existing method
+    return deleteTrudidoEventsFromCalendar(
+      calendarId: calendarId,
+      startDate: startDate,
+      endDate: endDate,
+    );
+  }
+
+  /// Helper to parse color hex string to int
+  static int parseColorHex(String? colorHex) {
+    if (colorHex == null || colorHex.isEmpty) {
+      return 0xFF2196F3; // Default blue
+    }
+    try {
+      String hex = colorHex.replaceAll('#', '');
+      if (hex.length == 6) {
+        hex = 'FF$hex'; // Add alpha if missing
+      }
+      return int.parse(hex, radix: 16);
+    } catch (e) {
+      return 0xFF2196F3;
+    }
+  }
+}
+
+/// Result of a two-way sync operation
+class TwoWaySyncResult {
+  final List<String> exported;
+  final List<Todo> imported;
+
+  const TwoWaySyncResult({required this.exported, required this.imported});
 }
 
 /// Status object for calendar sync
@@ -1018,7 +954,7 @@ class CalendarSyncStatus {
   final List<SelectedCalendar> selectedCalendars;
   final String? primaryExportCalendarId;
   final List<Calendar> availableCalendars;
-  final List<Calendar> allCalendars; // Includes read-only for debugging
+  final List<Calendar> allCalendars;
   final bool syncCompletedTasks;
   final bool twoWaySyncEnabled;
   final bool autoSyncOnStartup;
@@ -1040,7 +976,6 @@ class CalendarSyncStatus {
   bool get isConfigured =>
       isEnabled && hasPermissions && selectedCalendars.isNotEmpty;
 
-  /// Get the primary export calendar
   SelectedCalendar? get primaryExportCalendar {
     if (primaryExportCalendarId == null) return null;
     return selectedCalendars
@@ -1048,11 +983,9 @@ class CalendarSyncStatus {
         .firstOrNull;
   }
 
-  /// Get calendars enabled for export
   List<SelectedCalendar> get exportCalendars =>
       selectedCalendars.where((c) => c.isForExport).toList();
 
-  /// Get calendars enabled for import
   List<SelectedCalendar> get importCalendars =>
       selectedCalendars.where((c) => c.isForImport).toList();
 }

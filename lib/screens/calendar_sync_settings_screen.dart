@@ -239,7 +239,7 @@ class _CalendarSyncSettingsScreenState
                             (cal) => Padding(
                               padding: const EdgeInsets.only(left: 40),
                               child: Text(
-                                '• ${cal.name ?? "Unknown"} (${cal.accountName ?? ""})',
+                                '• ${cal.name.isNotEmpty ? cal.name : "Unknown"} (${cal.accountName ?? ""})',
                                 style: TextStyle(
                                   color: cs.onTertiaryContainer,
                                   fontSize: 12,
@@ -698,18 +698,23 @@ class _CalendarSyncSettingsScreenState
                   itemBuilder: (context, index) {
                     final calendar = availableCalendars[index];
                     // Build a meaningful display name
-                    final displayName = calendar.name?.isNotEmpty == true
-                        ? calendar.name!
-                        : calendar.accountName?.isNotEmpty == true
-                            ? calendar.accountName!
-                            : 'Calendar ${calendar.id ?? index + 1}';
-                    final subtitle = calendar.accountName?.isNotEmpty == true &&
-                            calendar.name?.isNotEmpty == true
-                        ? calendar.accountName!
-                        : calendar.accountType ?? '';
+                    final name = calendar.name;
+                    final accountName = calendar.accountName;
+                    final displayName = name.isNotEmpty
+                        ? name
+                        : (accountName?.isNotEmpty ?? false)
+                        ? accountName!
+                        : 'Calendar ${calendar.id}';
+                    final subtitle =
+                        (accountName?.isNotEmpty ?? false) && name.isNotEmpty
+                        ? accountName!
+                        : '';
+                    final calendarColor = CalendarSyncService.parseColorHex(
+                      calendar.colorHex,
+                    );
                     return ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: Color(calendar.color ?? 0xFF2196F3),
+                        backgroundColor: Color(calendarColor),
                         radius: 16,
                         child: const Icon(
                           Icons.calendar_today,
@@ -722,9 +727,9 @@ class _CalendarSyncSettingsScreenState
                       onTap: () async {
                         await service.addSelectedCalendar(
                           SelectedCalendar(
-                            id: calendar.id!,
+                            id: calendar.id,
                             name: displayName,
-                            color: calendar.color ?? 0xFF2196F3,
+                            color: calendarColor,
                             isForExport: true,
                             isForImport: true,
                           ),

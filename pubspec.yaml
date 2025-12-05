@@ -120,7 +120,8 @@ dependencies:
   crypto: ^3.0.3
 
   # Calendar integration (for DAVx5/Android Calendar sync)
-  device_calendar: ^4.3.3
+  # Using device_calendar_plus - modern replacement with built-in ProGuard rules
+  device_calendar_plus: ^0.3.1
 
 dev_dependencies:
   flutter_test:

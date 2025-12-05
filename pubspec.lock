@@ -313,14 +313,38 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.11"
-  device_calendar:
+  device_calendar_plus:
     dependency: "direct main"
     description:
-      name: device_calendar
-      sha256: "683fb93ec302b6a65c0ce57df40ff9dcc2404f59c67a2f8b93e59318c8a0a225"
+      name: device_calendar_plus
+      sha256: "1da6ace56a748afc65b039e1f30243f1beeade833e533d0c909f3edda3f41ca2"
       url: "https://pub.dev"
     source: hosted
-    version: "4.3.3"
+    version: "0.3.1"
+  device_calendar_plus_android:
+    dependency: transitive
+    description:
+      name: device_calendar_plus_android
+      sha256: f66f363273e0b174fdb3f98030a8c67ae9e9dfcb6122e4ca842881f976313db0
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.1"
+  device_calendar_plus_ios:
+    dependency: transitive
+    description:
+      name: device_calendar_plus_ios
+      sha256: c9b234091d3edc78871ed524077c262ce66217b960b7942ef071032e47b60fa8
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.1"
+  device_calendar_plus_platform_interface:
+    dependency: transitive
+    description:
+      name: device_calendar_plus_platform_interface
+      sha256: fb4d893d04b10ab00bc175be8a374aad08a7c4ad7d763c7ff48036d76be7604b
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.1"
   diff_match_patch:
     dependency: transitive
     description:
@@ -1442,14 +1466,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.6"
-  timezone:
-    dependency: transitive
-    description:
-      name: timezone
-      sha256: "2236ec079a174ce07434e89fcd3fcda430025eb7692244139a9cf54fdcf1fc7d"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.9.4"
   timing:
     dependency: transitive
     description:
