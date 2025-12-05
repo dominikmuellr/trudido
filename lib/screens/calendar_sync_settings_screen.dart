@@ -416,6 +416,17 @@ class _CalendarSyncSettingsScreenState
           ],
         ],
 
+        // Always show diagnostics option for troubleshooting
+        if (status.isEnabled) ...[
+          const Divider(),
+          ListTile(
+            leading: ScaledIcon(Icons.bug_report, color: cs.outline),
+            title: const Text('Calendar Diagnostics'),
+            subtitle: const Text('View technical details for troubleshooting'),
+            onTap: () => _showDiagnostics(context),
+          ),
+        ],
+
         const SizedBox(height: 32),
       ],
     );
@@ -686,6 +697,16 @@ class _CalendarSyncSettingsScreenState
                   itemCount: availableCalendars.length,
                   itemBuilder: (context, index) {
                     final calendar = availableCalendars[index];
+                    // Build a meaningful display name
+                    final displayName = calendar.name?.isNotEmpty == true
+                        ? calendar.name!
+                        : calendar.accountName?.isNotEmpty == true
+                            ? calendar.accountName!
+                            : 'Calendar ${calendar.id ?? index + 1}';
+                    final subtitle = calendar.accountName?.isNotEmpty == true &&
+                            calendar.name?.isNotEmpty == true
+                        ? calendar.accountName!
+                        : calendar.accountType ?? '';
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Color(calendar.color ?? 0xFF2196F3),
@@ -696,13 +717,13 @@ class _CalendarSyncSettingsScreenState
                           color: Colors.white,
                         ),
                       ),
-                      title: Text(calendar.name ?? 'Unknown'),
-                      subtitle: Text(calendar.accountName ?? ''),
+                      title: Text(displayName),
+                      subtitle: Text(subtitle),
                       onTap: () async {
                         await service.addSelectedCalendar(
                           SelectedCalendar(
                             id: calendar.id!,
-                            name: calendar.name ?? 'Calendar',
+                            name: displayName,
                             color: calendar.color ?? 0xFF2196F3,
                             isForExport: true,
                             isForImport: true,
