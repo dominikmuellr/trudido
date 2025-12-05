@@ -201,18 +201,86 @@ class _CalendarSyncSettingsScreenState
                   color: cs.tertiaryContainer,
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ScaledIcon(
-                          Icons.info_outline,
-                          color: cs.onTertiaryContainer,
+                        Row(
+                          children: [
+                            ScaledIcon(
+                              Icons.info_outline,
+                              color: cs.onTertiaryContainer,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                'No writable calendars found',
+                                style: TextStyle(
+                                  color: cs.onTertiaryContainer,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            'No writable calendars found. If using DAVx5, make sure to sync your calendars first.',
-                            style: TextStyle(color: cs.onTertiaryContainer),
+                        const SizedBox(height: 8),
+                        if (status.allCalendars.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(left: 40),
+                            child: Text(
+                              'Found ${status.allCalendars.length} calendar(s), but all are read-only:',
+                              style: TextStyle(
+                                color: cs.onTertiaryContainer,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
+                          const SizedBox(height: 4),
+                          ...status.allCalendars.map(
+                            (cal) => Padding(
+                              padding: const EdgeInsets.only(left: 40),
+                              child: Text(
+                                '• ${cal.name ?? "Unknown"} (${cal.accountName ?? ""})',
+                                style: TextStyle(
+                                  color: cs.onTertiaryContainer,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        Padding(
+                          padding: const EdgeInsets.only(left: 40),
+                          child: Text(
+                            'Tips:\n'
+                            '• If using DAVx5, open DAVx5 and sync your calendars\n'
+                            '• Make sure the calendar account is set to "sync"\n'
+                            '• Check that calendars have write access in DAVx5\n'
+                            '• Try refreshing this page after syncing',
+                            style: TextStyle(
+                              color: cs.onTertiaryContainer,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                ref.invalidate(calendarSyncStatusProvider);
+                              },
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Refresh'),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton.icon(
+                              onPressed: () => _showDiagnostics(context),
+                              icon: const Icon(Icons.bug_report),
+                              label: const Text('Diagnostics'),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -350,6 +418,32 @@ class _CalendarSyncSettingsScreenState
 
         const SizedBox(height: 32),
       ],
+    );
+  }
+
+  Future<void> _showDiagnostics(BuildContext context) async {
+    final service = ref.read(calendarSyncServiceProvider);
+    final diagnostics = await service.getDiagnosticInfo();
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Calendar Diagnostics'),
+        content: SingleChildScrollView(
+          child: SelectableText(
+            diagnostics,
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
 

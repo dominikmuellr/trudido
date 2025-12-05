@@ -280,15 +280,28 @@ class CalendarSyncService {
   /// Request calendar permissions
   Future<bool> requestPermissions() async {
     try {
+      debugPrint(
+        'CalendarSyncService: Checking if permissions already granted...',
+      );
       final permissionsGranted = await _calendarPlugin.hasPermissions();
+      debugPrint(
+        'CalendarSyncService: hasPermissions result - isSuccess: ${permissionsGranted.isSuccess}, data: ${permissionsGranted.data}',
+      );
+
       if (permissionsGranted.isSuccess && permissionsGranted.data == true) {
+        debugPrint('CalendarSyncService: Permissions already granted');
         return true;
       }
 
+      debugPrint('CalendarSyncService: Requesting permissions...');
       final result = await _calendarPlugin.requestPermissions();
+      debugPrint(
+        'CalendarSyncService: requestPermissions result - isSuccess: ${result.isSuccess}, data: ${result.data}',
+      );
       return result.isSuccess && result.data == true;
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('CalendarSyncService: Error requesting permissions: $e');
+      debugPrint('CalendarSyncService: Stack trace: $stackTrace');
       return false;
     }
   }
@@ -297,11 +310,61 @@ class CalendarSyncService {
   Future<bool> hasPermissions() async {
     try {
       final result = await _calendarPlugin.hasPermissions();
+      debugPrint(
+        'CalendarSyncService: hasPermissions check - isSuccess: ${result.isSuccess}, data: ${result.data}',
+      );
       return result.isSuccess && result.data == true;
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('CalendarSyncService: Error checking permissions: $e');
+      debugPrint('CalendarSyncService: Stack trace: $stackTrace');
       return false;
     }
+  }
+
+  /// Get diagnostic info for troubleshooting
+  Future<String> getDiagnosticInfo() async {
+    final buffer = StringBuffer();
+
+    try {
+      final permResult = await _calendarPlugin.hasPermissions();
+      buffer.writeln(
+        'Permission check: isSuccess=${permResult.isSuccess}, data=${permResult.data}',
+      );
+
+      if (permResult.isSuccess && permResult.data == true) {
+        final calResult = await _calendarPlugin.retrieveCalendars();
+        buffer.writeln(
+          'Calendars: isSuccess=${calResult.isSuccess}, count=${calResult.data?.length ?? 0}',
+        );
+
+        if (calResult.isSuccess && calResult.data != null) {
+          for (final cal in calResult.data!) {
+            buffer.writeln(
+              '  - ${cal.name}: id=${cal.id}, readOnly=${cal.isReadOnly}, account=${cal.accountName}, type=${cal.accountType}',
+            );
+          }
+        } else {
+          buffer.writeln('  Error or null data from retrieveCalendars');
+          if (calResult.errors.isNotEmpty) {
+            for (final err in calResult.errors) {
+              buffer.writeln('  Error: ${err.errorCode} - ${err.errorMessage}');
+            }
+          }
+        }
+      } else {
+        buffer.writeln('Permissions not granted');
+        if (permResult.errors.isNotEmpty) {
+          for (final err in permResult.errors) {
+            buffer.writeln('  Error: ${err.errorCode} - ${err.errorMessage}');
+          }
+        }
+      }
+    } catch (e, stack) {
+      buffer.writeln('Exception: $e');
+      buffer.writeln('Stack: $stack');
+    }
+
+    return buffer.toString();
   }
 
   /// Get available calendars (includes DAVx5 synced calendars)
@@ -314,16 +377,37 @@ class CalendarSyncService {
       }
 
       final result = await _calendarPlugin.retrieveCalendars();
+      debugPrint(
+        'CalendarSyncService: retrieveCalendars result - isSuccess: ${result.isSuccess}, data length: ${result.data?.length ?? 0}',
+      );
+
       if (result.isSuccess && result.data != null) {
+        // Log all calendars for debugging
+        for (final cal in result.data!) {
+          debugPrint(
+            'CalendarSyncService: Found calendar: ${cal.name}, id: ${cal.id}, isReadOnly: ${cal.isReadOnly}, accountName: ${cal.accountName}, accountType: ${cal.accountType}',
+          );
+        }
+
         if (includeReadOnly) {
           return result.data!;
         }
         // Filter to only writable calendars
-        return result.data!.where((c) => !c.isReadOnly!).toList();
+        final writable = result.data!
+            .where((c) => c.isReadOnly != true)
+            .toList();
+        debugPrint(
+          'CalendarSyncService: Writable calendars count: ${writable.length}',
+        );
+        return writable;
       }
+      debugPrint(
+        'CalendarSyncService: retrieveCalendars failed or returned null data',
+      );
       return [];
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('CalendarSyncService: Error retrieving calendars: $e');
+      debugPrint('CalendarSyncService: Stack trace: $stackTrace');
       return [];
     }
   }
@@ -786,14 +870,20 @@ class CalendarSyncService {
   /// Get sync status info
   Future<CalendarSyncStatus> getSyncStatus() async {
     final hasPerms = await hasPermissions();
-    final calendars = hasPerms ? await getCalendars() : <Calendar>[];
+    final allCalendars = hasPerms
+        ? await getCalendars(includeReadOnly: true)
+        : <Calendar>[];
+    final writableCalendars = allCalendars
+        .where((c) => c.isReadOnly != true)
+        .toList();
 
     return CalendarSyncStatus(
       isEnabled: isEnabled,
       hasPermissions: hasPerms,
       selectedCalendars: selectedCalendars,
       primaryExportCalendarId: primaryExportCalendarId,
-      availableCalendars: calendars,
+      availableCalendars: writableCalendars,
+      allCalendars: allCalendars,
       syncCompletedTasks: syncCompletedTasks,
       twoWaySyncEnabled: twoWaySyncEnabled,
       autoSyncOnStartup: autoSyncOnStartup,
@@ -928,6 +1018,7 @@ class CalendarSyncStatus {
   final List<SelectedCalendar> selectedCalendars;
   final String? primaryExportCalendarId;
   final List<Calendar> availableCalendars;
+  final List<Calendar> allCalendars; // Includes read-only for debugging
   final bool syncCompletedTasks;
   final bool twoWaySyncEnabled;
   final bool autoSyncOnStartup;
@@ -939,6 +1030,7 @@ class CalendarSyncStatus {
     required this.selectedCalendars,
     required this.primaryExportCalendarId,
     required this.availableCalendars,
+    required this.allCalendars,
     required this.syncCompletedTasks,
     required this.twoWaySyncEnabled,
     required this.autoSyncOnStartup,

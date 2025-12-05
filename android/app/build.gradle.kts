@@ -30,7 +30,8 @@ android {
 
     signingConfigs {
     create("release") {
-        storeFile = file(System.getenv("HOME") + "/trudido-release-key.jks")
+        val home = System.getenv("HOME") ?: System.getenv("USERPROFILE") ?: ""
+        storeFile = file("$home/trudido-release-key.jks")
         storePassword = System.getenv("KEYSTORE_PASSWORD")
         keyAlias = System.getenv("KEY_ALIAS")
         keyPassword = System.getenv("KEY_PASSWORD")
