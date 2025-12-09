@@ -34,6 +34,7 @@ import 'providers/app_providers.dart';
 import 'services/navigation_service.dart';
 import 'services/system_settings_service.dart';
 import 'widgets/system_permission_dialogs.dart';
+import 'widgets/app_lock_wrapper.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
@@ -414,7 +415,10 @@ class _AppBootstrapState extends State<AppBootstrap>
         ),
       );
     }
-    return FadeTransition(opacity: _fadeCtrl, child: const HomeScreen());
+    return FadeTransition(
+      opacity: _fadeCtrl,
+      child: const AppLockWrapper(child: HomeScreen()),
+    );
   }
 }
 

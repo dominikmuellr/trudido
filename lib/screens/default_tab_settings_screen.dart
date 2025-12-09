@@ -17,6 +17,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/default_tab_service.dart';
+import '../providers/app_providers.dart';
+import '../services/preferences_service.dart';
 
 /// Provider for the current default tab setting
 final defaultTabProvider = FutureProvider<String>((ref) async {
@@ -131,6 +133,9 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
     String currentTab,
   ) {
     final tabs = DefaultTabService.getAllTabs();
+    final hideBottomNav = ref
+        .watch(preferencesStateProvider)
+        .hideBottomNavigation;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -196,6 +201,28 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Bottom navigation visibility toggle
+        Card(
+          child: SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 8,
+            ),
+            title: const Text('Show bottom navigation'),
+            subtitle: const Text('Hide the bottom tab bar and navigation rail'),
+            value: !hideBottomNav,
+            onChanged: (value) async {
+              final prefsService = PreferencesService();
+              final updated = await prefsService.update(
+                hideBottomNavigation: !value,
+              );
+              ref.read(preferencesStateProvider.notifier).state = updated;
+            },
           ),
         ),
 

@@ -29,6 +29,7 @@ class PreferencesState {
   final String swipeRightAction; // 'none', 'delete', 'pin'
   final bool hideNoteToolbar; // Hide formatting toolbar in note editor
   final bool showMoreNoteToolbar; // Show expanded toolbar options
+  final bool hideBottomNavigation; // Hide bottom nav/rail
 
   const PreferencesState({
     required this.themeMode,
@@ -44,6 +45,7 @@ class PreferencesState {
     required this.swipeRightAction,
     required this.hideNoteToolbar,
     required this.showMoreNoteToolbar,
+    required this.hideBottomNavigation,
   });
 
   PreferencesState copyWith({
@@ -60,6 +62,7 @@ class PreferencesState {
     String? swipeRightAction,
     bool? hideNoteToolbar,
     bool? showMoreNoteToolbar,
+    bool? hideBottomNavigation,
   }) => PreferencesState(
     themeMode: themeMode ?? this.themeMode,
     useDynamicColor: useDynamicColor ?? this.useDynamicColor,
@@ -74,6 +77,7 @@ class PreferencesState {
     swipeRightAction: swipeRightAction ?? this.swipeRightAction,
     hideNoteToolbar: hideNoteToolbar ?? this.hideNoteToolbar,
     showMoreNoteToolbar: showMoreNoteToolbar ?? this.showMoreNoteToolbar,
+    hideBottomNavigation: hideBottomNavigation ?? this.hideBottomNavigation,
   );
 
   static const defaultState = PreferencesState(
@@ -90,5 +94,6 @@ class PreferencesState {
     swipeRightAction: 'pin', // Default: right to pin
     hideNoteToolbar: false, // Default: show toolbar
     showMoreNoteToolbar: false, // Default: collapsed
+    hideBottomNavigation: false, // Default: show nav
   );
 }

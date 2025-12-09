@@ -26,6 +26,7 @@ import 'comprehensive_notification_settings.dart';
 import 'template_management_screen.dart';
 import 'font_size_settings_screen.dart';
 import 'calendar_sync_settings_screen.dart';
+import 'app_lock_settings_page.dart';
 import '../controllers/preferences_controller.dart';
 
 // Moved _SwipeActionSheet and _getSwipeActionName outside the class
@@ -373,6 +374,22 @@ class SettingsScreen extends ConsumerWidget {
                 MaterialPageRoute(
                   builder: (context) =>
                       const ComprehensiveNotificationSettings(),
+                ),
+              );
+            },
+          ),
+
+          // Security Section
+          _buildSectionHeader(context, 'Security'),
+          ListTile(
+            leading: ScaledIcon(Icons.lock_outline),
+            title: const Text('App Lock'),
+            subtitle: const Text('Protect app with PIN or fingerprint'),
+            trailing: ScaledIcon(Icons.arrow_forward_ios),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const AppLockSettingsPage(),
                 ),
               );
             },

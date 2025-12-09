@@ -124,8 +124,20 @@ class NotePreviewCard extends ConsumerWidget {
         height: 1.3,
       );
 
-      // Skip the title line if note has a title
-      bool skipFirstLine = note.title.isNotEmpty;
+      // Check if the first line of content matches the title
+      // Only skip if it's a duplicate (legacy notes had title in content)
+      bool skipFirstLine = false;
+      if (note.title.isNotEmpty && migratedJson.isNotEmpty) {
+        final firstOp = migratedJson.first;
+        if (firstOp is Map && firstOp.containsKey('insert')) {
+          final firstText = firstOp['insert'];
+          if (firstText is String) {
+            final firstLine = firstText.split('\n').first.trim();
+            // Only skip if first line matches title (legacy duplicated title)
+            skipFirstLine = firstLine == note.title.trim();
+          }
+        }
+      }
       bool firstLineSkipped = false;
 
       for (var op in migratedJson) {

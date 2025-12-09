@@ -22,6 +22,14 @@ import 'package:local_auth/local_auth.dart';
 class BiometricAuthService {
   static final LocalAuthentication _auth = LocalAuthentication();
 
+  /// Global flag to track if any biometric auth is in progress
+  /// Used by AppLockWrapper to avoid triggering lock during biometric dialogs
+  static bool isAuthInProgress = false;
+
+  /// Track when the last biometric auth completed
+  /// Used to provide a grace period after auth dialogs close
+  static DateTime? lastAuthCompletedTime;
+
   /// Checks if the device supports biometric authentication
   static Future<bool> canCheckBiometrics() async {
     try {
@@ -59,6 +67,9 @@ class BiometricAuthService {
     required String reason,
     bool biometricOnly = false,
   }) async {
+    // Set global flag to prevent app lock from triggering during auth
+    isAuthInProgress = true;
+
     try {
       debugPrint('[BiometricAuth] Starting authentication');
       debugPrint(
@@ -95,6 +106,11 @@ class BiometricAuthService {
     } catch (e) {
       debugPrint('[BiometricAuth] Unexpected error: $e');
       return false;
+    } finally {
+      // Reset global flag after auth completes
+      isAuthInProgress = false;
+      // Record completion time for grace period
+      lastAuthCompletedTime = DateTime.now();
     }
   }
 

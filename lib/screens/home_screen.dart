@@ -299,6 +299,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final isSearchMode = ref.watch(searchModeProvider);
     final selectedNoteFolderId = ref.watch(selectedNoteFolderProvider);
     final fabMenuExpanded = ref.watch(fabMenuExpandedProvider);
+    final hideBottomNav = ref
+        .watch(preferencesStateProvider)
+        .hideBottomNavigation;
 
     // Define tabs
     final tabs = [const TodoListTab(), const NotesScreen()];
@@ -355,7 +358,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
         // If none of the above, allow default back behavior (exit app)
       },
-      child: _buildContent(useNavigationRail, tabs, currentTab),
+      child: _buildContent(useNavigationRail, tabs, currentTab, hideBottomNav),
     );
   }
 
@@ -363,10 +366,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     bool useNavigationRail,
     List<Widget> tabs,
     int currentTab,
+    bool hideBottomNav,
   ) {
     final fabMenuExpanded = ref.watch(fabMenuExpandedProvider);
 
-    if (useNavigationRail) {
+    if (useNavigationRail && !hideBottomNav) {
       return Stack(
         children: [
           Scaffold(
@@ -472,98 +476,115 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               children: tabs,
             ),
           ),
-          bottomNavigationBar: NavigationBar(
-            backgroundColor: Theme.of(context).brightness == Brightness.dark
-                ? null // Use default in dark mode
-                : Theme.of(context).colorScheme.surfaceContainerLow,
-            selectedIndex: currentTab,
-            onDestinationSelected: (index) {
-              final previousTab = ref.read(currentTabProvider);
+          bottomNavigationBar: hideBottomNav
+              ? null
+              : NavigationBar(
+                  backgroundColor:
+                      Theme.of(context).brightness == Brightness.dark
+                      ? null // Use default in dark mode
+                      : Theme.of(context).colorScheme.surfaceContainerLow,
+                  selectedIndex: currentTab,
+                  onDestinationSelected: (index) {
+                    final previousTab = ref.read(currentTabProvider);
 
-              // If tapping the same tab, open the drawer
-              if (previousTab == index) {
-                _scaffoldKey.currentState?.openDrawer();
-                return;
-              }
+                    // If tapping the same tab, open the drawer
+                    if (previousTab == index) {
+                      _scaffoldKey.currentState?.openDrawer();
+                      return;
+                    }
 
-              // Security: Clear vault folder selection when leaving Notes tab
-              if (previousTab == 1 && index != 1) {
-                _clearVaultSelectionIfNeeded();
-              }
+                    // Security: Clear vault folder selection when leaving Notes tab
+                    if (previousTab == 1 && index != 1) {
+                      _clearVaultSelectionIfNeeded();
+                    }
 
-              ref.read(currentTabProvider.notifier).setTab(index);
-              // Exit search mode when switching tabs
-              final isSearchMode = ref.read(searchModeProvider);
-              if (isSearchMode) {
-                ref.read(searchModeProvider.notifier).state = false;
-                _searchController.clear();
-                if (previousTab == 0) {
-                  ref.read(searchQueryProvider.notifier).state = '';
-                } else if (previousTab == 1) {
-                  ref.read(notesSearchQueryProvider.notifier).state = '';
-                }
-              }
-            },
-            destinations: [
-              NavigationDestination(
-                icon: _buildNavigationIcon(Icons.checklist_outlined, 0),
-                selectedIcon: _buildNavigationIcon(Icons.checklist, 0),
-                label: 'Tasks',
-              ),
-              NavigationDestination(
-                icon: _buildNavigationIcon(Icons.note_outlined, 1),
-                selectedIcon: _buildNavigationIcon(Icons.note, 1),
-                label: 'Notes',
-              ),
-            ],
-          ),
+                    ref.read(currentTabProvider.notifier).setTab(index);
+                    // Exit search mode when switching tabs
+                    final isSearchMode = ref.read(searchModeProvider);
+                    if (isSearchMode) {
+                      ref.read(searchModeProvider.notifier).state = false;
+                      _searchController.clear();
+                      if (previousTab == 0) {
+                        ref.read(searchQueryProvider.notifier).state = '';
+                      } else if (previousTab == 1) {
+                        ref.read(notesSearchQueryProvider.notifier).state = '';
+                      }
+                    }
+                  },
+                  destinations: [
+                    NavigationDestination(
+                      icon: _buildNavigationIcon(Icons.checklist_outlined, 0),
+                      selectedIcon: _buildNavigationIcon(Icons.checklist, 0),
+                      label: 'Tasks',
+                    ),
+                    NavigationDestination(
+                      icon: _buildNavigationIcon(Icons.note_outlined, 1),
+                      selectedIcon: _buildNavigationIcon(Icons.note, 1),
+                      label: 'Notes',
+                    ),
+                  ],
+                ),
         ),
         // Backdrop overlay
         const FabMenuScreenBackdrop(),
         // FAB on top - positioned above the bottom navigation bar
-        Positioned(
-          right: 16,
-          bottom:
-              130, // NavigationBar height (~80) + extra spacing (moved up from 110)
-          child: FabMenu(
-            onAddTask: _showAddTaskDialog,
-            onAddNote: _createNewNote,
-            onAddFromTemplate: _showTemplateSelection,
-            onCreateVaultNote: _createVaultNote,
-            onLockVault: _lockVault,
-            onSearch: _triggerSearch,
-          ),
+        Builder(
+          builder: (context) {
+            final safeBottom = MediaQuery.viewPaddingOf(context).bottom;
+            final fabBottom = hideBottomNav ? (24.0 + safeBottom) : 130.0;
+            final viewToggleBottom = fabBottom + 64.0; // FAB height (~56) + gap
+
+            return Stack(
+              children: [
+                Positioned(
+                  right: 16,
+                  bottom: fabBottom,
+                  child: FabMenu(
+                    onAddTask: _showAddTaskDialog,
+                    onAddNote: _createNewNote,
+                    onAddFromTemplate: _showTemplateSelection,
+                    onCreateVaultNote: _createVaultNote,
+                    onLockVault: _lockVault,
+                    onSearch: _triggerSearch,
+                  ),
+                ),
+                if (currentTab == 0 && !fabMenuExpanded)
+                  Positioned(
+                    right:
+                        20, // Offset to center-align with FAB (FAB is larger)
+                    bottom: viewToggleBottom,
+                    child: FloatingActionButton.small(
+                      heroTag: 'view_toggle',
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .secondaryContainer
+                          .withOpacity(
+                            0.7,
+                          ), // Semi-transparent for subtle effect
+                      foregroundColor: Theme.of(
+                        context,
+                      ).colorScheme.onSecondaryContainer,
+                      elevation: 2,
+                      shape: const CircleBorder(), // Explicitly circular
+                      onPressed: () {
+                        final current = ref.read(taskViewTypeProvider);
+                        ref
+                            .read(taskViewTypeProvider.notifier)
+                            .state = current == TaskViewType.list
+                            ? TaskViewType.calendar
+                            : TaskViewType.list;
+                      },
+                      child: Icon(
+                        ref.watch(taskViewTypeProvider) == TaskViewType.list
+                            ? Icons.calendar_month
+                            : Icons.list,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
-        // View toggle button (only on Tasks tab, positioned above FAB)
-        // Hide when FAB menu is expanded
-        if (currentTab == 0 && !fabMenuExpanded)
-          Positioned(
-            right: 20, // Offset to center-align with FAB (FAB is larger)
-            bottom: 194, // FAB bottom (130) + FAB size (~48) + gap (16)
-            child: FloatingActionButton.small(
-              heroTag: 'view_toggle',
-              backgroundColor: Theme.of(context).colorScheme.secondaryContainer
-                  .withOpacity(0.7), // Semi-transparent for subtle effect
-              foregroundColor: Theme.of(
-                context,
-              ).colorScheme.onSecondaryContainer,
-              elevation: 2,
-              shape: const CircleBorder(), // Explicitly circular
-              onPressed: () {
-                final current = ref.read(taskViewTypeProvider);
-                ref
-                    .read(taskViewTypeProvider.notifier)
-                    .state = current == TaskViewType.list
-                    ? TaskViewType.calendar
-                    : TaskViewType.list;
-              },
-              child: Icon(
-                ref.watch(taskViewTypeProvider) == TaskViewType.list
-                    ? Icons.calendar_month
-                    : Icons.list,
-              ),
-            ),
-          ),
       ],
     );
   }

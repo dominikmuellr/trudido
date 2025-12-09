@@ -118,8 +118,15 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   void _loadToolbarPreferences() {
     final prefs = ref.read(preferencesStateProvider);
     setState(() {
-      _hideToolbar = prefs.hideNoteToolbar;
-      _showMoreToolbar = prefs.showMoreNoteToolbar;
+      // For new notes, always show the main toolbar by default
+      // User can still collapse it, but it starts expanded
+      if (widget.noteId == null) {
+        _hideToolbar = false;
+        _showMoreToolbar = prefs.showMoreNoteToolbar;
+      } else {
+        _hideToolbar = prefs.hideNoteToolbar;
+        _showMoreToolbar = prefs.showMoreNoteToolbar;
+      }
     });
   }
 

@@ -19,6 +19,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
 import '../controllers/preferences_controller.dart';
 import '../services/default_tab_service.dart';
+import '../services/preferences_service.dart';
+import 'home_screen.dart';
 
 import 'default_tab_settings_screen.dart';
 
@@ -384,6 +386,9 @@ class _DefaultTabSelector extends ConsumerWidget {
             if (choice != null) {
               final notifier = ref.read(defaultTabNotifierProvider.notifier);
               await notifier.setDefaultTab(choice);
+              // Also switch to the selected tab immediately
+              final tabIndex = DefaultTabService.tabIndices[choice] ?? 0;
+              ref.read(currentTabProvider.notifier).setTab(tabIndex);
             }
           },
         );
@@ -392,14 +397,17 @@ class _DefaultTabSelector extends ConsumerWidget {
   }
 }
 
-class _DefaultTabSheet extends StatelessWidget {
+class _DefaultTabSheet extends ConsumerWidget {
   final String current;
   const _DefaultTabSheet({required this.current});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final tabs = DefaultTabService.getAllTabs();
+    final hideBottomNav = ref
+        .watch(preferencesStateProvider)
+        .hideBottomNavigation;
 
     Widget buildOption(String tabId, String tabName, IconData icon) {
       final selected = current == tabId;
@@ -422,6 +430,21 @@ class _DefaultTabSheet extends StatelessWidget {
           ...tabs.entries.map((entry) {
             return buildOption(entry.key, entry.value, _getTabIcon(entry.key));
           }).toList(),
+          const Divider(height: 12),
+          SwitchListTile.adaptive(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            secondary: const Icon(Icons.view_agenda_outlined),
+            title: const Text('Show bottom navigation'),
+            subtitle: const Text('Hide the bottom tab bar and navigation rail'),
+            value: !hideBottomNav,
+            onChanged: (value) async {
+              final prefsService = PreferencesService();
+              final updated = await prefsService.update(
+                hideBottomNavigation: !value,
+              );
+              ref.read(preferencesStateProvider.notifier).state = updated;
+            },
+          ),
           const SizedBox(height: 8),
         ],
       ),

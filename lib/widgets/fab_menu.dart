@@ -61,45 +61,60 @@ class FabMenu extends ConsumerStatefulWidget {
 }
 
 class _FabMenuState extends ConsumerState<FabMenu>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _animation;
+    with TickerProviderStateMixin {
+  final List<AnimationController> _itemControllers = [];
   bool _isExpanded = false;
 
   // Expose the expanded state
   bool get isExpanded => _isExpanded;
 
   @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 175),
-    );
-    _animation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOutCubicEmphasized,
-      reverseCurve: Curves.easeInOutCubicEmphasized,
-    );
+  void dispose() {
+    for (final controller in _itemControllers) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
+  void _ensureControllers(int count) {
+    // Add controllers if needed
+    while (_itemControllers.length < count) {
+      _itemControllers.add(
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 200),
+        ),
+      );
+    }
   }
 
   void _toggleMenu() {
     setState(() {
       _isExpanded = !_isExpanded;
-      // Update the provider
       ref.read(fabMenuExpandedProvider.notifier).state = _isExpanded;
-      if (_isExpanded) {
-        _animationController.forward();
-      } else {
-        _animationController.reverse();
-      }
     });
+    _animateItems();
+  }
+
+  void _animateItems() {
+    const staggerDelay = Duration(milliseconds: 50);
+
+    if (_isExpanded) {
+      // Open: animate from bottom to top (last item first)
+      for (int i = _itemControllers.length - 1; i >= 0; i--) {
+        final delay = staggerDelay * (_itemControllers.length - 1 - i);
+        Future.delayed(delay, () {
+          if (mounted && _isExpanded) {
+            _itemControllers[i].forward();
+          }
+        });
+      }
+    } else {
+      // Close: animate all at once (fast close)
+      for (final controller in _itemControllers) {
+        controller.reverse();
+      }
+    }
   }
 
   List<_MenuItem> _getMenuItems(WidgetRef ref) {
@@ -187,17 +202,16 @@ class _FabMenuState extends ConsumerState<FabMenu>
   Widget build(BuildContext context) {
     final menuItems = _getMenuItems(ref).reversed.toList();
 
+    // Ensure we have enough controllers
+    _ensureControllers(menuItems.length);
+
     // Watch the provider to sync with external close events (like backdrop tap)
     ref.listen<bool>(fabMenuExpandedProvider, (previous, next) {
       if (next != _isExpanded) {
         setState(() {
           _isExpanded = next;
-          if (_isExpanded) {
-            _animationController.forward();
-          } else {
-            _animationController.reverse();
-          }
         });
+        _animateItems();
       }
     });
 
@@ -205,50 +219,43 @@ class _FabMenuState extends ConsumerState<FabMenu>
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        // Menu Items - animated one after another from bottom to top
-        if (_isExpanded) ...[
-          ...menuItems.asMap().entries.map((entry) {
-            final index = entry.key;
-            final item = entry.value;
-            // Stagger animation: items appear sequentially with delay
-            final delay = index * 0.05; // 50ms delay between each item
-            final staggeredAnimation = CurvedAnimation(
-              parent: _animation,
-              curve: Interval(
-                delay,
-                delay + 0.5,
-                curve: Curves.easeOutBack, // Bouncy pop-up effect
-              ),
-            );
+        // Menu Items with staggered animation
+        ...menuItems.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          final controller = _itemControllers[index];
 
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 0.5), // Start slightly below
-                  end: Offset.zero,
-                ).animate(staggeredAnimation),
-                child: ScaleTransition(
-                  scale: staggeredAnimation,
-                  child: FadeTransition(
-                    opacity: staggeredAnimation,
-                    child: _FabMenuItem(
-                      label: item.label,
-                      icon: item.icon,
-                      onTap: () {
-                        _toggleMenu();
-                        // Add a small delay to allow the animation to start
-                        Future.delayed(const Duration(milliseconds: 50), () {
-                          item.onTap();
-                        });
-                      },
-                    ),
+          return AnimatedBuilder(
+            animation: controller,
+            builder: (context, child) {
+              final value = Curves.easeOutBack.transform(controller.value);
+              if (value == 0 && !_isExpanded) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Opacity(
+                  opacity: controller.value,
+                  child: Transform.scale(
+                    scale: value,
+                    alignment: Alignment.bottomRight,
+                    child: child,
                   ),
                 ),
-              ),
-            );
-          }).toList(),
-        ],
+              );
+            },
+            child: _FabMenuItem(
+              label: item.label,
+              icon: item.icon,
+              onTap: () {
+                _toggleMenu();
+                Future.delayed(const Duration(milliseconds: 50), () {
+                  item.onTap();
+                });
+              },
+            ),
+          );
+        }),
         // Main FAB
         FloatingActionButton(
           onPressed: _toggleMenu,
@@ -256,7 +263,10 @@ class _FabMenuState extends ConsumerState<FabMenu>
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
             transitionBuilder: (child, animation) {
-              return ScaleTransition(scale: animation, child: child);
+              return RotationTransition(
+                turns: Tween<double>(begin: 0.5, end: 1.0).animate(animation),
+                child: ScaleTransition(scale: animation, child: child),
+              );
             },
             child: Icon(
               _isExpanded ? Icons.close : Icons.add,

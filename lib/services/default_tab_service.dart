@@ -24,33 +24,46 @@ import 'package:shared_preferences/shared_preferences.dart';
 class DefaultTabService {
   static const String _defaultTabKey = 'user_default_starting_tab';
   static const String _defaultFallback = 'tasks'; // Default to tasks tab
+  static const String _hideNavKey = 'hide_bottom_navigation';
 
   /// Available tab options that match your app's navigation structure
   static const Map<String, int> tabIndices = {'tasks': 0, 'notes': 1};
 
+  // Simple in-memory cache to avoid first-frame flicker
+  static String? _cachedTabId;
+  static int? _cachedTabIndex;
+  static bool? _cachedHideNav;
+
   /// Get the user's preferred default tab
   /// Returns the tab ID string (e.g., 'tasks', 'notes')
   static Future<String> getDefaultTab() async {
+    if (_cachedTabId != null) return _cachedTabId!;
     try {
       final prefs = await SharedPreferences.getInstance();
       final savedTab = prefs.getString(_defaultTabKey);
 
       // Validate that the saved tab is still valid
       if (savedTab != null && tabIndices.containsKey(savedTab)) {
+        _cachedTabId = savedTab;
+        _cachedTabIndex = tabIndices[savedTab];
         return savedTab;
       }
     } catch (e) {
       // If reading fails, fall back to default
     }
 
+    _cachedTabId = _defaultFallback;
+    _cachedTabIndex = tabIndices[_defaultFallback];
     return _defaultFallback;
   }
 
   /// Get the default tab as an index for NavigationBar
   /// Returns the index (0-3) corresponding to the user's preference
   static Future<int> getDefaultTabIndex() async {
+    if (_cachedTabIndex != null) return _cachedTabIndex!;
     final tabId = await getDefaultTab();
-    return tabIndices[tabId] ?? 0; // Fallback to index 0 (tasks)
+    _cachedTabIndex = tabIndices[tabId] ?? 0;
+    return _cachedTabIndex!; // Fallback to index 0 (tasks)
   }
 
   /// Set the user's preferred default tab
@@ -64,6 +77,8 @@ class DefaultTabService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_defaultTabKey, tabId);
+      _cachedTabId = tabId;
+      _cachedTabIndex = tabIndices[tabId];
       return true;
     } catch (e) {
       return false;
@@ -94,6 +109,32 @@ class DefaultTabService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_defaultTabKey);
+      _cachedTabId = _defaultFallback;
+      _cachedTabIndex = tabIndices[_defaultFallback];
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get whether bottom navigation/rail should be hidden entirely
+  static Future<bool> getHideNavigation() async {
+    if (_cachedHideNav != null) return _cachedHideNav!;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _cachedHideNav = prefs.getBool(_hideNavKey) ?? false;
+      return _cachedHideNav!;
+    } catch (e) {
+      return _cachedHideNav ?? false;
+    }
+  }
+
+  /// Set whether navigation UI (bottom nav/rail) is hidden
+  static Future<bool> setHideNavigation(bool hide) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_hideNavKey, hide);
+      _cachedHideNav = hide;
       return true;
     } catch (e) {
       return false;

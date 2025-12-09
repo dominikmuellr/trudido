@@ -162,6 +162,9 @@ class PreferencesService {
       showMoreNoteToolbar:
           p.getBool('show_more_note_toolbar') ??
           PreferencesState.defaultState.showMoreNoteToolbar,
+      hideBottomNavigation:
+          p.getBool('hide_bottom_navigation') ??
+          PreferencesState.defaultState.hideBottomNavigation,
     );
   }
 
@@ -182,6 +185,7 @@ class PreferencesService {
     String? swipeRightAction,
     bool? hideNoteToolbar,
     bool? showMoreNoteToolbar,
+    bool? hideBottomNavigation,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -207,6 +211,8 @@ class PreferencesService {
         await p.setBool('hide_note_toolbar', hideNoteToolbar);
       if (showMoreNoteToolbar != null)
         await p.setBool('show_more_note_toolbar', showMoreNoteToolbar);
+      if (hideBottomNavigation != null)
+        await p.setBool('hide_bottom_navigation', hideBottomNavigation);
       _hydrate();
       return _cache;
     } catch (e, st) {
