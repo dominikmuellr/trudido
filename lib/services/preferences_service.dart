@@ -156,6 +156,12 @@ class PreferencesService {
       swipeRightAction:
           p.getString('swipe_right_action') ??
           PreferencesState.defaultState.swipeRightAction,
+      hideNoteToolbar:
+          p.getBool('hide_note_toolbar') ??
+          PreferencesState.defaultState.hideNoteToolbar,
+      showMoreNoteToolbar:
+          p.getBool('show_more_note_toolbar') ??
+          PreferencesState.defaultState.showMoreNoteToolbar,
     );
   }
 
@@ -174,6 +180,8 @@ class PreferencesService {
     String? fabPosition,
     String? swipeLeftAction,
     String? swipeRightAction,
+    bool? hideNoteToolbar,
+    bool? showMoreNoteToolbar,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -195,6 +203,10 @@ class PreferencesService {
         await p.setString('swipe_left_action', swipeLeftAction);
       if (swipeRightAction != null)
         await p.setString('swipe_right_action', swipeRightAction);
+      if (hideNoteToolbar != null)
+        await p.setBool('hide_note_toolbar', hideNoteToolbar);
+      if (showMoreNoteToolbar != null)
+        await p.setBool('show_more_note_toolbar', showMoreNoteToolbar);
       _hydrate();
       return _cache;
     } catch (e, st) {
