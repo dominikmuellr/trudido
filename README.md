@@ -50,7 +50,7 @@ The links above are the only trusted sources of Trudido. Any other websites or l
 
 ### 📝 Notes
 - Markdown support with live preview
-- Lock your Notes in a SHA-256 encrypted Vault
+- Lock your Notes in a AES-256 encrypted Vault
 
 ### 🎨 Design
 - Material 3 interface
@@ -90,7 +90,7 @@ Trudido follows a simple offline-first approach aligned with European expectatio
 - No network communication
 - No analytics or tracking
 - All data stored on-device
-- Notes Vault encrypted with SHA-256
+- Notes Vault AES-256 encrypted
 - Optional manual import/export
 
 Your tasks and notes stay with you.
