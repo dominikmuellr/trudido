@@ -29,6 +29,8 @@ class PreferencesState {
   final String swipeRightAction; // 'none', 'delete', 'pin'
   final bool hideNoteToolbar; // Hide formatting toolbar in note editor
   final bool showMoreNoteToolbar; // Show expanded toolbar options
+  final bool
+  useFloatingNoteToolbar; // Use floating FAB toolbar instead of top toolbar
   final bool hideBottomNavigation; // Hide bottom nav/rail
 
   const PreferencesState({
@@ -45,6 +47,7 @@ class PreferencesState {
     required this.swipeRightAction,
     required this.hideNoteToolbar,
     required this.showMoreNoteToolbar,
+    required this.useFloatingNoteToolbar,
     required this.hideBottomNavigation,
   });
 
@@ -62,6 +65,7 @@ class PreferencesState {
     String? swipeRightAction,
     bool? hideNoteToolbar,
     bool? showMoreNoteToolbar,
+    bool? useFloatingNoteToolbar,
     bool? hideBottomNavigation,
   }) => PreferencesState(
     themeMode: themeMode ?? this.themeMode,
@@ -77,6 +81,8 @@ class PreferencesState {
     swipeRightAction: swipeRightAction ?? this.swipeRightAction,
     hideNoteToolbar: hideNoteToolbar ?? this.hideNoteToolbar,
     showMoreNoteToolbar: showMoreNoteToolbar ?? this.showMoreNoteToolbar,
+    useFloatingNoteToolbar:
+        useFloatingNoteToolbar ?? this.useFloatingNoteToolbar,
     hideBottomNavigation: hideBottomNavigation ?? this.hideBottomNavigation,
   );
 
@@ -94,6 +100,8 @@ class PreferencesState {
     swipeRightAction: 'pin', // Default: right to pin
     hideNoteToolbar: false, // Default: show toolbar
     showMoreNoteToolbar: false, // Default: collapsed
+    useFloatingNoteToolbar:
+        false, // Default: use top toolbar (experimental feature off)
     hideBottomNavigation: false, // Default: show nav
   );
 }

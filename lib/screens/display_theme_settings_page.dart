@@ -77,6 +77,10 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
           _buildSectionHeader(context, 'Interface'),
           _buildGreetingSettings(),
 
+          // Experimental Section
+          _buildSectionHeader(context, 'Experimental'),
+          _buildFloatingToolbarToggle(),
+
           const SizedBox(height: 16),
         ],
       ),
@@ -127,6 +131,25 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
               },
             );
           },
+        );
+      },
+    );
+  }
+
+  Widget _buildFloatingToolbarToggle() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final preferences = ref.watch(preferencesStateProvider);
+        final controller = ref.read(preferencesControllerProvider);
+
+        return SwitchListTile(
+          secondary: const Icon(Icons.touch_app_outlined),
+          title: const Text('Floating Note Toolbar'),
+          subtitle: const Text(
+            'Replace top toolbar with a thumb-friendly floating button',
+          ),
+          value: preferences.useFloatingNoteToolbar,
+          onChanged: (v) => controller.toggleFloatingNoteToolbar(),
         );
       },
     );

@@ -30,6 +30,7 @@ import '../utils/markdown_to_quill_converter.dart';
 import '../services/media_service.dart';
 import '../widgets/media_embed_builder.dart';
 import '../widgets/link_embed_builder.dart';
+import '../widgets/floating_note_toolbar.dart';
 import '../providers/app_providers.dart';
 import '../services/preferences_service.dart';
 
@@ -84,6 +85,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   // Toolbar expansion state
   bool _showMoreToolbar = false;
   bool _hideToolbar = false;
+  bool _useFloatingToolbar = false;
 
   @override
   void initState() {
@@ -118,6 +120,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   void _loadToolbarPreferences() {
     final prefs = ref.read(preferencesStateProvider);
     setState(() {
+      // Check if floating toolbar is enabled
+      _useFloatingToolbar = prefs.useFloatingNoteToolbar;
+
       // For new notes, always show the main toolbar by default
       // User can still collapse it, but it starts expanded
       if (widget.noteId == null) {
@@ -1592,24 +1597,25 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                   color: _getStatusColor(),
                 ),
               ),
-            // Toolbar toggle button
-            IconButton(
-              icon: Icon(
-                _hideToolbar
-                    ? Icons.keyboard_arrow_down
-                    : Icons.keyboard_arrow_up,
-                color: _hideToolbar
-                    ? Theme.of(context).colorScheme.onSurfaceVariant
-                    : Theme.of(context).colorScheme.primary,
+            // Toolbar toggle button - only show when not using floating toolbar
+            if (!_useFloatingToolbar)
+              IconButton(
+                icon: Icon(
+                  _hideToolbar
+                      ? Icons.keyboard_arrow_down
+                      : Icons.keyboard_arrow_up,
+                  color: _hideToolbar
+                      ? Theme.of(context).colorScheme.onSurfaceVariant
+                      : Theme.of(context).colorScheme.primary,
+                ),
+                tooltip: _hideToolbar ? 'Show formatting' : 'Hide formatting',
+                onPressed: () {
+                  setState(() {
+                    _hideToolbar = !_hideToolbar;
+                  });
+                  _saveToolbarPreferences();
+                },
               ),
-              tooltip: _hideToolbar ? 'Show formatting' : 'Hide formatting',
-              onPressed: () {
-                setState(() {
-                  _hideToolbar = !_hideToolbar;
-                });
-                _saveToolbarPreferences();
-              },
-            ),
             IconButton(
               icon: const Icon(Icons.share_outlined),
               tooltip: 'Export',
@@ -1617,10 +1623,28 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
             ),
           ],
         ),
+        // Floating toolbar FAB - shown when floating toolbar is enabled
+        floatingActionButton: _useFloatingToolbar
+            ? Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom > 0
+                      ? 8 // When keyboard is open, FAB is just above it
+                      : 0,
+                ),
+                child: FloatingNoteToolbar(
+                  controller: _quillController,
+                  onInsertImage: _insertImage,
+                  onInsertVideo: _insertVideo,
+                  onInsertVoice: _insertVoiceNote,
+                  onInsertLink: _insertLink,
+                ),
+              )
+            : null,
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         body: Column(
           children: [
-            // Main toolbar - collapsible
-            if (!_hideToolbar)
+            // Main toolbar - collapsible (only when not using floating toolbar)
+            if (!_hideToolbar && !_useFloatingToolbar)
               Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,

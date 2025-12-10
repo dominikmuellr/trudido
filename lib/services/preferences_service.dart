@@ -162,6 +162,9 @@ class PreferencesService {
       showMoreNoteToolbar:
           p.getBool('show_more_note_toolbar') ??
           PreferencesState.defaultState.showMoreNoteToolbar,
+      useFloatingNoteToolbar:
+          p.getBool('use_floating_note_toolbar') ??
+          PreferencesState.defaultState.useFloatingNoteToolbar,
       hideBottomNavigation:
           p.getBool('hide_bottom_navigation') ??
           PreferencesState.defaultState.hideBottomNavigation,
@@ -185,6 +188,7 @@ class PreferencesService {
     String? swipeRightAction,
     bool? hideNoteToolbar,
     bool? showMoreNoteToolbar,
+    bool? useFloatingNoteToolbar,
     bool? hideBottomNavigation,
   }) async {
     final p = _prefs;
@@ -211,6 +215,8 @@ class PreferencesService {
         await p.setBool('hide_note_toolbar', hideNoteToolbar);
       if (showMoreNoteToolbar != null)
         await p.setBool('show_more_note_toolbar', showMoreNoteToolbar);
+      if (useFloatingNoteToolbar != null)
+        await p.setBool('use_floating_note_toolbar', useFloatingNoteToolbar);
       if (hideBottomNavigation != null)
         await p.setBool('hide_bottom_navigation', hideBottomNavigation);
       _hydrate();

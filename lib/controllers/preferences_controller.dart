@@ -98,6 +98,9 @@ class PreferencesController {
   Future<void> setSwipeRightAction(String action) =>
       _update(swipeRightAction: action);
 
+  Future<void> toggleFloatingNoteToolbar() =>
+      _update(useFloatingNoteToolbar: !state.useFloatingNoteToolbar);
+
   Future<void> _update({
     String? themeMode,
     bool? useDynamicColor,
@@ -108,6 +111,7 @@ class PreferencesController {
     String? fabPosition,
     String? swipeLeftAction,
     String? swipeRightAction,
+    bool? useFloatingNoteToolbar,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -119,6 +123,7 @@ class PreferencesController {
       fabPosition: fabPosition,
       swipeLeftAction: swipeLeftAction,
       swipeRightAction: swipeRightAction,
+      useFloatingNoteToolbar: useFloatingNoteToolbar,
     );
     ref.read(preferencesStateProvider.notifier).state = updated;
   }
