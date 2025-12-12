@@ -101,6 +101,9 @@ class PreferencesController {
   Future<void> toggleFloatingNoteToolbar() =>
       _update(useFloatingNoteToolbar: !state.useFloatingNoteToolbar);
 
+  Future<void> setFirstDayOfWeek(int dayIndex) =>
+      _update(firstDayOfWeek: dayIndex);
+
   Future<void> _update({
     String? themeMode,
     bool? useDynamicColor,
@@ -112,6 +115,7 @@ class PreferencesController {
     String? swipeLeftAction,
     String? swipeRightAction,
     bool? useFloatingNoteToolbar,
+    int? firstDayOfWeek,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -124,6 +128,7 @@ class PreferencesController {
       swipeLeftAction: swipeLeftAction,
       swipeRightAction: swipeRightAction,
       useFloatingNoteToolbar: useFloatingNoteToolbar,
+      firstDayOfWeek: firstDayOfWeek,
     );
     ref.read(preferencesStateProvider.notifier).state = updated;
   }

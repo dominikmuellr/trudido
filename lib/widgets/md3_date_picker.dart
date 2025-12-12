@@ -16,8 +16,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/app_providers.dart';
 import '../providers/clock.dart';
 import '../utils/date_formatters.dart';
+import '../utils/week_start_utils.dart';
 
 /// Material Design 3 compliant date picker with smart suggestions
 ///
@@ -51,6 +53,7 @@ class MD3DatePicker {
         now: now,
         helpText: helpText,
         showSmartSuggestions: showSmartSuggestions,
+        firstDayOfWeek: ref.read(preferencesStateProvider).firstDayOfWeek,
       ),
     );
   }
@@ -76,6 +79,7 @@ class MD3DatePicker {
         lastDate: last,
         now: now,
         helpText: helpText,
+        firstDayOfWeek: ref.read(preferencesStateProvider).firstDayOfWeek,
       ),
     );
   }
@@ -88,6 +92,7 @@ class _MD3DatePickerDialog extends StatefulWidget {
   final DateTime now;
   final String? helpText;
   final bool showSmartSuggestions;
+  final int firstDayOfWeek;
 
   const _MD3DatePickerDialog({
     required this.initialDate,
@@ -96,6 +101,7 @@ class _MD3DatePickerDialog extends StatefulWidget {
     required this.now,
     this.helpText,
     this.showSmartSuggestions = true,
+    this.firstDayOfWeek = 1,
   });
 
   @override
@@ -214,11 +220,14 @@ class _MD3DatePickerDialogState extends State<_MD3DatePickerDialog> {
 
             // Calendar
             Expanded(
-              child: CalendarDatePicker(
-                initialDate: _selectedDate,
-                firstDate: widget.firstDate,
-                lastDate: widget.lastDate,
-                onDateChanged: _selectDate,
+              child: WeekStartOverride(
+                firstDayOfWeekIndex: widget.firstDayOfWeek,
+                child: CalendarDatePicker(
+                  initialDate: _selectedDate,
+                  firstDate: widget.firstDate,
+                  lastDate: widget.lastDate,
+                  onDateChanged: _selectDate,
+                ),
               ),
             ),
 
@@ -257,6 +266,7 @@ class _MD3DateRangePickerDialog extends StatefulWidget {
   final DateTime lastDate;
   final DateTime now;
   final String? helpText;
+  final int firstDayOfWeek;
 
   const _MD3DateRangePickerDialog({
     this.initialDateRange,
@@ -264,6 +274,7 @@ class _MD3DateRangePickerDialog extends StatefulWidget {
     required this.lastDate,
     required this.now,
     this.helpText,
+    this.firstDayOfWeek = 1,
   });
 
   @override
@@ -380,26 +391,29 @@ class _MD3DateRangePickerDialogState extends State<_MD3DateRangePickerDialog> {
             // Calendar
             Expanded(
               child: _selectedRange != null
-                  ? CalendarDatePicker(
-                      initialDate: _selectedRange!.start,
-                      firstDate: widget.firstDate,
-                      lastDate: widget.lastDate,
-                      onDateChanged: (date) {
-                        // Implement range selection logic
-                        setState(() {
-                          if (_selectedRange == null) {
-                            _selectedRange = DateTimeRange(
-                              start: date,
-                              end: date,
-                            );
-                          } else {
-                            _selectedRange = DateTimeRange(
-                              start: _selectedRange!.start,
-                              end: date,
-                            );
-                          }
-                        });
-                      },
+                  ? WeekStartOverride(
+                      firstDayOfWeekIndex: widget.firstDayOfWeek,
+                      child: CalendarDatePicker(
+                        initialDate: _selectedRange!.start,
+                        firstDate: widget.firstDate,
+                        lastDate: widget.lastDate,
+                        onDateChanged: (date) {
+                          // Implement range selection logic
+                          setState(() {
+                            if (_selectedRange == null) {
+                              _selectedRange = DateTimeRange(
+                                start: date,
+                                end: date,
+                              );
+                            } else {
+                              _selectedRange = DateTimeRange(
+                                start: _selectedRange!.start,
+                                end: date,
+                              );
+                            }
+                          });
+                        },
+                      ),
                     )
                   : Center(
                       child: Text(

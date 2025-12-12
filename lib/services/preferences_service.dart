@@ -168,6 +168,9 @@ class PreferencesService {
       hideBottomNavigation:
           p.getBool('hide_bottom_navigation') ??
           PreferencesState.defaultState.hideBottomNavigation,
+      firstDayOfWeek:
+          p.getInt('first_day_of_week') ??
+          PreferencesState.defaultState.firstDayOfWeek,
     );
   }
 
@@ -190,6 +193,7 @@ class PreferencesService {
     bool? showMoreNoteToolbar,
     bool? useFloatingNoteToolbar,
     bool? hideBottomNavigation,
+    int? firstDayOfWeek,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -219,6 +223,8 @@ class PreferencesService {
         await p.setBool('use_floating_note_toolbar', useFloatingNoteToolbar);
       if (hideBottomNavigation != null)
         await p.setBool('hide_bottom_navigation', hideBottomNavigation);
+      if (firstDayOfWeek != null)
+        await p.setInt('first_day_of_week', firstDayOfWeek);
       _hydrate();
       return _cache;
     } catch (e, st) {

@@ -20,6 +20,7 @@ import '../providers/app_providers.dart';
 import '../controllers/preferences_controller.dart';
 import '../services/default_tab_service.dart';
 import '../services/preferences_service.dart';
+import '../utils/week_start_utils.dart';
 import 'home_screen.dart';
 
 import 'default_tab_settings_screen.dart';
@@ -72,6 +73,7 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
           // Display Section
           _buildSectionHeader(context, 'Display'),
           _DefaultTabSelector(),
+          _WeekStartSelector(),
 
           // Interface Section
           _buildSectionHeader(context, 'Interface'),
@@ -483,6 +485,102 @@ class _DefaultTabSheet extends ConsumerWidget {
       default:
         return Icons.circle_outlined;
     }
+  }
+}
+
+class _WeekStartSelector extends ConsumerWidget {
+  const _WeekStartSelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prefs = ref.watch(preferencesStateProvider);
+    final controller = ref.read(preferencesControllerProvider);
+    final currentDay = prefs.firstDayOfWeek;
+    final dayName = WeekStartUtils.getDayName(currentDay);
+
+    return ListTile(
+      leading: const Icon(Icons.calendar_view_week_outlined),
+      title: const Text('Week Starts On'),
+      subtitle: Text(dayName),
+      trailing: const Icon(Icons.arrow_drop_down),
+      onTap: () async {
+        final choice = await showModalBottomSheet<int>(
+          context: context,
+          showDragHandle: true,
+          builder: (ctx) {
+            return _WeekStartSheet(current: currentDay);
+          },
+        );
+        if (choice != null) {
+          controller.setFirstDayOfWeek(choice);
+        }
+      },
+    );
+  }
+}
+
+class _WeekStartSheet extends StatelessWidget {
+  final int current;
+  const _WeekStartSheet({required this.current});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    Widget buildOption(int dayIndex) {
+      final selected = current == dayIndex;
+      final dayName = WeekStartUtils.getDayName(dayIndex);
+      return ListTile(
+        leading: Icon(
+          Icons.today,
+          color: selected ? cs.primary : cs.onSurfaceVariant,
+        ),
+        title: Text(
+          dayName,
+          style: TextStyle(fontWeight: selected ? FontWeight.w600 : null),
+        ),
+        trailing: selected ? Icon(Icons.check, color: cs.primary) : null,
+        onTap: () => Navigator.pop(context, dayIndex),
+      );
+    }
+
+    // Show common options first: Sunday, Monday, Saturday
+    // then the rest in order
+    final commonDays = [0, 1, 6]; // Sunday, Monday, Saturday
+    final otherDays = [2, 3, 4, 5]; // Tue-Fri
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: Text(
+                'Common',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant),
+              ),
+            ),
+            ...commonDays.map(buildOption),
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: Text(
+                'Other',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant),
+              ),
+            ),
+            ...otherDays.map(buildOption),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
   }
 }
 

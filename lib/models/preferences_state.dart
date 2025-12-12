@@ -32,6 +32,7 @@ class PreferencesState {
   final bool
   useFloatingNoteToolbar; // Use floating FAB toolbar instead of top toolbar
   final bool hideBottomNavigation; // Hide bottom nav/rail
+  final int firstDayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
 
   const PreferencesState({
     required this.themeMode,
@@ -49,6 +50,7 @@ class PreferencesState {
     required this.showMoreNoteToolbar,
     required this.useFloatingNoteToolbar,
     required this.hideBottomNavigation,
+    required this.firstDayOfWeek,
   });
 
   PreferencesState copyWith({
@@ -67,6 +69,7 @@ class PreferencesState {
     bool? showMoreNoteToolbar,
     bool? useFloatingNoteToolbar,
     bool? hideBottomNavigation,
+    int? firstDayOfWeek,
   }) => PreferencesState(
     themeMode: themeMode ?? this.themeMode,
     useDynamicColor: useDynamicColor ?? this.useDynamicColor,
@@ -84,6 +87,7 @@ class PreferencesState {
     useFloatingNoteToolbar:
         useFloatingNoteToolbar ?? this.useFloatingNoteToolbar,
     hideBottomNavigation: hideBottomNavigation ?? this.hideBottomNavigation,
+    firstDayOfWeek: firstDayOfWeek ?? this.firstDayOfWeek,
   );
 
   static const defaultState = PreferencesState(
@@ -103,5 +107,6 @@ class PreferencesState {
     useFloatingNoteToolbar:
         false, // Default: use top toolbar (experimental feature off)
     hideBottomNavigation: false, // Default: show nav
+    firstDayOfWeek: 1, // Default: Monday (0=Sunday, 1=Monday, etc.)
   );
 }

@@ -20,9 +20,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/todo.dart';
 import '../controllers/task_controller.dart';
 import '../providers/clock.dart';
+import '../providers/app_providers.dart';
 import '../widgets/reminder_components.dart';
 import '../widgets/add_reminder_dialog.dart';
 import '../utils/date_formatters.dart';
+import '../utils/week_start_utils.dart';
 
 class EditTaskScreen extends ConsumerStatefulWidget {
   final Todo? task;
@@ -169,12 +171,19 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
     debugPrint('EditTaskScreen: _selectDueDate() called');
     final localContext = context; // capture for immediate use only
     final now = ref.read(clockProvider).now();
+    final firstDayOfWeek = ref.read(preferencesStateProvider).firstDayOfWeek;
     final initialDate = _selectedDueDate ?? now;
     final DateTime? pickedDate = await showDatePicker(
       context: localContext,
       initialDate: initialDate,
       firstDate: now.subtract(const Duration(days: 365)),
       lastDate: now.add(const Duration(days: 365 * 2)),
+      builder: (context, child) {
+        return WeekStartOverride(
+          firstDayOfWeekIndex: firstDayOfWeek,
+          child: child!,
+        );
+      },
     );
     if (!mounted) return; // do not use context unless still mounted
     debugPrint('EditTaskScreen: Date picker result: $pickedDate');
@@ -207,6 +216,7 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
 
   Future<void> _selectRange() async {
     final now = ref.read(clockProvider).now();
+    final firstDayOfWeek = ref.read(preferencesStateProvider).firstDayOfWeek;
     final initialStart = _selectedStartDate ?? _selectedDueDate ?? now;
     final initialEnd = _selectedDueDate ?? initialStart;
     final range = await showDateRangePicker(
@@ -217,6 +227,12 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
         start: initialStart,
         end: initialEnd.isBefore(initialStart) ? initialStart : initialEnd,
       ),
+      builder: (context, child) {
+        return WeekStartOverride(
+          firstDayOfWeekIndex: firstDayOfWeek,
+          child: child!,
+        );
+      },
     );
     if (!mounted || range == null) return;
     setState(() {

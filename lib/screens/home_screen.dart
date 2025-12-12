@@ -42,6 +42,7 @@ import '../widgets/todo_list_tab.dart';
 import '../widgets/fab_menu.dart';
 import '../widgets/create_folder_dialog.dart';
 import '../utils/animated_navigation.dart';
+import '../utils/week_start_utils.dart';
 import 'settings_screen.dart';
 import 'notes_screen.dart';
 import 'quill_note_editor_screen.dart';
@@ -461,7 +462,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         Scaffold(
           key: _scaffoldKey,
           drawer: _buildNavigationDrawer(context, currentTab),
-          drawerEdgeDragWidth: 0.0,
+          drawerEdgeDragWidth:
+              40.0, // Allow swipe from left edge to open drawer
           appBar: _buildAppBar(context),
           body: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
@@ -531,7 +533,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         Builder(
           builder: (context) {
             final safeBottom = MediaQuery.viewPaddingOf(context).bottom;
-            final fabBottom = hideBottomNav ? (24.0 + safeBottom) : 130.0;
+            // Add safeBottom padding when bottom nav is visible to account for 3-button nav bar
+            final fabBottom = hideBottomNav
+                ? (24.0 + safeBottom)
+                : (130.0 + safeBottom);
             final viewToggleBottom = fabBottom + 64.0; // FAB height (~56) + gap
 
             return Stack(
@@ -1671,7 +1676,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 focusedDay: selectedDate ?? DateTime.now(),
                 selectedDayPredicate: (day) => isSameDay(selectedDate, day),
                 calendarFormat: CalendarFormat.month,
-                startingDayOfWeek: StartingDayOfWeek.monday,
+                startingDayOfWeek: WeekStartUtils.toTableCalendarDay(
+                  ref.watch(preferencesStateProvider).firstDayOfWeek,
+                ),
 
                 // Event loader - get tasks for each day
                 eventLoader: (day) {

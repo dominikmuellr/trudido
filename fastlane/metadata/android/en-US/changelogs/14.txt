@@ -1,0 +1,7 @@
+Version 1.2.3 - Calendar & UI Improvements
+
+• Added "Week Starts On" setting - choose Sunday, Monday, Saturday, or any day as the first day of week for all calendars and date pickers
+• Fixed Android 3-button navigation bar overlapping note content in the Quill editor
+• Navigation bar now matches app theme color instead of staying blue
+• Added swipe-from-edge gesture to open navigation drawer (works with 3-button nav)
+• Improved FAB positioning on devices with 3-button navigation bar

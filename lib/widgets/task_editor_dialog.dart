@@ -20,6 +20,8 @@ import 'package:intl/intl.dart';
 import '../models/todo.dart';
 import '../services/storage_service.dart';
 import '../providers/clock.dart';
+import '../providers/app_providers.dart';
+import '../utils/week_start_utils.dart';
 
 class TaskEditorDialog extends ConsumerStatefulWidget {
   final Todo? todo;
@@ -526,6 +528,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
 
   Future<void> _selectDueDate() async {
     final now = ref.read(clockProvider).now();
+    final firstDayOfWeek = ref.read(preferencesStateProvider).firstDayOfWeek;
 
     final picked = await showDateRangePicker(
       context: context,
@@ -536,6 +539,12 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           : null,
       helpText: 'Select date or date range',
       saveText: 'Done',
+      builder: (context, child) {
+        return WeekStartOverride(
+          firstDayOfWeekIndex: firstDayOfWeek,
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {

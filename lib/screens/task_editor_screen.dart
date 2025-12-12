@@ -21,9 +21,11 @@ import '../models/todo.dart';
 import '../services/storage_service.dart';
 import '../services/folder_provider.dart';
 import '../providers/clock.dart';
+import '../providers/app_providers.dart';
 import '../widgets/add_reminder_dialog.dart';
 import '../widgets/create_folder_dialog.dart';
 import '../utils/date_formatters.dart';
+import '../utils/week_start_utils.dart';
 
 /// Unified Task Editor Screen
 /// Handles both creating new tasks and editing existing ones
@@ -679,6 +681,9 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                               : null,
                           onTap: () async {
                             final now = ref.read(clockProvider).now();
+                            final firstDayOfWeek = ref
+                                .read(preferencesStateProvider)
+                                .firstDayOfWeek;
                             final picked = await showDatePicker(
                               context: context,
                               initialDate:
@@ -687,6 +692,12 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                               firstDate: _dueDate ?? now,
                               lastDate: now.add(const Duration(days: 1825)),
                               helpText: 'Select end date',
+                              builder: (context, child) {
+                                return WeekStartOverride(
+                                  firstDayOfWeekIndex: firstDayOfWeek,
+                                  child: child!,
+                                );
+                              },
                             );
                             if (picked != null) {
                               setModalState(() => _repeatEndDate = picked);
@@ -997,6 +1008,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
 
   Future<void> _selectDueDate() async {
     final now = ref.read(clockProvider).now();
+    final firstDayOfWeek = ref.read(preferencesStateProvider).firstDayOfWeek;
     // Show Material's built-in date range picker
     final picked = await showDateRangePicker(
       context: context,
@@ -1007,6 +1019,12 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           : null,
       helpText: 'Select date or date range',
       saveText: 'Done',
+      builder: (context, child) {
+        return WeekStartOverride(
+          firstDayOfWeekIndex: firstDayOfWeek,
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {

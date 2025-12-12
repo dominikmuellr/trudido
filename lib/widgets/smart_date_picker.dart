@@ -17,7 +17,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../providers/app_providers.dart';
 import '../providers/clock.dart';
+import '../utils/week_start_utils.dart';
 
 class SmartDatePicker extends ConsumerStatefulWidget {
   final DateTime? initialStartDate;
@@ -98,17 +100,22 @@ class _SmartDatePickerState extends ConsumerState<SmartDatePicker> {
                   onPrimary: colorScheme.onPrimary,
                 ),
               ),
-              child: CalendarDatePicker(
-                initialDate: _startDate ?? ref.read(clockProvider).now(),
-                firstDate: ref
-                    .read(clockProvider)
-                    .now()
-                    .subtract(const Duration(days: 30)),
-                lastDate: ref
-                    .read(clockProvider)
-                    .now()
-                    .add(const Duration(days: 365)),
-                onDateChanged: _handleDateSelection,
+              child: WeekStartOverride(
+                firstDayOfWeekIndex: ref
+                    .watch(preferencesStateProvider)
+                    .firstDayOfWeek,
+                child: CalendarDatePicker(
+                  initialDate: _startDate ?? ref.read(clockProvider).now(),
+                  firstDate: ref
+                      .read(clockProvider)
+                      .now()
+                      .subtract(const Duration(days: 30)),
+                  lastDate: ref
+                      .read(clockProvider)
+                      .now()
+                      .add(const Duration(days: 365)),
+                  onDateChanged: _handleDateSelection,
+                ),
               ),
             ),
 

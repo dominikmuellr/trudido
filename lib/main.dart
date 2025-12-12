@@ -429,14 +429,16 @@ class SystemNavigationBarHandler extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Apply system UI overlay style that matches the current theme
-    // This works in conjunction with the initial styling set in main()
+    // Using AnnotatedRegion is more reliable than SystemChrome.setSystemUIOverlayStyle
     final currentTheme = Theme.of(context);
     final overlayStyle = _createSystemUIOverlayStyle(
       currentTheme.brightness,
-      backgroundColor: currentTheme.scaffoldBackgroundColor,
+      backgroundColor: currentTheme.colorScheme.surface,
     );
-    SystemChrome.setSystemUIOverlayStyle(overlayStyle);
 
-    return child;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: overlayStyle,
+      child: child,
+    );
   }
 }

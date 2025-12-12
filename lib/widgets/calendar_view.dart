@@ -22,7 +22,9 @@ import '../models/todo.dart';
 import '../screens/task_editor_screen.dart';
 import '../controllers/task_controller.dart';
 import '../providers/filter_providers.dart';
+import '../providers/app_providers.dart';
 import '../providers/clock.dart';
+import '../utils/week_start_utils.dart';
 import 'hybrid_todo_item.dart';
 
 /// Custom calendar format that extends table_calendar formats
@@ -747,7 +749,9 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                       selectedDayPredicate: (day) =>
                           isSameDay(_selectedDay, day),
                       calendarFormat: _calendarFormat,
-                      startingDayOfWeek: StartingDayOfWeek.monday,
+                      startingDayOfWeek: WeekStartUtils.toTableCalendarDay(
+                        ref.watch(preferencesStateProvider).firstDayOfWeek,
+                      ),
                       // Long-press on a day to create a new task prefilled with that date
                       onDayLongPressed: (selectedDay, focusedDay) {
                         final dateOnly = DateTime(
