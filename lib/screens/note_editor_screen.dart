@@ -1133,9 +1133,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     );
 
     // Check vault folder
-    final folder = noteToExport.folderId == null
+    final folderId = noteToExport.folderId;
+    final folder = folderId == null
         ? null
-        : NoteFolderRepository().getNoteFolderById(noteToExport.folderId!);
+        : NoteFolderRepository().getNoteFolderById(folderId);
 
     if (folder != null && folder.isVault) {
       if (context.mounted) {

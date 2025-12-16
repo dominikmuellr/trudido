@@ -41,6 +41,7 @@ class MarkdownExportService {
 
       // Let user choose directory
       String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+      if (selectedDirectory == null) return false;
 
       // Create notes subdirectory
       final notesDir = Directory('$selectedDirectory/$_notesSubfolder');
@@ -224,9 +225,11 @@ class MarkdownExportService {
     try {
       // Let user choose directory
       String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+      if (selectedDirectory == null)
+        return ImportResult(success: false, message: 'No directory selected');
 
       // Find all .md files in the directory (including subdirectories)
-      final markdownFiles = await _findMarkdownFiles(selectedDirectory!);
+      final markdownFiles = await _findMarkdownFiles(selectedDirectory);
 
       if (markdownFiles.isEmpty) {
         debugPrint('[MarkdownImport] No .md files found in selected directory');

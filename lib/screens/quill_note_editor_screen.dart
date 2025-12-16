@@ -64,7 +64,6 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   final FocusNode _titleFocusNode = FocusNode();
   final FocusNode _focusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
-  bool _isEditing = false;
   bool _hasUnsavedChanges = false;
   Note? _originalNote;
   Timer? _autoSaveTimer;
@@ -636,7 +635,6 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         _quillController.addListener(_checkForSlashCommand);
         _quillController.addListener(_handleScrollOnDelete);
         _quillController.addListener(_trackMediaChanges);
-        _isEditing = true;
       });
 
       // Request focus after loading to show keyboard
@@ -923,14 +921,12 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         title: title,
         content: content,
       );
-      _isEditing = true;
     } else {
       savedNote = await controller.createNote(
         title: title,
         content: content,
         folderId: widget.initialFolderId,
       );
-      _isEditing = true;
     }
 
     if (mounted) {
