@@ -420,19 +420,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 Expanded(
                   child: Scaffold(
                     appBar: _buildAppBar(context),
-                    body: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      switchInCurve: Curves.easeInOutCubicEmphasized,
-                      switchOutCurve: Curves.easeInOutCubicEmphasized,
-                      transitionBuilder: (child, animation) {
-                        return FadeTransition(opacity: animation, child: child);
-                      },
-                      child: IndexedStack(
-                        key: ValueKey<int>(currentTab),
-                        index: currentTab,
-                        children: tabs,
-                      ),
-                    ),
+                    body: IndexedStack(index: currentTab, children: tabs),
                   ),
                 ),
               ],
@@ -465,19 +453,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           drawerEdgeDragWidth:
               40.0, // Allow swipe from left edge to open drawer
           appBar: _buildAppBar(context),
-          body: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            switchInCurve: Curves.easeInOutCubicEmphasized,
-            switchOutCurve: Curves.easeInOutCubicEmphasized,
-            transitionBuilder: (child, animation) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-            child: IndexedStack(
-              key: ValueKey<int>(currentTab),
-              index: currentTab,
-              children: tabs,
-            ),
-          ),
+          body: IndexedStack(index: currentTab, children: tabs),
           bottomNavigationBar: hideBottomNav
               ? null
               : NavigationBar(
