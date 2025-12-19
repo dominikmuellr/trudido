@@ -22,10 +22,25 @@
 </p>
 
 <p align="center">
-  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/dominikmuellr/trudido">
-    <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="60"></a>
-  <a href="https://github.com/dominikmuellr/trudido/releases">
-    <img src="https://raw.githubusercontent.com/dominikmuellr/trudido/main/assets/getitongithub.png" alt="Get it on GitHub" height="60"></a>
+  <table align="center" border="0">
+    <tr>
+      <td align="center" style="vertical-align: middle;">
+        <a href="https://f-droid.org/packages/com.trudido.app/">
+          <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="75">
+        </a>
+      </td>
+      <td align="center" style="vertical-align: middle;">
+        <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/dominikmuellr/trudido">
+          <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="55">
+        </a>
+      </td>
+      <td align="center" style="vertical-align: middle;">
+        <a href="https://github.com/dominikmuellr/trudido/releases">
+          <img src="https://raw.githubusercontent.com/dominikmuellr/trudido/main/assets/getitongithub.png" alt="Get it on GitHub" height="55">
+        </a>
+      </td>
+    </tr>
+  </table>
 </p>
 
 <p align="center">
