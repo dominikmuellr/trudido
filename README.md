@@ -2,8 +2,6 @@
   <img src="assets/icon/2.png" alt="App Icon" width="200" height="200">
 </p>
 
-
-
 <p align="center">
   <a href="https://github.com/dominikmuellr/trudido/commits/main">
     <img src="https://img.shields.io/github/last-commit/dominikmuellr/trudido?style=for-the-badge&color=green" alt="Last Commit"></a>
@@ -11,28 +9,32 @@
     <img src="https://img.shields.io/github/stars/dominikmuellr/trudido?style=for-the-badge&color=yellow" alt="Stars"></a>
   <a href="https://github.com/dominikmuellr/trudido/issues">
     <img src="https://img.shields.io/github/issues/dominikmuellr/trudido?style=for-the-badge&color=red" alt="Open Issues"></a>
-
   <a href="https://github.com/dominikmuellr/trudido/releases">
     <img src="https://img.shields.io/github/downloads/dominikmuellr/trudido/total?style=for-the-badge&color=blueviolet&label=Downloads" alt="Downloads"></a>
   <a href="https://github.com/dominikmuellr/trudido/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/dominikmuellr/trudido?style=for-the-badge&color=blue" alt="License"></a>
 </p>
 
-
- 
 <h1 align="center">Trudido — Private and Minimalist Material You To-Do App</h1>
+
 <p align="center">
   A lightweight, privacy-first to-do app built with Flutter and Material You.
 </p>
 
+<p align="center">
+  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/dominikmuellr/trudido">
+    <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="60"></a>
+  <a href="https://github.com/dominikmuellr/trudido/releases">
+    <img src="https://raw.githubusercontent.com/dominikmuellr/trudido/main/assets/getitongithub.png" alt="Get it on GitHub" height="60"></a>
+</p>
 
 <p align="center">
-  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/dominikmuellr/trudido"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png"
-         alt="Get it on Obtainium"
-         height="60"></a>
-  <a href="https://github.com/dominikmuellr/trudido/releases"><img src="https://raw.githubusercontent.com/dominikmuellr/trudido/main/assets/getitongithub.png"
-         alt="Get it on GitHub"
-         height="60"></a>
+  <strong>Love Trudido? Support its development</strong><br><br>
+  <a href="https://ko-fi.com/dominikmuellr">
+    <img src="https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white" height="35" alt="Ko-fi"></a>
+  &nbsp;
+  <a href="https://liberapay.com/dominikmuellr/donate">
+    <img src="https://img.shields.io/liberapay/patrons/dominikmuellr.svg?style=for-the-badge&color=yellow&logo=liberapay" height="35" alt="Liberapay"></a>
 </p>
 
 ## Official Sources
