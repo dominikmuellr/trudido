@@ -40,63 +40,85 @@
 ## Official Sources
 The links above are the only trusted sources of Trudido. Any other websites or listings are not affiliated with me or this project.
 
+## 📍 Table of Contents
+- [📋 Task Management](#-task-management)
+- [📝 Notes](#-notes)
+- [🔐 Vault (Encrypted Notes)](#-vault-encrypted-notes)
+- [🗂️ Folder Templates](#️-folder-templates)
+- [💾 Backup & Data Ownership](#-backup--data-ownership)
+- [📅 Calendar Sync](#-calendar-sync)
+- [🎨 Design & Customization](#-design--customization)
+- [🔒 Privacy](#-privacy)
+- [📸 Screenshots](#-screenshots)
+- [🧩 License](#-license)
+- [💬 Contributing](#-contributing)
 
-## ✨ Features
 
-### 📋 Task Management
-- Smart creation: titles, notes, due dates, and priorities  
-- Organize tasks in folders and categories  
-- Multiple views: list and calendar  
-- Advanced filtering and sorting  
-- Quick actions: swipe to edit/delete, multi-select for batch operations  
+## 📋 Task Management
+- Smart task creation: title, notes, due date & time, and priority
+- Organize tasks into folders (with colors/icons)
+- Recurring tasks: daily/weekly/monthly + custom patterns (e.g. every 2 weeks, specific weekdays) with optional end date
+- Multi-day tasks (start date → due date)
+- Reminders with multiple reminder times (native Android scheduling)
+- Multiple views: list + calendar (month / 2 weeks / week / day)
+- Advanced filtering, sorting, and search
+- Quick actions: swipe actions, multi-select, and batch operations
+- Progress insights: completion stats + streak tracking
+  
+## 📝 Notes
+- Markdown notes with live preview + formatting helpers
+- Rich-text editor (WYSIWYG) with support for media (images / audio / video)
+- Pin important notes, move notes between folders, and manage note collections
+- Export notes (e.g. PDF / Markdown)
 
-### 📝 Notes
-- Markdown support with live preview
-- Lock your Notes in a AES-256 encrypted Vault
-
-### 🎨 Design
+## 🔐 Vault (Encrypted Notes)
+- Lock note folders as an AES-256 encrypted Vault
+- Secure access with password/PIN and optional biometric unlock
+- Vault content stays local and encrypted on-device
+  
+## 🗂️ Folder Templates
+- Built-in templates to instantly create task folders with pre-filled workflows
+- Create your own templates (or generate one from an existing folder)
+- Template suggestions when creating a new folder
+  
+## 💾 Backup & Data Ownership
+- Export/import full app data (JSON)
+- Export everything to a single PDF (tasks + notes)
+- Import/export notes as Markdown
+- Automatic backups on a schedule (Android) + restore from auto backups
+  
+## 📅 Calendar Sync
+- Optional sync with your device calendars (import and/or export)
+- Calendar diagnostics and per-calendar selection
+  
+## 🎨 Design & Customization
 - Material 3 interface
-- Dynamic color (Material You, Android 12+)  
-- Light/Dark modes  
-- Custom accent themes (e.g., Dracula, Solarize)
-- Responsive layout across devices  
+- Dynamic color (Material You, Android 12+)
+- Light/Dark modes + custom accent themes
+- Compact density + high-contrast option
+- UI preferences like swipe behavior, FAB position, and layout tweaks
 
-### 🔒 Privacy
-- 100 % offline — all data stored locally on your device  
-- No tracking, ads, or analytics  
-- Import/export functionality for complete data ownership
+## 🔒 Privacy
+- 100% offline by default — your data stays on your device
+- No tracking, ads, or analytics
+- Full control over your data with import/export and backups
+- Lock the whole app with PIN and optional biometric unlock
+
+### Your tasks and notes stay with you.
 
 ## 📸 Screenshots
 
-<p align="center">
-  <img src="assets/imagefiles/1.png" width="250">
-  <img src="assets/imagefiles/2.png" width="250">
-  <img src="assets/imagefiles/3.png" width="250">
-  <img src="assets/imagefiles/4.png" width="250">
-  <img src="assets/imagefiles/5.png" width="250">
-  <img src="assets/imagefiles/6.png" width="250">
-  <img src="assets/imagefiles/7.png" width="250">
-  <img src="assets/imagefiles/8.png" width="250">
-  <img src="assets/imagefiles/9.png" width="250">
-  <img src="assets/imagefiles/10.png" width="250">
-</p>
-
-## 🌍 Translations
-Translations are provided together with the community.
-If you'd like to help improve or add languages, you can join the project on Crowdin.
-
-## 🔐 Privacy Details
-
-Trudido follows a simple offline-first approach aligned with European expectations around data protection:
-
-- No network communication
-- No analytics or tracking
-- All data stored on-device
-- Notes Vault AES-256 encrypted
-- Optional manual import/export
-
-Your tasks and notes stay with you.
-
+<div align="center">
+  <img src="assets/imagefiles/1.png" width="200">
+  <img src="assets/imagefiles/2.png" width="200">
+  <img src="assets/imagefiles/3.png" width="200">
+  <img src="assets/imagefiles/4.png" width="200">
+  <br>
+  <img src="assets/imagefiles/6.png" width="200">
+  <img src="assets/imagefiles/8.png" width="200">
+  <img src="assets/imagefiles/9.png" width="200">
+  <img src="assets/imagefiles/10.png" width="200">
+</div>
 
 ## 🧩 License
 Licensed under the **GNU General Public License v3.0 (GPL-3.0)**.  
