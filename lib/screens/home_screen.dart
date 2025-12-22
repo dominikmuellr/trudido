@@ -2098,6 +2098,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    // Watch filter states to show visual indicators
+    final selectedPriority = ref.watch(selectedPriorityProvider);
+    final isDueTodayActive = ref.watch(dueTodayFilterProvider);
+    final isShowCompletedActive = ref.watch(showCompletedProvider);
+    final isHighPriorityActive = selectedPriority == 'high';
+
     return Column(
       children: [
         // Filter header with expand/collapse
@@ -2171,14 +2177,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ListTile(
                     dense: true,
                     visualDensity: VisualDensity.compact,
-                    leading: Icon(
-                      Icons.priority_high,
-                      size: 18,
-                      color: colorScheme.error,
+                    selected: isHighPriorityActive,
+                    selectedTileColor: colorScheme.primaryContainer.withOpacity(0.4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
+                    leading: Icon(
+                      isHighPriorityActive ? Icons.priority_high : Icons.priority_high,
+                      size: 18,
+                      color: isHighPriorityActive ? colorScheme.primary : colorScheme.error,
+                    ),
+                    trailing: isHighPriorityActive
+                        ? Icon(Icons.check_circle, size: 16, color: colorScheme.primary)
+                        : null,
                     title: Text(
                       'High Priority',
-                      style: theme.textTheme.bodySmall,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: isHighPriorityActive ? FontWeight.w600 : null,
+                        color: isHighPriorityActive ? colorScheme.primary : null,
+                      ),
                     ),
                     onTap: () {
                       // Set priority filter to high
@@ -2192,6 +2209,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('Showing high priority tasks'),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
                           duration: const Duration(milliseconds: 1500),
                           action: SnackBarAction(
                             label: 'Clear',
@@ -2209,12 +2228,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ListTile(
                     dense: true,
                     visualDensity: VisualDensity.compact,
+                    selected: isDueTodayActive,
+                    selectedTileColor: colorScheme.primaryContainer.withOpacity(0.4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     leading: Icon(
                       Icons.calendar_today,
                       size: 18,
-                      color: colorScheme.primary,
+                      color: isDueTodayActive ? colorScheme.primary : colorScheme.primary,
                     ),
-                    title: Text('Due Today', style: theme.textTheme.bodySmall),
+                    trailing: isDueTodayActive
+                        ? Icon(Icons.check_circle, size: 16, color: colorScheme.primary)
+                        : null,
+                    title: Text(
+                      'Due Today',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: isDueTodayActive ? FontWeight.w600 : null,
+                        color: isDueTodayActive ? colorScheme.primary : null,
+                      ),
+                    ),
                     onTap: () {
                       // Enable due today filter
                       ref.read(dueTodayFilterProvider.notifier).state = true;
@@ -2231,6 +2264,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('Showing tasks due today'),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
                           duration: const Duration(milliseconds: 1500),
                           action: SnackBarAction(
                             label: 'Clear',
@@ -2246,12 +2281,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ListTile(
                     dense: true,
                     visualDensity: VisualDensity.compact,
-                    leading: Icon(
-                      Icons.check_circle_outline,
-                      size: 18,
-                      color: Colors.green,
+                    selected: isShowCompletedActive,
+                    selectedTileColor: colorScheme.primaryContainer.withOpacity(0.4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    title: Text('Completed', style: theme.textTheme.bodySmall),
+                    leading: Icon(
+                      isShowCompletedActive ? Icons.check_circle : Icons.check_circle_outline,
+                      size: 18,
+                      color: isShowCompletedActive ? colorScheme.primary : Colors.green,
+                    ),
+                    trailing: isShowCompletedActive
+                        ? Icon(Icons.check_circle, size: 16, color: colorScheme.primary)
+                        : null,
+                    title: Text(
+                      'Completed',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: isShowCompletedActive ? FontWeight.w600 : null,
+                        color: isShowCompletedActive ? colorScheme.primary : null,
+                      ),
+                    ),
                     onTap: () {
                       // Reset priority filter to show all
                       ref.read(selectedPriorityProvider.notifier).state = 'all';
@@ -2266,6 +2315,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('Showing completed tasks'),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
                           duration: const Duration(milliseconds: 1500),
                           action: SnackBarAction(
                             label: 'Hide',
