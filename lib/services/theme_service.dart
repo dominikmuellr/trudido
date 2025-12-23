@@ -339,7 +339,13 @@ class AppTheme {
       backgroundColor: colorScheme.surfaceContainerHighest,
       selectedColor: colorScheme.primary.withValues(alpha: 0.25),
       labelStyle: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+      secondaryLabelStyle: TextStyle(
+        fontSize: 12,
+        color: colorScheme.onSurface,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      side: BorderSide(color: colorScheme.outlineVariant),
+      iconTheme: IconThemeData(color: colorScheme.onSurfaceVariant, size: 18),
     ),
     // Material 3 PopupMenu styling
     popupMenuTheme: PopupMenuThemeData(
@@ -426,14 +432,15 @@ class AppTheme {
     ),
     chipTheme: ChipThemeData(
       backgroundColor: colorScheme.surfaceContainerHighest,
-      selectedColor: colorScheme.primary.withValues(
-        alpha: 0.35,
-      ), // Increased from 0.3 for better dark mode visibility
+      selectedColor: colorScheme.primary.withValues(alpha: 0.35),
       labelStyle: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+      secondaryLabelStyle: TextStyle(
+        fontSize: 12,
+        color: colorScheme.onSurface,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      side: BorderSide(
-        color: colorScheme.outline.withOpacity(0.2),
-      ), // Add subtle border for better definition
+      side: BorderSide(color: colorScheme.outlineVariant),
+      iconTheme: IconThemeData(color: colorScheme.onSurfaceVariant, size: 18),
     ),
     // Material 3 PopupMenu styling
     popupMenuTheme: PopupMenuThemeData(

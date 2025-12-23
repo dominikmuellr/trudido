@@ -21,6 +21,7 @@ import '../providers/filter_providers.dart';
 import '../controllers/task_controller.dart';
 import '../widgets/hybrid_todo_item.dart';
 import '../widgets/calendar_view.dart';
+import '../widgets/filter_chips.dart';
 import '../screens/task_editor_screen.dart';
 import '../models/todo.dart';
 import '../screens/home_screen.dart';
@@ -46,6 +47,8 @@ class TodoListTab extends ConsumerWidget {
 
     return Column(
       children: [
+        // Always-visible Material 3 filter chips row
+        const FilterChips(),
         Expanded(
           child: GestureDetector(
             onPanUpdate: (details) {

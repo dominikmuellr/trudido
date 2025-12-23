@@ -468,10 +468,6 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                           setState(() => _selectedFolderId = '');
                         }
                       },
-                      labelStyle: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
                     ),
                     // Folder options
                     ...folders.map((folder) {
@@ -498,33 +494,13 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                             setState(() => _selectedFolderId = folder.id);
                           }
                         },
-                        labelStyle: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
                       );
                     }).toList(),
                     // Add folder chip
                     ActionChip(
-                      label: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ScaledIcon(
-                            Icons.add,
-                            size: 14,
-                            color: colorScheme.primary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text('ADD FOLDER'),
-                        ],
-                      ),
+                      label: const Text('ADD FOLDER'),
+                      avatar: const Icon(Icons.add, size: 14),
                       onPressed: () => _showCreateFolderDialog(),
-                      labelStyle: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.primary,
-                      ),
-                      backgroundColor: colorScheme.primaryContainer,
                     ),
                   ],
                 ),

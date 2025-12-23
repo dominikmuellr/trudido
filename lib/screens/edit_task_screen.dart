@@ -495,10 +495,9 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                           children: [
                             if (_multiDay && _selectedStartDate != null)
                               Chip(
-                                avatar: Icon(
+                                avatar: const Icon(
                                   Icons.play_arrow_outlined,
                                   size: 16,
-                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                                 label: Text(
                                   DateFormatters.formatChip(
@@ -515,7 +514,6 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                                       ? Icons.stop_outlined
                                       : Icons.event_outlined,
                                   size: 16,
-                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                                 label: Text(
                                   DateFormatters.formatChip(

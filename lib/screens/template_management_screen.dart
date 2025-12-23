@@ -154,12 +154,7 @@ class _TemplateManagementScreenState
           if (isCustomized)
             Padding(
               padding: const EdgeInsets.only(left: 8.0),
-              child: Chip(
-                label: const Text('Modified', style: TextStyle(fontSize: 10)),
-                padding: EdgeInsets.zero,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.compact,
-              ),
+              child: Chip(label: const Text('Modified')),
             ),
         ],
       ),

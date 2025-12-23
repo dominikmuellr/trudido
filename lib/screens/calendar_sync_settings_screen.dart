@@ -552,22 +552,9 @@ class _CalendarSyncSettingsScreenState
           if (cal.isForExport)
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: Chip(
-                label: const Text('Export'),
-                labelStyle: const TextStyle(fontSize: 10),
-                padding: EdgeInsets.zero,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.compact,
-              ),
+              child: Chip(label: const Text('Export')),
             ),
-          if (cal.isForImport)
-            Chip(
-              label: const Text('Import'),
-              labelStyle: const TextStyle(fontSize: 10),
-              padding: EdgeInsets.zero,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-            ),
+          if (cal.isForImport) Chip(label: const Text('Import')),
         ],
       ),
       trailing: PopupMenuButton<String>(

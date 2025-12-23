@@ -30,6 +30,10 @@ final sortByProvider = StateProvider<String>(
 ); // default|date_created|date_due|priority|alphabetical|manual
 final dueTodayFilterProvider = StateProvider<bool>((ref) => false);
 
+/// Secondary sort keys for multi-sort. Primary sort is sortByProvider.
+/// Example: ['alphabetical'] means sort by primary first, then alphabetical.
+final secondarySortKeysProvider = StateProvider<List<String>>((ref) => []);
+
 // View state providers
 enum TaskViewType { list, calendar }
 
@@ -96,55 +100,66 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
       return false;
     if (!showCompleted && todo.isCompleted) return false;
 
-    // Due today filter
+    // Due today filter - uses activeOn() to handle multi-day spans
     if (dueTodayFilter) {
-      if (todo.dueDate == null) return false;
+      // Tasks with no due date can't be "due today"
+      if (todo.dueDate == null && todo.startDate == null) return false;
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      final taskDate = DateTime(
-        todo.dueDate!.year,
-        todo.dueDate!.month,
-        todo.dueDate!.day,
-      );
-      if (!taskDate.isAtSameMomentAs(today)) return false;
+      // activeOn checks if today falls within startDate..dueDate span
+      // For non-span tasks, it falls back to isDueOn(today)
+      if (!todo.activeOn(today)) return false;
     }
 
     return true;
   }).toList();
 
-  switch (sortBy) {
-    case 'date_created':
-      filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      break;
-    case 'date_due':
-      filtered.sort((a, b) {
-        if (a.dueDate == null && b.dueDate == null) return 0;
-        if (a.dueDate == null) return 1;
-        if (b.dueDate == null) return -1;
-        return a.dueDate!.compareTo(b.dueDate!);
-      });
-      break;
-    case 'priority':
-      const order = {'high': 0, 'medium': 1, 'low': 2};
-      filtered.sort((a, b) {
-        final ao = order[a.priority] ?? 1;
-        final bo = order[b.priority] ?? 1;
-        return ao.compareTo(bo);
-      });
-      break;
-    case 'alphabetical':
-      filtered.sort(
-        (a, b) => a.text.toLowerCase().compareTo(b.text.toLowerCase()),
-      );
-      break;
-    case 'manual':
-      // Keep repository-provided order
-      break;
-    default:
-      filtered.sort((a, b) {
-        if (a.isCompleted != b.isCompleted) return a.isCompleted ? 1 : -1;
-        return b.createdAt.compareTo(a.createdAt);
-      });
+  // Get secondary sort keys for multi-sort
+  final secondarySortKeys = ref.watch(secondarySortKeysProvider);
+
+  // Build list of all sort keys: primary + secondary
+  final allSortKeys = sortBy == 'manual'
+      ? <String>[]
+      : [sortBy, ...secondarySortKeys];
+
+  if (sortBy == 'manual') {
+    // Keep repository-provided order for manual sort
+  } else {
+    filtered.sort((a, b) {
+      // Always group incomplete before complete (consistent UX)
+      if (a.isCompleted != b.isCompleted) return a.isCompleted ? 1 : -1;
+
+      // Apply each sort key in order until we find a non-zero comparison
+      for (final key in allSortKeys) {
+        final cmp = _compareBySortKey(a, b, key);
+        if (cmp != 0) return cmp;
+      }
+
+      // Final stable tie-breaker: createdAt descending
+      return b.createdAt.compareTo(a.createdAt);
+    });
   }
   return filtered;
 });
+
+/// Compare two todos by a single sort key
+int _compareBySortKey(Todo a, Todo b, String key) {
+  switch (key) {
+    case 'date_created':
+      return b.createdAt.compareTo(a.createdAt);
+    case 'date_due':
+      if (a.dueDate == null && b.dueDate == null) return 0;
+      if (a.dueDate == null) return 1;
+      if (b.dueDate == null) return -1;
+      return a.dueDate!.compareTo(b.dueDate!);
+    case 'priority':
+      const order = {'high': 0, 'medium': 1, 'low': 2, 'none': 3};
+      final ao = order[a.priority] ?? 2;
+      final bo = order[b.priority] ?? 2;
+      return ao.compareTo(bo);
+    case 'alphabetical':
+      return a.text.toLowerCase().compareTo(b.text.toLowerCase());
+    default:
+      return 0; // 'default' key has no specific order beyond completion grouping
+  }
+}

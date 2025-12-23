@@ -465,19 +465,10 @@ class _SmartChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return FilterChip(
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onTap(),
-      selectedColor: colorScheme.primaryContainer,
-      checkmarkColor: colorScheme.onPrimaryContainer,
-      backgroundColor: colorScheme.surfaceContainerHighest,
-      side: BorderSide(
-        color: isSelected ? colorScheme.primary : colorScheme.outline,
-        width: isSelected ? 2 : 1,
-      ),
       showCheckmark: true,
       visualDensity: VisualDensity.comfortable,
     );

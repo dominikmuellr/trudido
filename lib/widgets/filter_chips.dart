@@ -17,172 +17,234 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/filter_providers.dart';
+import '../services/storage_service.dart';
 
+/// Material 3 compliant filter chips row for the Tasks tab.
+/// Always visible, with action-based labels and a Clear chip.
+/// Supports multi-sort via a "+" chip next to Sort.
 class FilterChips extends ConsumerWidget {
   const FilterChips({Key? key}) : super(key: key);
 
+  // Available sort keys for multi-sort (excludes 'default' and 'manual')
+  static const _sortOptions = {
+    'date_created': 'Created',
+    'date_due': 'Due Date',
+    'priority': 'Priority',
+    'alphabetical': 'A-Z',
+  };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final selectedPriority = ref.watch(selectedPriorityProvider);
     final showCompleted = ref.watch(showCompletedProvider);
     final sortBy = ref.watch(sortByProvider);
+    final secondarySortKeys = ref.watch(secondarySortKeysProvider);
+    final dueToday = ref.watch(dueTodayFilterProvider);
 
-    // subtle chip styling (de-emphasized)
-    final chipBg = theme.colorScheme.surface.withOpacity(0.02);
-    final chipSelectedBg = theme.colorScheme.primary.withOpacity(0.12);
-    final chipLabelColor = theme.colorScheme.onSurface.withOpacity(0.9);
-    final chipSelectedLabelColor = theme.colorScheme.primary;
-    final chipBorder = BorderSide(
-      color: theme.colorScheme.onSurface.withOpacity(0.06),
-    );
+    // Determine if any filter or sort is active (for Clear chip)
+    final hasActiveFilters =
+        dueToday == true ||
+        showCompleted == false ||
+        sortBy != 'default' ||
+        secondarySortKeys.isNotEmpty;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                children: [
-                  // Priority → Sort → Show Completed
+    // Available secondary sort keys (not already used as primary or secondary)
+    final availableSecondaryKeys = _sortOptions.keys
+        .where((k) => k != sortBy && !secondarySortKeys.contains(k))
+        .toList();
 
-                  // Priority filter
-                  PopupMenuButton<String>(
-                    initialValue: selectedPriority,
-                    onSelected: (value) =>
-                        ref.read(selectedPriorityProvider.notifier).state =
+    return Semantics(
+      container: true,
+      label: 'Task filters',
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  children: [
+                    // Sort by (InputChip with menu)
+                    PopupMenuButton<String>(
+                      initialValue: sortBy,
+                      onSelected: (value) {
+                        ref.read(sortByProvider.notifier).state = value;
+                        // Remove from secondary if user selects it as primary
+                        final current = ref.read(secondarySortKeysProvider);
+                        if (current.contains(value)) {
+                          ref.read(secondarySortKeysProvider.notifier).state =
+                              current.where((k) => k != value).toList();
+                        }
+                      },
+                      position: PopupMenuPosition.under,
+                      popUpAnimationStyle: AnimationStyle(
+                        duration: const Duration(milliseconds: 100),
+                      ),
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'default',
+                          child: Text('Default Sort'),
+                        ),
+                        ..._sortOptions.entries.map(
+                          (e) =>
+                              PopupMenuItem(value: e.key, child: Text(e.value)),
+                        ),
+                      ],
+                      child: IgnorePointer(
+                        child: FilterChip(
+                          label: Text(_getSortLabel(sortBy)),
+                          avatar: const Icon(Icons.sort, size: 18),
+                          selected: sortBy != 'default',
+                          showCheckmark: false,
+                          onSelected: (_) {},
+                        ),
+                      ),
+                    ),
+
+                    // "+" chip to add secondary sort (only if primary is not default/manual)
+                    if (sortBy != 'default' &&
+                        sortBy != 'manual' &&
+                        availableSecondaryKeys.isNotEmpty) ...[
+                      const SizedBox(width: 4),
+                      PopupMenuButton<String>(
+                        onSelected: (value) {
+                          final current = ref.read(secondarySortKeysProvider);
+                          ref.read(secondarySortKeysProvider.notifier).state = [
+                            ...current,
                             value,
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(
-                        value: 'all',
-                        child: Text('All Priorities'),
+                          ];
+                        },
+                        position: PopupMenuPosition.under,
+                        popUpAnimationStyle: AnimationStyle(
+                          duration: const Duration(milliseconds: 100),
+                        ),
+                        tooltip: 'Add secondary sort',
+                        itemBuilder: (context) => availableSecondaryKeys
+                            .map(
+                              (k) => PopupMenuItem(
+                                value: k,
+                                child: Text(_sortOptions[k] ?? k),
+                              ),
+                            )
+                            .toList(),
+                        child: IgnorePointer(
+                          child: ActionChip(
+                            label: const Text('+'),
+                            onPressed: () {},
+                          ),
+                        ),
                       ),
-                      PopupMenuItem(
-                        value: 'high',
-                        child: Text('High Priority'),
-                      ),
-                      PopupMenuItem(
-                        value: 'medium',
-                        child: Text('Medium Priority'),
-                      ),
-                      PopupMenuItem(value: 'low', child: Text('Low Priority')),
                     ],
-                    child: Chip(
+
+                    // Show active secondary sort keys as removable chips
+                    ...secondarySortKeys.map(
+                      (key) => Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: InputChip(
+                          label: Text(_sortOptions[key] ?? key),
+                          selected: true,
+                          showCheckmark: false,
+                          deleteIcon: const Icon(Icons.close, size: 16),
+                          onDeleted: () {
+                            final current = ref.read(secondarySortKeysProvider);
+                            ref.read(secondarySortKeysProvider.notifier).state =
+                                current.where((k) => k != key).toList();
+                          },
+                          onPressed: () {}, // keep chip visually enabled
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    // Due Today toggle (FilterChip)
+                    FilterChip(
+                      label: const Text('Due Today'),
+                      avatar: const Icon(Icons.calendar_today, size: 18),
+                      selected: dueToday,
+                      showCheckmark: false,
+                      onSelected: (selected) =>
+                          ref.read(dueTodayFilterProvider.notifier).state =
+                              selected,
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    // Show/Hide Completed toggle (FilterChip with action-based label)
+                    FilterChip(
                       label: Text(
-                        selectedPriority == 'all'
-                            ? 'All Priorities'
-                            : '${selectedPriority[0].toUpperCase()}${selectedPriority.substring(1)} Priority',
+                        showCompleted ? 'Hide completed' : 'Show completed',
                       ),
                       avatar: Icon(
-                        Icons.flag_outlined,
-                        size: 14,
-                        color: theme.colorScheme.onSurfaceVariant.withOpacity(
-                          0.8,
-                        ),
+                        showCompleted
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        size: 18,
                       ),
-                      backgroundColor: chipBg,
-                      shape: StadiumBorder(side: chipBorder),
-                      labelStyle: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w400,
-                        fontSize: 13.0,
-                        color: chipLabelColor,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  // Sort by
-                  PopupMenuButton<String>(
-                    initialValue: sortBy,
-                    onSelected: (value) =>
-                        ref.read(sortByProvider.notifier).state = value,
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(
-                        value: 'default',
-                        child: Text('Default Sort'),
-                      ),
-                      PopupMenuItem(
-                        value: 'date_created',
-                        child: Text('Date Created'),
-                      ),
-                      PopupMenuItem(value: 'date_due', child: Text('Due Date')),
-                      PopupMenuItem(value: 'priority', child: Text('Priority')),
-                      PopupMenuItem(
-                        value: 'alphabetical',
-                        child: Text('Alphabetical'),
-                      ),
-                    ],
-                    child: Chip(
-                      label: Text(_getSortLabel(sortBy)),
-                      avatar: Icon(
-                        Icons.sort,
-                        size: 14,
-                        color: theme.colorScheme.onSurfaceVariant.withOpacity(
-                          0.8,
-                        ),
-                      ),
-                      backgroundColor: chipBg,
-                      shape: StadiumBorder(side: chipBorder),
-                      labelStyle: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w400,
-                        fontSize: 13.0,
-                        color: chipLabelColor,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  // Show completed toggle
-                  FilterChip(
-                    label: const Text('Show Completed'),
-                    selected: showCompleted,
-                    onSelected: (selected) =>
+                      selected:
+                          !showCompleted, // selected when hiding (filter active)
+                      showCheckmark: false,
+                      onSelected: (selected) {
+                        // Toggle: if selected (wants to hide), set false; else true
+                        final newValue = !selected;
                         ref.read(showCompletedProvider.notifier).state =
-                            selected,
-                    avatar: Icon(
-                      showCompleted ? Icons.visibility : Icons.visibility_off,
-                      size: 14,
-                      color: showCompleted
-                          ? chipSelectedLabelColor
-                          : theme.colorScheme.onSurfaceVariant.withOpacity(0.8),
+                            newValue;
+                        // Persist choice
+                        StorageService.setShowCompletedTasks(newValue);
+                      },
                     ),
-                    backgroundColor: chipBg,
-                    selectedColor: chipSelectedBg,
-                    shape: StadiumBorder(side: chipBorder),
-                    labelStyle: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w400,
-                      fontSize: 13.0,
-                      color: showCompleted
-                          ? chipSelectedLabelColor
-                          : chipLabelColor,
+
+                    const SizedBox(width: 8),
+
+                    // Clear filters AND sort (ActionChip)
+                    ActionChip(
+                      label: const Text('Clear'),
+                      avatar: const Icon(Icons.clear_all, size: 18),
+                      onPressed: hasActiveFilters
+                          ? () {
+                              // Reset filters
+                              ref.read(dueTodayFilterProvider.notifier).state =
+                                  false;
+                              ref.read(showCompletedProvider.notifier).state =
+                                  true;
+                              // Reset sort
+                              ref.read(sortByProvider.notifier).state =
+                                  'default';
+                              ref
+                                      .read(secondarySortKeysProvider.notifier)
+                                      .state =
+                                  [];
+                              // Persist reset
+                              StorageService.setShowCompletedTasks(true);
+                            }
+                          : null,
                     ),
-                  ),
-                ],
-              ), // Row
-            ), // Padding
-          ), // ConstrainedBox
-        ); // SingleChildScrollView
-      }, // builder
-    ); // LayoutBuilder
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   String _getSortLabel(String sortBy) {
     switch (sortBy) {
       case 'date_created':
-        return 'Date Created';
+        return 'Created';
       case 'date_due':
         return 'Due Date';
       case 'priority':
         return 'Priority';
       case 'alphabetical':
         return 'A-Z';
+      case 'manual':
+        return 'Manual';
       default:
-        return 'Default';
+        return 'Sort';
     }
   }
 }

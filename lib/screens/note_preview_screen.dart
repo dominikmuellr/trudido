@@ -539,28 +539,8 @@ class _NotePreviewScreenState extends ConsumerState<NotePreviewScreen> {
                 spacing: 4,
                 runSpacing: 4,
                 children: [
-                  ...projects.map(
-                    (p) => Chip(
-                      label: Text(p, style: const TextStyle(fontSize: 11)),
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.primaryContainer,
-                      padding: EdgeInsets.zero,
-                      visualDensity: VisualDensity.compact,
-                      side: BorderSide.none,
-                    ),
-                  ),
-                  ...contexts.map(
-                    (c) => Chip(
-                      label: Text(c, style: const TextStyle(fontSize: 11)),
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.secondaryContainer,
-                      padding: EdgeInsets.zero,
-                      visualDensity: VisualDensity.compact,
-                      side: BorderSide.none,
-                    ),
-                  ),
+                  ...projects.map((p) => Chip(label: Text(p))),
+                  ...contexts.map((c) => Chip(label: Text(c))),
                 ],
               )
             : null,

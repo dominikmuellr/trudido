@@ -31,6 +31,7 @@ import 'services/permissions_channel.dart';
 import 'services/theme_service.dart';
 import 'services/text_scale_service.dart';
 import 'providers/app_providers.dart';
+import 'providers/filter_providers.dart';
 import 'services/navigation_service.dart';
 import 'services/system_settings_service.dart';
 import 'widgets/system_permission_dialogs.dart';
@@ -143,6 +144,17 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
         // Push hydrated snapshot into reactive state provider.
         ref.read(preferencesStateProvider.notifier).state = svc.snapshot;
       }
+    }
+
+    // Hydrate showCompletedProvider from persisted storage
+    if (mounted) {
+      final savedShowCompleted = StorageService.getShowCompletedTasks();
+      ref.read(showCompletedProvider.notifier).state = savedShowCompleted;
+
+      // Listen for changes and persist them
+      ref.listen<bool>(showCompletedProvider, (previous, next) {
+        StorageService.setShowCompletedTasks(next);
+      });
     }
   }
 
