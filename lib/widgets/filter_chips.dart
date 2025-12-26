@@ -23,7 +23,7 @@ import '../services/storage_service.dart';
 /// Always visible, with action-based labels and a Clear chip.
 /// Supports multi-sort via a "+" chip next to Sort.
 class FilterChips extends ConsumerWidget {
-  const FilterChips({Key? key}) : super(key: key);
+  const FilterChips({super.key});
 
   // Available sort keys for multi-sort (excludes 'default' and 'manual')
   static const _sortOptions = {
@@ -79,8 +79,8 @@ class FilterChips extends ConsumerWidget {
                         }
                       },
                       position: PopupMenuPosition.under,
-                      popUpAnimationStyle: AnimationStyle(
-                        duration: const Duration(milliseconds: 100),
+                      popUpAnimationStyle: const AnimationStyle(
+                        duration: Duration(milliseconds: 100),
                       ),
                       itemBuilder: (context) => [
                         const PopupMenuItem(
@@ -117,8 +117,8 @@ class FilterChips extends ConsumerWidget {
                           ];
                         },
                         position: PopupMenuPosition.under,
-                        popUpAnimationStyle: AnimationStyle(
-                          duration: const Duration(milliseconds: 100),
+                        popUpAnimationStyle: const AnimationStyle(
+                          duration: Duration(milliseconds: 100),
                         ),
                         tooltip: 'Add secondary sort',
                         itemBuilder: (context) => availableSecondaryKeys
@@ -143,6 +143,7 @@ class FilterChips extends ConsumerWidget {
                       (key) => Padding(
                         padding: const EdgeInsets.only(left: 4),
                         child: InputChip(
+                          key: ValueKey(key),
                           label: Text(_sortOptions[key] ?? key),
                           selected: true,
                           showCheckmark: false,
