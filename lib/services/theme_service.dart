@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 // Removed google_fonts package to reduce APK size - using system default fonts
 import '../providers/app_providers.dart';
 // (preferences state accessed via preferencesStateProvider import from app_providers)
