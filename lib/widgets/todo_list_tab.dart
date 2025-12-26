@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 
 import '../providers/filter_providers.dart';
 import '../controllers/task_controller.dart';
@@ -25,7 +26,6 @@ import '../widgets/filter_chips.dart';
 import '../screens/task_editor_screen.dart';
 import '../models/todo.dart';
 import '../screens/home_screen.dart';
-import 'package:flutter/services.dart';
 import '../services/theme_service.dart';
 
 class TodoListTab extends ConsumerWidget {
