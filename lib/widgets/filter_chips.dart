@@ -16,8 +16,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/filter_providers.dart';
-import '../services/storage_service.dart';
+import 'package:trudido/providers/filter_providers.dart';
+import 'package:trudido/services/storage_service.dart';
 
 /// Material 3 compliant filter chips row for the Tasks tab.
 /// Always visible, with action-based labels and a Clear chip.

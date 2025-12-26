@@ -17,8 +17,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../models/todo.dart';
+
 import '../models/preferences_state.dart';
+import '../models/todo.dart';
 import '../providers/app_providers.dart';
 import '../utils/responsive_size.dart';
 
