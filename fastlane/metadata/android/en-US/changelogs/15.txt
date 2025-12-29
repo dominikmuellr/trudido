@@ -1,4 +1,6 @@
 Version 1.2.4 - Bug Fixes and Improvements
 
-• Minor bug fixes and performance improvements
-• Updated dependencies for better stability
+• Enhanced Task Sorting: Added Material 3 chips for sorting tasks, unifying chip styling and behavior across the app
+• Improved Filter UI: Enhanced filter selection with visual indicators and fixed FAB overlap issues
+• UI Polish: Removed tab switching animation for smoother navigation
+• Stability Improvements: Enhanced null-safety and improved compatibility with Dart 3.9.2
