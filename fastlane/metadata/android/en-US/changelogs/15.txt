@@ -1,0 +1,4 @@
+Version 1.2.4 - Bug Fixes and Improvements
+
+• Minor bug fixes and performance improvements
+• Updated dependencies for better stability

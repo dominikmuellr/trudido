@@ -86,7 +86,7 @@ class _AboutScreenState extends State<AboutScreen> {
           ListTile(
             leading: Icon(Icons.tag, color: cs.primary),
             title: const Text('Version'),
-            subtitle: const Text('v1.2.3'),
+            subtitle: const Text('v1.2.4'),
           ),
           ListTile(
             leading: Icon(Icons.code, color: cs.primary),
@@ -125,7 +125,7 @@ class _AboutScreenState extends State<AboutScreen> {
             onTap: () => showLicensePage(
               context: context,
               applicationName: 'Trudido',
-              applicationVersion: 'v1.2.3',
+              applicationVersion: 'v1.2.4',
             ),
           ),
 
