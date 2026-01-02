@@ -57,7 +57,7 @@ class NotificationActionSync {
 
   /// Called on app lifecycle resume/start to ensure any newly added native
   /// persisted actions (e.g., produced while engine was not alive) are applied.
-  Future<void> syncPending(ProviderContainer container) async {
+  Future<void> syncPending(dynamic container) async {
     await NotificationBridge.instance.pullPendingNativeActions();
   }
 

@@ -30,6 +30,7 @@ import 'services/storage_service.dart';
 import 'services/permissions_channel.dart';
 import 'services/theme_service.dart';
 import 'services/text_scale_service.dart';
+import 'services/widget_service.dart';
 import 'providers/app_providers.dart';
 import 'providers/filter_providers.dart';
 import 'services/navigation_service.dart';
@@ -37,6 +38,10 @@ import 'services/system_settings_service.dart';
 import 'widgets/system_permission_dialogs.dart';
 import 'widgets/app_lock_wrapper.dart';
 import 'screens/home_screen.dart';
+
+/// Provider to signal widget-triggered task creation request.
+/// HomeScreen listens to this and opens TaskEditorScreen when triggered.
+final widgetTaskCreationRequestProvider = StateProvider<int>((ref) => 0);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -376,13 +381,13 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
 
 /// Lightweight first-frame widget that shows a minimal splash while heavy
 /// async initialization (Hive boxes, notifications) completes.
-class AppBootstrap extends StatefulWidget {
+class AppBootstrap extends ConsumerStatefulWidget {
   const AppBootstrap({super.key});
   @override
-  State<AppBootstrap> createState() => _AppBootstrapState();
+  ConsumerState<AppBootstrap> createState() => _AppBootstrapState();
 }
 
-class _AppBootstrapState extends State<AppBootstrap>
+class _AppBootstrapState extends ConsumerState<AppBootstrap>
     with SingleTickerProviderStateMixin {
   bool _ready = false;
   late final AnimationController _fadeCtrl = AnimationController(
@@ -397,6 +402,18 @@ class _AppBootstrapState extends State<AppBootstrap>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
         await StorageService.init();
+
+        // Initialize lifecycle observer (handles widget sync)
+        ref.read(lifecycleSyncObserverProvider);
+
+        // Initialize widget service
+        await WidgetService.instance.initialize();
+        // Listen for task creation requests from widget
+        WidgetService.instance.onOpenTaskCreation.listen((_) {
+          _openTaskCreation();
+        });
+        // Update widget with current tasks after storage is ready
+        _updateWidgetData();
       } catch (e) {
         debugPrint('[Bootstrap] storage init error: $e');
       }
@@ -406,6 +423,23 @@ class _AppBootstrapState extends State<AppBootstrap>
       });
       _fadeCtrl.forward();
     });
+  }
+
+  void _openTaskCreation() {
+    // Trigger task creation via provider that HomeScreen listens to
+    // This increments a counter which HomeScreen listens to and opens TaskEditorScreen
+    ref.read(widgetTaskCreationRequestProvider.notifier).state++;
+    debugPrint('[Bootstrap] Triggered task creation from widget');
+  }
+
+  Future<void> _updateWidgetData() async {
+    try {
+      final tasks = ref.read(tasksProvider);
+      final incomplete = tasks.where((t) => !t.isCompleted).toList();
+      await WidgetService.instance.updateWidgetData(incomplete);
+    } catch (e) {
+      debugPrint('[Bootstrap] widget update error: $e');
+    }
   }
 
   @override

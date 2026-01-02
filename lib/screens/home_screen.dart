@@ -32,6 +32,7 @@ import '../services/vault_password_service.dart';
 import '../services/biometric_auth_service.dart';
 import '../services/storage_service.dart';
 import '../services/greeting_service.dart';
+import '../services/widget_service.dart';
 // import '../services/markdown_export_service.dart'; // Commented out - for future import feature
 import '../repositories/note_folder_repository.dart';
 import '../models/note_folder.dart';
@@ -43,6 +44,7 @@ import '../widgets/fab_menu.dart';
 import '../widgets/create_folder_dialog.dart';
 import '../utils/animated_navigation.dart';
 import '../utils/week_start_utils.dart';
+import '../main.dart' show widgetTaskCreationRequestProvider;
 import 'settings_screen.dart';
 import 'notes_screen.dart';
 import 'quill_note_editor_screen.dart';
@@ -268,6 +270,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.initState();
     // Register lifecycle observer to detect app state changes
     WidgetsBinding.instance.addObserver(this);
+    // Update widget data on startup
+    _updateWidgetOnStartup();
+  }
+
+  Future<void> _updateWidgetOnStartup() async {
+    // Delay slightly to ensure tasks are loaded
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+    final tasks = ref.read(tasksProvider);
+    final incomplete = tasks.where((t) => !t.isCompleted).toList();
+    await WidgetService.instance.updateWidgetData(incomplete);
   }
 
   @override
@@ -303,6 +316,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final hideBottomNav = ref
         .watch(preferencesStateProvider)
         .hideBottomNavigation;
+
+    // Listen for widget task creation requests
+    ref.listen<int>(widgetTaskCreationRequestProvider, (previous, next) {
+      if (previous != null && next > previous) {
+        // Widget triggered task creation - navigate to tasks tab and open editor
+        ref.read(currentTabProvider.notifier).setTab(0);
+        _showAddTaskDialog();
+      }
+    });
 
     // Define tabs
     final tabs = [const TodoListTab(), const NotesScreen()];

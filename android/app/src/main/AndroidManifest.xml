@@ -77,6 +77,27 @@
             </intent-filter>
         </receiver>
         
+        <!-- Home screen widget -->
+        <receiver
+            android:name=".TodoAppWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.trudido.app.WIDGET_TOGGLE_TASK" />
+                <action android:name="com.trudido.app.WIDGET_ADD_TASK" />
+                <action android:name="com.trudido.app.WIDGET_REFRESH" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/app_widget_info" />
+        </receiver>
+        
+        <!-- Widget ListView service -->
+        <service
+            android:name=".WidgetTasksService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+        
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

@@ -19,6 +19,7 @@ class MainActivity : FlutterFragmentActivity() {
     companion object {
         var methodChannel: MethodChannel? = null
         var filesChannel: MethodChannel? = null
+        var widgetChannel: MethodChannel? = null
         private const val REQUEST_CODE_CHOOSE_BACKUP_FOLDER = 9003
         private var processStartNano: Long = System.nanoTime() // baseline for cold start
         private var firstFrameLogged = false
@@ -49,8 +50,45 @@ class MainActivity : FlutterFragmentActivity() {
                         .putFloat("flutter.textScale", scale)
                         .putBoolean("flutter.ignoreSystemTextScale", ignoreSystem)
                         .apply()
-                    // Widget update would go here when widget is implemented
+                    // Trigger widget update
+                    TodoAppWidgetProvider.triggerUpdate(applicationContext)
                     result.success(true)
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        // Widget channel for task list widget
+        val widgetChan = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.trudido.app/widget").also { widgetChannel = it }
+        widgetChan.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "updateWidgetData" -> {
+                    // Dart sends JSON array of incomplete tasks to cache
+                    val tasksJson = call.arguments as? String
+                    if (tasksJson != null) {
+                        try {
+                            val cacheFile = java.io.File(filesDir, "widget_tasks.json")
+                            cacheFile.writeText(tasksJson)
+                            // Trigger widget refresh
+                            TodoAppWidgetProvider.triggerUpdate(applicationContext)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("CACHE_ERROR", e.message, null)
+                        }
+                    } else {
+                        result.error("INVALID_DATA", "Expected JSON string", null)
+                    }
+                }
+                "refreshWidget" -> {
+                    TodoAppWidgetProvider.triggerUpdate(applicationContext)
+                    result.success(true)
+                }
+                "getPendingToggles" -> {
+                    // Return any pending toggle actions from widget
+                    val prefs = getSharedPreferences("widget_actions", MODE_PRIVATE)
+                    val pendingToggles = prefs.getStringSet("pending_toggles", emptySet())?.toList() ?: emptyList()
+                    prefs.edit().remove("pending_toggles").apply()
+                    result.success(pendingToggles)
                 }
                 else -> result.notImplemented()
             }
@@ -442,6 +480,20 @@ class MainActivity : FlutterFragmentActivity() {
         if (isFinishing) {
             methodChannel = null
             filesChannel = null
+            widgetChannel = null
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleWidgetIntent(intent)
+    }
+
+    private fun handleWidgetIntent(intent: Intent?) {
+        if (intent?.getStringExtra("action") == "create_task") {
+            // Notify Dart to open task creation screen
+            widgetChannel?.invokeMethod("openTaskCreation", null)
         }
     }
 }

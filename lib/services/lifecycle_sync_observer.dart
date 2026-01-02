@@ -17,25 +17,73 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'notification_action_sync.dart';
+import 'widget_service.dart';
+import '../providers/app_providers.dart';
+import '../controllers/task_controller.dart';
 
 /// Observes app lifecycle to trigger native pending action sync when the app
 /// returns to foreground (resumed). Ensures no persisted native action is lost.
 class LifecycleSyncObserver with WidgetsBindingObserver {
-  final ProviderContainer container;
-  LifecycleSyncObserver(this.container);
+  final Ref ref;
+  LifecycleSyncObserver(this.ref);
 
   void start() {
     WidgetsBinding.instance.addObserver(this);
+    // Initialize widget service
+    _initWidgetService();
+
+    // Listen for real-time toggles from the widget
+    WidgetService.instance.onToggleTasks.listen((ids) {
+      _processToggleIds(ids);
+    });
   }
 
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
   }
 
+  Future<void> _initWidgetService() async {
+    // Ensure tasks are loaded before processing toggles
+    await ref.read(tasksProvider.notifier).refresh();
+
+    await WidgetService.instance.initialize();
+    // Process any pending widget toggles
+    await _processPendingWidgetToggles();
+    // Update widget with current data
+    await _updateWidgetData();
+  }
+
+  Future<void> _processPendingWidgetToggles() async {
+    // This triggers the stream, which is handled by the listener in start()
+    await WidgetService.instance.processPendingToggles();
+  }
+
+  Future<void> _processToggleIds(List<String> ids) async {
+    if (ids.isEmpty) return;
+
+    final taskController = ref.read(taskControllerProvider.notifier);
+    for (final taskId in ids) {
+      try {
+        await taskController.toggleComplete(taskId);
+      } catch (e) {
+        debugPrint('[LifecycleSyncObserver] Failed to toggle task $taskId: $e');
+      }
+    }
+  }
+
+  Future<void> _updateWidgetData() async {
+    final tasks = ref.read(tasksProvider);
+    final incomplete = tasks.where((t) => !t.isCompleted).toList();
+    await WidgetService.instance.updateWidgetData(incomplete);
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      NotificationActionSync.instance.syncPending(container);
+      NotificationActionSync.instance.syncPending(ref);
+      // Process any pending widget toggles and refresh widget
+      _processPendingWidgetToggles();
+      _updateWidgetData();
     }
   }
 }

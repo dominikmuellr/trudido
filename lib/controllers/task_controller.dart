@@ -21,6 +21,7 @@ import '../providers/app_providers.dart';
 import '../providers/clock.dart';
 import '../services/notification_service.dart';
 import '../services/calendar_sync_service.dart';
+import '../services/widget_service.dart';
 import '../models/app_error.dart';
 
 final taskControllerProvider =
@@ -34,8 +35,15 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
   TaskRepository get _repo => ref.read(taskRepositoryProvider);
   final _notifications = NotificationBridge.instance;
   final _calendarSync = CalendarSyncService();
+  final _widgetService = WidgetService.instance;
 
   List<Todo> get tasks => ref.read(tasksProvider);
+
+  /// Update the home screen widget with current incomplete tasks.
+  Future<void> _updateWidget() async {
+    final incomplete = tasks.where((t) => !t.isCompleted).toList();
+    await _widgetService.updateWidgetData(incomplete);
+  }
 
   Future<void> add(Todo todo) async {
     state = const AsyncLoading();
@@ -44,6 +52,7 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
       await _scheduleNotifications(todo);
       await _syncToCalendar(todo);
       await ref.read(tasksProvider.notifier).refresh();
+      await _updateWidget();
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -63,6 +72,7 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
       if (!updated.isCompleted) await _scheduleNotifications(updated);
       await _syncToCalendar(updated);
       await ref.read(tasksProvider.notifier).refresh();
+      await _updateWidget();
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -192,6 +202,7 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
       await _deleteFromCalendar(id);
       await _repo.delete(id);
       await ref.read(tasksProvider.notifier).refresh();
+      await _updateWidget();
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -212,6 +223,7 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
       }
       await _repo.bulkDelete(ids);
       await ref.read(tasksProvider.notifier).refresh();
+      await _updateWidget();
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);

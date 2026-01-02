@@ -17,6 +17,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
+import 'widget_service.dart';
 
 class AppRefreshService {
   static const AppRefreshService instance = AppRefreshService._();
@@ -35,6 +36,12 @@ class AppRefreshService {
       // Refresh preferences state
       ref.invalidate(preferencesStateProvider);
       debugPrint('[AppRefreshService] Preferences state invalidated');
+
+      // Update home screen widget with new task data
+      final tasks = ref.read(tasksProvider);
+      final incomplete = tasks.where((t) => !t.isCompleted).toList();
+      await WidgetService.instance.updateWidgetData(incomplete);
+      debugPrint('[AppRefreshService] Widget updated');
 
       debugPrint('[AppRefreshService] All providers refreshed successfully');
     } catch (e, stackTrace) {

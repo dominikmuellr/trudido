@@ -19,6 +19,7 @@ import '../models/preferences_state.dart';
 import '../models/todo.dart';
 import '../repositories/task_repository.dart';
 import '../services/preferences_service.dart';
+import '../services/lifecycle_sync_observer.dart';
 import 'clock.dart';
 
 /// Singleton preferences service provider.
@@ -82,3 +83,11 @@ extension AsyncGuard on Ref {
     }
   }
 }
+
+/// Observer for app lifecycle and widget sync.
+final lifecycleSyncObserverProvider = Provider<LifecycleSyncObserver>((ref) {
+  final observer = LifecycleSyncObserver(ref);
+  observer.start();
+  ref.onDispose(() => observer.dispose());
+  return observer;
+});

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/task_item_container"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp"
+    android:paddingLeft="4dp"
+    android:paddingRight="4dp">
+
+    <!-- Checkbox -->
+    <ImageView
+        android:id="@+id/task_checkbox"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_checkbox_unchecked"
+        android:contentDescription="Toggle task"
+        android:layout_marginEnd="8dp" />
+
+    <!-- Task content -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- Task title -->
+        <TextView
+            android:id="@+id/task_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:textColor="@color/widget_text_primary"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <!-- Date, time, recurring row -->
+        <LinearLayout
+            android:id="@+id/task_meta_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="2dp">
+
+            <!-- Date/time -->
+            <TextView
+                android:id="@+id/task_datetime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="11sp"
+                android:textColor="@color/widget_text_secondary"
+                android:maxLines="1" />
+
+            <!-- Recurring indicator -->
+            <TextView
+                android:id="@+id/task_recurring"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" 🔄"
+                android:textSize="11sp"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>
