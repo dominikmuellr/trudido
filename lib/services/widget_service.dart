@@ -28,13 +28,13 @@ class WidgetService {
   static final WidgetService instance = WidgetService._();
   WidgetService._();
 
-  final StreamController<void> _openTaskCreationController =
+  final StreamController<int?> _openTaskCreationController =
       StreamController.broadcast();
   final StreamController<List<String>> _toggleTaskController =
       StreamController.broadcast();
 
   /// Stream that emits when the widget requests task creation screen to open.
-  Stream<void> get onOpenTaskCreation => _openTaskCreationController.stream;
+  Stream<int?> get onOpenTaskCreation => _openTaskCreationController.stream;
 
   /// Stream that emits when tasks are toggled from the widget.
   Stream<List<String>> get onToggleTasks => _toggleTaskController.stream;
@@ -50,7 +50,9 @@ class WidgetService {
       switch (call.method) {
         case 'openTaskCreation':
           debugPrint('[WidgetService] Open task creation requested');
-          _openTaskCreationController.add(null);
+          final args = call.arguments as Map?;
+          final date = args?['date'] as int?;
+          _openTaskCreationController.add(date);
           break;
         case 'widgetToggleTask':
           debugPrint('[WidgetService] Widget toggle task: ${call.arguments}');

@@ -98,6 +98,33 @@
             android:permission="android.permission.BIND_REMOTEVIEWS"
             android:exported="false" />
         
+        <!-- Calendar Widget -->
+        <receiver
+            android:name=".CalendarWidgetProvider"
+            android:label="Calendar &amp; Tasks"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.trudido.app.ACTION_PREVIOUS_MONTH" />
+                <action android:name="com.trudido.app.ACTION_NEXT_MONTH" />
+                <action android:name="com.trudido.app.ACTION_SELECT_DATE" />
+                <action android:name="com.trudido.app.ACTION_ADD_TASK_CALENDAR" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/calendar_widget_info" />
+        </receiver>
+
+        <service
+            android:name=".CalendarGridService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+
+        <service
+            android:name=".CalendarTaskService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+        
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

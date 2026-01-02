@@ -44,7 +44,8 @@ import '../widgets/fab_menu.dart';
 import '../widgets/create_folder_dialog.dart';
 import '../utils/animated_navigation.dart';
 import '../utils/week_start_utils.dart';
-import '../main.dart' show widgetTaskCreationRequestProvider;
+import '../main.dart'
+    show widgetTaskCreationRequestProvider, widgetTaskCreationDateProvider;
 import 'settings_screen.dart';
 import 'notes_screen.dart';
 import 'quill_note_editor_screen.dart';
@@ -322,7 +323,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (previous != null && next > previous) {
         // Widget triggered task creation - navigate to tasks tab and open editor
         ref.read(currentTabProvider.notifier).setTab(0);
-        _showAddTaskDialog();
+        final date = ref.read(widgetTaskCreationDateProvider);
+        _showAddTaskDialog(initialDate: date);
       }
     });
 
@@ -607,15 +609,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
-  void _showAddTaskDialog() {
+  void _showAddTaskDialog({DateTime? initialDate}) {
     final viewType = ref.read(taskViewTypeProvider);
     final selectedDate = ref.read(selectedCalendarDateProvider);
 
     // Use selected calendar date as a preset only when in calendar view
+    // OR if initialDate is provided (from widget)
     final DateTime? preset =
-        (viewType == TaskViewType.calendar && selectedDate != null)
-        ? selectedDate
-        : null;
+        initialDate ??
+        ((viewType == TaskViewType.calendar && selectedDate != null)
+            ? selectedDate
+            : null);
 
     AnimatedNavigation.pushContainerTransform(
       context,

@@ -43,6 +43,9 @@ import 'screens/home_screen.dart';
 /// HomeScreen listens to this and opens TaskEditorScreen when triggered.
 final widgetTaskCreationRequestProvider = StateProvider<int>((ref) => 0);
 
+/// Provider for widget task creation date
+final widgetTaskCreationDateProvider = StateProvider<DateTime?>((ref) => null);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -409,8 +412,8 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap>
         // Initialize widget service
         await WidgetService.instance.initialize();
         // Listen for task creation requests from widget
-        WidgetService.instance.onOpenTaskCreation.listen((_) {
-          _openTaskCreation();
+        WidgetService.instance.onOpenTaskCreation.listen((dateMillis) {
+          _openTaskCreation(dateMillis);
         });
         // Update widget with current tasks after storage is ready
         _updateWidgetData();
@@ -425,9 +428,15 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap>
     });
   }
 
-  void _openTaskCreation() {
+  void _openTaskCreation(int? dateMillis) {
     // Trigger task creation via provider that HomeScreen listens to
     // This increments a counter which HomeScreen listens to and opens TaskEditorScreen
+    if (dateMillis != null) {
+      ref.read(widgetTaskCreationDateProvider.notifier).state =
+          DateTime.fromMillisecondsSinceEpoch(dateMillis);
+    } else {
+      ref.read(widgetTaskCreationDateProvider.notifier).state = null;
+    }
     ref.read(widgetTaskCreationRequestProvider.notifier).state++;
     debugPrint('[Bootstrap] Triggered task creation from widget');
   }

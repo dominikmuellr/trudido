@@ -69,8 +69,9 @@ class MainActivity : FlutterFragmentActivity() {
                         try {
                             val cacheFile = java.io.File(filesDir, "widget_tasks.json")
                             cacheFile.writeText(tasksJson)
-                            // Trigger widget refresh
+                            // Trigger widget refresh for both widgets
                             TodoAppWidgetProvider.triggerUpdate(applicationContext)
+                            CalendarWidgetProvider.triggerUpdate(applicationContext)
                             result.success(true)
                         } catch (e: Exception) {
                             result.error("CACHE_ERROR", e.message, null)
@@ -492,8 +493,10 @@ class MainActivity : FlutterFragmentActivity() {
 
     private fun handleWidgetIntent(intent: Intent?) {
         if (intent?.getStringExtra("action") == "create_task") {
+            val date = intent.getLongExtra("date", 0L)
+            val args = if (date > 0) mapOf("date" to date) else null
             // Notify Dart to open task creation screen
-            widgetChannel?.invokeMethod("openTaskCreation", null)
+            widgetChannel?.invokeMethod("openTaskCreation", args)
         }
     }
 }

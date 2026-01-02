@@ -2,4 +2,5 @@
 <resources>
     <string name="app_name">trudido</string>
     <string name="widget_description">Display your tasks and mark them complete</string>
+    <string name="calendar_widget_description">Calendar view with daily tasks</string>
 </resources>

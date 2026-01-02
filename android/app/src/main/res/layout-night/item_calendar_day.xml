@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/day_container"
+    android:layout_width="match_parent"
+    android:layout_height="28dp"
+    android:padding="1dp">
+
+    <TextView
+        android:id="@+id/day_text"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:textSize="10sp"
+        android:textColor="@color/widget_text_primary" />
+
+    <ImageView
+        android:id="@+id/dot_indicator"
+        android:layout_width="3dp"
+        android:layout_height="3dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="1dp"
+        android:src="@drawable/task_dot_indicator"
+        android:visibility="gone" />
+
+</FrameLayout>
