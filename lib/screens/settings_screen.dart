@@ -21,7 +21,7 @@ import '../controllers/task_controller.dart';
 import '../utils/responsive_size.dart';
 import 'backup_settings_page.dart';
 import 'about_screen.dart';
-import 'display_theme_settings_page.dart';
+import 'personalization_screen.dart';
 import 'comprehensive_notification_settings.dart';
 import 'template_management_screen.dart';
 import 'font_size_settings_screen.dart';
@@ -319,26 +319,15 @@ class SettingsScreen extends ConsumerWidget {
           _buildSectionHeader(context, 'Display & Theme'),
           ListTile(
             leading: ScaledIcon(Icons.palette_outlined),
-            title: const Text('Display & Theme'),
-            subtitle: const Text('Colors, layout, and visual preferences'),
+            title: const Text('Personalization'),
+            subtitle: const Text(
+              'Profile, colors, layout, and visual preferences',
+            ),
             trailing: ScaledIcon(Icons.arrow_forward_ios),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => const DisplayThemeSettingsPage(),
-                ),
-              );
-            },
-          ),
-          ListTile(
-            leading: ScaledIcon(Icons.text_fields),
-            title: const Text('Font Size'),
-            subtitle: const Text('Adjust text size for the entire app'),
-            trailing: ScaledIcon(Icons.arrow_forward_ios),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const FontSizeSettingsScreen(),
+                  builder: (context) => const PersonalizationScreen(),
                 ),
               );
             },

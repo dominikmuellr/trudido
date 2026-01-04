@@ -106,7 +106,7 @@ class _VaultBinScreenState extends ConsumerState<VaultBinScreen> {
                               .read(notesRepositoryProvider)
                               .restoreNote(note.id);
                           _loadData();
-                          ref.refresh(notesProvider);
+                          final _ = ref.refresh(notesProvider);
                         },
                       ),
                       IconButton(

@@ -53,6 +53,8 @@ import 'vault_bin_screen.dart';
 import 'quill_note_editor_screen.dart';
 import 'folder_management_screen.dart';
 import 'notes_folder_management_screen.dart';
+import 'personalization_screen.dart';
+import '../widgets/user_avatar_widget.dart';
 
 // --- Moved from end of file ---
 class SelectedTodoIdsNotifier extends StateNotifier<Set<String>> {
@@ -2044,34 +2046,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       languageIndex: languageIndex,
     );
 
-    return GestureDetector(
-      onTap: () => _showNameDialog(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            greeting,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700, // Bold for prominence
-              color: theme.colorScheme.primary,
-              fontSize: 17,
-            ),
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          greeting,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700, // Bold for prominence
+            color: theme.colorScheme.primary,
+            fontSize: 17,
           ),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w500, // Medium for better readability
-              color: theme.colorScheme.secondary.withOpacity(0.8),
-              fontSize: 13,
-            ),
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+        Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w500, // Medium for better readability
+            color: theme.colorScheme.secondary.withOpacity(0.8),
+            fontSize: 13,
           ),
-        ],
-      ),
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 
@@ -2093,93 +2092,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       languageIndex: languageIndex,
     );
 
-    return GestureDetector(
-      onTap: () => _showNameDialog(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            greeting,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700, // Bold for prominence
-              color: theme.colorScheme.primary,
-              fontSize: 17,
-            ),
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          greeting,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700, // Bold for prominence
+            color: theme.colorScheme.primary,
+            fontSize: 17,
           ),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w500, // Medium for better readability
-              color: theme.colorScheme.secondary.withOpacity(0.8),
-              fontSize: 13,
-            ),
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+        Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w500, // Medium for better readability
+            color: theme.colorScheme.secondary.withOpacity(0.8),
+            fontSize: 13,
           ),
-        ],
-      ),
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 
-  /// Shows dialog to edit user name
-  void _showNameDialog(BuildContext context) {
-    final currentName = StorageService.getUserName();
-    final nameController = TextEditingController(
-      text:
-          currentName.isEmpty ||
-              currentName == '_SKIP_NAME_' ||
-              currentName == '_CLEARED_NAME_'
-          ? ''
-          : currentName,
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Your Name'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Name',
-            hintText: 'Enter your name',
-            border: OutlineInputBorder(),
+  /// Navigate to personalization screen
+  void _openPersonalizationScreen() {
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (context) => const PersonalizationScreen(),
           ),
-          textCapitalization: TextCapitalization.words,
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              // Clear name
-              StorageService.setUserName('_CLEARED_NAME_');
-              Navigator.pop(context);
-              setState(() {}); // Refresh to show changes
-            },
-            child: const Text('Clear'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final newName = nameController.text.trim();
-              if (newName.isEmpty) {
-                StorageService.setUserName('_SKIP_NAME_');
-              } else {
-                StorageService.setUserName(newName);
-              }
-              Navigator.pop(context);
-              setState(() {}); // Refresh to show changes
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
+        )
+        .then((_) {
+          // Refresh the greeting when returning from personalization
+          setState(() {});
+        });
   }
 
   // _buildCompactFilter removed - filters are now in the always-visible chip row on the Tasks tab
@@ -2297,7 +2249,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             )
           : _buildGreeting(currentTab),
-      // Actions: delete button in multi-select mode
+      // Actions: avatar button and delete button in multi-select mode
       actions: [
         // Delete button in multi-select mode
         if (currentTab == 0 && multiMode)
@@ -2343,6 +2295,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ref.read(multiSelectModeProvider.notifier).state = false;
                     }
                   },
+          ),
+        // Profile avatar button (always visible when not in multi-select mode)
+        if (!multiMode)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: UserAvatarWidget(
+              radius: 18,
+              onTap: _openPersonalizationScreen,
+            ),
           ),
       ],
     );

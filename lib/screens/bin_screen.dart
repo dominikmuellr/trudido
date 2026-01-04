@@ -146,7 +146,7 @@ class _BinScreenState extends ConsumerState<BinScreen>
                 onPressed: () async {
                   await ref.read(taskRepositoryProvider).restoreTask(task.id);
                   _loadData();
-                  ref.refresh(tasksProvider); // Refresh main list
+                  final _ = ref.refresh(tasksProvider); // Refresh main list
                 },
               ),
               IconButton(
@@ -188,7 +188,7 @@ class _BinScreenState extends ConsumerState<BinScreen>
                 onPressed: () async {
                   await ref.read(notesRepositoryProvider).restoreNote(note.id);
                   _loadData();
-                  ref.refresh(notesProvider); // Refresh main list
+                  final _ = ref.refresh(notesProvider); // Refresh main list
                 },
               ),
               IconButton(

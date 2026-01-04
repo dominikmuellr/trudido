@@ -649,6 +649,16 @@ Happy note-taking! ✨''',
     return _prefs?.getString('user_name') ?? '';
   }
 
+  static Future<void> setUserAvatarPath(String path) async {
+    await _ensurePrefs();
+    await _prefs!.setString('user_avatar_path', path);
+  }
+
+  static String? getUserAvatarPath() {
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getString('user_avatar_path');
+  }
+
   static Future<void> setNotificationsEnabled(bool enabled) async {
     await _ensurePrefs();
     await _prefs!.setBool('notifications_enabled', enabled);
