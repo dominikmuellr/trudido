@@ -1,19 +1,3 @@
-// Trudido - A privacy-focused todo and notes app
-// Copyright (C) 2025 Dominik Müller
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'note.dart';
@@ -41,13 +25,14 @@ class NoteAdapter extends TypeAdapter<Note> {
       isPinned: fields[5] == null ? false : fields[5] as bool,
       folderId: fields[6] as String?,
       todoTxtContent: fields[7] as String?,
+      isDeleted: fields[8] == null ? false : fields[8] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, Note obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -63,7 +48,9 @@ class NoteAdapter extends TypeAdapter<Note> {
       ..writeByte(6)
       ..write(obj.folderId)
       ..writeByte(7)
-      ..write(obj.todoTxtContent);
+      ..write(obj.todoTxtContent)
+      ..writeByte(8)
+      ..write(obj.isDeleted);
   }
 
   @override

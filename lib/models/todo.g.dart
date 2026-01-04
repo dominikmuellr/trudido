@@ -1,19 +1,3 @@
-// Trudido - A privacy-focused todo and notes app
-// Copyright (C) 2025 Dominik Müller
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'todo.dart';
@@ -51,13 +35,14 @@ class TodoAdapter extends TypeAdapter<Todo> {
       repeatEndDate: fields[16] as DateTime?,
       parentRecurringTaskId: fields[17] as String?,
       sourceCalendarColor: fields[18] as int?,
+      isDeleted: fields[19] == null ? false : fields[19] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, Todo obj) {
     writer
-      ..writeByte(18)
+      ..writeByte(19)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -93,7 +78,9 @@ class TodoAdapter extends TypeAdapter<Todo> {
       ..writeByte(17)
       ..write(obj.parentRecurringTaskId)
       ..writeByte(18)
-      ..write(obj.sourceCalendarColor);
+      ..write(obj.sourceCalendarColor)
+      ..writeByte(19)
+      ..write(obj.isDeleted);
   }
 
   @override

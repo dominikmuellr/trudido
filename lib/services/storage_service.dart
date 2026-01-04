@@ -357,13 +357,35 @@ Happy note-taking! ✨''',
         _todosLazyBox = await Hive.openLazyBox<Todo>(_todosBoxName);
       }
       if (_todosLazyBox != null) {
-        await _todosLazyBox!.delete(id);
+        final todo = await _todosLazyBox!.get(id);
+        if (todo != null) {
+          todo.isDeleted = true;
+          await _todosLazyBox!.put(id, todo);
+        }
         return;
       }
       throw Exception('Todos lazy box is not available');
     } catch (e, st) {
       debugPrint('[StorageService] deleteTodo failed: $e\n$st');
       rethrow;
+    }
+  }
+
+  static Future<void> permanentlyDeleteTodo(String id) async {
+    await waitTodosReady();
+    if (_todosLazyBox != null) {
+      await _todosLazyBox!.delete(id);
+    }
+  }
+
+  static Future<void> restoreTodo(String id) async {
+    await waitTodosReady();
+    if (_todosLazyBox != null) {
+      final todo = await _todosLazyBox!.get(id);
+      if (todo != null) {
+        todo.isDeleted = false;
+        await _todosLazyBox!.put(id, todo);
+      }
     }
   }
 
@@ -399,7 +421,21 @@ Happy note-taking! ✨''',
       final List<Todo> list = [];
       for (final k in keys) {
         final t = await _todosLazyBox!.get(k);
-        if (t != null) list.add(t);
+        if (t != null && !t.isDeleted) list.add(t);
+      }
+      return list;
+    }
+    return const [];
+  }
+
+  static Future<List<Todo>> getDeletedTodos() async {
+    await waitTodosReady();
+    if (_todosLazyBox != null) {
+      final keys = _todosLazyBox!.keys.cast<dynamic>().toList();
+      final List<Todo> list = [];
+      for (final k in keys) {
+        final t = await _todosLazyBox!.get(k);
+        if (t != null && t.isDeleted) list.add(t);
       }
       return list;
     }
@@ -440,12 +476,35 @@ Happy note-taking! ✨''',
 
   static Future<void> deleteNote(String id) async {
     if (_notesBox == null) return;
+    final note = _notesBox!.get(id);
+    if (note != null) {
+      note.isDeleted = true;
+      await _notesBox!.put(id, note);
+    }
+  }
+
+  static Future<void> permanentlyDeleteNote(String id) async {
+    if (_notesBox == null) return;
     await _notesBox!.delete(id);
+  }
+
+  static Future<void> restoreNote(String id) async {
+    if (_notesBox == null) return;
+    final note = _notesBox!.get(id);
+    if (note != null) {
+      note.isDeleted = false;
+      await _notesBox!.put(id, note);
+    }
   }
 
   static List<Note> getAllNotes() {
     if (_notesBox == null) return const [];
-    return _notesBox!.values.toList();
+    return _notesBox!.values.where((n) => !n.isDeleted).toList();
+  }
+
+  static List<Note> getDeletedNotes() {
+    if (_notesBox == null) return const [];
+    return _notesBox!.values.where((n) => n.isDeleted).toList();
   }
 
   static Note? getNote(String id) {

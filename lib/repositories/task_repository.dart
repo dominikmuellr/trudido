@@ -95,4 +95,25 @@ class TaskRepository {
     _cache = List<Todo>.from(ordered);
     _testSaveOrderHook?.call(_cache);
   }
+
+  Future<List<Todo>> getDeletedTasks() async {
+    await StorageService.waitTodosReady();
+    return StorageService.getDeletedTodos();
+  }
+
+  Future<void> restoreTask(String id) async {
+    await StorageService.restoreTodo(id);
+    await load(); // Reload cache to include restored task
+  }
+
+  Future<void> permanentlyDeleteTask(String id) async {
+    await StorageService.permanentlyDeleteTodo(id);
+  }
+
+  Future<void> emptyBin() async {
+    final deleted = await StorageService.getDeletedTodos();
+    for (final task in deleted) {
+      await StorageService.permanentlyDeleteTodo(task.id);
+    }
+  }
 }

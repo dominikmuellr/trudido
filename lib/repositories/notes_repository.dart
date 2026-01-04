@@ -203,6 +203,36 @@ class NotesRepository {
     });
     return sortedNotes;
   }
+
+  Future<List<Note>> getDeletedNotes() async {
+    await StorageService.waitNotesReady();
+    // Get raw deleted notes (encrypted)
+    final notes = StorageService.getDeletedNotes();
+    // We do NOT decrypt them here for the bin list, or we decrypt them but mark them?
+    // For the bin, we might want to see titles if possible, but for vault notes we must be careful.
+    // Let's return them as is. The UI will handle masking vault notes.
+    return notes;
+  }
+
+  Future<void> restoreNote(String id) async {
+    await StorageService.restoreNote(id);
+  }
+
+  Future<void> permanentlyDeleteNote(String id) async {
+    await StorageService.permanentlyDeleteNote(id);
+  }
+
+  Future<void> emptyBin(bool onlyVault) async {
+    final deleted = StorageService.getDeletedNotes();
+    for (final note in deleted) {
+      final isVault = await _isVaultFolder(note.folderId);
+      if (onlyVault) {
+        if (isVault) await StorageService.permanentlyDeleteNote(note.id);
+      } else {
+        if (!isVault) await StorageService.permanentlyDeleteNote(note.id);
+      }
+    }
+  }
 }
 
 /// Provider for the notes repository

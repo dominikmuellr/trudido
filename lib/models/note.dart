@@ -46,6 +46,9 @@ class Note extends HiveObject {
   @HiveField(7)
   String? todoTxtContent; // Optional todo.txt format representation
 
+  @HiveField(8, defaultValue: false)
+  bool isDeleted;
+
   Note({
     String? id,
     required this.title,
@@ -55,6 +58,7 @@ class Note extends HiveObject {
     this.isPinned = false,
     this.folderId,
     this.todoTxtContent,
+    this.isDeleted = false,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
@@ -69,6 +73,7 @@ class Note extends HiveObject {
     bool? isPinned,
     String? folderId,
     String? todoTxtContent,
+    bool? isDeleted,
   }) {
     return Note(
       id: id ?? this.id,
@@ -79,6 +84,7 @@ class Note extends HiveObject {
       isPinned: isPinned ?? this.isPinned,
       folderId: folderId ?? this.folderId,
       todoTxtContent: todoTxtContent ?? this.todoTxtContent,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
 
@@ -107,6 +113,7 @@ class Note extends HiveObject {
       'isPinned': isPinned,
       'folderId': folderId,
       'todoTxtContent': todoTxtContent,
+      'isDeleted': isDeleted,
     };
   }
 
@@ -121,6 +128,7 @@ class Note extends HiveObject {
       isPinned: json['isPinned'] as bool? ?? false,
       folderId: json['folderId'] as String?,
       todoTxtContent: json['todoTxtContent'] as String?,
+      isDeleted: json['isDeleted'] as bool? ?? false,
     );
   }
 }

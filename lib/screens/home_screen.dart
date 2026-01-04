@@ -48,6 +48,8 @@ import '../main.dart'
     show widgetTaskCreationRequestProvider, widgetTaskCreationDateProvider;
 import 'settings_screen.dart';
 import 'notes_screen.dart';
+import 'bin_screen.dart';
+import 'vault_bin_screen.dart';
 import 'quill_note_editor_screen.dart';
 import 'folder_management_screen.dart';
 import 'notes_folder_management_screen.dart';
@@ -1610,6 +1612,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           },
         ),
 
+        // Bin
+        ListTile(
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          leading: Icon(
+            Icons.delete_outline,
+            size: 20,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          title: Text('Bin', style: theme.textTheme.bodyMedium),
+          onTap: () {
+            Navigator.of(context).pop(); // Close drawer
+            _clearVaultSelectionIfNeeded();
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BinScreen()),
+            );
+          },
+        ),
+
         // Settings
         ListTile(
           dense: true,
@@ -2235,6 +2257,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           : _buildGreeting(currentTab),
       // Actions: delete button in multi-select mode
       actions: [
+        // Vault Bin Button
+        if (currentTab == 1) ...[
+          Consumer(
+            builder: (context, ref, _) {
+              final selectedFolderId = ref.watch(selectedNoteFolderProvider);
+              if (selectedFolderId == null) return const SizedBox.shrink();
+
+              final folders = ref.watch(noteFoldersProvider).valueOrNull ?? [];
+              final folder = folders
+                  .where((f) => f.id == selectedFolderId)
+                  .firstOrNull;
+
+              if (folder?.isVault == true && !multiMode) {
+                return IconButton(
+                  icon: const Icon(Icons.delete_sweep_outlined),
+                  tooltip: 'Vault Bin',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const VaultBinScreen(),
+                      ),
+                    );
+                  },
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
+
         // Delete button in multi-select mode
         if (currentTab == 0 && multiMode)
           IconButton(
