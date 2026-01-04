@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/note.dart';
 import '../repositories/notes_repository.dart';
 import '../repositories/note_folder_repository.dart';
@@ -149,12 +150,45 @@ final notesControllerProvider =
 /// Provider for search functionality
 final notesSearchQueryProvider = StateProvider<String>((ref) => '');
 
+class NotesSortNotifier extends StateNotifier<String> {
+  NotesSortNotifier() : super('date_modified') {
+    _loadSavedSort();
+  }
+
+  Future<void> _loadSavedSort() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString('notes_sort_by');
+      if (saved != null) {
+        state = saved;
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+
+  Future<void> setSort(String sort) async {
+    state = sort;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('notes_sort_by', sort);
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+}
+
+final notesSortByProvider = StateNotifierProvider<NotesSortNotifier, String>(
+  (ref) => NotesSortNotifier(),
+);
+
 /// Provider for filtered/searched notes
 final filteredNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
   final searchQuery = ref.watch(notesSearchQueryProvider);
   final selectedFolderId = ref.watch(selectedNoteFolderProvider);
   final allNotesAsync = ref.watch(notesProvider);
   final foldersAsync = ref.watch(noteFoldersProvider);
+  final sortBy = ref.watch(notesSortByProvider);
 
   // If folders are still loading, show loading state
   if (foldersAsync.isLoading) {
@@ -197,6 +231,34 @@ final filteredNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
             )
             .toList();
       }
+
+      // Apply sorting
+      // Create a mutable copy for sorting
+      filtered = List.of(filtered);
+
+      // First sort by the selected criteria
+      switch (sortBy) {
+        case 'date_created':
+          filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          break;
+        case 'alphabetical':
+          filtered.sort(
+            (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+          );
+          break;
+        case 'date_modified':
+        default:
+          filtered.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+          break;
+      }
+
+      // Then ensure pinned notes are always on top, maintaining the sort order within groups
+      filtered.sort((a, b) {
+        if (a.isPinned != b.isPinned) {
+          return a.isPinned ? -1 : 1;
+        }
+        return 0; // Keep existing sort order
+      });
 
       return AsyncValue.data(filtered);
     },

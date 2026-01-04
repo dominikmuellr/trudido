@@ -209,14 +209,14 @@ class TodoListTab extends ConsumerWidget {
         children: [
           Icon(
             isSearching ? Icons.search : Icons.check_circle_outline,
-            size: 80,
-            color: Theme.of(context).colorScheme.outline,
+            size: 64,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
           Text(
             isSearching ? 'No tasks found' : 'No tasks yet',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.outline,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -225,7 +225,7 @@ class TodoListTab extends ConsumerWidget {
                 ? 'Try adjusting your search or filters'
                 : 'Tap the + button to add your first task',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.outline,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
           ),

@@ -24,6 +24,7 @@ import '../repositories/notes_repository.dart';
 import '../repositories/note_folder_repository.dart';
 import '../services/vault_auth_service.dart';
 import '../widgets/note_preview_card_markdown.dart';
+import '../widgets/notes_filter_chips.dart';
 import 'quill_note_editor_screen.dart';
 
 /// Provider for notes search mode
@@ -78,87 +79,98 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   }
 
   Widget _buildBody(List<Note> notes, bool isAllNotesView) {
-    if (notes.isEmpty) {
-      final isSearchMode = ref.watch(notesSearchModeProvider);
-      final searchQuery = ref.watch(notesSearchQueryProvider);
+    return Column(
+      children: [
+        const NotesFilterChips(),
+        Expanded(
+          child: notes.isEmpty
+              ? _buildEmptyState()
+              : NotificationListener<ScrollNotification>(
+                  onNotification: (scrollNotification) {
+                    // Detect pull-to-search gesture
+                    if (scrollNotification is ScrollUpdateNotification) {
+                      // Check if user is pulling down at the top (overscroll)
+                      if (scrollNotification.metrics.pixels < -20) {
+                        // Trigger search mode
+                        ref.read(notesSearchModeProvider.notifier).state = true;
+                        return true; // Consume the notification
+                      }
+                    }
 
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ScaledIcon(
-              isSearchMode ? Icons.search : Icons.note_add,
-              size: 64,
+                    // Also listen for overscroll notifications
+                    if (scrollNotification is OverscrollNotification) {
+                      if (scrollNotification.overscroll < -20) {
+                        ref.read(notesSearchModeProvider.notifier).state = true;
+                        return true;
+                      }
+                    }
+
+                    return false;
+                  },
+                  child: MasonryGridView.count(
+                    padding: const EdgeInsets.all(8),
+                    physics: const BouncingScrollPhysics(),
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    itemCount: notes.length,
+                    itemBuilder: (context, index) {
+                      final note = notes[index];
+                      final isInVault = _isNoteInVault(note);
+
+                      return NotePreviewCard(
+                        note: note,
+                        onTap: () => _editNote(note.id),
+                        onPin: () => _togglePin(note.id),
+                        onDelete: () => _deleteNote(note.id, note.title),
+                        onDeleteConfirmed: () => _deleteNoteConfirmed(note.id),
+                        isInVault: isInVault,
+                        onMoveToFolder: isInVault
+                            ? null
+                            : () => _moveNoteToFolder(note),
+                        showFormatIndicator: isAllNotesView,
+                      );
+                    },
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    final isSearchMode = ref.watch(notesSearchModeProvider);
+    final searchQuery = ref.watch(notesSearchQueryProvider);
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ScaledIcon(
+            isSearchMode ? Icons.search : Icons.note_add,
+            size: 64,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            isSearchMode && searchQuery.isNotEmpty
+                ? 'No notes found'
+                : 'No notes yet',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isSearchMode && searchQuery.isNotEmpty
+                ? 'Try a different search term'
+                : 'Create rich text notes with media, voice recordings, and markdown support',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
-            const SizedBox(height: 16),
-            Text(
-              isSearchMode && searchQuery.isNotEmpty
-                  ? 'No notes found'
-                  : 'No notes yet',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isSearchMode && searchQuery.isNotEmpty
-                  ? 'Try a different search term'
-                  : 'Create rich text notes with media, voice recordings, and markdown support',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    return NotificationListener<ScrollNotification>(
-      onNotification: (scrollNotification) {
-        // Detect pull-to-search gesture
-        if (scrollNotification is ScrollUpdateNotification) {
-          // Check if user is pulling down at the top (overscroll)
-          if (scrollNotification.metrics.pixels < -20) {
-            // Trigger search mode
-            ref.read(notesSearchModeProvider.notifier).state = true;
-            return true; // Consume the notification
-          }
-        }
-
-        // Also listen for overscroll notifications
-        if (scrollNotification is OverscrollNotification) {
-          if (scrollNotification.overscroll < -20) {
-            ref.read(notesSearchModeProvider.notifier).state = true;
-            return true;
-          }
-        }
-
-        return false;
-      },
-      child: MasonryGridView.count(
-        padding: const EdgeInsets.all(8),
-        physics: const BouncingScrollPhysics(),
-        crossAxisCount: 2,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
-        itemCount: notes.length,
-        itemBuilder: (context, index) {
-          final note = notes[index];
-          final isInVault = _isNoteInVault(note);
-
-          return NotePreviewCard(
-            note: note,
-            onTap: () => _editNote(note.id),
-            onPin: () => _togglePin(note.id),
-            onDelete: () => _deleteNote(note.id, note.title),
-            onDeleteConfirmed: () => _deleteNoteConfirmed(note.id),
-            isInVault: isInVault,
-            onMoveToFolder: isInVault ? null : () => _moveNoteToFolder(note),
-            showFormatIndicator: isAllNotesView,
-          );
-        },
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

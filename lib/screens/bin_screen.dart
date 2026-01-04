@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
 import '../models/todo.dart';
 import '../models/note.dart';
 import '../providers/app_providers.dart';
@@ -175,7 +176,7 @@ class _BinScreenState extends ConsumerState<BinScreen>
         return ListTile(
           title: Text(note.title),
           subtitle: Text(
-            note.content,
+            _extractPlainText(note.content),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -204,5 +205,30 @@ class _BinScreenState extends ConsumerState<BinScreen>
         );
       },
     );
+  }
+
+  /// Extract plain text from Quill JSON content
+  String _extractPlainText(String jsonContent) {
+    try {
+      final decoded = jsonDecode(jsonContent);
+      if (decoded is List) {
+        final buffer = StringBuffer();
+        for (final delta in decoded) {
+          if (delta is Map && delta.containsKey('insert')) {
+            final insert = delta['insert'];
+            if (insert is String) {
+              buffer.write(insert);
+            }
+          }
+        }
+        return buffer.toString().trim().replaceAll('\n', ' ');
+      }
+      return jsonContent;
+    } catch (e) {
+      // If parsing fails, return a truncated version of the raw content
+      return jsonContent.length > 50
+          ? '${jsonContent.substring(0, 50)}...'
+          : jsonContent;
+    }
   }
 }
