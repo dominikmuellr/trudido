@@ -42,10 +42,19 @@ class NotesRepository {
   /// Encrypts note content if it belongs to a vault folder
   Future<Note> _encryptNoteIfNeeded(Note note) async {
     if (note.folderId != null && await _isVaultFolder(note.folderId)) {
-      // Encrypt both title and content
-      final encryptedTitle = await EncryptionHelper.encryptText(note.title);
-      final encryptedContent = await EncryptionHelper.encryptText(note.content);
-      return note.copyWith(title: encryptedTitle, content: encryptedContent);
+      try {
+        print('Encrypting note ${note.id} for vault folder ${note.folderId}');
+        // Encrypt both title and content
+        final encryptedTitle = await EncryptionHelper.encryptText(note.title);
+        final encryptedContent = await EncryptionHelper.encryptText(
+          note.content,
+        );
+        print('Successfully encrypted note ${note.id}');
+        return note.copyWith(title: encryptedTitle, content: encryptedContent);
+      } catch (e) {
+        print('Failed to encrypt note ${note.id}: $e');
+        rethrow; // Propagate error so caller knows encryption failed
+      }
     }
     return note;
   }

@@ -582,9 +582,9 @@ class NotePreviewCard extends ConsumerWidget {
               await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Delete Note'),
+                  title: const Text('Move to Bin'),
                   content: const Text(
-                    'Are you sure you want to delete this note? This action cannot be undone.',
+                    'Move this note to bin? You can restore it later from the Bin.',
                   ),
                   actions: [
                     TextButton(
@@ -594,7 +594,7 @@ class NotePreviewCard extends ConsumerWidget {
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(true),
                       style: TextButton.styleFrom(foregroundColor: Colors.red),
-                      child: const Text('Delete'),
+                      child: const Text('Move to Bin'),
                     ),
                   ],
                 ),

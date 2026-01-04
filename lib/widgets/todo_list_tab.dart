@@ -255,8 +255,10 @@ class TodoListTab extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Todo'),
-        content: Text('Are you sure you want to delete "${todo.text}"?'),
+        title: const Text('Move to Bin'),
+        content: Text(
+          'Move "${todo.text}" to bin? You can restore it later from the Bin.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -267,7 +269,7 @@ class TodoListTab extends ConsumerWidget {
               ref.read(taskControllerProvider.notifier).delete(todo.id);
               Navigator.pop(context);
             },
-            child: const Text('Delete'),
+            child: const Text('Move to Bin'),
           ),
         ],
       ),

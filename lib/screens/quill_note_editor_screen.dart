@@ -929,6 +929,19 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       );
     }
 
+    // Check if save failed (encryption or storage error)
+    if (savedNote == null) {
+      if (showFeedback && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Failed to save note. Please try again.'),
+            backgroundColor: Theme.of(context).colorScheme.errorContainer,
+          ),
+        );
+      }
+      throw Exception('Failed to save note');
+    }
+
     if (mounted) {
       setState(() {
         _hasUnsavedChanges = false;

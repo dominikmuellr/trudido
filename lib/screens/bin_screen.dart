@@ -4,11 +4,12 @@ import '../models/todo.dart';
 import '../models/note.dart';
 import '../providers/app_providers.dart';
 import '../repositories/notes_repository.dart';
-import '../repositories/task_repository.dart';
 import '../repositories/note_folder_repository.dart';
 
 class BinScreen extends ConsumerStatefulWidget {
-  const BinScreen({super.key});
+  final int initialTab;
+
+  const BinScreen({super.key, this.initialTab = 0});
 
   @override
   ConsumerState<BinScreen> createState() => _BinScreenState();
@@ -24,7 +25,11 @@ class _BinScreenState extends ConsumerState<BinScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTab,
+    );
     _loadData();
   }
 

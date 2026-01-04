@@ -470,7 +470,9 @@ Happy note-taking! ✨''',
 
   // Notes operations
   static Future<void> saveNote(Note note) async {
-    if (_notesBox == null) return;
+    if (_notesBox == null) {
+      throw Exception('Notes storage not initialized. Cannot save note.');
+    }
     await _notesBox!.put(note.id, note);
   }
 

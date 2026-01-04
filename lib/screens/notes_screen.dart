@@ -286,8 +286,10 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Note'),
-        content: Text('Are you sure you want to delete "$noteTitle"?'),
+        title: const Text('Move to Bin'),
+        content: Text(
+          'Move "$noteTitle" to bin? You can restore it later from the Bin.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -295,7 +297,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
+            child: const Text('Move to Bin'),
           ),
         ],
       ),

@@ -1300,27 +1300,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         return ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
-            // Create new folder option at the top
-            ListTile(
-              dense: true,
-              visualDensity: VisualDensity.compact,
-              leading: Icon(Icons.add, size: 20, color: colorScheme.primary),
-              title: Text(
-                'Create Folder',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              onTap: () {
-                Navigator.of(context).pop(); // Close drawer
-                // Show create folder dialog directly
-                showDialog(
-                  context: context,
-                  builder: (context) => const CreateFolderDialog(),
-                );
-              },
-            ),
             // "All Tasks" option
             ListTile(
               dense: true,
@@ -1390,6 +1369,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 },
               );
             }),
+            // Create new folder option at the bottom
+            const SizedBox(height: 8),
+            ListTile(
+              dense: true,
+              visualDensity: VisualDensity.compact,
+              leading: Icon(Icons.add, size: 20, color: colorScheme.primary),
+              title: Text(
+                'Create Folder',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              onTap: () {
+                Navigator.of(context).pop(); // Close drawer
+                // Show create folder dialog directly
+                showDialog(
+                  context: context,
+                  builder: (context) => const CreateFolderDialog(),
+                );
+              },
+            ),
           ],
         );
       },
@@ -1418,24 +1419,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         return ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
-            // Create new folder option at the top
-            ListTile(
-              dense: true,
-              visualDensity: VisualDensity.compact,
-              leading: Icon(Icons.add, size: 20, color: colorScheme.primary),
-              title: Text(
-                'Create Folder',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              onTap: () {
-                Navigator.of(context).pop(); // Close drawer
-                // Show create note folder dialog directly
-                _showCreateNoteFolderDialog();
-              },
-            ),
             // "All Notes" option
             ListTile(
               dense: true,
@@ -1552,6 +1535,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 },
               );
             }),
+            // Create new folder option at the bottom
+            const SizedBox(height: 8),
+            ListTile(
+              dense: true,
+              visualDensity: VisualDensity.compact,
+              leading: Icon(Icons.add, size: 20, color: colorScheme.primary),
+              title: Text(
+                'Create Folder',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              onTap: () {
+                Navigator.of(context).pop(); // Close drawer
+                // Show create note folder dialog directly
+                _showCreateNoteFolderDialog();
+              },
+            ),
           ],
         );
       },
@@ -1613,21 +1615,61 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ),
 
         // Bin
-        ListTile(
-          dense: true,
-          visualDensity: VisualDensity.compact,
-          leading: Icon(
-            Icons.delete_outline,
-            size: 20,
-            color: colorScheme.onSurfaceVariant,
-          ),
-          title: Text('Bin', style: theme.textTheme.bodyMedium),
-          onTap: () {
-            Navigator.of(context).pop(); // Close drawer
-            _clearVaultSelectionIfNeeded();
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const BinScreen()),
+        Consumer(
+          builder: (context, ref, child) {
+            final selectedFolderId = ref.watch(selectedNoteFolderProvider);
+            final folders = ref.watch(noteFoldersProvider).valueOrNull ?? [];
+            final folder = folders
+                .where((f) => f.id == selectedFolderId)
+                .firstOrNull;
+            final isVault = folder?.isVault == true;
+
+            return ListTile(
+              dense: true,
+              visualDensity: VisualDensity.compact,
+              leading: Icon(
+                Icons.delete_outline,
+                size: 20,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              title: Text(
+                isVault
+                    ? 'Vault Bin'
+                    : (currentTab == 0 ? 'Tasks Bin' : 'Notes Bin'),
+                style: theme.textTheme.bodyMedium,
+              ),
+              onTap: () {
+                Navigator.of(context).pop(); // Close drawer
+
+                if (isVault) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const VaultBinScreen(),
+                    ),
+                  );
+                } else {
+                  _clearVaultSelectionIfNeeded();
+                  // Navigate to appropriate bin based on current tab
+                  if (currentTab == 0) {
+                    // Tasks Bin
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BinScreen(initialTab: 0),
+                      ),
+                    );
+                  } else {
+                    // Notes Bin
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BinScreen(initialTab: 1),
+                      ),
+                    );
+                  }
+                }
+              },
             );
           },
         ),
@@ -2257,37 +2299,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           : _buildGreeting(currentTab),
       // Actions: delete button in multi-select mode
       actions: [
-        // Vault Bin Button
-        if (currentTab == 1) ...[
-          Consumer(
-            builder: (context, ref, _) {
-              final selectedFolderId = ref.watch(selectedNoteFolderProvider);
-              if (selectedFolderId == null) return const SizedBox.shrink();
-
-              final folders = ref.watch(noteFoldersProvider).valueOrNull ?? [];
-              final folder = folders
-                  .where((f) => f.id == selectedFolderId)
-                  .firstOrNull;
-
-              if (folder?.isVault == true && !multiMode) {
-                return IconButton(
-                  icon: const Icon(Icons.delete_sweep_outlined),
-                  tooltip: 'Vault Bin',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const VaultBinScreen(),
-                      ),
-                    );
-                  },
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-        ],
-
         // Delete button in multi-select mode
         if (currentTab == 0 && multiMode)
           IconButton(
@@ -2304,9 +2315,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     final confirmed = await showDialog<bool>(
                       context: context,
                       builder: (context) => AlertDialog(
-                        title: const Text('Delete tasks'),
+                        title: const Text('Move to Bin'),
                         content: Text(
-                          'Delete ${selectedIds.length} selected ${selectedIds.length == 1 ? 'task' : 'tasks'}?',
+                          'Move ${selectedIds.length} selected ${selectedIds.length == 1 ? 'task' : 'tasks'} to bin? You can restore them later from the Bin.',
                         ),
                         actions: [
                           TextButton(
@@ -2316,7 +2327,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           TextButton(
                             onPressed: () => Navigator.pop(context, true),
                             child: Text(
-                              'Delete',
+                              'Move to Bin',
                               style: TextStyle(color: colorScheme.error),
                             ),
                           ),

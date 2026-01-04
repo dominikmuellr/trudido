@@ -26,13 +26,25 @@ class EncryptionHelper {
   /// Gets or generates the encryption key
   static Future<Key> _getKey() async {
     String? keyString = await _storage.read(key: _keyName);
-    return Key.fromBase64(keyString!);
+    if (keyString == null) {
+      // Generate new 256-bit (32-byte) key on first vault use
+      final key = Key.fromSecureRandom(32);
+      await _storage.write(key: _keyName, value: key.base64);
+      return key;
+    }
+    return Key.fromBase64(keyString);
   }
 
   /// Gets or generates the initialization vector
   static Future<IV> _getIV() async {
     String? ivString = await _storage.read(key: _ivName);
-    return IV.fromBase64(ivString!);
+    if (ivString == null) {
+      // Generate new 128-bit (16-byte) IV on first vault use
+      final iv = IV.fromSecureRandom(16);
+      await _storage.write(key: _ivName, value: iv.base64);
+      return iv;
+    }
+    return IV.fromBase64(ivString);
   }
 
   /// Encrypts plain text using AES-256-CBC
