@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 
 /// Provider to track floating toolbar expanded state
@@ -37,12 +38,16 @@ class _ToolbarItem {
 
 /// Floating toolbar FAB with vertical expandable menu for note formatting
 /// Designed for thumb-friendly one-handed use
-class FloatingNoteToolbar extends StatefulWidget {
+class FloatingNoteToolbar extends ConsumerStatefulWidget {
   final quill.QuillController controller;
   final VoidCallback? onInsertImage;
   final VoidCallback? onInsertVideo;
   final VoidCallback? onInsertVoice;
   final VoidCallback? onInsertLink;
+  final double currentLineHeight;
+  final double currentParagraphSpacing;
+  final Function(double)? onLineHeightChanged;
+  final Function(double)? onParagraphSpacingChanged;
 
   const FloatingNoteToolbar({
     super.key,
@@ -51,13 +56,18 @@ class FloatingNoteToolbar extends StatefulWidget {
     this.onInsertVideo,
     this.onInsertVoice,
     this.onInsertLink,
+    this.currentLineHeight = 1.5,
+    this.currentParagraphSpacing = 8.0,
+    this.onLineHeightChanged,
+    this.onParagraphSpacingChanged,
   });
 
   @override
-  State<FloatingNoteToolbar> createState() => _FloatingNoteToolbarState();
+  ConsumerState<FloatingNoteToolbar> createState() =>
+      _FloatingNoteToolbarState();
 }
 
-class _FloatingNoteToolbarState extends State<FloatingNoteToolbar>
+class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
     with TickerProviderStateMixin {
   bool _isExpanded = false;
   bool _showMoreOptions = false;
@@ -289,6 +299,69 @@ class _FloatingNoteToolbarState extends State<FloatingNoteToolbar>
     );
   }
 
+  void _showLineHeightMenu() {
+    final lineHeights = [1.0, 1.2, 1.5, 1.8, 2.0];
+    // ignore: unused_local_variable
+    final currentHeight = widget.currentLineHeight;
+
+    _showPopupMenu(
+      menuItems: lineHeights.map((height) {
+        return PopupMenuItem<double>(
+          value: height,
+          child: Text('${height.toStringAsFixed(1)}x'),
+        );
+      }).toList(),
+      onSelected: (newHeight) {
+        widget.onLineHeightChanged?.call(newHeight);
+      },
+    );
+  }
+
+  void _showParagraphSpacingMenu() {
+    final spacings = [0.0, 4.0, 8.0, 12.0, 16.0, 24.0];
+    // ignore: unused_local_variable
+    final currentSpacing = widget.currentParagraphSpacing;
+
+    _showPopupMenu(
+      menuItems: spacings.map((spacing) {
+        return PopupMenuItem<double>(
+          value: spacing,
+          child: Text('${spacing.toStringAsFixed(0)}pt'),
+        );
+      }).toList(),
+      onSelected: (newSpacing) {
+        widget.onParagraphSpacingChanged?.call(newSpacing);
+      },
+    );
+  }
+
+  void _showPopupMenu({
+    required List<PopupMenuEntry> menuItems,
+    required Function(dynamic) onSelected,
+  }) {
+    final RenderBox button = context.findRenderObject() as RenderBox;
+    final RenderBox overlay =
+        Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
+    final RelativeRect position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        button.localToGlobal(Offset.zero, ancestor: overlay),
+        button.localToGlobal(
+          button.size.bottomRight(Offset.zero),
+          ancestor: overlay,
+        ),
+      ),
+      Offset.zero & overlay.size,
+    );
+
+    showMenu(context: context, position: position, items: menuItems).then((
+      value,
+    ) {
+      if (value != null) {
+        onSelected(value);
+      }
+    });
+  }
+
   // Get primary toolbar items (most commonly used)
   // Order: top-to-bottom visually = Lists, Underline, Italic, Bold (then More button below)
   List<_ToolbarItem> _getPrimaryItems() {
@@ -359,6 +432,20 @@ class _FloatingNoteToolbarState extends State<FloatingNoteToolbar>
         tooltip: 'Heading 3',
         onTap: () => _toggleStyle(quill.Attribute.h3),
         isActive: _isStyleActive(quill.Attribute.h3),
+      ),
+      // Line Height
+      _ToolbarItem(
+        icon: Icons.height,
+        tooltip: 'Line Height',
+        onTap: _showLineHeightMenu,
+        isActive: false,
+      ),
+      // Paragraph Spacing
+      _ToolbarItem(
+        icon: Icons.space_bar,
+        tooltip: 'Paragraph Spacing',
+        onTap: _showParagraphSpacingMenu,
+        isActive: false,
       ),
       // Font family
       _ToolbarItem(

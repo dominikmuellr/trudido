@@ -49,6 +49,12 @@ class Note extends HiveObject {
   @HiveField(8, defaultValue: false)
   bool isDeleted;
 
+  @HiveField(9, defaultValue: 1.5)
+  double lineHeightMultiplier;
+
+  @HiveField(10, defaultValue: 8.0)
+  double paragraphSpacing;
+
   Note({
     String? id,
     required this.title,
@@ -59,6 +65,8 @@ class Note extends HiveObject {
     this.folderId,
     this.todoTxtContent,
     this.isDeleted = false,
+    this.lineHeightMultiplier = 1.5,
+    this.paragraphSpacing = 8.0,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
@@ -74,6 +82,8 @@ class Note extends HiveObject {
     String? folderId,
     String? todoTxtContent,
     bool? isDeleted,
+    double? lineHeightMultiplier,
+    double? paragraphSpacing,
   }) {
     return Note(
       id: id ?? this.id,
@@ -85,6 +95,8 @@ class Note extends HiveObject {
       folderId: folderId ?? this.folderId,
       todoTxtContent: todoTxtContent ?? this.todoTxtContent,
       isDeleted: isDeleted ?? this.isDeleted,
+      lineHeightMultiplier: lineHeightMultiplier ?? this.lineHeightMultiplier,
+      paragraphSpacing: paragraphSpacing ?? this.paragraphSpacing,
     );
   }
 
@@ -114,6 +126,8 @@ class Note extends HiveObject {
       'folderId': folderId,
       'todoTxtContent': todoTxtContent,
       'isDeleted': isDeleted,
+      'lineHeightMultiplier': lineHeightMultiplier,
+      'paragraphSpacing': paragraphSpacing,
     };
   }
 
@@ -129,6 +143,9 @@ class Note extends HiveObject {
       folderId: json['folderId'] as String?,
       todoTxtContent: json['todoTxtContent'] as String?,
       isDeleted: json['isDeleted'] as bool? ?? false,
+      lineHeightMultiplier:
+          (json['lineHeightMultiplier'] as num?)?.toDouble() ?? 1.5,
+      paragraphSpacing: (json['paragraphSpacing'] as num?)?.toDouble() ?? 8.0,
     );
   }
 }

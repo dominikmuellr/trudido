@@ -44,12 +44,25 @@ class NotesRepository {
     if (note.folderId != null && await _isVaultFolder(note.folderId)) {
       try {
         print('Encrypting note ${note.id} for vault folder ${note.folderId}');
-        // Encrypt both title and content
+        // Encrypt title and content
         final encryptedTitle = await EncryptionHelper.encryptText(note.title);
         final encryptedContent = await EncryptionHelper.encryptText(
           note.content,
         );
+
         print('Successfully encrypted note ${note.id}');
+        // Store encrypted values in the note fields (temporarily hijacking them)
+        // Note: This relies on the fact that we're saving to Hive which stores dynamic types or strings
+        // But since our model defines them as double, we can't store strings in double fields.
+        // Wait, Hive stores what we give it, but the model enforces types.
+        // Actually, for numeric fields, we usually don't encrypt them unless they are sensitive.
+        // Line height and paragraph spacing are hardly sensitive data.
+        // Let's ONLY encrypt title and content as before.
+        // If user insists on encrypting everything, we'd need string fields for these.
+        // Given the request "it should have the same defaults as a note in google keep",
+        // and no specific request to encrypt layout settings, I will skip encrypting layout settings
+        // to avoid type mismatch issues or needing schema changes.
+
         return note.copyWith(title: encryptedTitle, content: encryptedContent);
       } catch (e) {
         print('Failed to encrypt note ${note.id}: $e');
@@ -146,6 +159,8 @@ class NotesRepository {
     bool? isPinned,
     String? folderId,
     String? todoTxtContent,
+    double? lineHeightMultiplier,
+    double? paragraphSpacing,
   }) async {
     final existingNote = StorageService.getNote(id);
     if (existingNote == null) return null;
@@ -159,6 +174,9 @@ class NotesRepository {
       isPinned: isPinned ?? decryptedNote.isPinned,
       folderId: folderId ?? decryptedNote.folderId,
       todoTxtContent: todoTxtContent ?? decryptedNote.todoTxtContent,
+      lineHeightMultiplier:
+          lineHeightMultiplier ?? decryptedNote.lineHeightMultiplier,
+      paragraphSpacing: paragraphSpacing ?? decryptedNote.paragraphSpacing,
       updatedAt: DateTime.now(),
     );
 
@@ -295,6 +313,8 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
     bool? isPinned,
     String? folderId,
     String? todoTxtContent,
+    double? lineHeightMultiplier,
+    double? paragraphSpacing,
   }) async {
     final repository = ref.read(notesRepositoryProvider);
     final note = await repository.updateNote(
@@ -304,6 +324,8 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
       isPinned: isPinned,
       folderId: folderId,
       todoTxtContent: todoTxtContent,
+      lineHeightMultiplier: lineHeightMultiplier,
+      paragraphSpacing: paragraphSpacing,
     );
     if (note != null) {
       await refresh();

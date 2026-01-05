@@ -920,6 +920,8 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         id: existingId,
         title: title,
         content: content,
+        lineHeightMultiplier: _originalNote?.lineHeightMultiplier,
+        paragraphSpacing: _originalNote?.paragraphSpacing,
       );
     } else {
       savedNote = await controller.createNote(
@@ -1533,6 +1535,126 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     );
   }
 
+  Widget _buildLineHeightDropdown() {
+    final lineHeights = [1.0, 1.2, 1.5, 1.8, 2.0, 2.2, 2.5, 3.0];
+    final currentHeight = _originalNote?.lineHeightMultiplier ?? 1.5;
+
+    return PopupMenuButton<double>(
+      tooltip: 'Line height',
+      offset: const Offset(0, 40),
+      child: Container(
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${currentHeight.toStringAsFixed(1)}x',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontSize: 14),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_drop_down,
+              size: 20,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => lineHeights.map((height) {
+        return PopupMenuItem<double>(
+          value: height,
+          child: Text(
+            '${height.toStringAsFixed(1)}x',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: (height - currentHeight).abs() < 0.01
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+            ),
+          ),
+        );
+      }).toList(),
+      onSelected: (newHeight) {
+        if (_originalNote != null) {
+          setState(() {
+            _originalNote = _originalNote!.copyWith(
+              lineHeightMultiplier: newHeight,
+            );
+            _hasUnsavedChanges = true;
+          });
+          _saveNoteInternal(showFeedback: false);
+        }
+      },
+    );
+  }
+
+  Widget _buildParagraphSpacingDropdown() {
+    final spacings = [0.0, 4.0, 8.0, 12.0, 16.0, 24.0];
+    final currentSpacing = _originalNote?.paragraphSpacing ?? 8.0;
+
+    return PopupMenuButton<double>(
+      tooltip: 'Paragraph spacing',
+      offset: const Offset(0, 40),
+      child: Container(
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${currentSpacing.toStringAsFixed(0)}pt',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontSize: 14),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_drop_down,
+              size: 20,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => spacings.map((spacing) {
+        return PopupMenuItem<double>(
+          value: spacing,
+          child: Text(
+            '${spacing.toStringAsFixed(0)}pt',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: (spacing - currentSpacing).abs() < 0.01
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+            ),
+          ),
+        );
+      }).toList(),
+      onSelected: (newSpacing) {
+        if (_originalNote != null) {
+          setState(() {
+            _originalNote = _originalNote!.copyWith(
+              paragraphSpacing: newSpacing,
+            );
+            _hasUnsavedChanges = true;
+          });
+          _saveNoteInternal(showFeedback: false);
+        }
+      },
+    );
+  }
+
   @override
   void dispose() {
     _autoSaveTimer?.cancel();
@@ -1647,6 +1769,31 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                   onInsertVideo: _insertVideo,
                   onInsertVoice: _insertVoiceNote,
                   onInsertLink: _insertLink,
+                  currentLineHeight: _originalNote?.lineHeightMultiplier ?? 1.5,
+                  currentParagraphSpacing:
+                      _originalNote?.paragraphSpacing ?? 8.0,
+                  onLineHeightChanged: (newHeight) {
+                    if (_originalNote != null) {
+                      setState(() {
+                        _originalNote = _originalNote!.copyWith(
+                          lineHeightMultiplier: newHeight,
+                        );
+                        _hasUnsavedChanges = true;
+                      });
+                      _saveNoteInternal(showFeedback: false);
+                    }
+                  },
+                  onParagraphSpacingChanged: (newSpacing) {
+                    if (_originalNote != null) {
+                      setState(() {
+                        _originalNote = _originalNote!.copyWith(
+                          paragraphSpacing: newSpacing,
+                        );
+                        _hasUnsavedChanges = true;
+                      });
+                      _saveNoteInternal(showFeedback: false);
+                    }
+                  },
                 ),
               )
             : null,
@@ -1795,6 +1942,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                     const quill.QuillToolbarIndentButtonOptions(),
                               ),
                               _buildToolbarDivider(),
+                              _buildLineHeightDropdown(),
+                              _buildParagraphSpacingDropdown(),
+                              _buildToolbarDivider(),
                               quill.QuillToolbarColorButton(
                                 controller: _quillController,
                                 isBackground: false,
@@ -1852,6 +2002,39 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                         scrollController: _scrollController,
                         controller: _quillController,
                         config: quill.QuillEditorConfig(
+                          customStyles: quill.DefaultStyles(
+                            paragraph: quill.DefaultTextBlockStyle(
+                              TextStyle(
+                                fontSize: 16,
+                                color: Theme.of(context).colorScheme.onSurface,
+                                height:
+                                    _originalNote?.lineHeightMultiplier ?? 1.5,
+                              ),
+                              quill.HorizontalSpacing(0, 0),
+                              quill.VerticalSpacing(
+                                _originalNote?.paragraphSpacing ?? 8.0,
+                                _originalNote?.paragraphSpacing ?? 8.0,
+                              ),
+                              quill.VerticalSpacing(0, 0),
+                              null,
+                            ),
+                            lists: quill.DefaultListBlockStyle(
+                              TextStyle(
+                                fontSize: 16,
+                                color: Theme.of(context).colorScheme.onSurface,
+                                height:
+                                    _originalNote?.lineHeightMultiplier ?? 1.5,
+                              ),
+                              quill.HorizontalSpacing(0, 0),
+                              quill.VerticalSpacing(
+                                _originalNote?.paragraphSpacing ?? 8.0,
+                                _originalNote?.paragraphSpacing ?? 8.0,
+                              ),
+                              quill.VerticalSpacing(0, 0),
+                              null,
+                              null,
+                            ),
+                          ),
                           embedBuilders: [
                             MediaEmbedBuilder(),
                             LinkEmbedBuilder(),

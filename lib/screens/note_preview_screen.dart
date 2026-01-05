@@ -203,9 +203,40 @@ class _NotePreviewScreenState extends ConsumerState<NotePreviewScreen> {
                 controller: _quillController!,
                 scrollController: ScrollController(),
                 focusNode: FocusNode(),
-                config: const quill.QuillEditorConfig(
+                config: quill.QuillEditorConfig(
                   readOnlyMouseCursor: SystemMouseCursors.text,
                   padding: EdgeInsets.zero,
+                  customStyles: quill.DefaultStyles(
+                    paragraph: quill.DefaultTextBlockStyle(
+                      TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        height: _currentNote.lineHeightMultiplier,
+                      ),
+                      quill.HorizontalSpacing(0, 0),
+                      quill.VerticalSpacing(
+                        _currentNote.paragraphSpacing,
+                        _currentNote.paragraphSpacing,
+                      ),
+                      quill.VerticalSpacing(0, 0),
+                      null,
+                    ),
+                    lists: quill.DefaultListBlockStyle(
+                      TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        height: _currentNote.lineHeightMultiplier,
+                      ),
+                      quill.HorizontalSpacing(0, 0),
+                      quill.VerticalSpacing(
+                        _currentNote.paragraphSpacing,
+                        _currentNote.paragraphSpacing,
+                      ),
+                      quill.VerticalSpacing(0, 0),
+                      null,
+                      null,
+                    ),
+                  ),
                 ),
               )
             else if (_getCleanContentWithoutTitleAndSubtitle(

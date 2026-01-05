@@ -113,7 +113,7 @@ class NotePreviewCard extends ConsumerWidget {
   }
 
   /// Converts Quill Delta JSON to formatted TextSpan
-  TextSpan _quillToTextSpan(BuildContext context) {
+  TextSpan _quillToTextSpan(BuildContext context, WidgetRef ref) {
     try {
       final json = jsonDecode(note.content) as List;
       final migratedJson = _migrateFontSizes(json);
@@ -121,7 +121,7 @@ class NotePreviewCard extends ConsumerWidget {
 
       final baseStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
         color: Theme.of(context).colorScheme.onSurfaceVariant,
-        height: 1.3,
+        height: note.lineHeightMultiplier,
       );
 
       // Check if the first line of content matches the title
@@ -475,14 +475,15 @@ class NotePreviewCard extends ConsumerWidget {
               fontStyle: FontStyle.italic,
             ),
           )
-        : _parseMarkdownToTextSpan(note.title, context, isTitle: true);
+        : _parseMarkdownToTextSpan(note.title, context, ref, isTitle: true);
 
     // For Quill notes, render with formatting; for markdown, parse structure
     final bodySpan = _isQuillFormat()
-        ? _quillToTextSpan(context)
+        ? _quillToTextSpan(context, ref)
         : _parseMarkdownToTextSpan(
             _extractContentOnly(contentLines),
             context,
+            ref,
             isTitle: false,
           );
     debugPrint('Preview: bodySpan created successfully');
@@ -760,7 +761,8 @@ class NotePreviewCard extends ConsumerWidget {
   /// This is the BEST PRACTICE for list view markdown previews!
   TextSpan _parseMarkdownToTextSpan(
     String text,
-    BuildContext context, {
+    BuildContext context,
+    WidgetRef? ref, {
     required bool isTitle,
   }) {
     if (text.isEmpty) return const TextSpan(text: '');
@@ -772,7 +774,9 @@ class NotePreviewCard extends ConsumerWidget {
           )
         : Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
-            height: 1.3,
+            height: ref != null
+                ? ref.watch(preferencesStateProvider).lineHeightMultiplier
+                : 1.3,
           );
 
     // Handle headers first - strip # symbols and make them plain text

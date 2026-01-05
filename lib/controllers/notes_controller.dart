@@ -67,6 +67,8 @@ class NotesController extends StateNotifier<AsyncValue<void>> {
     String? title,
     String? content,
     String? todoTxtContent,
+    double? lineHeightMultiplier,
+    double? paragraphSpacing,
   }) async {
     // Validate input
     if (title != null && title.trim().isEmpty) {
@@ -81,6 +83,8 @@ class NotesController extends StateNotifier<AsyncValue<void>> {
         title: title?.trim(),
         content: content,
         todoTxtContent: todoTxtContent,
+        lineHeightMultiplier: lineHeightMultiplier,
+        paragraphSpacing: paragraphSpacing,
       );
       state = const AsyncValue.data(null);
       return note;

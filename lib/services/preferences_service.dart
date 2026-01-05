@@ -171,6 +171,12 @@ class PreferencesService {
       firstDayOfWeek:
           p.getInt('first_day_of_week') ??
           PreferencesState.defaultState.firstDayOfWeek,
+      lineHeightMultiplier:
+          p.getDouble('line_height_multiplier') ??
+          PreferencesState.defaultState.lineHeightMultiplier,
+      paragraphSpacing:
+          p.getDouble('paragraph_spacing') ??
+          PreferencesState.defaultState.paragraphSpacing,
     );
   }
 
@@ -194,6 +200,8 @@ class PreferencesService {
     bool? useFloatingNoteToolbar,
     bool? hideBottomNavigation,
     int? firstDayOfWeek,
+    double? lineHeightMultiplier,
+    double? paragraphSpacing,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -225,6 +233,10 @@ class PreferencesService {
         await p.setBool('hide_bottom_navigation', hideBottomNavigation);
       if (firstDayOfWeek != null)
         await p.setInt('first_day_of_week', firstDayOfWeek);
+      if (lineHeightMultiplier != null)
+        await p.setDouble('line_height_multiplier', lineHeightMultiplier);
+      if (paragraphSpacing != null)
+        await p.setDouble('paragraph_spacing', paragraphSpacing);
       _hydrate();
       return _cache;
     } catch (e, st) {

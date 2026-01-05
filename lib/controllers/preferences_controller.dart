@@ -104,6 +104,12 @@ class PreferencesController {
   Future<void> setFirstDayOfWeek(int dayIndex) =>
       _update(firstDayOfWeek: dayIndex);
 
+  Future<void> setLineHeightMultiplier(double value) =>
+      _update(lineHeightMultiplier: value);
+
+  Future<void> setParagraphSpacing(double value) =>
+      _update(paragraphSpacing: value);
+
   Future<void> _update({
     String? themeMode,
     bool? useDynamicColor,
@@ -116,6 +122,8 @@ class PreferencesController {
     String? swipeRightAction,
     bool? useFloatingNoteToolbar,
     int? firstDayOfWeek,
+    double? lineHeightMultiplier,
+    double? paragraphSpacing,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -129,6 +137,8 @@ class PreferencesController {
       swipeRightAction: swipeRightAction,
       useFloatingNoteToolbar: useFloatingNoteToolbar,
       firstDayOfWeek: firstDayOfWeek,
+      lineHeightMultiplier: lineHeightMultiplier,
+      paragraphSpacing: paragraphSpacing,
     );
     ref.read(preferencesStateProvider.notifier).state = updated;
   }

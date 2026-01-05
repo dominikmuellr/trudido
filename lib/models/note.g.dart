@@ -26,13 +26,15 @@ class NoteAdapter extends TypeAdapter<Note> {
       folderId: fields[6] as String?,
       todoTxtContent: fields[7] as String?,
       isDeleted: fields[8] == null ? false : fields[8] as bool,
+      lineHeightMultiplier: fields[9] == null ? 1.5 : fields[9] as double,
+      paragraphSpacing: fields[10] == null ? 8.0 : fields[10] as double,
     );
   }
 
   @override
   void write(BinaryWriter writer, Note obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -50,7 +52,11 @@ class NoteAdapter extends TypeAdapter<Note> {
       ..writeByte(7)
       ..write(obj.todoTxtContent)
       ..writeByte(8)
-      ..write(obj.isDeleted);
+      ..write(obj.isDeleted)
+      ..writeByte(9)
+      ..write(obj.lineHeightMultiplier)
+      ..writeByte(10)
+      ..write(obj.paragraphSpacing);
   }
 
   @override

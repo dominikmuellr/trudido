@@ -23,6 +23,7 @@ import '../controllers/notes_controller.dart';
 import '../repositories/notes_repository.dart';
 import '../repositories/note_folder_repository.dart';
 import '../services/note_export_service.dart';
+import '../providers/app_providers.dart';
 
 /// Screen for creating and editing markdown notes
 class NoteEditorScreen extends ConsumerStatefulWidget {
@@ -516,7 +517,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
           lineStyle ??
           Theme.of(context).textTheme.bodyLarge?.copyWith(
             color: Theme.of(context).colorScheme.onSurface,
-            height: 1.5,
+            height: ref.watch(preferencesStateProvider).lineHeightMultiplier,
           );
 
       // Parse inline formatting within the line
