@@ -640,20 +640,14 @@ class NotePreviewCard extends ConsumerWidget {
           elevation: 0, // Modern MD3: flat design with no shadow
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: Theme.of(context).brightness == Brightness.light
-                ? BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    width: 1,
-                  )
-                : BorderSide.none,
           ),
           color: Theme.of(context).brightness == Brightness.dark
               ? Theme.of(context)
                     .colorScheme
                     .surfaceContainerHighest // Highest surface for best visibility
-              : Theme.of(
-                  context,
-                ).colorScheme.surface, // Use surface for light mode
+              : Theme.of(context).colorScheme.primary.withOpacity(
+                  0.08,
+                ), // Subtle tint of theme color in light mode
           child: Container(
             width: double.infinity,
             child: Padding(
