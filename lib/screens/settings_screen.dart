@@ -24,7 +24,6 @@ import 'about_screen.dart';
 import 'personalization_screen.dart';
 import 'comprehensive_notification_settings.dart';
 import 'template_management_screen.dart';
-import 'font_size_settings_screen.dart';
 import 'calendar_sync_settings_screen.dart';
 import 'app_lock_settings_page.dart';
 import '../controllers/preferences_controller.dart';

@@ -47,8 +47,8 @@ class TodoListTab extends ConsumerWidget {
 
     return Column(
       children: [
-        // Always-visible Material 3 filter chips row
-        const FilterChips(),
+        // Hide filters in calendar view
+        if (viewType != TaskViewType.calendar) const FilterChips(),
         Expanded(
           child: GestureDetector(
             onPanUpdate: (details) {
