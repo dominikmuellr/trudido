@@ -17,6 +17,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/avatar_service.dart';
 import '../services/storage_service.dart';
 import '../services/default_tab_service.dart';
@@ -319,6 +320,10 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
           _buildSectionHeader(context, 'Experimental'),
           _buildFloatingToolbarToggle(),
 
+          // Support Section
+          _buildSectionHeader(context, 'Support'),
+          _buildSupportButtons(),
+
           const SizedBox(height: 32),
         ],
       ),
@@ -406,6 +411,66 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildSupportButtons() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'If you enjoy using Trudido, consider supporting its development!',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              _buildDonationButton(
+                label: 'Ko-fi',
+                icon: Icons.coffee_outlined,
+                url: 'https://ko-fi.com/dominikmuellr',
+                color: const Color(0xFFFF5E5B),
+              ),
+              _buildDonationButton(
+                label: 'Liberapay',
+                icon: Icons.favorite_outline,
+                url: 'https://liberapay.com/dominikmuellr/donate',
+                color: const Color(0xFFF6C915),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDonationButton({
+    required String label,
+    required IconData icon,
+    required String url,
+    required Color color,
+  }) {
+    return OutlinedButton.icon(
+      onPressed: () async {
+        final uri = Uri.parse(url);
+        try {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } catch (e) {
+          // URL couldn't be launched
+        }
+      },
+      icon: Icon(icon, color: color, size: 18),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        side: BorderSide(color: color.withValues(alpha: 0.5)),
+      ),
     );
   }
 

@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/app_providers.dart';
 import '../controllers/task_controller.dart';
 import '../utils/responsive_size.dart';
@@ -440,6 +441,16 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
+
+          // Support Section
+          _buildSectionHeader(context, 'Support'),
+          ListTile(
+            leading: ScaledIcon(Icons.favorite_outline),
+            title: const Text('Support Development'),
+            subtitle: const Text('Buy me a coffee or donate'),
+            trailing: ScaledIcon(Icons.arrow_forward_ios),
+            onTap: () => _showSupportSheet(context),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 32),
             child: Center(
@@ -495,6 +506,83 @@ class SettingsScreen extends ConsumerWidget {
       context: context,
       showDragHandle: true,
       builder: (ctx) => _DangerZoneSheet(statistics: statistics),
+    );
+  }
+
+  void _showSupportSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Support Development',
+                style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'If you enjoy using Trudido, consider supporting its development!',
+                style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildDonationButton(
+                context: ctx,
+                label: 'Support on Ko-fi',
+                icon: Icons.coffee_outlined,
+                url: 'https://ko-fi.com/dominikmuellr',
+                color: const Color(0xFFFF5E5B),
+              ),
+              const SizedBox(height: 12),
+              _buildDonationButton(
+                context: ctx,
+                label: 'Donate on Liberapay',
+                icon: Icons.favorite_outline,
+                url: 'https://liberapay.com/dominikmuellr/donate',
+                color: const Color(0xFFF6C915),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDonationButton({
+    required BuildContext context,
+    required String label,
+    required IconData icon,
+    required String url,
+    required Color color,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () async {
+          final uri = Uri.parse(url);
+          try {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          } catch (e) {
+            // URL couldn't be launched
+          }
+        },
+        icon: Icon(icon, color: color),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
+          side: BorderSide(color: color.withValues(alpha: 0.5)),
+        ),
+      ),
     );
   }
 }
