@@ -130,6 +130,13 @@ class NoteExportService {
   static Future<Uint8List> generatePdfBytes(Note note) async {
     final doc = pw.Document();
 
+    debugPrint('=== PDF EXPORT START ===');
+    debugPrint('Note title: ${note.title}');
+    debugPrint('Content length: ${note.content.length}');
+    debugPrint(
+      'Content preview (first 200 chars): ${note.content.substring(0, note.content.length > 200 ? 200 : note.content.length)}',
+    );
+
     final title = note.title.isNotEmpty ? note.title : 'Untitled';
     final created = note.createdAt.toLocal();
     final updated = note.updatedAt.toLocal();
@@ -167,6 +174,8 @@ class NoteExportService {
     if (note.content.trim().startsWith('[')) {
       try {
         final ops = jsonDecode(note.content) as List<dynamic>;
+        debugPrint('Parsed ${ops.length} ops from content');
+        debugPrint('First 2 ops: ${ops.take(2).toList()}');
 
         // Convert ops into logical lines with inline spans so we can map
         // block-level formatting (headers, lists) and inline (bold/italic).
@@ -182,6 +191,7 @@ class NoteExportService {
 
             // Media embed handling: flush current line, then add media widget
             if (insert is Map) {
+              debugPrint('Found Map insert with keys: ${insert.keys.toList()}');
               String? mediaJson;
               if (insert.containsKey('custom')) {
                 mediaJson = insert['custom'] as String;
@@ -196,6 +206,7 @@ class NoteExportService {
               }
 
               if (mediaJson != null) {
+                debugPrint('Processing media embed: $mediaJson');
                 if (currentSpans.isNotEmpty) {
                   lines.add(
                     _PdfLine(spans: List.from(currentSpans), blockAttrs: {}),
@@ -210,21 +221,39 @@ class NoteExportService {
                   final pathStr = mediaData['path'] as String?;
 
                   if (type == 'image' && pathStr != null) {
+                    debugPrint('Attempting to load image from: $pathStr');
                     final file = File(pathStr);
-                    if (await file.exists()) {
-                      final bytes = await file.readAsBytes();
-                      final image = pw.MemoryImage(bytes);
-                      contentWidgets.add(pw.SizedBox(height: 8));
-                      contentWidgets.add(
-                        pw.Center(
-                          child: pw.Image(
-                            image,
-                            width: PdfPageFormat.a4.availableWidth * 0.9,
-                            fit: pw.BoxFit.scaleDown,
+                    final exists = await file.exists();
+                    debugPrint('File exists: $exists');
+                    if (exists) {
+                      try {
+                        final bytes = await file.readAsBytes();
+                        debugPrint('Successfully read ${bytes.length} bytes');
+                        final image = pw.MemoryImage(bytes);
+                        contentWidgets.add(pw.SizedBox(height: 8));
+                        contentWidgets.add(
+                          pw.Center(
+                            child: pw.Image(
+                              image,
+                              width: PdfPageFormat.a4.availableWidth * 0.9,
+                              fit: pw.BoxFit.scaleDown,
+                            ),
                           ),
-                        ),
-                      );
-                      contentWidgets.add(pw.SizedBox(height: 8));
+                        );
+                        contentWidgets.add(pw.SizedBox(height: 8));
+                        debugPrint('Image added to PDF');
+                      } catch (imgError) {
+                        debugPrint('Error reading image bytes: $imgError');
+                        contentWidgets.add(
+                          pw.Text(
+                            '[Error loading image: $imgError]',
+                            style: pw.TextStyle(
+                              fontSize: 10,
+                              color: PdfColors.grey,
+                            ),
+                          ),
+                        );
+                      }
                     } else {
                       contentWidgets.add(
                         pw.Text(
@@ -383,6 +412,11 @@ class NoteExportService {
               }
             } else {
               for (var item in items) {
+                final bullet = (listType == 'checked')
+                    ? '[x]'
+                    : (listType == 'unchecked')
+                    ? '[ ]'
+                    : '•';
                 contentWidgets.add(
                   pw.Padding(
                     padding: const pw.EdgeInsets.symmetric(vertical: 2),

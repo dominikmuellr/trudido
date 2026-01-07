@@ -122,6 +122,7 @@ dependencies:
   # Calendar integration (for DAVx5/Android Calendar sync)
   # Using device_calendar_plus - modern replacement with built-in ProGuard rules
   device_calendar_plus: ^0.3.1
+  share_plus: ^12.0.1
 
 dev_dependencies:
   flutter_test:

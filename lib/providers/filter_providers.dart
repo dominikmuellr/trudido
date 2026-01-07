@@ -100,15 +100,16 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
       return false;
     if (!showCompleted && todo.isCompleted) return false;
 
-    // Due today filter - uses activeOn() to handle multi-day spans
+    // Due today filter - includes both tasks due today AND overdue tasks
     if (dueTodayFilter) {
       // Tasks with no due date can't be "due today"
       if (todo.dueDate == null && todo.startDate == null) return false;
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      // activeOn checks if today falls within startDate..dueDate span
-      // For non-span tasks, it falls back to isDueOn(today)
-      if (!todo.activeOn(today)) return false;
+      // Include tasks due today OR overdue (past due dates)
+      final isDueToday = todo.activeOn(today);
+      final isOverdue = todo.isOverdueAt(now);
+      if (!isDueToday && !isOverdue) return false;
     }
 
     return true;

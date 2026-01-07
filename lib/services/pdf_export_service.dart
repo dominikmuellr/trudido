@@ -21,6 +21,7 @@ import 'package:printing/printing.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:intl/intl.dart';
 import 'dart:convert';
+import 'dart:io';
 import '../models/note.dart';
 import '../models/todo.dart';
 import '../services/storage_service.dart';
@@ -104,7 +105,14 @@ class PdfExportService {
       // Export notes section
       if (notes.isNotEmpty) {
         debugPrint('[PdfExport] Adding ${notes.length} notes to PDF');
-        _addNotesSection(pdf, notes, font, fontBold, fontItalic, dateFormat);
+        await _addNotesSection(
+          pdf,
+          notes,
+          font,
+          fontBold,
+          fontItalic,
+          dateFormat,
+        );
       } else {
         debugPrint('[PdfExport] No notes to export');
       }
@@ -336,14 +344,14 @@ class PdfExportService {
   }
 
   /// Add notes section to PDF
-  static void _addNotesSection(
+  static Future<void> _addNotesSection(
     pw.Document pdf,
     List<Note> notes,
     pw.Font font,
     pw.Font fontBold,
     pw.Font fontItalic,
     DateFormat dateFormat,
-  ) {
+  ) async {
     // Add section divider page
     pdf.addPage(
       pw.Page(
@@ -375,76 +383,211 @@ class PdfExportService {
 
     // Add each note
     for (var note in notes) {
-      _addSingleNote(pdf, note, font, fontBold, fontItalic, dateFormat);
+      await _addSingleNote(pdf, note, font, fontBold, fontItalic, dateFormat);
     }
   }
 
-  /// Add a single note to PDF
-  static void _addSingleNote(
+  /// Add a single note to PDF with images and formatting
+  static Future<void> _addSingleNote(
     pw.Document pdf,
     Note note,
     pw.Font font,
     pw.Font fontBold,
     pw.Font fontItalic,
     DateFormat dateFormat,
-  ) {
-    // Try to parse as Quill JSON content, fallback to plain text
-    String noteContent = note.content;
+  ) async {
+    final contentWidgets = <pw.Widget>[];
 
+    // Title
+    contentWidgets.add(
+      pw.Header(
+        level: 0,
+        child: pw.Text(
+          note.title,
+          style: pw.TextStyle(font: fontBold, fontSize: 24),
+        ),
+      ),
+    );
+
+    // Metadata
+    contentWidgets.add(
+      pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 20),
+        child: pw.Text(
+          'Created: ${dateFormat.format(note.createdAt)}\n'
+          'Updated: ${dateFormat.format(note.updatedAt)}',
+          style: pw.TextStyle(
+            font: font,
+            fontSize: 10,
+            color: PdfColors.grey700,
+          ),
+        ),
+      ),
+    );
+
+    contentWidgets.add(pw.Divider(thickness: 1));
+    contentWidgets.add(pw.SizedBox(height: 10));
+
+    // Parse Quill JSON and render with images
     try {
       final jsonContent = jsonDecode(note.content);
+      List<dynamic> ops;
+
       if (jsonContent is List) {
-        final quillDoc = quill.Document.fromJson(jsonContent);
-        noteContent = quillDoc.toPlainText();
+        ops = jsonContent;
+      } else if (jsonContent is Map && jsonContent.containsKey('ops')) {
+        ops = jsonContent['ops'] as List<dynamic>;
+      } else {
+        throw FormatException('Not Quill format');
+      }
+
+      // Process each op
+      for (var op in ops) {
+        if (op is! Map<String, dynamic> || !op.containsKey('insert')) continue;
+
+        final insert = op['insert'];
+        final attrs = (op['attributes'] is Map)
+            ? (op['attributes'] as Map).cast<String, dynamic>()
+            : <String, dynamic>{};
+
+        // Handle media embeds
+        if (insert is Map) {
+          final custom = insert['custom'];
+          debugPrint(
+            '[PdfExport] Found Map insert, custom field type: ${custom?.runtimeType}',
+          );
+          debugPrint('[PdfExport] Custom value: $custom');
+
+          if (custom is String) {
+            debugPrint('[PdfExport] Custom is String, attempting to parse...');
+            try {
+              final parsed = jsonDecode(custom) as Map<String, dynamic>;
+              debugPrint('[PdfExport] Parsed media: $parsed');
+
+              // The media field contains ANOTHER JSON string
+              final mediaString = parsed['media'] as String?;
+              if (mediaString != null) {
+                debugPrint('[PdfExport] Found media string, parsing again...');
+                final media = jsonDecode(mediaString) as Map<String, dynamic>;
+                debugPrint('[PdfExport] Final parsed media: $media');
+
+                final type = media['type'] as String?;
+                final pathStr = media['path'] as String?;
+                debugPrint('[PdfExport] Type: $type, Path: $pathStr');
+
+                if (type == 'image' && pathStr != null) {
+                  final file = File(pathStr);
+                  final exists = await file.exists();
+                  debugPrint('[PdfExport] Image file exists: $exists');
+                  if (exists) {
+                    final bytes = await file.readAsBytes();
+                    debugPrint('[PdfExport] Loaded ${bytes.length} bytes');
+                    final image = pw.MemoryImage(bytes);
+                    contentWidgets.add(pw.SizedBox(height: 8));
+                    contentWidgets.add(
+                      pw.Center(
+                        child: pw.Image(
+                          image,
+                          width: PdfPageFormat.a4.availableWidth * 0.7,
+                          fit: pw.BoxFit.scaleDown,
+                        ),
+                      ),
+                    );
+                    contentWidgets.add(pw.SizedBox(height: 8));
+                    debugPrint('[PdfExport] Image widget added!');
+                  }
+                }
+              }
+            } catch (e) {
+              debugPrint('[PdfExport] Error parsing custom: $e');
+            }
+          } else if (custom is Map) {
+            debugPrint(
+              '[PdfExport] Custom is Map: ${(custom as Map).keys.toList()}',
+            );
+          }
+          continue;
+        }
+
+        // Handle text
+        if (insert is String && insert.isNotEmpty) {
+          var style = pw.TextStyle(font: font, fontSize: 12);
+          if (attrs['bold'] == true) style = style.copyWith(font: fontBold);
+          if (attrs['italic'] == true) style = style.copyWith(font: fontItalic);
+
+          if (attrs.containsKey('header')) {
+            final level = attrs['header'] is int ? attrs['header'] as int : 1;
+            final size = level == 1 ? 18.0 : (level == 2 ? 16.0 : 14.0);
+            contentWidgets.add(
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(top: 10, bottom: 5),
+                child: pw.Text(
+                  insert,
+                  style: pw.TextStyle(font: fontBold, fontSize: size),
+                ),
+              ),
+            );
+          } else if (attrs['list'] == 'checked') {
+            contentWidgets.add(
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(left: 20, bottom: 2),
+                child: pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('[x] ', style: style),
+                    pw.Expanded(child: pw.Text(insert, style: style)),
+                  ],
+                ),
+              ),
+            );
+          } else if (attrs['list'] == 'unchecked') {
+            contentWidgets.add(
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(left: 20, bottom: 2),
+                child: pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('[ ] ', style: style),
+                    pw.Expanded(child: pw.Text(insert, style: style)),
+                  ],
+                ),
+              ),
+            );
+          } else if (attrs['list'] == 'bullet') {
+            contentWidgets.add(
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(left: 20, bottom: 2),
+                child: pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('\u2022 ', style: style),
+                    pw.Expanded(child: pw.Text(insert, style: style)),
+                  ],
+                ),
+              ),
+            );
+          } else {
+            contentWidgets.add(
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 4),
+                child: pw.Text(insert, style: style),
+              ),
+            );
+          }
+        }
       }
     } catch (e) {
-      // Not JSON or not Quill format, use as plain text
+      // Fallback to plain text
+      contentWidgets.add(
+        pw.Text(note.content, style: pw.TextStyle(font: font, fontSize: 12)),
+      );
     }
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(40),
-        build: (context) {
-          final widgets = <pw.Widget>[];
-
-          // Title
-          widgets.add(
-            pw.Header(
-              level: 0,
-              child: pw.Text(
-                note.title,
-                style: pw.TextStyle(font: fontBold, fontSize: 24),
-              ),
-            ),
-          );
-
-          // Metadata
-          widgets.add(
-            pw.Padding(
-              padding: const pw.EdgeInsets.only(bottom: 20),
-              child: pw.Text(
-                'Created: ${dateFormat.format(note.createdAt)}\n'
-                'Updated: ${dateFormat.format(note.updatedAt)}',
-                style: pw.TextStyle(
-                  font: font,
-                  fontSize: 10,
-                  color: PdfColors.grey700,
-                ),
-              ),
-            ),
-          );
-
-          widgets.add(pw.Divider(thickness: 1));
-          widgets.add(pw.SizedBox(height: 10));
-
-          // Content
-          widgets.add(
-            pw.Text(noteContent, style: pw.TextStyle(font: font, fontSize: 12)),
-          );
-
-          return widgets;
-        },
+        build: (context) => contentWidgets,
       ),
     );
   }
