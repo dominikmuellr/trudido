@@ -305,6 +305,8 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
               return const _AccentColorSelector();
             },
           ),
+          // Contrast Level Selector (Material 3 January 2026)
+          const _ContrastLevelSelector(),
 
           // Display Section
           _buildSectionHeader(context, 'Display'),
@@ -1459,6 +1461,125 @@ class _GreetingLanguageSheet extends ConsumerWidget {
                 );
               },
             ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// Contrast Level Selector (Material 3 January 2026)
+// ============================================================================
+
+class _ContrastLevelSelector extends ConsumerWidget {
+  const _ContrastLevelSelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prefs = ref.watch(preferencesStateProvider);
+    final currentLevel = prefs.contrastLevel;
+
+    String getDisplayName(String level) {
+      switch (level) {
+        case 'medium':
+          return 'Medium';
+        case 'high':
+          return 'High';
+        case 'standard':
+        default:
+          return 'Standard';
+      }
+    }
+
+    return ListTile(
+      leading: const Icon(Icons.contrast),
+      title: const Text('Contrast Level'),
+      subtitle: Text(getDisplayName(currentLevel)),
+      trailing: const Icon(Icons.arrow_drop_down),
+      onTap: () async {
+        final choice = await showModalBottomSheet<String>(
+          context: context,
+          showDragHandle: true,
+          builder: (ctx) {
+            return _ContrastLevelSheet(current: currentLevel);
+          },
+        );
+        if (choice != null) {
+          final controller = ref.read(preferencesControllerProvider);
+          await controller.setContrastLevel(choice);
+        }
+      },
+    );
+  }
+}
+
+class _ContrastLevelSheet extends StatelessWidget {
+  final String current;
+  const _ContrastLevelSheet({required this.current});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    Widget buildOption(String level, String label, String desc, IconData icon) {
+      final selected = current == level;
+      return ListTile(
+        leading: Icon(icon, color: selected ? cs.primary : cs.onSurfaceVariant),
+        title: Text(
+          label,
+          style: TextStyle(fontWeight: selected ? FontWeight.w600 : null),
+        ),
+        subtitle: Text(desc),
+        trailing: selected ? Icon(Icons.check, color: cs.primary) : null,
+        onTap: () => Navigator.of(context).pop(level),
+      );
+    }
+
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Contrast Level',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Adjust color contrast for better visibility',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+          buildOption(
+            'standard',
+            'Standard',
+            'Default contrast for most users',
+            Icons.contrast,
+          ),
+          buildOption(
+            'medium',
+            'Medium',
+            'Enhanced contrast for improved readability',
+            Icons.contrast_outlined,
+          ),
+          buildOption(
+            'high',
+            'High',
+            'Maximum contrast for accessibility needs',
+            Icons.accessibility_new,
           ),
           const SizedBox(height: 16),
         ],

@@ -143,6 +143,9 @@ class PreferencesService {
       highContrast:
           p.getBool('high_contrast') ??
           PreferencesState.defaultState.highContrast,
+      contrastLevel:
+          p.getString('contrast_level') ??
+          PreferencesState.defaultState.contrastLevel,
       hideGreeting:
           p.getBool('hide_greeting') ??
           PreferencesState.defaultState.hideGreeting,
@@ -202,6 +205,7 @@ class PreferencesService {
     int? firstDayOfWeek,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
+    String? contrastLevel,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -237,6 +241,8 @@ class PreferencesService {
         await p.setDouble('line_height_multiplier', lineHeightMultiplier);
       if (paragraphSpacing != null)
         await p.setDouble('paragraph_spacing', paragraphSpacing);
+      if (contrastLevel != null)
+        await p.setString('contrast_level', contrastLevel);
       _hydrate();
       return _cache;
     } catch (e, st) {

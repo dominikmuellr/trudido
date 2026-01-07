@@ -41,9 +41,14 @@ final compactDensityProvider = Provider<bool>(
   (ref) => ref.watch(preferencesStateProvider).compactDensity,
 );
 
-// High contrast preference
+// High contrast preference (legacy - maintained for backwards compatibility)
 final highContrastProvider = Provider<bool>(
   (ref) => ref.watch(preferencesStateProvider).highContrast,
+);
+
+// Contrast level preference (Material 3 January 2026: standard | medium | high)
+final contrastLevelProvider = Provider<String>(
+  (ref) => ref.watch(preferencesStateProvider).contrastLevel,
 );
 
 // Removed individual StateNotifiers (logic centralized in PreferencesController).
@@ -262,6 +267,13 @@ class AppTheme {
     return hsl.withLightness(lightness).toColor();
   }
 
+  /// Helper to darken a color by a percentage (0.0 to 1.0)
+  static Color _darken(Color color, double amount) {
+    final hsl = HSLColor.fromColor(color);
+    final lightness = (hsl.lightness - amount).clamp(0.0, 1.0);
+    return hsl.withLightness(lightness).toColor();
+  }
+
   /// Enhance dark mode contrast by lightening surfaces and text
   static ColorScheme _enhanceDarkContrast(ColorScheme darkScheme) {
     return darkScheme.copyWith(
@@ -293,15 +305,23 @@ class AppTheme {
       foregroundColor: colorScheme.onSurface, // Material 3 color-aware
     ),
     cardTheme: CardThemeData(
-      elevation: 1, // Material 3 standard for most cards
+      elevation:
+          0, // Material 3 January 2026: use tone-based surfaces instead of elevation
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       color: colorScheme.surfaceContainerLow, // Material 3 elevated surface
     ),
+    // Material 3 January 2026: FABs use Primary Container colors
     floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: colorScheme.primary,
-      foregroundColor: colorScheme.onPrimary,
+      backgroundColor: colorScheme.primaryContainer,
+      foregroundColor: colorScheme.onPrimaryContainer,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 0, // Material 3: FABs use tone, not elevation
+      focusElevation: 0,
+      hoverElevation: 0,
+      highlightElevation: 0,
     ),
+    // Material 3 January 2026: Filled input fields (primary style)
+    // Removes hybrid filled+outlined pattern in favor of pure filled style
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: colorScheme.surfaceContainerHighest,
@@ -311,21 +331,145 @@ class AppTheme {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.5)),
+        borderSide: BorderSide.none, // Pure filled style - no outline
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: colorScheme.primary, width: 2),
       ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: colorScheme.error, width: 1),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: colorScheme.error, width: 2),
+      ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
       labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+      floatingLabelStyle: TextStyle(color: colorScheme.primary),
       hintStyle: TextStyle(
         color: colorScheme.onSurfaceVariant.withOpacity(0.7),
       ),
+      prefixIconColor: colorScheme.onSurfaceVariant,
+      suffixIconColor: colorScheme.onSurfaceVariant,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     ),
+    // Material 3 January 2026: Elevated buttons with proper state layers
     elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      style: ButtonStyle(
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return colorScheme.onSurface.withOpacity(0.12);
+          }
+          return colorScheme.surfaceContainerLow;
+        }),
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return colorScheme.onSurface.withOpacity(0.38);
+          }
+          return colorScheme.primary;
+        }),
+        overlayColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return colorScheme.primary.withOpacity(0.12);
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return colorScheme.primary.withOpacity(0.08);
+          }
+          if (states.contains(WidgetState.focused)) {
+            return colorScheme.primary.withOpacity(0.10);
+          }
+          return null;
+        }),
+        elevation: const WidgetStatePropertyAll(1),
+      ),
+    ),
+    // Material 3 January 2026: Filled buttons with state layers
+    filledButtonTheme: FilledButtonThemeData(
+      style: ButtonStyle(
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+        overlayColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return colorScheme.onPrimary.withOpacity(0.12);
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return colorScheme.onPrimary.withOpacity(0.08);
+          }
+          if (states.contains(WidgetState.focused)) {
+            return colorScheme.onPrimary.withOpacity(0.10);
+          }
+          return null;
+        }),
+      ),
+    ),
+    // Material 3 January 2026: Outlined buttons with state layers
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: ButtonStyle(
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+        side: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return BorderSide(color: colorScheme.onSurface.withOpacity(0.12));
+          }
+          if (states.contains(WidgetState.focused)) {
+            return BorderSide(color: colorScheme.primary, width: 2);
+          }
+          return BorderSide(color: colorScheme.outline);
+        }),
+        overlayColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return colorScheme.primary.withOpacity(0.12);
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return colorScheme.primary.withOpacity(0.08);
+          }
+          if (states.contains(WidgetState.focused)) {
+            return colorScheme.primary.withOpacity(0.10);
+          }
+          return null;
+        }),
+      ),
+    ),
+    // Material 3 January 2026: Text buttons with state layers
+    textButtonTheme: TextButtonThemeData(
+      style: ButtonStyle(
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+        overlayColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return colorScheme.primary.withOpacity(0.12);
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return colorScheme.primary.withOpacity(0.08);
+          }
+          if (states.contains(WidgetState.focused)) {
+            return colorScheme.primary.withOpacity(0.10);
+          }
+          return null;
+        }),
       ),
     ),
     // Material 3 ListTile styling
@@ -386,15 +530,23 @@ class AppTheme {
       foregroundColor: colorScheme.onSurface, // Material 3 color-aware
     ),
     cardTheme: CardThemeData(
-      elevation: 1, // MD3 standard elevation for cards
+      elevation:
+          0, // Material 3 January 2026: use tone-based surfaces instead of elevation
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       color: colorScheme.surfaceContainerLow, // Material 3 elevated surface
     ),
+    // Material 3 January 2026: FABs use Primary Container colors
     floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: colorScheme.primary,
-      foregroundColor: colorScheme.onPrimary,
+      backgroundColor: colorScheme.primaryContainer,
+      foregroundColor: colorScheme.onPrimaryContainer,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 0, // Material 3: FABs use tone, not elevation
+      focusElevation: 0,
+      hoverElevation: 0,
+      highlightElevation: 0,
     ),
+    // Material 3 January 2026: Filled input fields (primary style)
+    // Removes hybrid filled+outlined pattern in favor of pure filled style
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: colorScheme.surfaceContainerHighest,
@@ -404,23 +556,145 @@ class AppTheme {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: colorScheme.outline.withOpacity(0.7),
-        ), // Increased for better dark mode visibility
+        borderSide: BorderSide.none, // Pure filled style - no outline
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: colorScheme.primary, width: 2),
       ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: colorScheme.error, width: 1),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: colorScheme.error, width: 2),
+      ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
       labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+      floatingLabelStyle: TextStyle(color: colorScheme.primary),
       hintStyle: TextStyle(
         color: colorScheme.onSurfaceVariant.withOpacity(0.7),
       ),
+      prefixIconColor: colorScheme.onSurfaceVariant,
+      suffixIconColor: colorScheme.onSurfaceVariant,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     ),
+    // Material 3 January 2026: Elevated buttons with proper state layers
     elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      style: ButtonStyle(
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return colorScheme.onSurface.withOpacity(0.12);
+          }
+          return colorScheme.surfaceContainerLow;
+        }),
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return colorScheme.onSurface.withOpacity(0.38);
+          }
+          return colorScheme.primary;
+        }),
+        overlayColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return colorScheme.primary.withOpacity(0.12);
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return colorScheme.primary.withOpacity(0.08);
+          }
+          if (states.contains(WidgetState.focused)) {
+            return colorScheme.primary.withOpacity(0.10);
+          }
+          return null;
+        }),
+        elevation: const WidgetStatePropertyAll(1),
+      ),
+    ),
+    // Material 3 January 2026: Filled buttons with state layers
+    filledButtonTheme: FilledButtonThemeData(
+      style: ButtonStyle(
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+        overlayColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return colorScheme.onPrimary.withOpacity(0.12);
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return colorScheme.onPrimary.withOpacity(0.08);
+          }
+          if (states.contains(WidgetState.focused)) {
+            return colorScheme.onPrimary.withOpacity(0.10);
+          }
+          return null;
+        }),
+      ),
+    ),
+    // Material 3 January 2026: Outlined buttons with state layers
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: ButtonStyle(
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+        side: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return BorderSide(color: colorScheme.onSurface.withOpacity(0.12));
+          }
+          if (states.contains(WidgetState.focused)) {
+            return BorderSide(color: colorScheme.primary, width: 2);
+          }
+          return BorderSide(color: colorScheme.outline);
+        }),
+        overlayColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return colorScheme.primary.withOpacity(0.12);
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return colorScheme.primary.withOpacity(0.08);
+          }
+          if (states.contains(WidgetState.focused)) {
+            return colorScheme.primary.withOpacity(0.10);
+          }
+          return null;
+        }),
+      ),
+    ),
+    // Material 3 January 2026: Text buttons with state layers
+    textButtonTheme: TextButtonThemeData(
+      style: ButtonStyle(
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+        overlayColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return colorScheme.primary.withOpacity(0.12);
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return colorScheme.primary.withOpacity(0.08);
+          }
+          if (states.contains(WidgetState.focused)) {
+            return colorScheme.primary.withOpacity(0.10);
+          }
+          return null;
+        }),
       ),
     ),
     // Material 3 ListTile styling
@@ -739,6 +1013,8 @@ class AppTheme {
     Color? accentColorSeed,
     bool compact = false,
     bool highContrast = false,
+    String contrastLevel =
+        'standard', // Material 3 January 2026: standard | medium | high
   }) {
     final seedColor = accentColorSeed ?? legacyPrimarySeed;
 
@@ -848,6 +1124,66 @@ class AppTheme {
       );
     }
 
+    // Apply contrast level adjustments (Material 3 January 2026)
+    // This is separate from the legacy highContrast boolean for backwards compatibility
+    if (contrastLevel == 'medium' || contrastLevel == 'high') {
+      final isHighContrast = contrastLevel == 'high';
+      // Increase adjustments to be clearly visible (25% for medium, 40% for high)
+      final adjustment = isHighContrast ? 0.40 : 0.25;
+
+      ColorScheme adjustContrastLight(ColorScheme cs) {
+        return cs.copyWith(
+          // P1: Full adjustment - primary text & structure
+          onSurface: _darken(cs.onSurface, adjustment),
+          onSurfaceVariant: _darken(cs.onSurfaceVariant, adjustment),
+          outline: _darken(cs.outline, adjustment),
+
+          // P2: Increased from 0.5x - primary & secondary actions
+          primary: _darken(cs.primary, adjustment),
+          secondary: _darken(cs.secondary, adjustment * 0.75),
+          tertiary: _darken(cs.tertiary, adjustment * 0.75),
+          outlineVariant: _darken(cs.outlineVariant, adjustment * 0.75),
+
+          // P3: Full adjustment - error & action text
+          error: _darken(cs.error, adjustment),
+          // Conservative adjustment for onContainer tokens to maintain legibility
+          onError: _darken(cs.onError, adjustment * 0.5),
+          onPrimary: _darken(cs.onPrimary, adjustment * 0.5),
+          onSecondary: _darken(cs.onSecondary, adjustment * 0.5),
+          onTertiary: _darken(cs.onTertiary, adjustment * 0.5),
+        );
+      }
+
+      ColorScheme adjustContrastDark(ColorScheme cs) {
+        return cs.copyWith(
+          // P1: Full adjustment - primary text & structure
+          onSurface: _lighten(cs.onSurface, adjustment),
+          onSurfaceVariant: _lighten(cs.onSurfaceVariant, adjustment),
+          outline: _lighten(cs.outline, adjustment),
+
+          // P2: Increased from 0.5x - primary & secondary actions
+          primary: _lighten(cs.primary, adjustment),
+          secondary: _lighten(cs.secondary, adjustment * 0.75),
+          tertiary: _lighten(cs.tertiary, adjustment * 0.75),
+          outlineVariant: _lighten(cs.outlineVariant, adjustment * 0.75),
+
+          // P3: Full adjustment - error & action text
+          error: _lighten(cs.error, adjustment),
+          // Conservative adjustment for onContainer tokens to maintain legibility
+          onError: _lighten(cs.onError, adjustment * 0.5),
+          onPrimary: _lighten(cs.onPrimary, adjustment * 0.5),
+          onSecondary: _lighten(cs.onSecondary, adjustment * 0.5),
+          onTertiary: _lighten(cs.onTertiary, adjustment * 0.5),
+        );
+      }
+
+      light = light.copyWith(
+        colorScheme: adjustContrastLight(light.colorScheme),
+      );
+      dark = dark.copyWith(colorScheme: adjustContrastDark(dark.colorScheme));
+    }
+
+    // Legacy highContrast boolean handling (maintained for backwards compatibility)
     if (highContrast) {
       ColorScheme boost(ColorScheme cs) => cs.copyWith(
         primary: cs.primary,
@@ -877,7 +1213,11 @@ class AppTheme {
       );
     }
     // Attach extension so widgets can adapt spacing & contrast specifics.
-    final appOpts = AppOptions(compact: compact, highContrast: highContrast);
+    final appOpts = AppOptions(
+      compact: compact,
+      highContrast: highContrast,
+      contrastLevel: contrastLevel,
+    );
     light = light.copyWith(extensions: [...light.extensions.values, appOpts]);
     dark = dark.copyWith(extensions: [...dark.extensions.values, appOpts]);
     return (light, dark);
@@ -935,13 +1275,25 @@ class AppTheme {
 class AppOptions extends ThemeExtension<AppOptions> {
   final bool compact;
   final bool highContrast;
-  const AppOptions({required this.compact, required this.highContrast});
+  final String
+  contrastLevel; // Material 3 January 2026: standard | medium | high
+
+  const AppOptions({
+    required this.compact,
+    required this.highContrast,
+    this.contrastLevel = 'standard',
+  });
 
   @override
-  ThemeExtension<AppOptions> copyWith({bool? compact, bool? highContrast}) {
+  ThemeExtension<AppOptions> copyWith({
+    bool? compact,
+    bool? highContrast,
+    String? contrastLevel,
+  }) {
     return AppOptions(
       compact: compact ?? this.compact,
       highContrast: highContrast ?? this.highContrast,
+      contrastLevel: contrastLevel ?? this.contrastLevel,
     );
   }
 
@@ -952,6 +1304,14 @@ class AppOptions extends ThemeExtension<AppOptions> {
     return AppOptions(
       compact: t < 0.5 ? compact : other.compact,
       highContrast: t < 0.5 ? highContrast : other.highContrast,
+      contrastLevel: t < 0.5 ? contrastLevel : other.contrastLevel,
     );
   }
+
+  /// Check if using medium or high contrast
+  bool get isEnhancedContrast =>
+      contrastLevel == 'medium' || contrastLevel == 'high';
+
+  /// Check if using high contrast specifically
+  bool get isMaxContrast => contrastLevel == 'high';
 }

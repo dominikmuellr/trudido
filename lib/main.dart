@@ -313,6 +313,7 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
         : ThemeMode.system;
     final compact = prefs.compactDensity;
     final highContrast = prefs.highContrast;
+    final contrastLevel = prefs.contrastLevel;
     final accentColor = Color(prefs.accentColorSeed);
     final schemesAsync = ref.watch(dynamicColorSchemesProvider);
     final schemes = schemesAsync.value;
@@ -322,6 +323,7 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
       accentColorSeed: accentColor,
       compact: compact,
       highContrast: highContrast,
+      contrastLevel: contrastLevel,
     );
     final useBlack = ref.watch(blackThemeEnabledProvider);
     // Don't apply black theme to Solarized (or other incompatible themes)

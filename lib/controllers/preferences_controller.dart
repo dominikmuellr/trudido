@@ -110,6 +110,8 @@ class PreferencesController {
   Future<void> setParagraphSpacing(double value) =>
       _update(paragraphSpacing: value);
 
+  Future<void> setContrastLevel(String level) => _update(contrastLevel: level);
+
   Future<void> _update({
     String? themeMode,
     bool? useDynamicColor,
@@ -124,6 +126,7 @@ class PreferencesController {
     int? firstDayOfWeek,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
+    String? contrastLevel,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -139,6 +142,7 @@ class PreferencesController {
       firstDayOfWeek: firstDayOfWeek,
       lineHeightMultiplier: lineHeightMultiplier,
       paragraphSpacing: paragraphSpacing,
+      contrastLevel: contrastLevel,
     );
     ref.read(preferencesStateProvider.notifier).state = updated;
   }

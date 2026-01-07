@@ -22,6 +22,8 @@ class PreferencesState {
   final int accentColorSeed; // Color value for Material 3 seed color
   final bool compactDensity;
   final bool highContrast;
+  final String
+  contrastLevel; // standard | medium | high (Material 3 January 2026)
   final bool hideGreeting;
   final int greetingLanguage; // Language index for greeting header
   final String fabPosition; // left | center | right
@@ -45,6 +47,7 @@ class PreferencesState {
     required this.accentColorSeed,
     required this.compactDensity,
     required this.highContrast,
+    required this.contrastLevel,
     required this.hideGreeting,
     required this.greetingLanguage,
     required this.fabPosition,
@@ -67,6 +70,7 @@ class PreferencesState {
     int? accentColorSeed,
     bool? compactDensity,
     bool? highContrast,
+    String? contrastLevel,
     bool? hideGreeting,
     int? greetingLanguage,
     String? fabPosition,
@@ -86,6 +90,7 @@ class PreferencesState {
     accentColorSeed: accentColorSeed ?? this.accentColorSeed,
     compactDensity: compactDensity ?? this.compactDensity,
     highContrast: highContrast ?? this.highContrast,
+    contrastLevel: contrastLevel ?? this.contrastLevel,
     hideGreeting: hideGreeting ?? this.hideGreeting,
     greetingLanguage: greetingLanguage ?? this.greetingLanguage,
     fabPosition: fabPosition ?? this.fabPosition,
@@ -108,6 +113,8 @@ class PreferencesState {
     accentColorSeed: 0xFF2196F3, // Default blue color
     compactDensity: false,
     highContrast: false,
+    contrastLevel:
+        'standard', // Material 3 January 2026: standard | medium | high
     hideGreeting: false,
     greetingLanguage: 0, // Default: English (index 0)
     fabPosition: 'right',
