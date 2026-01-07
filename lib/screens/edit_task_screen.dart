@@ -25,6 +25,7 @@ import '../widgets/reminder_components.dart';
 import '../widgets/add_reminder_dialog.dart';
 import '../utils/date_formatters.dart';
 import '../utils/week_start_utils.dart';
+import '../theme/spacing_tokens.dart';
 
 class EditTaskScreen extends ConsumerStatefulWidget {
   final Todo? task;
@@ -310,7 +311,7 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: SpacingEdgeInsets.insets16,
         child: Form(
           key: _formKey,
           child: Column(
@@ -329,12 +330,12 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              SpacingGap.gapV16,
               // --- Schedule Section (polished) ---
               Card(
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: SpacingBorderRadius.md,
                   side: BorderSide(
                     color: Theme.of(context).colorScheme.outlineVariant,
                   ),
@@ -351,7 +352,7 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                             size: 20,
                             color: Theme.of(context).colorScheme.primary,
                           ),
-                          const SizedBox(width: 8),
+                          SpacingGap.gapH8,
                           Text(
                             'Schedule',
                             style: Theme.of(context).textTheme.titleSmall
@@ -542,7 +543,7 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              SpacingGap.gapV16,
               // --- End Schedule Section ---
 
               // --- New Reminder UI Section ---
@@ -555,7 +556,7 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
               ],
 
               // --- End of New Reminder UI ---
-              const SizedBox(height: 16),
+              SpacingGap.gapV16,
               TextFormField(
                 controller: _notesController,
                 decoration: const InputDecoration(

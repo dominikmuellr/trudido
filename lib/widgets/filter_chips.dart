@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trudido/providers/filter_providers.dart';
 import 'package:trudido/services/storage_service.dart';
+import '../theme/spacing_tokens.dart';
 
 /// Material 3 compliant filter chips row for the Tasks tab.
 /// Always visible, with action-based labels and a Clear chip.
@@ -158,7 +159,7 @@ class FilterChips extends ConsumerWidget {
                       ),
                     ),
 
-                    const SizedBox(width: 8),
+                    SpacingGap.gapH8,
 
                     // Due Today toggle (FilterChip)
                     FilterChip(
@@ -171,7 +172,7 @@ class FilterChips extends ConsumerWidget {
                               selected,
                     ),
 
-                    const SizedBox(width: 8),
+                    SpacingGap.gapH8,
 
                     // Show/Hide Completed toggle (FilterChip with action-based label)
                     FilterChip(
@@ -197,7 +198,7 @@ class FilterChips extends ConsumerWidget {
                       },
                     ),
 
-                    const SizedBox(width: 8),
+                    SpacingGap.gapH8,
 
                     // Clear filters AND sort (ActionChip)
                     ActionChip(

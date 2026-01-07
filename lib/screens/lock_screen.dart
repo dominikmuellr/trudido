@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/app_lock_service.dart';
 import '../services/biometric_auth_service.dart';
+import '../theme/spacing_tokens.dart';
 
 /// Lock screen that requires PIN or biometric authentication
 class LockScreen extends StatefulWidget {
@@ -181,7 +182,7 @@ class _LockScreenState extends State<LockScreen> {
             // App icon or logo
             Icon(Icons.lock_outline, size: 64, color: colorScheme.primary),
 
-            const SizedBox(height: 24),
+            SpacingGap.gapV24,
 
             // Title
             Text(
@@ -191,7 +192,7 @@ class _LockScreenState extends State<LockScreen> {
               ),
             ),
 
-            const SizedBox(height: 8),
+            SpacingGap.gapV8,
 
             Text(
               'Enter your PIN to unlock',
@@ -237,7 +238,7 @@ class _LockScreenState extends State<LockScreen> {
               isLoading: _isLoading,
             ),
 
-            const SizedBox(height: 24),
+            SpacingGap.gapV24,
 
             // Unlock button
             Padding(
@@ -259,7 +260,7 @@ class _LockScreenState extends State<LockScreen> {
               ),
             ),
 
-            const SizedBox(height: 32),
+            SpacingGap.gapV32,
           ],
         ),
       ),
@@ -333,11 +334,11 @@ class _PinKeypad extends StatelessWidget {
       child: Column(
         children: [
           _buildRow(['1', '2', '3']),
-          const SizedBox(height: 16),
+          SpacingGap.gapV16,
           _buildRow(['4', '5', '6']),
-          const SizedBox(height: 16),
+          SpacingGap.gapV16,
           _buildRow(['7', '8', '9']),
-          const SizedBox(height: 16),
+          SpacingGap.gapV16,
           _buildBottomRow(context),
         ],
       ),
@@ -571,7 +572,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
               ),
             ),
 
-            const SizedBox(height: 8),
+            SpacingGap.gapV8,
 
             Text(
               _subtitle,
@@ -580,7 +581,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
               ),
             ),
 
-            const SizedBox(height: 32),
+            SpacingGap.gapV32,
 
             // PIN dots indicator
             _PinDotsIndicator(
@@ -614,7 +615,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
               isLoading: _isLoading,
             ),
 
-            const SizedBox(height: 24),
+            SpacingGap.gapV24,
 
             // Continue button
             Padding(
@@ -636,7 +637,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
               ),
             ),
 
-            const SizedBox(height: 32),
+            SpacingGap.gapV32,
           ],
         ),
       ),
@@ -728,19 +729,19 @@ class _VerifyPinDialogState extends State<VerifyPinDialog> {
 
     return Dialog(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: SpacingEdgeInsets.insets24,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(widget.title, style: theme.textTheme.titleLarge),
-            const SizedBox(height: 8),
+            SpacingGap.gapV8,
             Text(
               widget.subtitle,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 24),
+            SpacingGap.gapV24,
 
             // PIN dots
             _PinDotsIndicator(
@@ -750,7 +751,7 @@ class _VerifyPinDialogState extends State<VerifyPinDialog> {
             ),
 
             if (_errorMessage != null) ...[
-              const SizedBox(height: 8),
+              SpacingGap.gapV8,
               Text(
                 _errorMessage!,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -759,7 +760,7 @@ class _VerifyPinDialogState extends State<VerifyPinDialog> {
               ),
             ],
 
-            const SizedBox(height: 24),
+            SpacingGap.gapV24,
 
             // Compact keypad
             _CompactPinKeypad(
@@ -768,7 +769,7 @@ class _VerifyPinDialogState extends State<VerifyPinDialog> {
               isLoading: _isLoading,
             ),
 
-            const SizedBox(height: 16),
+            SpacingGap.gapV16,
 
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -777,7 +778,7 @@ class _VerifyPinDialogState extends State<VerifyPinDialog> {
                   onPressed: () => Navigator.of(context).pop(false),
                   child: const Text('Cancel'),
                 ),
-                const SizedBox(width: 8),
+                SpacingGap.gapH8,
                 FilledButton(
                   onPressed: _enteredPin.length >= 4 && !_isLoading
                       ? _onSubmit

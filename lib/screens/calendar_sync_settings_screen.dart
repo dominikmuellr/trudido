@@ -21,6 +21,7 @@ import '../services/calendar_sync_service.dart';
 import '../providers/app_providers.dart';
 import '../controllers/task_controller.dart';
 import '../utils/responsive_size.dart';
+import '../theme/spacing_tokens.dart';
 
 /// Provider for calendar sync service
 final calendarSyncServiceProvider = Provider<CalendarSyncService>((ref) {
@@ -68,7 +69,7 @@ class _CalendarSyncSettingsScreenState
   Widget _buildErrorState(BuildContext context, String error) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: SpacingEdgeInsets.insets24,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -76,12 +77,12 @@ class _CalendarSyncSettingsScreenState
               Icons.error_outline,
               color: Theme.of(context).colorScheme.error,
             ),
-            const SizedBox(height: 16),
+            SpacingGap.gapV16,
             Text(
               'Error loading calendar settings',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 8),
+            SpacingGap.gapV8,
             Text(
               error,
               textAlign: TextAlign.center,
@@ -89,7 +90,7 @@ class _CalendarSyncSettingsScreenState
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 24),
+            SpacingGap.gapV24,
             FilledButton.icon(
               onPressed: () => ref.invalidate(calendarSyncStatusProvider),
               icon: const Icon(Icons.refresh),
@@ -196,11 +197,11 @@ class _CalendarSyncSettingsScreenState
 
             if (status.availableCalendars.isEmpty)
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: SpacingEdgeInsets.insets16,
                 child: Card(
                   color: cs.tertiaryContainer,
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: SpacingEdgeInsets.insets16,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -210,7 +211,7 @@ class _CalendarSyncSettingsScreenState
                               Icons.info_outline,
                               color: cs.onTertiaryContainer,
                             ),
-                            const SizedBox(width: 16),
+                            SpacingGap.gapH16,
                             Expanded(
                               child: Text(
                                 'No writable calendars found',
@@ -222,7 +223,7 @@ class _CalendarSyncSettingsScreenState
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        SpacingGap.gapV8,
                         if (status.allCalendars.isNotEmpty) ...[
                           Padding(
                             padding: const EdgeInsets.only(left: 40),
@@ -247,7 +248,7 @@ class _CalendarSyncSettingsScreenState
                               ),
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          SpacingGap.gapV8,
                         ],
                         Padding(
                           padding: const EdgeInsets.only(left: 40),
@@ -263,7 +264,7 @@ class _CalendarSyncSettingsScreenState
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SpacingGap.gapV12,
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -274,7 +275,7 @@ class _CalendarSyncSettingsScreenState
                               icon: const Icon(Icons.refresh),
                               label: const Text('Refresh'),
                             ),
-                            const SizedBox(width: 8),
+                            SpacingGap.gapH8,
                             OutlinedButton.icon(
                               onPressed: () => _showDiagnostics(context),
                               icon: const Icon(Icons.bug_report),
@@ -462,11 +463,11 @@ class _CalendarSyncSettingsScreenState
     final cs = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: SpacingEdgeInsets.insets16,
       child: Card(
         color: cs.primaryContainer,
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: SpacingEdgeInsets.insets16,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -476,7 +477,7 @@ class _CalendarSyncSettingsScreenState
                     Icons.calendar_today,
                     color: cs.onPrimaryContainer,
                   ),
-                  const SizedBox(width: 12),
+                  SpacingGap.gapH12,
                   Text(
                     'DAVx5 Integration',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -486,7 +487,7 @@ class _CalendarSyncSettingsScreenState
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SpacingGap.gapV12,
               Text(
                 'For CalDAV sync (Nextcloud, etc.):\n'
                 '1. Install DAVx5 from F-Droid or Play Store\n'
@@ -677,7 +678,7 @@ class _CalendarSyncSettingsScreenState
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              SpacingGap.gapV8,
               Expanded(
                 child: ListView.builder(
                   controller: scrollController,
@@ -728,7 +729,7 @@ class _CalendarSyncSettingsScreenState
                   },
                 ),
               ),
-              const SizedBox(height: 16),
+              SpacingGap.gapV16,
             ],
           ),
         ),
@@ -842,7 +843,7 @@ class _CalendarSyncSettingsScreenState
                 'Import events from your selected calendars as tasks. '
                 'Events exported by Trudido will be skipped.',
               ),
-              const SizedBox(height: 16),
+              SpacingGap.gapV16,
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Import all events'),

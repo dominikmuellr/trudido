@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/folder.dart';
 import '../services/folder_provider.dart';
 import '../screens/folder_management_screen.dart';
+import '../theme/spacing_tokens.dart';
 
 class FolderSelectionScreen extends ConsumerWidget {
   const FolderSelectionScreen({super.key});
@@ -49,7 +50,7 @@ class FolderSelectionScreen extends ConsumerWidget {
       ),
       body: foldersAsync.when(
         data: (folders) => ListView(
-          padding: const EdgeInsets.all(16),
+          padding: SpacingEdgeInsets.insets16,
           children: [
             // All folders option
             _FolderTile(
@@ -60,7 +61,7 @@ class FolderSelectionScreen extends ConsumerWidget {
                 Navigator.pop(context);
               },
             ),
-            const SizedBox(height: 8),
+            SpacingGap.gapV8,
 
             // Individual folders
             ...folders.map(
@@ -100,9 +101,9 @@ class FolderSelectionScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.warning, color: theme.colorScheme.error, size: 48),
-              const SizedBox(height: 16),
+              SpacingGap.gapV16,
               Text('Error loading folders', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 8),
+              SpacingGap.gapV8,
               ElevatedButton(
                 onPressed: () =>
                     ref.read(folderNotifierProvider.notifier).loadFolders(),
@@ -133,14 +134,14 @@ class _FolderTile extends StatelessWidget {
     final isAllFolders = folder == null;
 
     return Material(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: SpacingBorderRadius.md,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: SpacingBorderRadius.md,
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: SpacingEdgeInsets.insets16,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: SpacingBorderRadius.md,
             border: Border.all(
               color: isSelected
                   ? theme.colorScheme.primary
@@ -170,7 +171,7 @@ class _FolderTile extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(width: 16),
+              SpacingGap.gapH16,
 
               // Folder info
               Expanded(

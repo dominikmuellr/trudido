@@ -27,6 +27,7 @@ import '../screens/task_editor_screen.dart';
 import '../models/todo.dart';
 import '../screens/home_screen.dart';
 import '../services/theme_service.dart';
+import '../theme/spacing_tokens.dart';
 
 class TodoListTab extends ConsumerWidget {
   const TodoListTab({super.key});
@@ -43,7 +44,9 @@ class TodoListTab extends ConsumerWidget {
     final appOpts =
         Theme.of(context).extension<AppOptions>() ??
         const AppOptions(compact: false, highContrast: false);
-    final outerPad = EdgeInsets.all(appOpts.compact ? 12 : 16);
+    final outerPad = appOpts.compact
+        ? SpacingEdgeInsets.insets12
+        : SpacingEdgeInsets.insets16;
 
     return Column(
       children: [
@@ -176,7 +179,9 @@ class TodoListTab extends ConsumerWidget {
     final appOpts =
         Theme.of(ref.context).extension<AppOptions>() ??
         const AppOptions(compact: false, highContrast: false);
-    final pad = EdgeInsets.all(appOpts.compact ? 12 : 16);
+    final pad = appOpts.compact
+        ? SpacingEdgeInsets.insets12
+        : SpacingEdgeInsets.insets16;
     return ListView.builder(
       padding: pad,
       physics: const BouncingScrollPhysics(),
@@ -212,14 +217,14 @@ class TodoListTab extends ConsumerWidget {
             size: 64,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
-          const SizedBox(height: 16),
+          SpacingGap.gapV16,
           Text(
             isSearching ? 'No tasks found' : 'No tasks yet',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
-          const SizedBox(height: 8),
+          SpacingGap.gapV8,
           Text(
             isSearching
                 ? 'Try adjusting your search or filters'

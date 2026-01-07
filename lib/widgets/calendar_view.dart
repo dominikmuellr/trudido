@@ -26,6 +26,7 @@ import '../providers/app_providers.dart';
 import '../providers/clock.dart';
 import '../utils/week_start_utils.dart';
 import 'hybrid_todo_item.dart';
+import '../theme/spacing_tokens.dart';
 
 /// Custom calendar format that extends table_calendar formats
 enum CustomCalendarFormat {
@@ -145,12 +146,12 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
               Container(
                 decoration: BoxDecoration(
                   color: colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: SpacingBorderRadius.md,
                 ),
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: SpacingBorderRadius.md,
                     onTap: _cycleCalendarFormat,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -168,7 +169,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              SpacingGap.gapH8,
               // Right chevron
               IconButton(
                 icon: const Icon(Icons.chevron_right),
@@ -202,7 +203,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SpacingGap.gapV8,
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,

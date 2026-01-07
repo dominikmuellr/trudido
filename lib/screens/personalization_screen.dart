@@ -28,6 +28,7 @@ import '../utils/week_start_utils.dart';
 import 'home_screen.dart';
 import 'font_size_settings_screen.dart';
 import 'default_tab_settings_screen.dart';
+import '../theme/spacing_tokens.dart';
 
 class PersonalizationScreen extends ConsumerStatefulWidget {
   const PersonalizationScreen({super.key});
@@ -127,7 +128,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
                   await _removeAvatar();
                 },
               ),
-            const SizedBox(height: 8),
+            SpacingGap.gapV8,
           ],
         ),
       ),
@@ -185,7 +186,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
         children: [
           // Profile Section
           _buildSectionHeader(context, 'Profile'),
-          const SizedBox(height: 8),
+          SpacingGap.gapV8,
 
           // Avatar and Name Row
           Padding(
@@ -241,7 +242,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
+                SpacingGap.gapH16,
 
                 // Name Field
                 Expanded(
@@ -428,7 +429,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 12),
+          SpacingGap.gapV12,
           Wrap(
             spacing: 12,
             runSpacing: 8,
@@ -689,7 +690,7 @@ class _ThemeModeSheet extends ConsumerWidget {
                     controller.toggleBlackTheme();
                   },
           ),
-          const SizedBox(height: 8),
+          SpacingGap.gapV8,
         ],
       ),
     );
@@ -1171,7 +1172,7 @@ class _AccentColorSheet extends StatelessWidget {
               color: Theme.of(
                 context,
               ).colorScheme.onSurfaceVariant.withOpacity(0.4),
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: SpacingBorderRadius.full,
             ),
           ),
 
@@ -1221,7 +1222,7 @@ class _AccentColorSheet extends StatelessWidget {
                   return buildOption(colorValue, _getColorName(colorValue));
                 }),
 
-                const SizedBox(height: 16),
+                SpacingGap.gapV16,
               ],
             ),
           ),
@@ -1424,7 +1425,7 @@ class _GreetingLanguageSheet extends ConsumerWidget {
               color: Theme.of(
                 context,
               ).colorScheme.onSurfaceVariant.withOpacity(0.4),
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: SpacingBorderRadius.full,
             ),
           ),
 
@@ -1462,7 +1463,7 @@ class _GreetingLanguageSheet extends ConsumerWidget {
               },
             ),
           ),
-          const SizedBox(height: 16),
+          SpacingGap.gapV16,
         ],
       ),
     );

@@ -26,6 +26,7 @@ import '../widgets/add_reminder_dialog.dart';
 import '../widgets/create_folder_dialog.dart';
 import '../utils/date_formatters.dart';
 import '../utils/week_start_utils.dart';
+import '../theme/spacing_tokens.dart';
 
 /// Unified Task Editor Screen
 /// Handles both creating new tasks and editing existing ones
@@ -161,23 +162,23 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                     ),
                   ),
           ),
-          const SizedBox(width: 8),
+          SpacingGap.gapH8,
         ],
       ),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: SpacingEdgeInsets.insets24,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Title input
               _buildTitleInput(theme),
-              const SizedBox(height: 24),
+              SpacingGap.gapV24,
 
               // Quick actions
               _buildQuickActions(theme, colorScheme),
-              const SizedBox(height: 24),
+              SpacingGap.gapV24,
 
               // Advanced options (always visible)
               _buildAdvancedOptions(theme, colorScheme),
@@ -221,7 +222,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
             color: colorScheme.onSurface.withOpacity(0.9),
           ),
         ),
-        const SizedBox(height: 12),
+        SpacingGap.gapV12,
         // Date selection (full width for better display of ranges)
         _buildQuickActionChip(
           icon: Icons.event_outlined,
@@ -231,7 +232,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           theme: theme,
           colorScheme: colorScheme,
         ),
-        const SizedBox(height: 12),
+        SpacingGap.gapV12,
 
         // Time selection (only show if date is selected)
         if (_dueDate != null) ...[
@@ -243,7 +244,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
             theme: theme,
             colorScheme: colorScheme,
           ),
-          const SizedBox(height: 12),
+          SpacingGap.gapV12,
         ],
 
         // Priority selection
@@ -255,7 +256,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           theme: theme,
           colorScheme: colorScheme,
         ),
-        const SizedBox(height: 12),
+        SpacingGap.gapV12,
 
         // Reminder selection
         _buildQuickActionChip(
@@ -266,7 +267,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           theme: theme,
           colorScheme: colorScheme,
         ),
-        const SizedBox(height: 12),
+        SpacingGap.gapV12,
 
         // Repeat selection (disabled if no due date)
         _buildQuickActionChip(
@@ -355,16 +356,19 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: isDisabled ? null : onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: SpacingBorderRadius.md,
         child: Opacity(
           opacity: isDisabled ? 0.5 : 1.0,
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            padding: const EdgeInsets.symmetric(
+              vertical: 12,
+              horizontal: 16,
+            ), // Custom button padding
             decoration: BoxDecoration(
               color: isSelected
                   ? colorScheme.primaryContainer
                   : colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: SpacingBorderRadius.md,
               border: Border.all(
                 color: isSelected
                     ? colorScheme.primary.withValues(alpha: 0.3)
@@ -415,7 +419,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
             color: colorScheme.onSurface.withOpacity(0.9),
           ),
         ),
-        const SizedBox(height: 16),
+        SpacingGap.gapV16,
 
         // Notes input
         TextFormField(
@@ -424,13 +428,13 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
             labelText: 'Notes (optional)',
             hintText: 'Add details...',
             filled: true,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+            border: OutlineInputBorder(borderRadius: SpacingBorderRadius.lg),
             prefixIcon: ScaledIcon(Icons.notes_outlined),
           ),
           maxLines: 3,
           textCapitalization: TextCapitalization.sentences,
         ),
-        const SizedBox(height: 16),
+        SpacingGap.gapV16,
 
         // Folder selection
         _buildFolderSelection(theme, colorScheme),
@@ -455,7 +459,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SpacingGap.gapV8,
                 Wrap(
                   spacing: 8,
                   children: [
@@ -589,7 +593,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                     children: [
                       // Header
                       Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: SpacingEdgeInsets.insets16,
                         child: Text(
                           'Repeat',
                           style: Theme.of(context).textTheme.titleMedium
@@ -683,14 +687,14 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                         ),
                       ],
 
-                      const SizedBox(height: 16),
+                      SpacingGap.gapV16,
 
                       // Done button
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 8,
-                        ),
+                        ), // Custom asymmetric padding
                         child: SizedBox(
                           width: double.infinity,
                           child: FilledButton(
@@ -699,7 +703,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SpacingGap.gapV8,
                     ],
                   ),
                 ),
@@ -750,7 +754,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     ColorScheme colorScheme,
   ) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: SpacingEdgeInsets.insets16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -760,13 +764,13 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
               context,
             ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 16),
+          SpacingGap.gapV16,
 
           // Interval selector
           Row(
             children: [
               Text('Repeat every'),
-              const SizedBox(width: 12),
+              SpacingGap.gapH12,
               SizedBox(
                 width: 70,
                 child: TextField(
@@ -794,7 +798,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                   },
                 ),
               ),
-              const SizedBox(width: 12),
+              SpacingGap.gapH12,
               DropdownButton<String>(
                 value: _repeatDays.isEmpty ? 'days' : 'weeks',
                 items: const [
@@ -821,14 +825,14 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
 
           // Day selection for weekly custom repeat
           if (_repeatDays.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            SpacingGap.gapV16,
             Text(
               'Repeat on',
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 8),
+            SpacingGap.gapV8,
             Wrap(
               spacing: 8,
               children: [
@@ -897,7 +901,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
             children: [
               // Header
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: SpacingEdgeInsets.insets16,
                 child: Text(
                   'Select Priority',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -937,7 +941,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                 colorScheme.onErrorContainer,
               ),
 
-              const SizedBox(height: 8),
+              SpacingGap.gapV8,
             ],
           ),
         );
@@ -957,10 +961,10 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
 
     return ListTile(
       leading: Container(
-        padding: const EdgeInsets.all(8),
+        padding: SpacingEdgeInsets.insets8,
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: SpacingBorderRadius.sm,
         ),
         child: ScaledIcon(icon, color: textColor, size: 20),
       ),

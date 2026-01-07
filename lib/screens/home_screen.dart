@@ -55,6 +55,7 @@ import 'folder_management_screen.dart';
 import 'notes_folder_management_screen.dart';
 import 'personalization_screen.dart';
 import '../widgets/user_avatar_widget.dart';
+import '../theme/spacing_tokens.dart';
 
 // --- Moved from end of file ---
 class SelectedTodoIdsNotifier extends StateNotifier<Set<String>> {
@@ -121,13 +122,13 @@ class _VaultSetupScreenState extends State<_VaultSetupScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: SpacingEdgeInsets.insets16,
           children: [
             Text(
               'Create a password/PIN to protect this vault folder',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 24),
+            SpacingGap.gapV24,
             TextFormField(
               controller: _passwordController,
               obscureText: _obscurePassword,
@@ -155,7 +156,7 @@ class _VaultSetupScreenState extends State<_VaultSetupScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 16),
+            SpacingGap.gapV16,
             TextFormField(
               controller: _confirmPasswordController,
               obscureText: _obscureConfirm,
@@ -181,7 +182,7 @@ class _VaultSetupScreenState extends State<_VaultSetupScreen> {
               },
             ),
             if (widget.biometricAvailable) ...[
-              const SizedBox(height: 16),
+              SpacingGap.gapV16,
               CheckboxListTile(
                 title: const Text('Use biometric authentication'),
                 subtitle: const Text(
@@ -195,11 +196,11 @@ class _VaultSetupScreenState extends State<_VaultSetupScreen> {
                 },
               ),
             ],
-            const SizedBox(height: 24),
+            SpacingGap.gapV24,
             ElevatedButton(
               onPressed: _submit,
               child: const Padding(
-                padding: EdgeInsets.all(16.0),
+                padding: SpacingEdgeInsets.insets16,
                 child: Text('Setup Vault'),
               ),
             ),
@@ -853,7 +854,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     autofocus: true,
                     textCapitalization: TextCapitalization.words,
                   ),
-                  const SizedBox(height: 16),
+                  SpacingGap.gapV16,
                   TextFormField(
                     controller: descriptionController,
                     decoration: const InputDecoration(
@@ -863,8 +864,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     maxLines: 2,
                     textCapitalization: TextCapitalization.sentences,
                   ),
-                  const SizedBox(height: 16),
-                  const SizedBox(height: 16),
+                  SpacingGap.gapV16,
+                  SpacingGap.gapV16,
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Encrypted Vault Folder'),
@@ -999,7 +1000,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     'Create a password/PIN to protect this vault folder',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
-                  const SizedBox(height: 16),
+                  SpacingGap.gapV16,
                   TextFormField(
                     controller: passwordController,
                     obscureText: obscurePassword,
@@ -1029,7 +1030,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  SpacingGap.gapV16,
                   TextFormField(
                     controller: confirmPasswordController,
                     obscureText: obscureConfirm,
@@ -1057,7 +1058,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     },
                   ),
                   if (biometricAvailable) ...[
-                    const SizedBox(height: 16),
+                    SpacingGap.gapV16,
                     CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
                       title: const Text('Use Biometric Shortcut'),
@@ -1300,7 +1301,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return foldersAsync.when(
       data: (folders) {
         return ListView(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: SpacingEdgeInsets.insetsV8,
           children: [
             // "All Tasks" option
             ListTile(
@@ -1329,7 +1330,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 0.3,
               ),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: SpacingBorderRadius.md,
               ),
               onTap: () {
                 ref.read(selectedFolderProvider.notifier).state = null;
@@ -1363,7 +1364,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   0.3,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: SpacingBorderRadius.md,
                 ),
                 onTap: () {
                   ref.read(selectedFolderProvider.notifier).state = folder.id;
@@ -1372,7 +1373,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               );
             }),
             // Create new folder option at the bottom
-            const SizedBox(height: 8),
+            SpacingGap.gapV8,
             ListTile(
               dense: true,
               visualDensity: VisualDensity.compact,
@@ -1399,7 +1400,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: SpacingEdgeInsets.insets16,
           child: Text(
             'Error loading folders',
             style: TextStyle(color: colorScheme.error),
@@ -1419,7 +1420,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return foldersAsync.when(
       data: (folders) {
         return ListView(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: SpacingEdgeInsets.insetsV8,
           children: [
             // "All Notes" option
             ListTile(
@@ -1448,7 +1449,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 0.3,
               ),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: SpacingBorderRadius.md,
               ),
               onTap: () {
                 ref.read(selectedNoteFolderProvider.notifier).state = null;
@@ -1487,7 +1488,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   0.3,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: SpacingBorderRadius.md,
                 ),
                 onTap: () async {
                   // Handle vault authentication
@@ -1538,7 +1539,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               );
             }),
             // Create new folder option at the bottom
-            const SizedBox(height: 8),
+            SpacingGap.gapV8,
             ListTile(
               dense: true,
               visualDensity: VisualDensity.compact,
@@ -1562,7 +1563,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: SpacingEdgeInsets.insets16,
           child: Text(
             'Error loading folders',
             style: TextStyle(color: colorScheme.error),
@@ -1731,11 +1732,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         AnimatedCrossFade(
           firstChild: const SizedBox.shrink(),
           secondChild: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            padding: const EdgeInsets.fromLTRB(
+              8,
+              0,
+              8,
+              8,
+            ), // Custom asymmetric padding
             child: Container(
               decoration: BoxDecoration(
                 color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: SpacingBorderRadius.md,
               ),
               child: TableCalendar<Todo>(
                 firstDay: DateTime.utc(2020, 1, 1),

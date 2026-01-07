@@ -21,6 +21,7 @@ import '../services/template_provider.dart';
 import '../providers/app_providers.dart';
 import '../use_cases/folder_use_cases.dart';
 import '../widgets/template_selection_dialog.dart';
+import '../theme/spacing_tokens.dart';
 
 class CreateFolderDialog extends ConsumerStatefulWidget {
   const CreateFolderDialog({super.key});
@@ -110,7 +111,7 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
                   },
                 ),
 
-                const SizedBox(height: 16),
+                SpacingGap.gapV16,
 
                 // Description (optional)
                 TextFormField(
@@ -136,7 +137,7 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SpacingGap.gapV8,
                 SizedBox(
                   height: 80,
                   child: GridView.builder(
@@ -159,7 +160,7 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
                             _selectedIcon = iconData['name'];
                           });
                         },
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: SpacingBorderRadius.sm,
                         child: Container(
                           decoration: BoxDecoration(
                             color: isSelected
@@ -171,7 +172,7 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
                                   : theme.colorScheme.outline.withAlpha(77),
                               width: isSelected ? 2 : 1,
                             ),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: SpacingBorderRadius.sm,
                           ),
                           child: Icon(
                             iconData['icon'],
@@ -197,7 +198,7 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SpacingGap.gapV8,
                 SizedBox(
                   height: 50,
                   child: ListView.builder(

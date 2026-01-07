@@ -22,6 +22,7 @@ import '../services/markdown_export_service.dart';
 import '../services/pdf_export_service.dart';
 import '../providers/app_providers.dart';
 import '../repositories/notes_repository.dart';
+import '../theme/spacing_tokens.dart';
 
 class BackupSettingsPage extends ConsumerStatefulWidget {
   const BackupSettingsPage({super.key});
@@ -122,16 +123,16 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Configure when automatic backups should run:'),
-                const SizedBox(height: 16),
+                SpacingGap.gapV16,
 
                 // Info about backup location
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: SpacingEdgeInsets.insets12,
                   decoration: BoxDecoration(
                     color: Theme.of(
                       context,
                     ).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: SpacingBorderRadius.sm,
                   ),
                   child: Row(
                     children: [
@@ -140,7 +141,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                         color: Theme.of(context).colorScheme.primary,
                         size: 20,
                       ),
-                      const SizedBox(width: 8),
+                      SpacingGap.gapH8,
                       Expanded(
                         child: Text(
                           'Backups will be saved to your chosen backup location (set in main settings)',
@@ -150,7 +151,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                SpacingGap.gapV16,
 
                 // Backup Frequency
                 DropdownButtonFormField<int>(
@@ -173,7 +174,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                     }
                   },
                 ),
-                const SizedBox(height: 16),
+                SpacingGap.gapV16,
 
                 // Conditions
                 CheckboxListTile(
@@ -239,7 +240,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
         content: Row(
           children: [
             CircularProgressIndicator(),
-            SizedBox(width: 16),
+            SpacingGap.gapH16,
             Text('Loading backups...'),
           ],
         ),
@@ -278,7 +279,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
               child: Column(
                 children: [
                   const Text('Select a backup to import:'),
-                  const SizedBox(height: 16),
+                  SpacingGap.gapV16,
                   Expanded(
                     child: ListView.builder(
                       itemCount: backups.length,
@@ -582,7 +583,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
         children: [
           // Header description
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: SpacingEdgeInsets.insets16,
             child: Text(
               'Backup and restore your tasks, categories, notes, and settings.',
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -783,7 +784,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text('Automatic backups are saved to:'),
-                                SizedBox(height: 8),
+                                SpacingGap.gapV8,
                                 SelectableText(
                                   'Android/data/com.trudido.app/files/AutoBackups/',
                                   style: TextStyle(fontFamily: 'monospace'),
@@ -813,7 +814,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
             child: Card(
               color: colorScheme.surfaceContainerLow,
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: SpacingEdgeInsets.insets16,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -824,7 +825,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                           color: colorScheme.primary,
                           size: 20,
                         ),
-                        const SizedBox(width: 8),
+                        SpacingGap.gapH8,
                         Text(
                           'Backup Options',
                           style: theme.textTheme.titleSmall?.copyWith(
@@ -833,7 +834,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    SpacingGap.gapV12,
                     Text(
                       '• JSON backups contain all data and can be restored\n'
                       '• PDF exports create readable documents for sharing\n'

@@ -20,6 +20,7 @@ import '../services/folder_provider.dart';
 import '../widgets/create_folder_dialog.dart';
 import '../widgets/edit_folder_dialog.dart';
 import '../use_cases/folder_use_cases.dart';
+import '../theme/spacing_tokens.dart';
 
 class FolderManagementScreen extends ConsumerStatefulWidget {
   const FolderManagementScreen({super.key});
@@ -55,16 +56,16 @@ class _FolderManagementScreenState
                     size: 64,
                     color: Theme.of(context).colorScheme.outline,
                   ),
-                  const SizedBox(height: 16),
+                  SpacingGap.gapV16,
                   Text(
                     'No folders yet',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: Theme.of(context).colorScheme.outline,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SpacingGap.gapV8,
                   const Text('Create a folder to organize your tasks'),
-                  const SizedBox(height: 24),
+                  SpacingGap.gapV24,
                   FilledButton.icon(
                     onPressed: () => _showCreateFolderDialog(context),
                     icon: const Icon(Icons.add),
@@ -85,7 +86,7 @@ class _FolderManagementScreenState
               }
 
               return ListView.builder(
-                padding: const EdgeInsets.all(16),
+                padding: SpacingEdgeInsets.insets16,
                 itemCount: folders.length,
                 itemBuilder: (context, index) {
                   final folder = folders[index];
@@ -155,9 +156,9 @@ class _FolderManagementScreenState
                 size: 64,
                 color: Theme.of(context).colorScheme.error,
               ),
-              const SizedBox(height: 16),
+              SpacingGap.gapV16,
               Text('Error loading folders'),
-              const SizedBox(height: 8),
+              SpacingGap.gapV8,
               FilledButton(
                 onPressed: () => ref.refresh(folderNotifierProvider),
                 child: const Text('Retry'),

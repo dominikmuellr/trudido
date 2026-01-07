@@ -26,6 +26,7 @@ import '../services/vault_auth_service.dart';
 import '../widgets/note_preview_card_markdown.dart';
 import '../widgets/notes_filter_chips.dart';
 import 'quill_note_editor_screen.dart';
+import '../theme/spacing_tokens.dart';
 
 /// Provider for notes search mode
 final notesSearchModeProvider = StateProvider<bool>((ref) => false);
@@ -56,18 +57,18 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               size: 64,
               color: Theme.of(context).colorScheme.error,
             ),
-            const SizedBox(height: 16),
+            SpacingGap.gapV16,
             Text(
               'Error loading notes',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 8),
+            SpacingGap.gapV8,
             Text(
               error.toString(),
               style: Theme.of(context).textTheme.bodySmall,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            SpacingGap.gapV16,
             FilledButton(
               onPressed: () => ref.refresh(notesProvider),
               child: const Text('Retry'),
@@ -108,7 +109,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                     return false;
                   },
                   child: MasonryGridView.count(
-                    padding: const EdgeInsets.all(8),
+                    padding: SpacingEdgeInsets.insets8,
                     physics: const BouncingScrollPhysics(),
                     crossAxisCount: 2,
                     mainAxisSpacing: 8,
@@ -151,7 +152,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             size: 64,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
-          const SizedBox(height: 16),
+          SpacingGap.gapV16,
           Text(
             isSearchMode && searchQuery.isNotEmpty
                 ? 'No notes found'
@@ -160,7 +161,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
-          const SizedBox(height: 8),
+          SpacingGap.gapV8,
           Text(
             isSearchMode && searchQuery.isNotEmpty
                 ? 'Try a different search term'

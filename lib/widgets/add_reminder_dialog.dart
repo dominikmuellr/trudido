@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import '../utils/formatters.dart';
+import '../theme/spacing_tokens.dart';
 
 /// Reusable dialog for adding reminders with presets and custom input
 class AddReminderDialog extends StatefulWidget {
@@ -77,7 +78,7 @@ class _AddReminderDialogState extends State<AddReminderDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Choose from presets:'),
-            const SizedBox(height: 8),
+            SpacingGap.gapV8,
             SizedBox(
               height: 200,
               child: ListView(
@@ -98,9 +99,9 @@ class _AddReminderDialogState extends State<AddReminderDialog> {
                     .toList(),
               ),
             ),
-            const SizedBox(height: 16),
+            SpacingGap.gapV16,
             const Text('Or enter custom minutes:'),
-            const SizedBox(height: 8),
+            SpacingGap.gapV8,
             Form(
               key: _formKey,
               child: Row(
@@ -132,7 +133,7 @@ class _AddReminderDialogState extends State<AddReminderDialog> {
                       },
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SpacingGap.gapH8,
                   IconButton(
                     onPressed: _addCustomReminder,
                     icon: const Icon(Icons.add),

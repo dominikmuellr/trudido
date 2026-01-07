@@ -22,6 +22,7 @@ import '../models/preferences_state.dart';
 import '../models/todo.dart';
 import '../providers/app_providers.dart';
 import '../utils/responsive_size.dart';
+import '../theme/spacing_tokens.dart';
 
 class HybridTodoItem extends ConsumerWidget {
   final Todo todo;
@@ -92,9 +93,7 @@ class HybridTodoItem extends ConsumerWidget {
         child: Card(
           margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           elevation: 0, // Modern MD3: flat design with no shadow
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: SpacingBorderRadius.md),
           color: selected
               ? Theme.of(context).colorScheme.primaryContainer
               : (Theme.of(context).brightness == Brightness.dark
@@ -107,7 +106,7 @@ class HybridTodoItem extends ConsumerWidget {
           child: Container(
             width: double.infinity,
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: SpacingEdgeInsets.insets16,
               child: Row(
                 children: [
                   if (selectable) ...[
@@ -115,7 +114,7 @@ class HybridTodoItem extends ConsumerWidget {
                       value: selected,
                       onChanged: (v) => onSelectToggle(),
                     ),
-                    const SizedBox(width: 8),
+                    SpacingGap.gapH8,
                   ],
                   Expanded(
                     child: Column(
@@ -178,7 +177,7 @@ class HybridTodoItem extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: SpacingBorderRadius.md,
         border: Border.all(color: color, width: 1),
       ),
       child: Row(
@@ -224,7 +223,7 @@ class HybridTodoItem extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: chipColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: SpacingBorderRadius.md,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -273,7 +272,7 @@ class HybridTodoItem extends ConsumerWidget {
         color: isOverdue
             ? colorScheme.errorContainer.withOpacity(0.5)
             : colorScheme.primaryContainer.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: SpacingBorderRadius.md,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -324,7 +323,7 @@ class HybridTodoItem extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: colorScheme.secondaryContainer.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: SpacingBorderRadius.md,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -382,7 +381,7 @@ class HybridTodoItem extends ConsumerWidget {
           : const EdgeInsets.only(right: 20),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: SpacingBorderRadius.md,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

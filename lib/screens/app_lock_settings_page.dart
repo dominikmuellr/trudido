@@ -20,6 +20,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/app_lock_service.dart';
 import '../services/biometric_auth_service.dart';
 import '../utils/responsive_size.dart';
+import '../theme/spacing_tokens.dart';
 import 'lock_screen.dart';
 
 /// Settings page for App Lock configuration
@@ -259,7 +260,7 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
                 onTap: () => Navigator.pop(context, option.seconds),
               );
             }),
-            const SizedBox(height: 8),
+            SpacingGap.gapV8,
           ],
         ),
       ),
@@ -341,17 +342,17 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
 
                   // Info section
                   Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: SpacingEdgeInsets.insets16,
                     child: Card(
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: SpacingEdgeInsets.insets16,
                         child: Row(
                           children: [
                             Icon(
                               Icons.info_outline,
                               color: colorScheme.primary,
                             ),
-                            const SizedBox(width: 16),
+                            SpacingGap.gapH16,
                             Expanded(
                               child: Text(
                                 'Your PIN is stored securely on this device and never sent anywhere.',
@@ -369,11 +370,11 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
 
                 if (!_isEnabled)
                   Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: SpacingEdgeInsets.insets16,
                     child: Card(
                       color: colorScheme.primaryContainer.withOpacity(0.3),
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: SpacingEdgeInsets.insets16,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -383,7 +384,7 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
                                   Icons.shield_outlined,
                                   color: colorScheme.primary,
                                 ),
-                                const SizedBox(width: 12),
+                                SpacingGap.gapH12,
                                 Text(
                                   'Protect Your Data',
                                   style: theme.textTheme.titleMedium?.copyWith(
@@ -392,7 +393,7 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
+                            SpacingGap.gapV12,
                             Text(
                               'Enable app lock to require a PIN or fingerprint before accessing your tasks and notes. This adds an extra layer of privacy even if someone has access to your unlocked phone.',
                               style: theme.textTheme.bodyMedium?.copyWith(

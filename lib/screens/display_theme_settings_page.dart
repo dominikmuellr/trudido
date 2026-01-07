@@ -24,6 +24,7 @@ import '../utils/week_start_utils.dart';
 import 'home_screen.dart';
 
 import 'default_tab_settings_screen.dart';
+import '../theme/spacing_tokens.dart';
 
 class DisplayThemeSettingsPage extends ConsumerWidget {
   const DisplayThemeSettingsPage({super.key});
@@ -83,7 +84,7 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
           _buildSectionHeader(context, 'Experimental'),
           _buildFloatingToolbarToggle(),
 
-          const SizedBox(height: 16),
+          SpacingGap.gapV16,
         ],
       ),
     );
@@ -366,7 +367,7 @@ class _ThemeModeSheet extends ConsumerWidget {
                     controller.toggleBlackTheme();
                   },
           ),
-          const SizedBox(height: 8),
+          SpacingGap.gapV8,
         ],
       ),
     );
@@ -470,7 +471,7 @@ class _DefaultTabSheet extends ConsumerWidget {
               ref.read(preferencesStateProvider.notifier).state = updated;
             },
           ),
-          const SizedBox(height: 8),
+          SpacingGap.gapV8,
         ],
       ),
     );
@@ -576,7 +577,7 @@ class _WeekStartSheet extends StatelessWidget {
               ),
             ),
             ...otherDays.map(buildOption),
-            const SizedBox(height: 16),
+            SpacingGap.gapV16,
           ],
         ),
       ),
@@ -601,7 +602,7 @@ class _AccentColorSelector extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildColorPreview(currentColorSeed, context),
-          const SizedBox(width: 8),
+          SpacingGap.gapH8,
           Icon(Icons.arrow_drop_down),
         ],
       ),
@@ -836,7 +837,7 @@ class _AccentColorSheet extends StatelessWidget {
               color: Theme.of(
                 context,
               ).colorScheme.onSurfaceVariant.withOpacity(0.4),
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: SpacingBorderRadius.full,
             ),
           ),
 
@@ -886,7 +887,7 @@ class _AccentColorSheet extends StatelessWidget {
                   return buildOption(colorValue, _getColorName(colorValue));
                 }).toList(),
 
-                const SizedBox(height: 16),
+                SpacingGap.gapV16,
               ],
             ),
           ),
@@ -1085,7 +1086,7 @@ class _GreetingLanguageSheet extends ConsumerWidget {
               color: Theme.of(
                 context,
               ).colorScheme.onSurfaceVariant.withOpacity(0.4),
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: SpacingBorderRadius.full,
             ),
           ),
 
@@ -1123,7 +1124,7 @@ class _GreetingLanguageSheet extends ConsumerWidget {
               },
             ),
           ),
-          const SizedBox(height: 16),
+          SpacingGap.gapV16,
         ],
       ),
     );

@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/default_tab_service.dart';
 import '../providers/app_providers.dart';
 import '../services/preferences_service.dart';
+import '../theme/spacing_tokens.dart';
 
 /// Provider for the current default tab setting
 final defaultTabProvider = FutureProvider<String>((ref) async {
@@ -100,12 +101,12 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
                 size: 48,
                 color: Theme.of(context).colorScheme.error,
               ),
-              const SizedBox(height: 16),
+              SpacingGap.gapV16,
               Text(
                 'Failed to load settings',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 8),
+              SpacingGap.gapV8,
               Text(
                 error.toString(),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -113,7 +114,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              SpacingGap.gapV16,
               ElevatedButton.icon(
                 onPressed: () => ref.refresh(defaultTabNotifierProvider),
                 icon: Icon(Icons.refresh),
@@ -138,7 +139,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
         .hideBottomNavigation;
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: SpacingEdgeInsets.insets16,
       children: [
         // Main settings card
         Card(
@@ -151,10 +152,10 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: SpacingEdgeInsets.insets8,
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: SpacingBorderRadius.sm,
                       ),
                       child: Icon(
                         Icons.home_outlined,
@@ -162,7 +163,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
                         size: 20,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    SpacingGap.gapH16,
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,7 +188,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
                   ],
                 ),
 
-                const SizedBox(height: 24),
+                SpacingGap.gapV24,
 
                 // Tab selection options
                 ...tabs.entries.map(
@@ -204,7 +205,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
           ),
         ),
 
-        const SizedBox(height: 16),
+        SpacingGap.gapV16,
 
         // Bottom navigation visibility toggle
         Card(
@@ -226,12 +227,12 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
           ),
         ),
 
-        const SizedBox(height: 16),
+        SpacingGap.gapV16,
 
         // Information card
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: SpacingEdgeInsets.insets16,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -242,7 +243,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
                       size: 20,
                       color: Theme.of(context).colorScheme.primary,
                     ),
-                    const SizedBox(width: 12),
+                    SpacingGap.gapH12,
                     Text(
                       'About This Setting',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -251,7 +252,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SpacingGap.gapV12,
                 Text(
                   'The selected tab will be displayed every time you open the app. '
                   'This setting is saved locally on your device and can be changed at any time.',
@@ -265,7 +266,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
           ),
         ),
 
-        const SizedBox(height: 16),
+        SpacingGap.gapV16,
 
         // Reset button
         SizedBox(
@@ -293,9 +294,9 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: InkWell(
         onTap: () => _selectTab(context, ref, tabId, tabName),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: SpacingBorderRadius.sm,
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: SpacingEdgeInsets.insets12,
           decoration: BoxDecoration(
             border: Border.all(
               color: isSelected
@@ -303,7 +304,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
                   : Theme.of(context).colorScheme.outline.withOpacity(0.3),
               width: isSelected ? 2 : 1,
             ),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: SpacingBorderRadius.sm,
             color: isSelected
                 ? Theme.of(
                     context,
@@ -319,7 +320,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
                     ? Theme.of(context).colorScheme.primary
                     : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(width: 16),
+              SpacingGap.gapH16,
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

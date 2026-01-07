@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:url_launcher/url_launcher.dart';
+import '../theme/spacing_tokens.dart';
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
@@ -180,7 +181,7 @@ class _AboutScreenState extends State<AboutScreen> {
           _buildPackageTile('Cryptography', 'crypto', '^3.0.3'),
           _buildPackageTile('Permissions', 'permission_handler', '^12.0.1'),
 
-          const SizedBox(height: 16),
+          SpacingGap.gapV16,
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Center(
@@ -193,7 +194,7 @@ class _AboutScreenState extends State<AboutScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          SpacingGap.gapV16,
         ],
       ),
     );

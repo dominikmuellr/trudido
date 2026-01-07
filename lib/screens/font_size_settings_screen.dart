@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 import '../services/text_scale_service.dart';
 import '../utils/responsive_size.dart';
+import '../theme/spacing_tokens.dart';
 
 class FontSizeSettingsScreen extends StatefulWidget {
   const FontSizeSettingsScreen({super.key});
@@ -85,7 +86,7 @@ class _FontSizeSettingsScreenState extends State<FontSizeSettingsScreen> {
         foregroundColor: colorScheme.onSurface,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16.0),
+        padding: SpacingEdgeInsets.insets16,
         children: [
           // Ignore system font size switch
           Card(
@@ -98,12 +99,12 @@ class _FontSizeSettingsScreenState extends State<FontSizeSettingsScreen> {
               onChanged: _onIgnoreChanged,
             ),
           ),
-          const SizedBox(height: 24),
+          SpacingGap.gapV24,
 
           // Font size slider
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: SpacingEdgeInsets.insets16,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -113,7 +114,7 @@ class _FontSizeSettingsScreenState extends State<FontSizeSettingsScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SpacingGap.gapV8,
                   Text(
                     _ignoreSystem
                         ? 'Custom size: ${(_value * 100).round()}%'
@@ -122,7 +123,7 @@ class _FontSizeSettingsScreenState extends State<FontSizeSettingsScreen> {
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SpacingGap.gapV16,
                   Opacity(
                     opacity: _ignoreSystem ? 1.0 : 0.5,
                     child: Row(
@@ -146,12 +147,12 @@ class _FontSizeSettingsScreenState extends State<FontSizeSettingsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          SpacingGap.gapV24,
 
           // Preview card
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: SpacingEdgeInsets.insets16,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -161,14 +162,14 @@ class _FontSizeSettingsScreenState extends State<FontSizeSettingsScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SpacingGap.gapV16,
                   Text('Task Title', style: theme.textTheme.titleLarge),
-                  const SizedBox(height: 8),
+                  SpacingGap.gapV8,
                   Text(
                     'This is how your tasks and notes will look with the current font size setting.',
                     style: theme.textTheme.bodyMedium,
                   ),
-                  const SizedBox(height: 8),
+                  SpacingGap.gapV8,
                   Text(
                     'Small details and timestamps',
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -179,13 +180,13 @@ class _FontSizeSettingsScreenState extends State<FontSizeSettingsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          SpacingGap.gapV16,
 
           // Info card
           Card(
             color: colorScheme.primaryContainer.withOpacity(0.5),
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: SpacingEdgeInsets.insets16,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -194,7 +195,7 @@ class _FontSizeSettingsScreenState extends State<FontSizeSettingsScreen> {
                     color: colorScheme.primary,
                     size: 20,
                   ),
-                  const SizedBox(width: 12),
+                  SpacingGap.gapH12,
                   Expanded(
                     child: Text(
                       _ignoreSystem
