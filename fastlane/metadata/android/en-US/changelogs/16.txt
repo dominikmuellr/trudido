@@ -1,0 +1,8 @@
+Version 1.2.5 - Updates and Improvements
+
+• Enhanced Stability: Improved app stability and error handling throughout the application
+• Performance Optimizations: Faster app startup and smoother animations
+• UI Refinements: Minor visual improvements to match Material You design guidelines
+• Bug Fixes: Resolved various issues reported by users
+• Dependency Updates: Updated dependencies to their latest stable versions for better security and performance
+• Code Quality: Internal code refactoring and improvements for better maintainability

@@ -87,7 +87,7 @@ class _AboutScreenState extends State<AboutScreen> {
           ListTile(
             leading: Icon(Icons.tag, color: cs.primary),
             title: const Text('Version'),
-            subtitle: const Text('v1.2.4'),
+            subtitle: const Text('v1.2.5'),
           ),
           ListTile(
             leading: Icon(Icons.code, color: cs.primary),
