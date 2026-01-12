@@ -1178,8 +1178,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (badgeCount != null && badgeCount > 0) {
       return Badge(
         label: Text(badgeCount > 99 ? '99+' : '$badgeCount'),
-        backgroundColor: Theme.of(context).colorScheme.error,
-        textColor: Theme.of(context).colorScheme.onError,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        textColor: Theme.of(context).colorScheme.onPrimary,
         child: iconWidget,
       );
     }

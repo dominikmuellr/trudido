@@ -412,11 +412,6 @@ class NoteExportService {
               }
             } else {
               for (var item in items) {
-                final bullet = (listType == 'checked')
-                    ? '[x]'
-                    : (listType == 'unchecked')
-                    ? '[ ]'
-                    : '•';
                 contentWidgets.add(
                   pw.Padding(
                     padding: const pw.EdgeInsets.symmetric(vertical: 2),

@@ -18,7 +18,6 @@ import 'package:flutter/foundation.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -502,9 +501,7 @@ class PdfExportService {
               debugPrint('[PdfExport] Error parsing custom: $e');
             }
           } else if (custom is Map) {
-            debugPrint(
-              '[PdfExport] Custom is Map: ${(custom as Map).keys.toList()}',
-            );
+            debugPrint('[PdfExport] Custom is Map: ${custom.keys.toList()}');
           }
           continue;
         }

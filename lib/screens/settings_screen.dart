@@ -26,8 +26,10 @@ import 'personalization_screen.dart';
 import 'comprehensive_notification_settings.dart';
 import 'template_management_screen.dart';
 import 'calendar_sync_settings_screen.dart';
+import 'holiday_calendar_settings_screen.dart';
 import 'app_lock_settings_page.dart';
 import '../controllers/preferences_controller.dart';
+import '../providers/holiday_providers.dart';
 
 // Moved _SwipeActionSheet and _getSwipeActionName outside the class
 String _getSwipeActionName(String action) {
@@ -384,8 +386,8 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
 
-          // Data & Storage Section
-          _buildSectionHeader(context, 'Data & Storage'),
+          // Data & Integrations Section
+          _buildSectionHeader(context, 'Data & Integrations'),
           ListTile(
             leading: ScaledIcon(Icons.calendar_month_outlined),
             title: const Text('Calendar Sync'),
@@ -395,6 +397,19 @@ class SettingsScreen extends ConsumerWidget {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => const CalendarSyncSettingsScreen(),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: ScaledIcon(Icons.event),
+            title: const Text('Import Calendar'),
+            subtitle: const Text('Import from .ics files'),
+            trailing: ScaledIcon(Icons.arrow_forward_ios),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const HolidayCalendarSettingsScreen(),
                 ),
               );
             },

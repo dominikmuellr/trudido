@@ -49,7 +49,7 @@ class MarkdownExportService {
       // Try direct filesystem approach first
       int exportedCount = 0;
       bool needsSafFallback = false;
-      
+
       try {
         // Create notes subdirectory
         final notesDir = Directory('$selectedDirectory/$_notesSubfolder');
@@ -62,21 +62,27 @@ class MarkdownExportService {
           final success = await _exportSingleNote(note, notesDir.path);
           if (success) exportedCount++;
         }
-        
+
         // If all exports failed, we likely need SAF fallback
         if (exportedCount == 0 && notes.isNotEmpty) {
           needsSafFallback = true;
-          debugPrint('[MarkdownExport] Direct filesystem failed, will try SAF fallback');
+          debugPrint(
+            '[MarkdownExport] Direct filesystem failed, will try SAF fallback',
+          );
         }
       } catch (e) {
         // Permission or filesystem error - need SAF fallback
-        debugPrint('[MarkdownExport] Filesystem error: $e - will try SAF fallback');
+        debugPrint(
+          '[MarkdownExport] Filesystem error: $e - will try SAF fallback',
+        );
         needsSafFallback = true;
       }
 
       // If direct approach failed, try SAF fallback on Android
       if (needsSafFallback && Platform.isAndroid) {
-        debugPrint('[MarkdownExport] Attempting SAF fallback for restricted storage...');
+        debugPrint(
+          '[MarkdownExport] Attempting SAF fallback for restricted storage...',
+        );
         return await _exportViaSaf(notes);
       }
 
@@ -98,10 +104,7 @@ class MarkdownExportService {
       final notesList = notes.map((note) {
         final fileName = _generateSafeFileName(note);
         final content = _generateMarkdownContent(note);
-        return {
-          'filename': '$fileName.md',
-          'content': content,
-        };
+        return {'filename': '$fileName.md', 'content': content};
       }).toList();
 
       // Set up completion callback
@@ -113,7 +116,9 @@ class MarkdownExportService {
       });
 
       // Start SAF export
-      final started = await FilesChannel.instance.startMarkdownExport(notesList);
+      final started = await FilesChannel.instance.startMarkdownExport(
+        notesList,
+      );
       if (!started) {
         debugPrint('[MarkdownExport] SAF export failed to start');
         return false;

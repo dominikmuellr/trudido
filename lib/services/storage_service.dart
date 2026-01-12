@@ -23,6 +23,7 @@ import '../models/folder.dart';
 import '../models/folder_template.dart';
 import '../models/note.dart';
 import '../models/note_folder.dart';
+import '../models/holiday.dart';
 import '../repositories/hive_folder_repository.dart';
 import '../repositories/hive_folder_template_repository.dart';
 
@@ -74,6 +75,10 @@ class StorageService {
     Hive.registerAdapter(FolderAdapter());
     Hive.registerAdapter(NoteAdapter());
     Hive.registerAdapter(NoteFolderAdapter());
+    // Register holiday adapter
+    if (!Hive.isAdapterRegistered(8)) {
+      Hive.registerAdapter(HolidayAdapter());
+    }
     // Register template adapters if they exist
     try {
       if (!Hive.isAdapterRegistered(4)) {

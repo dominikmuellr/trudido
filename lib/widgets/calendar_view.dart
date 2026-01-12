@@ -19,11 +19,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import '../models/todo.dart';
+import '../models/holiday.dart';
 import '../screens/task_editor_screen.dart';
 import '../controllers/task_controller.dart';
 import '../providers/filter_providers.dart';
 import '../providers/app_providers.dart';
 import '../providers/clock.dart';
+import '../providers/holiday_providers.dart';
 import '../utils/week_start_utils.dart';
 import 'hybrid_todo_item.dart';
 import '../theme/spacing_tokens.dart';
@@ -712,6 +714,12 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
         : <Todo>[];
     final customFormat = ref.watch(calendarFormatProvider);
 
+    // Get holidays for selected day
+    final showHolidays = ref.watch(showHolidaysInCalendarProvider);
+    final selectedDayHolidays = _selectedDay != null && showHolidays
+        ? ref.watch(holidaysForDateProvider(_selectedDay!))
+        : <Holiday>[];
+
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -965,7 +973,14 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                         },
                         // Custom marker builder - left bars style
                         markerBuilder: (context, day, events) {
-                          if (events.isEmpty) return const SizedBox.shrink();
+                          // Check for holidays on this day
+                          final dayHolidays = showHolidays
+                              ? ref.watch(holidaysForDateProvider(day))
+                              : <Holiday>[];
+                          final hasHoliday = dayHolidays.isNotEmpty;
+
+                          if (events.isEmpty && !hasHoliday)
+                            return const SizedBox.shrink();
 
                           // Sort events: tasks with calendar colors first, then by priority
                           final sortedEvents = events.toList()
@@ -994,53 +1009,91 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                           final bars = sortedEvents.take(maxBars).toList();
                           final extra = sortedEvents.length - bars.length;
 
-                          return Positioned(
-                            top: 4,
-                            bottom: 4,
-                            left: 4,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                for (var event in bars)
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                      vertical: 1,
-                                    ),
-                                    width: 4,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      // Use calendar color if available, otherwise priority color
-                                      color: event.sourceCalendarColor != null
-                                          ? Color(event.sourceCalendarColor!)
-                                          : _getColorForPriority(
-                                              event.priority,
-                                              colorScheme,
+                          return Stack(
+                            children: [
+                              // Task bars on the left
+                              if (events.isNotEmpty)
+                                Positioned(
+                                  top: 4,
+                                  bottom: 4,
+                                  left: 4,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      for (var event in bars)
+                                        Container(
+                                          margin: const EdgeInsets.symmetric(
+                                            vertical: 1,
+                                          ),
+                                          width: 4,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                            // Use calendar color if available, otherwise priority color
+                                            color:
+                                                event.sourceCalendarColor !=
+                                                    null
+                                                ? Color(
+                                                    event.sourceCalendarColor!,
+                                                  )
+                                                : _getColorForPriority(
+                                                    event.priority,
+                                                    colorScheme,
+                                                  ),
+                                            borderRadius: BorderRadius.circular(
+                                              2,
                                             ),
-                                      borderRadius: BorderRadius.circular(2),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withValues(
+                                                  alpha: 0.06,
+                                                ),
+                                                blurRadius: 1,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      if (extra > 0)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 2,
+                                          ),
+                                          child: Text(
+                                            '+$extra',
+                                            style: TextStyle(
+                                              fontSize: 8,
+                                              color: theme
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.color,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              // Holiday indicator dot on the right
+                              if (hasHoliday)
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.tertiary,
+                                      shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.06,
-                                          ),
-                                          blurRadius: 1,
+                                          color: colorScheme.tertiary
+                                              .withValues(alpha: 0.4),
+                                          blurRadius: 2,
                                         ),
                                       ],
                                     ),
                                   ),
-                                if (extra > 0)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 2),
-                                    child: Text(
-                                      '+$extra',
-                                      style: TextStyle(
-                                        fontSize: 8,
-                                        color: theme.textTheme.bodySmall?.color,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
+                                ),
+                            ],
                           );
                         },
                       ),
@@ -1081,7 +1134,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
               ),
             ),
           ), // AnimatedContainer
-          // Selected Day Tasks - Only show when NOT in day view
+          // Selected Day Tasks and Holidays - Only show when NOT in day view
           if (_selectedDay != null &&
               customFormat != CustomCalendarFormat.day) ...[
             Container(
@@ -1102,9 +1155,10 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                     ),
                   ),
                   const Spacer(),
-                  if (selectedDayTasks.isNotEmpty)
+                  if (selectedDayTasks.isNotEmpty ||
+                      selectedDayHolidays.isNotEmpty)
                     Text(
-                      '${selectedDayTasks.length} task${selectedDayTasks.length == 1 ? '' : 's'}',
+                      '${selectedDayTasks.length + selectedDayHolidays.length} item${(selectedDayTasks.length + selectedDayHolidays.length) == 1 ? '' : 's'}',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -1114,31 +1168,83 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
             ),
             const SizedBox(height: 12),
 
-            // Tasks List for Selected Day
+            // Combined list for selected day
             Container(
               constraints: const BoxConstraints(minHeight: 200),
-              child: selectedDayTasks.isEmpty
+              child: (selectedDayTasks.isEmpty && selectedDayHolidays.isEmpty)
                   ? _buildEmptyState(context, colorScheme)
-                  : ListView.separated(
+                  : ListView(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: selectedDayTasks.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final task = selectedDayTasks[index];
-                        return HybridTodoItem(
-                          todo: task,
-                          onToggle: () => _toggleTaskCompletion(task),
-                          onEdit: () => _editTask(context, task),
-                          onDelete: () => ref
-                              .read(taskControllerProvider.notifier)
-                              .delete(task.id),
-                          onSelectToggle:
-                              () {}, // Not selectable in calendar view
-                        );
-                      },
+                      children: [
+                        // Show holidays first
+                        ...selectedDayHolidays.map(
+                          (holiday) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Card(
+                              margin: EdgeInsets.zero,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              color: colorScheme.tertiaryContainer.withValues(
+                                alpha: 0.5,
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.celebration_outlined,
+                                      size: 20,
+                                      color: colorScheme.tertiary,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            holiday.name,
+                                            style: theme.textTheme.bodyMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: colorScheme
+                                                      .onTertiaryContainer,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Then show tasks
+                        ...selectedDayTasks.asMap().entries.map((entry) {
+                          final task = entry.value;
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: entry.key < selectedDayTasks.length - 1
+                                  ? 8
+                                  : 0,
+                            ),
+                            child: HybridTodoItem(
+                              todo: task,
+                              onToggle: () => _toggleTaskCompletion(task),
+                              onEdit: () => _editTask(context, task),
+                              onDelete: () => ref
+                                  .read(taskControllerProvider.notifier)
+                                  .delete(task.id),
+                              onSelectToggle: () {},
+                            ),
+                          );
+                        }),
+                      ],
                     ),
             ),
           ], // This closes the if statement
