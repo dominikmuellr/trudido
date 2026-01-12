@@ -34,6 +34,7 @@ class FilesChannel {
   Function(String)? _onImportError;
   Function()? _onRefreshNeeded;
   Function(String)? _onBackupFolderSelected;
+  Function(int)? _onMarkdownExportComplete;
 
   void setImportCallbacks({
     Function(String)? onComplete,
@@ -47,6 +48,10 @@ class FilesChannel {
 
   void setBackupFolderCallback(Function(String)? onFolderSelected) {
     _onBackupFolderSelected = onFolderSelected;
+  }
+
+  void setMarkdownExportCallback(Function(int)? onComplete) {
+    _onMarkdownExportComplete = onComplete;
   }
 
   Future<void> ensureInitialized() async {
@@ -88,6 +93,10 @@ class FilesChannel {
         if (folderUri != null) {
           _onBackupFolderSelected?.call(folderUri);
         }
+      } else if (call.method == 'onMarkdownExportComplete') {
+        final count = call.arguments as int? ?? 0;
+        debugPrint('[FilesChannel] Markdown export complete: $count notes');
+        _onMarkdownExportComplete?.call(count);
       }
     });
     _initialized = true;
@@ -117,6 +126,20 @@ class FilesChannel {
       await _ch.invokeMethod('startImport');
     } catch (e, st) {
       debugPrint('[FilesChannel] startImport error: $e\n$st');
+    }
+  }
+
+  /// Start markdown export via SAF (for restricted storage like Nextcloud)
+  /// [notes] is a list of maps with 'filename' and 'content' keys
+  Future<bool> startMarkdownExport(List<Map<String, String>> notes) async {
+    if (!Platform.isAndroid) return false;
+    try {
+      await ensureInitialized();
+      final result = await _ch.invokeMethod('startMarkdownExport', notes);
+      return result == true;
+    } catch (e, st) {
+      debugPrint('[FilesChannel] startMarkdownExport error: $e\n$st');
+      return false;
     }
   }
 }

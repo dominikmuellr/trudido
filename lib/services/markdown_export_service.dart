@@ -16,16 +16,19 @@
 
 import 'dart:io';
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/note.dart';
 import '../services/storage_service.dart';
+import '../services/files_channel.dart';
 
 /// Service for exporting and importing notes as individual markdown files
 class MarkdownExportService {
   static const String _notesSubfolder = 'exported_notes';
 
   /// Export all notes as individual .md files to a user-selected directory
+  /// Uses direct filesystem access first, falls back to SAF for restricted storage
   static Future<bool> exportNotesToFiles() async {
     try {
       debugPrint('[MarkdownExport] Starting notes export...');
@@ -43,25 +46,89 @@ class MarkdownExportService {
       String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
       if (selectedDirectory == null) return false;
 
-      // Create notes subdirectory
-      final notesDir = Directory('$selectedDirectory/$_notesSubfolder');
-      if (!await notesDir.exists()) {
-        await notesDir.create(recursive: true);
+      // Try direct filesystem approach first
+      int exportedCount = 0;
+      bool needsSafFallback = false;
+      
+      try {
+        // Create notes subdirectory
+        final notesDir = Directory('$selectedDirectory/$_notesSubfolder');
+        if (!await notesDir.exists()) {
+          await notesDir.create(recursive: true);
+        }
+
+        // Export each note as a .md file
+        for (final note in notes) {
+          final success = await _exportSingleNote(note, notesDir.path);
+          if (success) exportedCount++;
+        }
+        
+        // If all exports failed, we likely need SAF fallback
+        if (exportedCount == 0 && notes.isNotEmpty) {
+          needsSafFallback = true;
+          debugPrint('[MarkdownExport] Direct filesystem failed, will try SAF fallback');
+        }
+      } catch (e) {
+        // Permission or filesystem error - need SAF fallback
+        debugPrint('[MarkdownExport] Filesystem error: $e - will try SAF fallback');
+        needsSafFallback = true;
       }
 
-      // Export each note as a .md file
-      int exportedCount = 0;
-      for (final note in notes) {
-        final success = await _exportSingleNote(note, notesDir.path);
-        if (success) exportedCount++;
+      // If direct approach failed, try SAF fallback on Android
+      if (needsSafFallback && Platform.isAndroid) {
+        debugPrint('[MarkdownExport] Attempting SAF fallback for restricted storage...');
+        return await _exportViaSaf(notes);
       }
 
       debugPrint(
-        '[MarkdownExport] Exported $exportedCount/${notes.length} notes to ${notesDir.path}',
+        '[MarkdownExport] Exported $exportedCount/${notes.length} notes',
       );
       return exportedCount > 0;
     } catch (e, stackTrace) {
       debugPrint('[MarkdownExport] Export failed: $e');
+      debugPrint('[MarkdownExport] Stack trace: $stackTrace');
+      return false;
+    }
+  }
+
+  /// Export notes via Storage Access Framework (for restricted storage like Nextcloud)
+  static Future<bool> _exportViaSaf(List<Note> notes) async {
+    try {
+      // Prepare notes data for native export
+      final notesList = notes.map((note) {
+        final fileName = _generateSafeFileName(note);
+        final content = _generateMarkdownContent(note);
+        return {
+          'filename': '$fileName.md',
+          'content': content,
+        };
+      }).toList();
+
+      // Set up completion callback
+      final completer = Completer<int>();
+      FilesChannel.instance.setMarkdownExportCallback((count) {
+        if (!completer.isCompleted) {
+          completer.complete(count);
+        }
+      });
+
+      // Start SAF export
+      final started = await FilesChannel.instance.startMarkdownExport(notesList);
+      if (!started) {
+        debugPrint('[MarkdownExport] SAF export failed to start');
+        return false;
+      }
+
+      // Wait for completion with timeout
+      final exportedCount = await completer.future.timeout(
+        const Duration(minutes: 5),
+        onTimeout: () => 0,
+      );
+
+      debugPrint('[MarkdownExport] SAF export completed: $exportedCount notes');
+      return exportedCount > 0;
+    } catch (e, stackTrace) {
+      debugPrint('[MarkdownExport] SAF export failed: $e');
       debugPrint('[MarkdownExport] Stack trace: $stackTrace');
       return false;
     }

@@ -114,6 +114,18 @@ class MainActivity : FlutterFragmentActivity() {
                     startActivityForResult(intent, TaskFileHandler.REQUEST_CODE_IMPORT)
                     result.success(true)
                 }
+                "startMarkdownExport" -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val notesList = call.arguments as? List<Map<String, String>>
+                    if (notesList != null && notesList.isNotEmpty()) {
+                        fileHandler.pendingMarkdownNotes = notesList
+                        val intent = fileHandler.buildMarkdownExportIntent()
+                        startActivityForResult(intent, TaskFileHandler.REQUEST_CODE_MARKDOWN_EXPORT)
+                        result.success(true)
+                    } else {
+                        result.success(false)
+                    }
+                }
                 "scheduleAutoBackup" -> {
                     val intervalHours = (call.arguments as? Map<String, Any>)?.get("intervalHours") as? Int ?: 24
                     val requiresCharging = (call.arguments as? Map<String, Any>)?.get("requiresCharging") as? Boolean ?: false
@@ -336,6 +348,14 @@ class MainActivity : FlutterFragmentActivity() {
                 if (json != null) {
                     filesChannel?.invokeMethod("onImport", json)
                 }
+            }
+            TaskFileHandler.REQUEST_CODE_MARKDOWN_EXPORT -> {
+                val notes = fileHandler.pendingMarkdownNotes
+                if (notes != null) {
+                    val count = fileHandler.writeMarkdownFilesToUri(uri, notes)
+                    filesChannel?.invokeMethod("onMarkdownExportComplete", count)
+                }
+                fileHandler.pendingMarkdownNotes = null
             }
             REQUEST_CODE_CHOOSE_BACKUP_FOLDER -> {
                 // Save the selected folder URI for custom backup location
