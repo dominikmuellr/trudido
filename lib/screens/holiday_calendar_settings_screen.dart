@@ -17,7 +17,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/holiday_providers.dart';
-import '../utils/responsive_size.dart';
 
 /// Screen for managing holiday calendar imports and settings
 class HolidayCalendarSettingsScreen extends ConsumerWidget {
@@ -32,15 +31,15 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
     final showHolidays = ref.watch(showHolidaysInCalendarProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Holiday Calendar')),
+      appBar: AppBar(title: const Text('Imported Calendars')),
       body: ListView(
         children: [
           // Show/Hide holidays toggle (only if holidays exist)
           if (holidays.isNotEmpty) ...[
             SwitchListTile(
               secondary: Icon(Icons.visibility, color: colorScheme.primary),
-              title: const Text('Show Holidays in Calendar'),
-              subtitle: Text('${holidays.length} holidays imported'),
+              title: const Text('Show Imported Calendars'),
+              subtitle: Text('${holidays.length} events imported'),
               value: showHolidays,
               onChanged: (value) {
                 ref.read(showHolidaysInCalendarProvider.notifier).state = value;
@@ -62,7 +61,7 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
                 (source) => ListTile(
                   leading: Icon(Icons.event_note, color: colorScheme.secondary),
                   title: Text(source),
-                  subtitle: Text('${countBySource[source] ?? 0} holidays'),
+                  subtitle: Text('${countBySource[source] ?? 0} events'),
                   trailing: IconButton(
                     icon: Icon(Icons.delete_outline, color: colorScheme.error),
                     tooltip: 'Remove calendar',
@@ -84,14 +83,14 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No Holidays Imported',
+                    'No Calendars Imported',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Import an .ics file to see holidays in your calendar',
+                    'Import an .ics file to see events in your calendar',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant.withValues(
                         alpha: 0.8,
@@ -110,7 +109,7 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
             child: FilledButton.icon(
               onPressed: () => _importHolidayCalendar(context, ref),
               icon: const Icon(Icons.add),
-              label: const Text('Import Holiday Calendar'),
+              label: const Text('Import Calendar'),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
@@ -163,7 +162,7 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
         scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text(
-              'Imported ${result.holidays.length} holidays${result.calendarName != null ? ' from ${result.calendarName}' : ''}',
+              'Imported ${result.holidays.length} events${result.calendarName != null ? ' from ${result.calendarName}' : ''}',
             ),
             backgroundColor: Colors.green,
           ),
@@ -171,7 +170,7 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
       } else {
         scaffoldMessenger.showSnackBar(
           const SnackBar(
-            content: Text('No valid holidays found in the file'),
+            content: Text('No valid events found in the file'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -196,7 +195,7 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Remove Calendar'),
-        content: Text('Remove all holidays from "$source"?'),
+        content: Text('Remove all events from "$source"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -220,7 +219,7 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Removed $count holidays from $source'),
+            content: Text('Removed $count events from $source'),
             backgroundColor: Colors.green,
           ),
         );
