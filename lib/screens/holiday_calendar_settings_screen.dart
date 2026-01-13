@@ -14,9 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
 import '../providers/holiday_providers.dart';
+import '../providers/app_providers.dart';
+import '../controllers/task_controller.dart';
+import '../utils/ics_parser.dart';
+import '../utils/imported_calendar_colors.dart';
 
 /// Screen for managing holiday calendar imports and settings
 class HolidayCalendarSettingsScreen extends ConsumerWidget {
@@ -25,28 +31,29 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
-    final holidays = ref.watch(holidaysProvider);
-    final sources = ref.watch(holidaySourcesProvider);
-    final countBySource = ref.watch(holidayCountBySourceProvider);
-    final showHolidays = ref.watch(showHolidaysInCalendarProvider);
+    final importedTasks = ref.watch(importedTasksProvider);
+    final sources = ref.watch(importedCalendarSourcesProvider);
+    final countBySource = ref.watch(importedTaskCountBySourceProvider);
+    final showImported = ref.watch(showImportedEventsInCalendarProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Imported Calendars')),
       body: ListView(
         children: [
-          // Show/Hide holidays toggle (only if holidays exist)
-          if (holidays.isNotEmpty) ...[
+          // Show/Hide toggle (only if imported events exist)
+          if (importedTasks.isNotEmpty) ...[
             SwitchListTile(
               secondary: Icon(Icons.visibility, color: colorScheme.primary),
               title: const Text('Show Imported Calendars'),
-              subtitle: Text('${holidays.length} events imported'),
-              value: showHolidays,
+              subtitle: Text('${importedTasks.length} events imported'),
+              value: showImported,
               onChanged: (value) {
-                ref.read(showHolidaysInCalendarProvider.notifier).state = value;
+                ref.read(showImportedEventsInCalendarProvider.notifier).state =
+                    value;
               },
             ),
 
-            // List of imported calendars
+            // List of imported calendars with color indicators
             if (sources.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -57,9 +64,19 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              ...sources.map(
-                (source) => ListTile(
-                  leading: Icon(Icons.event_note, color: colorScheme.secondary),
+              ...sources.map((source) {
+                final color = ImportedCalendarColors.getColorForCalendarName(
+                  source,
+                );
+                return ListTile(
+                  leading: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Color(color),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                   title: Text(source),
                   subtitle: Text('${countBySource[source] ?? 0} events'),
                   trailing: IconButton(
@@ -67,8 +84,8 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
                     tooltip: 'Remove calendar',
                     onPressed: () => _confirmDeleteSource(context, ref, source),
                   ),
-                ),
-              ),
+                );
+              }),
             ],
           ] else ...[
             // Empty state
@@ -107,7 +124,7 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: FilledButton.icon(
-              onPressed: () => _importHolidayCalendar(context, ref),
+              onPressed: () => _importCalendar(context, ref),
               icon: const Icon(Icons.add),
               label: const Text('Import Calendar'),
               style: FilledButton.styleFrom(
@@ -120,10 +137,7 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _importHolidayCalendar(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
+  Future<void> _importCalendar(BuildContext context, WidgetRef ref) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     // Show loading indicator
@@ -145,29 +159,73 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
     );
 
     try {
-      final result = await ref.read(holidaysProvider.notifier).importFromFile();
+      // Pick .ics file
+      final fileResult = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['ics'],
+      );
 
-      scaffoldMessenger.hideCurrentSnackBar();
-
-      if (result.error != null) {
-        if (result.error != 'No file selected') {
-          scaffoldMessenger.showSnackBar(
-            SnackBar(content: Text(result.error!), backgroundColor: Colors.red),
-          );
-        }
+      if (fileResult == null || fileResult.files.isEmpty) {
+        scaffoldMessenger.hideCurrentSnackBar();
         return;
       }
 
-      if (result.success) {
+      final file = fileResult.files.first;
+      String content;
+
+      if (file.bytes != null) {
+        content = String.fromCharCodes(file.bytes!);
+      } else if (file.path != null) {
+        content = await File(file.path!).readAsString();
+      } else {
+        scaffoldMessenger.hideCurrentSnackBar();
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Could not read file'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Use filename (without extension) as source calendar name
+      final sourceName = file.name.replaceAll('.ics', '').replaceAll('_', ' ');
+
+      // Parse ICS content as todos
+      final parseResult = IcsParser.parseTodos(
+        content,
+        sourceCalendarName: sourceName,
+      );
+
+      if (parseResult.error != null) {
+        scaffoldMessenger.hideCurrentSnackBar();
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(parseResult.error!),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      if (parseResult.success) {
+        // Save all parsed todos using task controller
+        final taskController = ref.read(taskControllerProvider.notifier);
+        for (final todo in parseResult.todos) {
+          await taskController.add(todo);
+        }
+
+        scaffoldMessenger.hideCurrentSnackBar();
         scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text(
-              'Imported ${result.holidays.length} events${result.calendarName != null ? ' from ${result.calendarName}' : ''}',
+              'Imported ${parseResult.todos.length} events${parseResult.calendarName != null ? ' from ${parseResult.calendarName}' : ''}',
             ),
             backgroundColor: Colors.green,
           ),
         );
       } else {
+        scaffoldMessenger.hideCurrentSnackBar();
         scaffoldMessenger.showSnackBar(
           const SnackBar(
             content: Text('No valid events found in the file'),
@@ -213,16 +271,41 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
     );
 
     if (confirmed == true) {
-      final count = await ref
-          .read(holidaysProvider.notifier)
-          .deleteSource(source);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Removed $count events from $source'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      try {
+        // Get all imported tasks from this source and delete them
+        final allTasks = ref.read(tasksProvider);
+        final toDelete = allTasks
+            .where(
+              (t) =>
+                  t.sourceCalendarName == source &&
+                  t.sourceCalendarColor != null,
+            )
+            .toList();
+
+        final taskController = ref.read(taskControllerProvider.notifier);
+        int deletedCount = 0;
+        for (final task in toDelete) {
+          await taskController.delete(task.id);
+          deletedCount++;
+        }
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Removed $deletedCount events from $source'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to remove events: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }

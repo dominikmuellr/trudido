@@ -19,7 +19,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import '../models/todo.dart';
-import '../models/holiday.dart';
 import '../screens/task_editor_screen.dart';
 import '../controllers/task_controller.dart';
 import '../providers/filter_providers.dart';
@@ -67,6 +66,34 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     }
   }
 
+  /// Calculate responsive extra padding based on screen width
+  /// Smaller screens need less padding, larger screens need more
+  double _getResponsiveExtraPadding(
+    BuildContext context,
+    CustomCalendarFormat fmt,
+  ) {
+    final width = MediaQuery.of(context).size.width;
+
+    // Base padding values - increased to prevent sub-pixel overflow
+    double basePadding;
+    if (fmt == CustomCalendarFormat.month) {
+      basePadding = 16.0;
+    } else if (fmt == CustomCalendarFormat.twoWeeks) {
+      basePadding = 14.0;
+    } else {
+      basePadding = 8.0;
+    }
+
+    // Scale padding based on screen width
+    // For screens wider than 400px, add extra padding proportionally
+    if (width > 400) {
+      final widthFactor = (width - 400) / 400;
+      basePadding += widthFactor * 4.0; // Add up to 4px for very wide screens
+    }
+
+    return basePadding;
+  }
+
   double _heightForFormat(BuildContext context, CustomCalendarFormat fmt) {
     final width = MediaQuery.of(context).size.width;
     final cellHeight = (width - 32) / 7;
@@ -83,12 +110,9 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
         : fmt == CustomCalendarFormat.twoWeeks
         ? 2
         : 1;
-    // Increase padding to prevent overflow
-    final extraPadding = fmt == CustomCalendarFormat.month
-        ? 15.0 // Increased to add more space
-        : fmt == CustomCalendarFormat.twoWeeks
-        ? 12.0 // Increased from 4.0 to fix 7.4 pixel overflow
-        : 6.0; // Increased from 0.0 to fix 1.7 pixel overflow
+
+    // Use responsive padding to prevent overflow across different screen sizes
+    final extraPadding = _getResponsiveExtraPadding(context, fmt);
     return headerHeight + daysOfWeekHeight + rows * cellHeight + extraPadding;
   }
 
@@ -714,11 +738,8 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
         : <Todo>[];
     final customFormat = ref.watch(calendarFormatProvider);
 
-    // Get holidays for selected day
-    final showHolidays = ref.watch(showHolidaysInCalendarProvider);
-    final selectedDayHolidays = _selectedDay != null && showHolidays
-        ? ref.watch(holidaysForDateProvider(_selectedDay!))
-        : <Holiday>[];
+    // Check if imported events should be shown
+    final showImported = ref.watch(showImportedEventsInCalendarProvider);
 
     return SingleChildScrollView(
       child: Column(
@@ -728,7 +749,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
             key: ValueKey(customFormat),
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOutCubicEmphasized,
-            height: _heightForFormat(context, customFormat) + 8,
+            height: _heightForFormat(context, customFormat) + 10,
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: colorScheme.surface,
@@ -973,17 +994,18 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                         },
                         // Custom marker builder - left bars style
                         markerBuilder: (context, day, events) {
-                          // Check for holidays on this day
-                          final dayHolidays = showHolidays
-                              ? ref.watch(holidaysForDateProvider(day))
-                              : <Holiday>[];
-                          final hasHoliday = dayHolidays.isNotEmpty;
+                          // Filter out imported events if toggle is off
+                          final visibleEvents = showImported
+                              ? events
+                              : events
+                                    .where((e) => e.sourceCalendarColor == null)
+                                    .toList();
 
-                          if (events.isEmpty && !hasHoliday)
+                          if (visibleEvents.isEmpty)
                             return const SizedBox.shrink();
 
                           // Sort events: tasks with calendar colors first, then by priority
-                          final sortedEvents = events.toList()
+                          final sortedEvents = visibleEvents.toList()
                             ..sort((a, b) {
                               // First sort by whether they have a calendar color
                               final aHasColor = a.sourceCalendarColor != null;
@@ -1072,27 +1094,6 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                                     ],
                                   ),
                                 ),
-                              // Holiday indicator dot on the right
-                              if (hasHoliday)
-                                Positioned(
-                                  top: 4,
-                                  right: 4,
-                                  child: Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.tertiary,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: colorScheme.tertiary
-                                              .withValues(alpha: 0.4),
-                                          blurRadius: 2,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
                             ],
                           );
                         },
@@ -1134,7 +1135,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
               ),
             ),
           ), // AnimatedContainer
-          // Selected Day Tasks and Holidays - Only show when NOT in day view
+          // Selected Day Tasks - Only show when NOT in day view
           if (_selectedDay != null &&
               customFormat != CustomCalendarFormat.day) ...[
             Container(
@@ -1155,10 +1156,9 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                     ),
                   ),
                   const Spacer(),
-                  if (selectedDayTasks.isNotEmpty ||
-                      selectedDayHolidays.isNotEmpty)
+                  if (selectedDayTasks.isNotEmpty)
                     Text(
-                      '${selectedDayTasks.length + selectedDayHolidays.length} item${(selectedDayTasks.length + selectedDayHolidays.length) == 1 ? '' : 's'}',
+                      '${selectedDayTasks.length} item${selectedDayTasks.length == 1 ? '' : 's'}',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -1168,63 +1168,17 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
             ),
             const SizedBox(height: 12),
 
-            // Combined list for selected day
+            // Task list for selected day
             Container(
               constraints: const BoxConstraints(minHeight: 200),
-              child: (selectedDayTasks.isEmpty && selectedDayHolidays.isEmpty)
+              child: selectedDayTasks.isEmpty
                   ? _buildEmptyState(context, colorScheme)
                   : ListView(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       children: [
-                        // Show holidays first
-                        ...selectedDayHolidays.map(
-                          (holiday) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Card(
-                              margin: EdgeInsets.zero,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              color: colorScheme.tertiaryContainer.withValues(
-                                alpha: 0.5,
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.celebration_outlined,
-                                      size: 20,
-                                      color: colorScheme.tertiary,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            holiday.name,
-                                            style: theme.textTheme.bodyMedium
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                  color: colorScheme
-                                                      .onTertiaryContainer,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Then show tasks
+                        // Show tasks
                         ...selectedDayTasks.asMap().entries.map((entry) {
                           final task = entry.value;
                           return Padding(

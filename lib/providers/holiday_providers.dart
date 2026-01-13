@@ -19,8 +19,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/holiday.dart';
+import '../models/todo.dart';
 import '../repositories/holiday_repository.dart';
 import '../utils/ics_parser.dart';
+import 'app_providers.dart';
 
 /// Holiday repository provider (singleton)
 final holidayRepositoryProvider = Provider<HolidayRepository>((ref) {
@@ -254,3 +256,45 @@ final hasHolidaysProvider = Provider<bool>((ref) {
 
 /// Provider to show/hide holidays in calendar (user preference)
 final showHolidaysInCalendarProvider = StateProvider<bool>((ref) => true);
+
+// ============================================================================
+// Imported Events Providers (for ICS → Tasks refactor)
+// ============================================================================
+
+/// Filter todos to get only imported calendar events
+final importedTasksProvider = Provider<List<Todo>>((ref) {
+  final all = ref.watch(tasksProvider);
+  return all
+      .where(
+        (t) => t.sourceCalendarName != null && t.sourceCalendarName!.isNotEmpty,
+      )
+      .toList();
+});
+
+/// Get list of imported calendar sources
+final importedCalendarSourcesProvider = Provider<List<String>>((ref) {
+  final imported = ref.watch(importedTasksProvider);
+  final sources = imported
+      .map((t) => t.sourceCalendarName ?? '')
+      .where((s) => s.isNotEmpty)
+      .toSet()
+      .toList();
+  sources.sort();
+  return sources;
+});
+
+/// Count of imported tasks per source
+final importedTaskCountBySourceProvider = Provider<Map<String, int>>((ref) {
+  final imported = ref.watch(importedTasksProvider);
+  final counts = <String, int>{};
+  for (final task in imported) {
+    if (task.sourceCalendarName != null) {
+      final source = task.sourceCalendarName!;
+      counts[source] = (counts[source] ?? 0) + 1;
+    }
+  }
+  return counts;
+});
+
+/// Show/hide imported calendar events in calendar view
+final showImportedEventsInCalendarProvider = StateProvider<bool>((ref) => true);

@@ -75,6 +75,9 @@ class Todo extends HiveObject {
   @HiveField(18)
   int? sourceCalendarColor; // Color of the calendar this task was imported from
 
+  @HiveField(20)
+  String? sourceCalendarName; // Name of the imported calendar source
+
   @HiveField(19, defaultValue: false)
   bool isDeleted;
 
@@ -97,6 +100,7 @@ class Todo extends HiveObject {
     this.repeatEndDate,
     this.parentRecurringTaskId,
     this.sourceCalendarColor,
+    this.sourceCalendarName,
     this.isDeleted = false,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
@@ -123,6 +127,7 @@ class Todo extends HiveObject {
     DateTime? repeatEndDate,
     String? parentRecurringTaskId,
     int? sourceCalendarColor,
+    String? sourceCalendarName,
     bool? isDeleted,
   }) {
     return Todo(
@@ -146,6 +151,7 @@ class Todo extends HiveObject {
       parentRecurringTaskId:
           parentRecurringTaskId ?? this.parentRecurringTaskId,
       sourceCalendarColor: sourceCalendarColor ?? this.sourceCalendarColor,
+      sourceCalendarName: sourceCalendarName ?? this.sourceCalendarName,
       isDeleted: isDeleted ?? this.isDeleted,
     );
   }
@@ -171,6 +177,7 @@ class Todo extends HiveObject {
       'repeatEndDate': repeatEndDate?.toIso8601String(),
       'parentRecurringTaskId': parentRecurringTaskId,
       'sourceCalendarColor': sourceCalendarColor,
+      'sourceCalendarName': sourceCalendarName,
       'isDeleted': isDeleted,
     };
   }
@@ -205,6 +212,7 @@ class Todo extends HiveObject {
           : null,
       parentRecurringTaskId: json['parentRecurringTaskId'],
       sourceCalendarColor: json['sourceCalendarColor'],
+      sourceCalendarName: json['sourceCalendarName'],
       isDeleted: json['isDeleted'] ?? false,
     );
   }

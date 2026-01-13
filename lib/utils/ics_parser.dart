@@ -16,6 +16,8 @@
 
 import 'package:flutter/foundation.dart';
 import '../models/holiday.dart';
+import '../models/todo.dart';
+import 'imported_calendar_colors.dart';
 
 /// Result of parsing an ICS file
 class IcsParseResult {
@@ -34,6 +36,25 @@ class IcsParseResult {
   });
 
   bool get success => error == null && holidays.isNotEmpty;
+}
+
+/// Result of parsing an ICS file as Todo objects
+class IcsParseResultTodos {
+  final List<Todo> todos;
+  final String? calendarName;
+  final int totalEvents;
+  final int skippedEvents;
+  final String? error;
+
+  IcsParseResultTodos({
+    required this.todos,
+    this.calendarName,
+    required this.totalEvents,
+    required this.skippedEvents,
+    this.error,
+  });
+
+  bool get success => error == null && todos.isNotEmpty;
 }
 
 /// Utility class for parsing ICS (iCalendar) files
@@ -100,6 +121,152 @@ class IcsParser {
         error: 'Failed to parse ICS file: $e',
       );
     }
+  }
+
+  /// Parse ICS content and extract as Todo objects (for imported calendar events)
+  static IcsParseResultTodos parseTodos(
+    String icsContent, {
+    required String sourceCalendarName,
+  }) {
+    try {
+      final todos = <Todo>[];
+      String? calendarName;
+      int totalEvents = 0;
+      int skippedEvents = 0;
+
+      final normalizedContent = _unfoldLines(icsContent);
+      final lines = normalizedContent.split('\n');
+
+      // Extract calendar name from X-WR-CALNAME if present
+      for (final line in lines) {
+        if (line.startsWith('X-WR-CALNAME:')) {
+          calendarName = line.substring('X-WR-CALNAME:'.length).trim();
+          break;
+        }
+      }
+
+      // Get color for this calendar
+      final calendarColor = ImportedCalendarColors.getColorForCalendarName(
+        sourceCalendarName,
+      );
+
+      // Find and parse all VEVENT blocks
+      int i = 0;
+      while (i < lines.length) {
+        if (lines[i].trim() == 'BEGIN:VEVENT') {
+          totalEvents++;
+          final eventLines = <String>[];
+          i++;
+
+          while (i < lines.length && lines[i].trim() != 'END:VEVENT') {
+            eventLines.add(lines[i]);
+            i++;
+          }
+
+          final todo = _parseEventAsTodo(
+            eventLines,
+            sourceCalendarName,
+            calendarColor,
+          );
+          if (todo != null) {
+            todos.add(todo);
+          } else {
+            skippedEvents++;
+          }
+        }
+        i++;
+      }
+
+      return IcsParseResultTodos(
+        todos: todos,
+        calendarName: calendarName,
+        totalEvents: totalEvents,
+        skippedEvents: skippedEvents,
+      );
+    } catch (e, stackTrace) {
+      debugPrint('[IcsParser] Parse todos error: $e');
+      debugPrint('[IcsParser] Stack trace: $stackTrace');
+      return IcsParseResultTodos(
+        todos: [],
+        totalEvents: 0,
+        skippedEvents: 0,
+        error: 'Failed to parse ICS file: $e',
+      );
+    }
+  }
+
+  /// Parse a single VEVENT block into a Todo object
+  static Todo? _parseEventAsTodo(
+    List<String> eventLines,
+    String sourceCalendarName,
+    int calendarColor,
+  ) {
+    String? summary;
+    String? description;
+    DateTime? dtStart;
+    DateTime? dtEnd;
+    bool isAllDay = false;
+
+    for (final line in eventLines) {
+      final trimmedLine = line.trim();
+
+      if (trimmedLine.startsWith('SUMMARY')) {
+        summary = _extractValue(trimmedLine);
+      } else if (trimmedLine.startsWith('DESCRIPTION')) {
+        description = _extractValue(trimmedLine);
+        description = _unescapeText(description);
+      } else if (trimmedLine.startsWith('DTSTART')) {
+        isAllDay = trimmedLine.contains('VALUE=DATE');
+        dtStart = _parseDate(trimmedLine);
+      } else if (trimmedLine.startsWith('DTEND')) {
+        if (trimmedLine.contains('VALUE=DATE')) isAllDay = true;
+        dtEnd = _parseDate(trimmedLine);
+      }
+    }
+
+    // Must have at least a summary and start date
+    if (summary == null || dtStart == null) {
+      return null;
+    }
+
+    // Additional check: if both dates have no time component, it's all-day
+    if (!isAllDay &&
+        dtStart.hour == 0 &&
+        dtStart.minute == 0 &&
+        dtStart.second == 0) {
+      if (dtEnd != null &&
+          dtEnd.hour == 0 &&
+          dtEnd.minute == 0 &&
+          dtEnd.second == 0) {
+        isAllDay = true;
+      }
+    }
+
+    // For all-day events, DTEND is exclusive (next day), so subtract 1 day
+    DateTime? startDateForSpan;
+    if (isAllDay && dtEnd != null) {
+      dtEnd = dtEnd.subtract(const Duration(days: 1));
+      final dtStartDay = DateTime(dtStart.year, dtStart.month, dtStart.day);
+      final dtEndDay = DateTime(dtEnd.year, dtEnd.month, dtEnd.day);
+      if (!dtStartDay.isAtSameMomentAs(dtEndDay)) {
+        // Multi-day event: startDate = dtStart, dueDate = dtEnd
+        startDateForSpan = dtStart;
+        dtStart = dtEnd; // dueDate becomes the end date
+      }
+      // Single day event: no startDate needed
+    }
+
+    summary = _unescapeText(summary);
+
+    return Todo(
+      text: summary,
+      dueDate: dtStart,
+      startDate: startDateForSpan,
+      notes: description ?? '',
+      sourceCalendarColor: calendarColor,
+      sourceCalendarName: sourceCalendarName,
+      priority: 'none',
+    );
   }
 
   /// Unfold lines according to RFC 5545 (lines starting with space/tab are continuations)
