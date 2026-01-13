@@ -35,12 +35,14 @@ class TaskEditorScreen extends ConsumerStatefulWidget {
   final Todo? todo;
   final Function(Todo) onSave;
   final DateTime? presetDueDate;
+  final String? presetTitle;
 
   const TaskEditorScreen({
     super.key,
     this.todo,
     required this.onSave,
     this.presetDueDate,
+    this.presetTitle,
   });
 
   @override
@@ -73,7 +75,9 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.todo?.text ?? '');
+    _titleController = TextEditingController(
+      text: widget.todo?.text ?? widget.presetTitle ?? '',
+    );
     _notesController = TextEditingController(text: widget.todo?.notes ?? '');
 
     // Initialize from existing todo if editing

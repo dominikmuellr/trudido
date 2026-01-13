@@ -33,6 +33,7 @@ class PreferencesState {
   final bool showMoreNoteToolbar; // Show expanded toolbar options
   final bool
   useFloatingNoteToolbar; // Use floating FAB toolbar instead of top toolbar
+  final bool useQuickInputBar; // Use bottom input bar instead of FAB menu
   final bool hideBottomNavigation; // Hide bottom nav/rail
   final int firstDayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
   final String defaultTaskView; // list | calendar - default view on app start
@@ -57,6 +58,7 @@ class PreferencesState {
     required this.hideNoteToolbar,
     required this.showMoreNoteToolbar,
     required this.useFloatingNoteToolbar,
+    required this.useQuickInputBar,
     required this.hideBottomNavigation,
     required this.firstDayOfWeek,
     required this.defaultTaskView,
@@ -81,6 +83,7 @@ class PreferencesState {
     bool? hideNoteToolbar,
     bool? showMoreNoteToolbar,
     bool? useFloatingNoteToolbar,
+    bool? useQuickInputBar,
     bool? hideBottomNavigation,
     int? firstDayOfWeek,
     String? defaultTaskView,
@@ -103,6 +106,7 @@ class PreferencesState {
     showMoreNoteToolbar: showMoreNoteToolbar ?? this.showMoreNoteToolbar,
     useFloatingNoteToolbar:
         useFloatingNoteToolbar ?? this.useFloatingNoteToolbar,
+    useQuickInputBar: useQuickInputBar ?? this.useQuickInputBar,
     hideBottomNavigation: hideBottomNavigation ?? this.hideBottomNavigation,
     firstDayOfWeek: firstDayOfWeek ?? this.firstDayOfWeek,
     defaultTaskView: defaultTaskView ?? this.defaultTaskView,
@@ -128,6 +132,7 @@ class PreferencesState {
     showMoreNoteToolbar: false, // Default: collapsed
     useFloatingNoteToolbar:
         false, // Default: use top toolbar (experimental feature off)
+    useQuickInputBar: false, // Default: use FAB menu (experimental feature off)
     hideBottomNavigation: false, // Default: show nav
     firstDayOfWeek: 1, // Default: Monday (0=Sunday, 1=Monday, etc.)
     defaultTaskView: 'list', // Default: list view

@@ -67,6 +67,22 @@ class ExperimentalSettingsScreen extends ConsumerWidget {
               );
             },
           ),
+          Consumer(
+            builder: (context, ref, _) {
+              final preferences = ref.watch(preferencesStateProvider);
+              final controller = ref.read(preferencesControllerProvider);
+
+              return SwitchListTile(
+                secondary: const Icon(Icons.edit_note_outlined),
+                title: const Text('Quick Input Bar'),
+                subtitle: const Text(
+                  'Replace floating action button with a bottom input bar for quick task/note creation',
+                ),
+                value: preferences.useQuickInputBar,
+                onChanged: (v) => controller.toggleQuickInputBar(),
+              );
+            },
+          ),
           const SizedBox(height: 16),
         ],
       ),

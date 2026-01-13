@@ -41,6 +41,7 @@ import '../screens/task_editor_screen.dart';
 import '../screens/template_management_screen.dart';
 import '../widgets/todo_list_tab.dart';
 import '../widgets/fab_menu.dart';
+import '../widgets/quick_input_bar.dart';
 import '../widgets/create_folder_dialog.dart';
 import '../utils/animated_navigation.dart';
 import '../utils/week_start_utils.dart';
@@ -319,9 +320,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final isSearchMode = ref.watch(searchModeProvider);
     final selectedNoteFolderId = ref.watch(selectedNoteFolderProvider);
     final fabMenuExpanded = ref.watch(fabMenuExpandedProvider);
-    final hideBottomNav = ref
-        .watch(preferencesStateProvider)
-        .hideBottomNavigation;
+    final preferences = ref.watch(preferencesStateProvider);
+    final hideBottomNav = preferences.hideBottomNavigation;
+    final useQuickInputBar = preferences.useQuickInputBar;
 
     // Listen for widget task creation requests
     ref.listen<int>(widgetTaskCreationRequestProvider, (previous, next) {
@@ -388,7 +389,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
         // If none of the above, allow default back behavior (exit app)
       },
-      child: _buildContent(useNavigationRail, tabs, currentTab, hideBottomNav),
+      child: _buildContent(
+        useNavigationRail,
+        tabs,
+        currentTab,
+        hideBottomNav,
+        useQuickInputBar,
+      ),
     );
   }
 
@@ -397,6 +404,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     List<Widget> tabs,
     int currentTab,
     bool hideBottomNav,
+    bool useQuickInputBar,
   ) {
     final fabMenuExpanded = ref.watch(fabMenuExpandedProvider);
 
@@ -482,118 +490,229 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           drawerEdgeDragWidth:
               40.0, // Allow swipe from left edge to open drawer
           appBar: _buildAppBar(context),
-          body: IndexedStack(index: currentTab, children: tabs),
-          bottomNavigationBar: hideBottomNav
-              ? null
-              : NavigationBar(
-                  backgroundColor:
-                      Theme.of(context).brightness == Brightness.dark
-                      ? null // Use default in dark mode
-                      : Theme.of(context).colorScheme.surfaceContainerLow,
-                  selectedIndex: currentTab,
-                  onDestinationSelected: (index) {
-                    final previousTab = ref.read(currentTabProvider);
-
-                    // If tapping the same tab, open the drawer
-                    if (previousTab == index) {
-                      _scaffoldKey.currentState?.openDrawer();
-                      return;
-                    }
-
-                    // Security: Clear vault folder selection when leaving Notes tab
-                    if (previousTab == 1 && index != 1) {
-                      _clearVaultSelectionIfNeeded();
-                    }
-
-                    ref.read(currentTabProvider.notifier).setTab(index);
-                    // Exit search mode when switching tabs
-                    final isSearchMode = ref.read(searchModeProvider);
-                    if (isSearchMode) {
-                      ref.read(searchModeProvider.notifier).state = false;
-                      _searchController.clear();
-                      if (previousTab == 0) {
-                        ref.read(searchQueryProvider.notifier).state = '';
-                      } else if (previousTab == 1) {
-                        ref.read(notesSearchQueryProvider.notifier).state = '';
-                      }
-                    }
-                  },
-                  destinations: [
-                    NavigationDestination(
-                      icon: _buildNavigationIcon(Icons.checklist_outlined, 0),
-                      selectedIcon: _buildNavigationIcon(Icons.checklist, 0),
-                      label: 'Tasks',
-                    ),
-                    NavigationDestination(
-                      icon: _buildNavigationIcon(Icons.note_outlined, 1),
-                      selectedIcon: _buildNavigationIcon(Icons.note, 1),
-                      label: 'Notes',
-                    ),
-                  ],
-                ),
-        ),
-        // Backdrop overlay
-        const FabMenuScreenBackdrop(),
-        // FAB on top - positioned above the bottom navigation bar
-        Builder(
-          builder: (context) {
-            final safeBottom = MediaQuery.viewPaddingOf(context).bottom;
-            // Add safeBottom padding when bottom nav is visible to account for 3-button nav bar
-            final fabBottom = hideBottomNav
-                ? (24.0 + safeBottom)
-                : (130.0 + safeBottom);
-            final viewToggleBottom = fabBottom + 64.0; // FAB height (~56) + gap
-
-            return Stack(
+          // Wrap body in GestureDetector to unfocus quick input bar when tapping elsewhere
+          body: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.translucent,
+            child: Stack(
               children: [
-                Positioned(
-                  right: 16,
-                  bottom: fabBottom,
-                  child: FabMenu(
-                    onAddTask: _showAddTaskDialog,
-                    onAddNote: _createNewNote,
-                    onAddFromTemplate: _showTemplateSelection,
-                    onCreateVaultNote: _createVaultNote,
-                    onLockVault: _lockVault,
-                    onSearch: _triggerSearch,
-                  ),
-                ),
-                if (currentTab == 0 && !fabMenuExpanded)
-                  Positioned(
-                    right:
-                        20, // Offset to center-align with FAB (FAB is larger)
-                    bottom: viewToggleBottom,
-                    child: FloatingActionButton.small(
-                      heroTag: 'view_toggle',
-                      backgroundColor: Theme.of(context)
-                          .colorScheme
-                          .secondaryContainer
-                          .withOpacity(
-                            0.7,
-                          ), // Semi-transparent for subtle effect
-                      foregroundColor: Theme.of(
-                        context,
-                      ).colorScheme.onSecondaryContainer,
-                      elevation: 2,
-                      shape: const CircleBorder(), // Explicitly circular
-                      onPressed: () {
-                        final current = ref.read(taskViewTypeProvider);
-                        ref
-                            .read(taskViewTypeProvider.notifier)
-                            .state = current == TaskViewType.list
-                            ? TaskViewType.calendar
-                            : TaskViewType.list;
-                      },
-                      child: Icon(
-                        ref.watch(taskViewTypeProvider) == TaskViewType.list
-                            ? Icons.calendar_month
-                            : Icons.list,
-                      ),
-                    ),
+                IndexedStack(index: currentTab, children: tabs),
+                // Quick Input Bar (experimental mode) - inside Scaffold so it goes behind drawer
+                if (useQuickInputBar)
+                  _buildQuickInputBottomArea(
+                    context,
+                    currentTab,
+                    hideBottomNav,
                   ),
               ],
-            );
-          },
+            ),
+          ),
+          // NavigationBar
+          bottomNavigationBar: !hideBottomNav
+              ? _buildNavigationBar(context, currentTab)
+              : null,
+        ),
+        // Backdrop overlay (only for FAB menu mode)
+        if (!useQuickInputBar) const FabMenuScreenBackdrop(),
+        // FAB (only for FAB menu mode, not for Quick Input Bar mode)
+        if (!useQuickInputBar)
+          Builder(
+            builder: (context) {
+              final safeBottom = MediaQuery.viewPaddingOf(context).bottom;
+
+              // For FAB mode, use original positioning
+              final fabBottom = hideBottomNav
+                  ? (24.0 + safeBottom)
+                  : (130.0 + safeBottom);
+              final viewToggleBottom = fabBottom + 64.0;
+
+              // Default: FAB Menu mode
+              return Stack(
+                children: [
+                  Positioned(
+                    right: 16,
+                    bottom: fabBottom,
+                    child: FabMenu(
+                      onAddTask: _showAddTaskDialog,
+                      onAddNote: _createNewNote,
+                      onAddFromTemplate: _showTemplateSelection,
+                      onCreateVaultNote: _createVaultNote,
+                      onLockVault: _lockVault,
+                      onSearch: _triggerSearch,
+                    ),
+                  ),
+                  if (currentTab == 0 && !fabMenuExpanded)
+                    Positioned(
+                      right:
+                          20, // Offset to center-align with FAB (FAB is larger)
+                      bottom: viewToggleBottom,
+                      child: FloatingActionButton.small(
+                        heroTag: 'view_toggle',
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .secondaryContainer
+                            .withOpacity(
+                              0.7,
+                            ), // Semi-transparent for subtle effect
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onSecondaryContainer,
+                        elevation: 2,
+                        shape: const CircleBorder(), // Explicitly circular
+                        onPressed: () {
+                          final current = ref.read(taskViewTypeProvider);
+                          ref
+                              .read(taskViewTypeProvider.notifier)
+                              .state = current == TaskViewType.list
+                              ? TaskViewType.calendar
+                              : TaskViewType.list;
+                        },
+                        child: Icon(
+                          ref.watch(taskViewTypeProvider) == TaskViewType.list
+                              ? Icons.calendar_month
+                              : Icons.list,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  /// Build the combined Quick Input Bar + NavigationBar bottom area as Positioned widget
+  /// Stays at bottom of body, Scaffold handles keyboard resizing
+  Widget _buildQuickInputBottomArea(
+    BuildContext context,
+    int currentTab,
+    bool hideBottomNav,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    // Determine if we're in vault notes context
+    final selectedFolderId = ref.watch(selectedNoteFolderProvider);
+    final foldersAsync = ref.watch(noteFoldersProvider);
+    final folders = foldersAsync.valueOrNull ?? [];
+    final folder = selectedFolderId != null
+        ? folders.where((f) => f.id == selectedFolderId).firstOrNull
+        : null;
+    final isVaultContext = folder != null && folder.isVault;
+    final isNotesTab = currentTab == 1;
+
+    // Background color that matches NavigationBar
+    final bgColor = theme.brightness == Brightness.dark
+        ? colorScheme.surface
+        : colorScheme.surfaceContainerLow;
+
+    // Calculate bottom position: always at bottom of body (which is above NavigationBar)
+    // The Scaffold automatically handles keyboard by resizing the body
+    const bottomPosition = 0.0;
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: bottomPosition,
+      child: Container(
+        color: bgColor,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            // Quick Input Bar (takes most of the space)
+            Expanded(
+              child: QuickInputBar(
+                onAddTask: (text) => _showAddTaskDialog(presetTitle: text),
+                onAddNote: (text) => _createNewNoteWithTitle(presetTitle: text),
+                onQuickSaveNote: _quickSaveNote,
+                onAddVaultNote: (text) =>
+                    _createVaultNoteWithTitle(presetTitle: text),
+                onQuickSaveVaultNote: _quickSaveNote,
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Side button: Calendar switcher for Tasks, Create Note FAB for Notes
+            if (currentTab == 0)
+              // Tasks tab: Calendar/List switcher
+              FloatingActionButton.small(
+                heroTag: 'view_toggle_quick',
+                backgroundColor: colorScheme.secondaryContainer,
+                foregroundColor: colorScheme.onSecondaryContainer,
+                elevation: 1,
+                shape: const CircleBorder(),
+                onPressed: () {
+                  final current = ref.read(taskViewTypeProvider);
+                  ref
+                      .read(taskViewTypeProvider.notifier)
+                      .state = current == TaskViewType.list
+                      ? TaskViewType.calendar
+                      : TaskViewType.list;
+                },
+                child: Icon(
+                  ref.watch(taskViewTypeProvider) == TaskViewType.list
+                      ? Icons.calendar_month
+                      : Icons.list,
+                ),
+              )
+            else if (isNotesTab)
+              // Notes tab: Create full note button (pencil icon, no circle)
+              IconButton(
+                onPressed: isVaultContext ? _createVaultNote : _createNewNote,
+                icon: Icon(Icons.edit_outlined, color: colorScheme.primary),
+                tooltip: 'Open note editor',
+                visualDensity: VisualDensity.compact,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build the NavigationBar widget (extracted for reuse)
+  Widget _buildNavigationBar(BuildContext context, int currentTab) {
+    return NavigationBar(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? null // Use default in dark mode
+          : Theme.of(context).colorScheme.surfaceContainerLow,
+      selectedIndex: currentTab,
+      onDestinationSelected: (index) {
+        final previousTab = ref.read(currentTabProvider);
+
+        // If tapping the same tab, open the drawer
+        if (previousTab == index) {
+          _scaffoldKey.currentState?.openDrawer();
+          return;
+        }
+
+        // Security: Clear vault folder selection when leaving Notes tab
+        if (previousTab == 1 && index != 1) {
+          _clearVaultSelectionIfNeeded();
+        }
+
+        ref.read(currentTabProvider.notifier).setTab(index);
+        // Exit search mode when switching tabs
+        final isSearchMode = ref.read(searchModeProvider);
+        if (isSearchMode) {
+          ref.read(searchModeProvider.notifier).state = false;
+          _searchController.clear();
+          if (previousTab == 0) {
+            ref.read(searchQueryProvider.notifier).state = '';
+          } else if (previousTab == 1) {
+            ref.read(notesSearchQueryProvider.notifier).state = '';
+          }
+        }
+      },
+      destinations: [
+        NavigationDestination(
+          icon: _buildNavigationIcon(Icons.checklist_outlined, 0),
+          selectedIcon: _buildNavigationIcon(Icons.checklist, 0),
+          label: 'Tasks',
+        ),
+        NavigationDestination(
+          icon: _buildNavigationIcon(Icons.note_outlined, 1),
+          selectedIcon: _buildNavigationIcon(Icons.note, 1),
+          label: 'Notes',
         ),
       ],
     );
@@ -614,7 +733,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
-  void _showAddTaskDialog({DateTime? initialDate}) {
+  void _showAddTaskDialog({DateTime? initialDate, String? presetTitle}) {
     final viewType = ref.read(taskViewTypeProvider);
     final selectedDate = ref.read(selectedCalendarDateProvider);
 
@@ -630,11 +749,62 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       context,
       TaskEditorScreen(
         presetDueDate: preset,
+        presetTitle: presetTitle,
         onSave: (todo) {
           ref.read(taskControllerProvider.notifier).add(todo);
         },
       ),
     );
+  }
+
+  /// Create note with optional preset title (from quick input bar)
+  void _createNewNoteWithTitle({String? presetTitle}) {
+    // Get the currently selected folder to create note in
+    final selectedFolderId = ref.read(selectedNoteFolderProvider);
+
+    // Create note with WYSIWYG Quill editor
+    AnimatedNavigation.pushContainerTransform(
+      context,
+      QuillNoteEditorScreen(
+        initialFolderId: selectedFolderId,
+        initialTitle: presetTitle,
+      ),
+    );
+  }
+
+  /// Quick save note directly without opening editor
+  void _quickSaveNote(String text) async {
+    if (text.isEmpty) return;
+
+    final selectedFolderId = ref.read(selectedNoteFolderProvider);
+    final controller = ref.read(notesControllerProvider.notifier);
+
+    // Create note with "Quick Note" as title and text as content
+    await controller.createNote(
+      title: 'Quick Note',
+      content: text,
+      folderId: selectedFolderId,
+    );
+
+    // Show confirmation
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Quick note saved'),
+          duration: Duration(milliseconds: 1500),
+        ),
+      );
+    }
+  }
+
+  /// Create vault note with optional preset title (from quick input bar)
+  /// For simplicity, this opens the vault note flow without preset title
+  /// The user can type the title in the editor after authentication
+  void _createVaultNoteWithTitle({String? presetTitle}) {
+    // For vault notes, we need to go through the full authentication flow
+    // The preset title will be lost, but this is acceptable for the experimental feature
+    // Future improvement: pass title through authentication flow
+    _createVaultNote();
   }
 
   void _createNewNote() {

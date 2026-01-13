@@ -50,8 +50,14 @@ extension StringExtension on String {
 class QuillNoteEditorScreen extends ConsumerStatefulWidget {
   final String? noteId;
   final String? initialFolderId;
+  final String? initialTitle;
 
-  const QuillNoteEditorScreen({super.key, this.noteId, this.initialFolderId});
+  const QuillNoteEditorScreen({
+    super.key,
+    this.noteId,
+    this.initialFolderId,
+    this.initialTitle,
+  });
 
   @override
   ConsumerState<QuillNoteEditorScreen> createState() =>
@@ -92,6 +98,10 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     super.initState();
     // Initialize with empty document
     _quillController = quill.QuillController.basic();
+    // Set initial title if provided (from quick input bar)
+    if (widget.initialTitle != null) {
+      _titleController.text = widget.initialTitle!;
+    }
     _loadNote();
     _loadToolbarPreferences();
     _quillController.addListener(_onContentChanged);

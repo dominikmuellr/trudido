@@ -101,6 +101,9 @@ class PreferencesController {
   Future<void> toggleFloatingNoteToolbar() =>
       _update(useFloatingNoteToolbar: !state.useFloatingNoteToolbar);
 
+  Future<void> toggleQuickInputBar() =>
+      _update(useQuickInputBar: !state.useQuickInputBar);
+
   Future<void> setDefaultTaskView(String view) =>
       _update(defaultTaskView: view);
 
@@ -126,6 +129,7 @@ class PreferencesController {
     String? swipeLeftAction,
     String? swipeRightAction,
     bool? useFloatingNoteToolbar,
+    bool? useQuickInputBar,
     int? firstDayOfWeek,
     String? defaultTaskView,
     double? lineHeightMultiplier,
@@ -143,6 +147,7 @@ class PreferencesController {
       swipeLeftAction: swipeLeftAction,
       swipeRightAction: swipeRightAction,
       useFloatingNoteToolbar: useFloatingNoteToolbar,
+      useQuickInputBar: useQuickInputBar,
       firstDayOfWeek: firstDayOfWeek,
       defaultTaskView: defaultTaskView,
       lineHeightMultiplier: lineHeightMultiplier,
