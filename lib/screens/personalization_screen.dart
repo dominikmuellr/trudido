@@ -20,14 +20,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/avatar_service.dart';
 import '../services/storage_service.dart';
-import '../services/default_tab_service.dart';
-import '../services/preferences_service.dart';
 import '../providers/app_providers.dart';
 import '../controllers/preferences_controller.dart';
-import '../utils/week_start_utils.dart';
-import 'home_screen.dart';
 import 'font_size_settings_screen.dart';
-import 'default_tab_settings_screen.dart';
+import 'defaults_settings_screen.dart';
+import 'settings_screen.dart';
 import '../theme/spacing_tokens.dart';
 
 class PersonalizationScreen extends ConsumerStatefulWidget {
@@ -188,18 +185,18 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
           _buildSectionHeader(context, 'Profile'),
           SpacingGap.gapV8,
 
-          // Avatar and Name Row
+          // Avatar and Name Column (centered)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
+            child: Column(
               children: [
-                // Avatar
+                // Avatar (centered)
                 GestureDetector(
                   onTap: _showAvatarOptions,
                   child: Stack(
                     children: [
                       CircleAvatar(
-                        radius: 40,
+                        radius: 50,
                         backgroundColor: _avatarFile != null
                             ? null
                             : backgroundColor,
@@ -214,12 +211,12 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
                                 style: TextStyle(
                                   color: foregroundColor,
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 28,
+                                  fontSize: 32,
                                 ),
                               )
                             : Icon(
                                 Icons.person,
-                                size: 40,
+                                size: 50,
                                 color: foregroundColor,
                               ),
                       ),
@@ -234,7 +231,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
                           ),
                           child: Icon(
                             Icons.camera_alt,
-                            size: 14,
+                            size: 16,
                             color: colorScheme.onPrimary,
                           ),
                         ),
@@ -242,29 +239,25 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
                     ],
                   ),
                 ),
-                SpacingGap.gapH16,
+                SpacingGap.gapV16,
 
                 // Name Field
-                Expanded(
-                  child: TextField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Your Name',
-                      hintText: 'Enter your name',
-                      border: const OutlineInputBorder(),
-                      suffixIcon: _hasNameChanges
-                          ? IconButton(
-                              icon: Icon(
-                                Icons.check,
-                                color: colorScheme.primary,
-                              ),
-                              onPressed: _saveName,
-                            )
-                          : null,
-                    ),
-                    textCapitalization: TextCapitalization.words,
-                    onSubmitted: (_) => _saveName(),
+                TextField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Your Name',
+                    hintText: 'Enter your name',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: _hasNameChanges
+                        ? IconButton(
+                            icon: Icon(Icons.check, color: colorScheme.primary),
+                            onPressed: _saveName,
+                          )
+                        : null,
                   ),
+                  textCapitalization: TextCapitalization.words,
+                  textAlign: TextAlign.center,
+                  onSubmitted: (_) => _saveName(),
                 ),
               ],
             ),
@@ -273,6 +266,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Text(
               'Your name will appear in the greeting on the home screen.',
+              textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -308,20 +302,25 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
           ),
           // Contrast Level Selector (Material 3 January 2026)
           const _ContrastLevelSelector(),
-
-          // Display Section
-          _buildSectionHeader(context, 'Display'),
-          const _DefaultTabSelector(),
-          const _WeekStartSelector(),
           _buildFontSizeLink(),
 
-          // Interface Section
-          _buildSectionHeader(context, 'Interface'),
-          _buildGreetingSettings(),
-
-          // Experimental Section
-          _buildSectionHeader(context, 'Experimental'),
-          _buildFloatingToolbarToggle(),
+          // Defaults Section
+          _buildSectionHeader(context, 'Defaults'),
+          ListTile(
+            leading: const Icon(Icons.tune),
+            title: const Text('Default Settings'),
+            subtitle: const Text(
+              'Starting tab, task view, week start, greeting',
+            ),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const DefaultsSettingsScreen(),
+                ),
+              );
+            },
+          ),
 
           // Support Section
           _buildSectionHeader(context, 'Support'),
@@ -346,66 +345,10 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
     );
   }
 
-  Widget _buildGreetingSettings() {
-    return Consumer(
-      builder: (context, ref, _) {
-        final preferences = ref.watch(preferencesStateProvider);
-
-        return ListTile(
-          leading: const Icon(Icons.translate),
-          title: const Text('Greeting Language'),
-          subtitle: Text(
-            _getGreetingLanguageName(preferences.greetingLanguage),
-          ),
-          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-          onTap: () async {
-            await showModalBottomSheet<void>(
-              context: context,
-              isScrollControlled: true,
-              builder: (ctx) {
-                return DraggableScrollableSheet(
-                  initialChildSize: 0.5,
-                  minChildSize: 0.5,
-                  maxChildSize: 0.9,
-                  expand: false,
-                  builder: (context, scrollController) {
-                    return _GreetingLanguageSheet(
-                      scrollController: scrollController,
-                    );
-                  },
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildFloatingToolbarToggle() {
-    return Consumer(
-      builder: (context, ref, _) {
-        final preferences = ref.watch(preferencesStateProvider);
-        final controller = ref.read(preferencesControllerProvider);
-
-        return SwitchListTile(
-          secondary: const Icon(Icons.touch_app_outlined),
-          title: const Text('Floating Note Toolbar'),
-          subtitle: const Text(
-            'Replace top toolbar with a thumb-friendly floating button',
-          ),
-          value: preferences.useFloatingNoteToolbar,
-          onChanged: (v) => controller.toggleFloatingNoteToolbar(),
-        );
-      },
-    );
-  }
-
   Widget _buildFontSizeLink() {
     return ListTile(
       leading: const Icon(Icons.text_fields),
       title: const Text('Font Size'),
-      subtitle: const Text('Adjust text size for the entire app'),
       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: () {
         Navigator.of(context).push(
@@ -475,32 +418,6 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
         side: BorderSide(color: color.withValues(alpha: 0.5)),
       ),
     );
-  }
-
-  String _getGreetingLanguageName(int index) {
-    const greetings = [
-      'English',
-      'Español',
-      'Français',
-      'Deutsch',
-      'Italiano',
-      'Nederlands',
-      'Português',
-      'Svenska',
-      'Dansk',
-      'Norsk',
-      'Suomi',
-      'Polski',
-      'Čeština',
-      'Magyar',
-      'Română',
-      'Türkçe',
-      'Українська',
-    ];
-    if (index >= 0 && index < greetings.length) {
-      return greetings[index];
-    }
-    return 'English';
   }
 }
 
@@ -692,225 +609,6 @@ class _ThemeModeSheet extends ConsumerWidget {
           ),
           SpacingGap.gapV8,
         ],
-      ),
-    );
-  }
-}
-
-// ============================================================================
-// Default Tab Selector
-// ============================================================================
-
-class _DefaultTabSelector extends ConsumerWidget {
-  const _DefaultTabSelector();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final defaultTabAsync = ref.watch(defaultTabNotifierProvider);
-
-    return defaultTabAsync.when(
-      loading: () => const ListTile(
-        leading: Icon(Icons.home_outlined),
-        title: Text('Default Starting Tab'),
-        subtitle: Text('Loading...'),
-      ),
-      error: (error, _) => const ListTile(
-        leading: Icon(Icons.error_outline),
-        title: Text('Default Starting Tab'),
-        subtitle: Text('Error loading setting'),
-      ),
-      data: (currentTab) {
-        final tabs = DefaultTabService.getAllTabs();
-        final currentTabName = tabs[currentTab] ?? 'Unknown';
-
-        return ListTile(
-          leading: const Icon(Icons.home_outlined),
-          title: const Text('Default Starting Tab'),
-          subtitle: Text(currentTabName),
-          trailing: const Icon(Icons.arrow_drop_down),
-          onTap: () async {
-            final choice = await showModalBottomSheet<String>(
-              context: context,
-              showDragHandle: true,
-              builder: (ctx) {
-                return _DefaultTabSheet(current: currentTab);
-              },
-            );
-            if (choice != null) {
-              final notifier = ref.read(defaultTabNotifierProvider.notifier);
-              await notifier.setDefaultTab(choice);
-              // Also switch to the selected tab immediately
-              final tabIndex = DefaultTabService.tabIndices[choice] ?? 0;
-              ref.read(currentTabProvider.notifier).setTab(tabIndex);
-            }
-          },
-        );
-      },
-    );
-  }
-}
-
-class _DefaultTabSheet extends ConsumerWidget {
-  final String current;
-  const _DefaultTabSheet({required this.current});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
-    final tabs = DefaultTabService.getAllTabs();
-    final hideBottomNav = ref
-        .watch(preferencesStateProvider)
-        .hideBottomNavigation;
-
-    Widget buildOption(String tabId, String tabName, IconData icon) {
-      final selected = current == tabId;
-      return ListTile(
-        leading: Icon(icon, color: selected ? cs.primary : cs.onSurfaceVariant),
-        title: Text(
-          tabName,
-          style: TextStyle(fontWeight: selected ? FontWeight.w600 : null),
-        ),
-        trailing: selected ? Icon(Icons.check, color: cs.primary) : null,
-        onTap: () => Navigator.pop(context, tabId),
-      );
-    }
-
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 4),
-          ...tabs.entries.map((entry) {
-            return buildOption(entry.key, entry.value, _getTabIcon(entry.key));
-          }),
-          const Divider(height: 12),
-          SwitchListTile.adaptive(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            secondary: const Icon(Icons.view_agenda_outlined),
-            title: const Text('Show bottom navigation'),
-            subtitle: const Text('Hide the bottom tab bar and navigation rail'),
-            value: !hideBottomNav,
-            onChanged: (value) async {
-              final prefsService = PreferencesService();
-              final updated = await prefsService.update(
-                hideBottomNavigation: !value,
-              );
-              ref.read(preferencesStateProvider.notifier).state = updated;
-            },
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-
-  IconData _getTabIcon(String tabId) {
-    switch (tabId) {
-      case 'tasks':
-        return Icons.check_circle_outline;
-      case 'notes':
-        return Icons.notes_outlined;
-      default:
-        return Icons.circle_outlined;
-    }
-  }
-}
-
-// ============================================================================
-// Week Start Selector
-// ============================================================================
-
-class _WeekStartSelector extends ConsumerWidget {
-  const _WeekStartSelector();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final prefs = ref.watch(preferencesStateProvider);
-    final controller = ref.read(preferencesControllerProvider);
-    final currentDay = prefs.firstDayOfWeek;
-    final dayName = WeekStartUtils.getDayName(currentDay);
-
-    return ListTile(
-      leading: const Icon(Icons.calendar_view_week_outlined),
-      title: const Text('Week Starts On'),
-      subtitle: Text(dayName),
-      trailing: const Icon(Icons.arrow_drop_down),
-      onTap: () async {
-        final choice = await showModalBottomSheet<int>(
-          context: context,
-          showDragHandle: true,
-          builder: (ctx) {
-            return _WeekStartSheet(current: currentDay);
-          },
-        );
-        if (choice != null) {
-          controller.setFirstDayOfWeek(choice);
-        }
-      },
-    );
-  }
-}
-
-class _WeekStartSheet extends StatelessWidget {
-  final int current;
-  const _WeekStartSheet({required this.current});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    Widget buildOption(int dayIndex) {
-      final selected = current == dayIndex;
-      final dayName = WeekStartUtils.getDayName(dayIndex);
-      return ListTile(
-        leading: Icon(
-          Icons.today,
-          color: selected ? cs.primary : cs.onSurfaceVariant,
-        ),
-        title: Text(
-          dayName,
-          style: TextStyle(fontWeight: selected ? FontWeight.w600 : null),
-        ),
-        trailing: selected ? Icon(Icons.check, color: cs.primary) : null,
-        onTap: () => Navigator.pop(context, dayIndex),
-      );
-    }
-
-    // Show common options first: Sunday, Monday, Saturday
-    // then the rest in order
-    final commonDays = [0, 1, 6]; // Sunday, Monday, Saturday
-    final otherDays = [2, 3, 4, 5]; // Tue-Fri
-
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Text(
-                'Common',
-                style: Theme.of(
-                  context,
-                ).textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant),
-              ),
-            ),
-            ...commonDays.map(buildOption),
-            const Divider(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Text(
-                'Other',
-                style: Theme.of(
-                  context,
-                ).textTheme.labelMedium?.copyWith(color: cs.onSurfaceVariant),
-              ),
-            ),
-            ...otherDays.map(buildOption),
-            const SizedBox(height: 16),
-          ],
-        ),
       ),
     );
   }
@@ -1372,101 +1070,6 @@ class _AccentColorSheet extends StatelessWidget {
       default:
         return 'Custom';
     }
-  }
-}
-
-// ============================================================================
-// Greeting Language Sheet
-// ============================================================================
-
-class _GreetingLanguageSheet extends ConsumerWidget {
-  final ScrollController scrollController;
-
-  const _GreetingLanguageSheet({required this.scrollController});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final preferences = ref.watch(preferencesStateProvider);
-    final controller = ref.read(preferencesControllerProvider);
-
-    final languages = [
-      'English',
-      'Español',
-      'Français',
-      'Deutsch',
-      'Italiano',
-      'Nederlands',
-      'Português',
-      'Svenska',
-      'Dansk',
-      'Norsk',
-      'Suomi',
-      'Polski',
-      'Čeština',
-      'Magyar',
-      'Română',
-      'Türkçe',
-      'Українська',
-    ];
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: Column(
-        children: [
-          // Drag handle
-          Container(
-            width: 32,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12, bottom: 8),
-            decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurfaceVariant.withOpacity(0.4),
-              borderRadius: SpacingBorderRadius.full,
-            ),
-          ),
-
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-            child: Text(
-              'Select Greeting Language',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-            ),
-          ),
-
-          // Scrollable list
-          Expanded(
-            child: ListView.builder(
-              controller: scrollController,
-              itemCount: languages.length,
-              itemBuilder: (context, index) {
-                final isSelected = preferences.greetingLanguage == index;
-                return ListTile(
-                  title: Text(languages[index]),
-                  trailing: isSelected
-                      ? Icon(
-                          Icons.check,
-                          color: Theme.of(context).colorScheme.primary,
-                        )
-                      : null,
-                  onTap: () {
-                    controller.setGreetingLanguage(index);
-                    Navigator.of(context).pop();
-                  },
-                );
-              },
-            ),
-          ),
-          SpacingGap.gapV16,
-        ],
-      ),
-    );
   }
 }
 

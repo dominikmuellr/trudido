@@ -31,7 +31,6 @@ import '../screens/task_editor_screen.dart';
 import '../models/todo.dart';
 import '../models/holiday.dart';
 import '../screens/home_screen.dart';
-import '../services/theme_service.dart';
 import '../theme/spacing_tokens.dart';
 
 class TodoListTab extends ConsumerWidget {

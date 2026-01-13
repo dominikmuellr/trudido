@@ -37,9 +37,10 @@ final secondarySortKeysProvider = StateProvider<List<String>>((ref) => []);
 // View state providers
 enum TaskViewType { list, calendar }
 
-final taskViewTypeProvider = StateProvider<TaskViewType>(
-  (ref) => TaskViewType.list,
-);
+final taskViewTypeProvider = StateProvider<TaskViewType>((ref) {
+  final defaultView = ref.watch(preferencesStateProvider).defaultTaskView;
+  return defaultView == 'calendar' ? TaskViewType.calendar : TaskViewType.list;
+});
 final selectedCalendarDateProvider = StateProvider<DateTime?>((ref) => null);
 
 // Calendar format notifier with persistence

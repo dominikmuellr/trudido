@@ -174,6 +174,9 @@ class PreferencesService {
       firstDayOfWeek:
           p.getInt('first_day_of_week') ??
           PreferencesState.defaultState.firstDayOfWeek,
+      defaultTaskView:
+          p.getString('default_task_view') ??
+          PreferencesState.defaultState.defaultTaskView,
       lineHeightMultiplier:
           p.getDouble('line_height_multiplier') ??
           PreferencesState.defaultState.lineHeightMultiplier,
@@ -203,6 +206,7 @@ class PreferencesService {
     bool? useFloatingNoteToolbar,
     bool? hideBottomNavigation,
     int? firstDayOfWeek,
+    String? defaultTaskView,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
     String? contrastLevel,
@@ -237,6 +241,8 @@ class PreferencesService {
         await p.setBool('hide_bottom_navigation', hideBottomNavigation);
       if (firstDayOfWeek != null)
         await p.setInt('first_day_of_week', firstDayOfWeek);
+      if (defaultTaskView != null)
+        await p.setString('default_task_view', defaultTaskView);
       if (lineHeightMultiplier != null)
         await p.setDouble('line_height_multiplier', lineHeightMultiplier);
       if (paragraphSpacing != null)

@@ -35,6 +35,7 @@ class PreferencesState {
   useFloatingNoteToolbar; // Use floating FAB toolbar instead of top toolbar
   final bool hideBottomNavigation; // Hide bottom nav/rail
   final int firstDayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
+  final String defaultTaskView; // list | calendar - default view on app start
   final double? _lineHeightMultiplier; // Line height multiplier (e.g. 1.2)
   double get lineHeightMultiplier => _lineHeightMultiplier ?? 1.2;
   final double? _paragraphSpacing; // Paragraph spacing in points (e.g. 8.0)
@@ -58,6 +59,7 @@ class PreferencesState {
     required this.useFloatingNoteToolbar,
     required this.hideBottomNavigation,
     required this.firstDayOfWeek,
+    required this.defaultTaskView,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
   }) : _lineHeightMultiplier = lineHeightMultiplier,
@@ -81,6 +83,7 @@ class PreferencesState {
     bool? useFloatingNoteToolbar,
     bool? hideBottomNavigation,
     int? firstDayOfWeek,
+    String? defaultTaskView,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
   }) => PreferencesState(
@@ -102,6 +105,7 @@ class PreferencesState {
         useFloatingNoteToolbar ?? this.useFloatingNoteToolbar,
     hideBottomNavigation: hideBottomNavigation ?? this.hideBottomNavigation,
     firstDayOfWeek: firstDayOfWeek ?? this.firstDayOfWeek,
+    defaultTaskView: defaultTaskView ?? this.defaultTaskView,
     lineHeightMultiplier: lineHeightMultiplier ?? this.lineHeightMultiplier,
     paragraphSpacing: paragraphSpacing ?? this.paragraphSpacing,
   );
@@ -126,6 +130,7 @@ class PreferencesState {
         false, // Default: use top toolbar (experimental feature off)
     hideBottomNavigation: false, // Default: show nav
     firstDayOfWeek: 1, // Default: Monday (0=Sunday, 1=Monday, etc.)
+    defaultTaskView: 'list', // Default: list view
     lineHeightMultiplier: 1.2,
     paragraphSpacing: 8.0,
   );

@@ -101,6 +101,9 @@ class PreferencesController {
   Future<void> toggleFloatingNoteToolbar() =>
       _update(useFloatingNoteToolbar: !state.useFloatingNoteToolbar);
 
+  Future<void> setDefaultTaskView(String view) =>
+      _update(defaultTaskView: view);
+
   Future<void> setFirstDayOfWeek(int dayIndex) =>
       _update(firstDayOfWeek: dayIndex);
 
@@ -124,6 +127,7 @@ class PreferencesController {
     String? swipeRightAction,
     bool? useFloatingNoteToolbar,
     int? firstDayOfWeek,
+    String? defaultTaskView,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
     String? contrastLevel,
@@ -140,6 +144,7 @@ class PreferencesController {
       swipeRightAction: swipeRightAction,
       useFloatingNoteToolbar: useFloatingNoteToolbar,
       firstDayOfWeek: firstDayOfWeek,
+      defaultTaskView: defaultTaskView,
       lineHeightMultiplier: lineHeightMultiplier,
       paragraphSpacing: paragraphSpacing,
       contrastLevel: contrastLevel,
