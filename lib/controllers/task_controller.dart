@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/todo.dart';
 import '../repositories/task_repository.dart';
@@ -46,20 +47,34 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<void> add(Todo todo) async {
+    debugPrint('[TaskController] Adding task: "${todo.text}"');
+    debugPrint('[TaskController]   Due date: ${todo.dueDate}');
+    debugPrint('[TaskController]   Reminders: ${todo.reminderOffsetsMinutes}');
     state = const AsyncLoading();
     try {
       await _repo.add(todo);
+      debugPrint(
+        '[TaskController] Task saved to repository, scheduling notifications...',
+      );
       await _scheduleNotifications(todo);
       await _syncToCalendar(todo);
       await ref.read(tasksProvider.notifier).refresh();
       await _updateWidget();
       state = const AsyncData(null);
+      debugPrint('[TaskController] Task add complete');
     } catch (e, st) {
+      debugPrint('[TaskController] ERROR adding task: $e');
       state = AsyncError(e, st);
     }
   }
 
   Future<void> update(Todo updated) async {
+    debugPrint('[TaskController] Updating task: "${updated.text}"');
+    debugPrint('[TaskController]   Due date: ${updated.dueDate}');
+    debugPrint(
+      '[TaskController]   Reminders: ${updated.reminderOffsetsMinutes}',
+    );
+    debugPrint('[TaskController]   Completed: ${updated.isCompleted}');
     state = const AsyncLoading();
     try {
       final existing = tasks.firstWhere(
@@ -67,14 +82,26 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
         orElse: () =>
             throw const AppError(AppErrorType.notFound, 'Task not found'),
       );
+      debugPrint('[TaskController] Canceling old notifications...');
       await _cancelNotifications(existing);
       await _repo.update(updated);
-      if (!updated.isCompleted) await _scheduleNotifications(updated);
+      if (!updated.isCompleted) {
+        debugPrint(
+          '[TaskController] Task not completed, scheduling notifications...',
+        );
+        await _scheduleNotifications(updated);
+      } else {
+        debugPrint(
+          '[TaskController] Task completed, skipping notification scheduling',
+        );
+      }
       await _syncToCalendar(updated);
       await ref.read(tasksProvider.notifier).refresh();
       await _updateWidget();
       state = const AsyncData(null);
+      debugPrint('[TaskController] Task update complete');
     } catch (e, st) {
+      debugPrint('[TaskController] ERROR updating task: $e');
       state = AsyncError(e, st);
     }
   }

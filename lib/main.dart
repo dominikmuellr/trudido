@@ -31,6 +31,8 @@ import 'services/permissions_channel.dart';
 import 'services/theme_service.dart';
 import 'services/text_scale_service.dart';
 import 'services/widget_service.dart';
+import 'services/notification_service.dart';
+import 'services/notification_action_sync.dart';
 import 'providers/app_providers.dart';
 import 'providers/filter_providers.dart';
 import 'services/navigation_service.dart';
@@ -407,20 +409,34 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
         await StorageService.init();
+        debugPrint('[Bootstrap] ✓ StorageService initialized');
+
+        // Initialize notification bridge (sets up method channel handlers)
+        await NotificationBridge.instance.initialize();
+        debugPrint('[Bootstrap] ✓ NotificationBridge initialized');
+
+        // Initialize notification action sync (pulls pending actions from native)
+        await NotificationActionSync.instance.initialize(
+          ProviderScope.containerOf(context),
+        );
+        debugPrint('[Bootstrap] ✓ NotificationActionSync initialized');
 
         // Initialize lifecycle observer (handles widget sync)
         ref.read(lifecycleSyncObserverProvider);
 
         // Initialize widget service
         await WidgetService.instance.initialize();
+        debugPrint('[Bootstrap] ✓ WidgetService initialized');
+
         // Listen for task creation requests from widget
         WidgetService.instance.onOpenTaskCreation.listen((dateMillis) {
           _openTaskCreation(dateMillis);
         });
         // Update widget with current tasks after storage is ready
         _updateWidgetData();
-      } catch (e) {
-        debugPrint('[Bootstrap] storage init error: $e');
+      } catch (e, st) {
+        debugPrint('[Bootstrap] ✗ Initialization error: $e');
+        debugPrint('[Bootstrap] Stack trace: $st');
       }
       if (!mounted) return;
       setState(() {

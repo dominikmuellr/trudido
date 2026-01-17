@@ -105,7 +105,7 @@ class Todo extends HiveObject {
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
        tags = tags ?? [],
-       reminderOffsetsMinutes = reminderOffsetsMinutes ?? [];
+       reminderOffsetsMinutes = reminderOffsetsMinutes ?? [0];
 
   // Copy with method for immutable updates
   Todo copyWith({

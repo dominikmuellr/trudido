@@ -104,10 +104,16 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
     });
 
     try {
+      // If creating/updating with a due date and no reminders set, use default [0]
+      final reminders =
+          _reminderOffsetsMinutes.isEmpty && _selectedDueDate != null
+          ? [0]
+          : _reminderOffsetsMinutes;
+
       if (widget.task != null) {
         // Update existing task
         debugPrint(
-          'EditTaskScreen: Updating existing task with reminders: $_reminderOffsetsMinutes',
+          'EditTaskScreen: Updating existing task with reminders: $reminders',
         );
         final updatedTask = widget.task!.copyWith(
           text: _titleController.text.trim(),
@@ -118,7 +124,7 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
           folderId: _selectedFolderId,
           dueDate: _selectedDueDate,
           startDate: _multiDay ? _selectedStartDate : null,
-          reminderOffsetsMinutes: _reminderOffsetsMinutes, // Updated
+          reminderOffsetsMinutes: reminders,
           tags: _tags,
         );
 
@@ -126,7 +132,7 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
       } else {
         // Create new task
         debugPrint(
-          'EditTaskScreen: Creating new task with reminders: $_reminderOffsetsMinutes',
+          'EditTaskScreen: Creating new task with reminders: $reminders',
         );
         final newTask = Todo(
           text: _titleController.text.trim(),
@@ -137,7 +143,7 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
           folderId: _selectedFolderId,
           dueDate: _selectedDueDate,
           startDate: _multiDay ? _selectedStartDate : null,
-          reminderOffsetsMinutes: _reminderOffsetsMinutes, // Updated
+          reminderOffsetsMinutes: reminders,
           tags: _tags,
         );
 

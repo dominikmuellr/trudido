@@ -1058,6 +1058,14 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         }
       }
 
+      // If creating a new task with a due date and no reminders set, use default [0]
+      final reminders =
+          _reminderOffsetsMinutes.isEmpty &&
+              finalDueDate != null &&
+              widget.todo == null
+          ? [0]
+          : _reminderOffsetsMinutes;
+
       final todo = Todo(
         id:
             widget.todo?.id ??
@@ -1070,7 +1078,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         dueDate: finalDueDate,
         priority: _priority,
         folderId: _selectedFolderId.isEmpty ? null : _selectedFolderId,
-        reminderOffsetsMinutes: _reminderOffsetsMinutes,
+        reminderOffsetsMinutes: reminders,
         repeatType: _repeatType,
         repeatInterval: _repeatType != 'none' ? _repeatInterval : null,
         repeatDays: _repeatDays.isNotEmpty ? _repeatDays : null,
