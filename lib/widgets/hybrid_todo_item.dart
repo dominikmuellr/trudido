@@ -109,13 +109,18 @@ class HybridTodoItem extends ConsumerWidget {
               padding: SpacingEdgeInsets.insets16,
               child: Row(
                 children: [
-                  if (selectable) ...[
+                  // Checkbox on the left (completion or selection)
+                  if (!selectable)
+                    Checkbox(
+                      value: todo.isCompleted,
+                      onChanged: (value) => onToggle(),
+                    )
+                  else
                     Checkbox(
                       value: selected,
                       onChanged: (v) => onSelectToggle(),
                     ),
-                    SpacingGap.gapH8,
-                  ],
+                  SpacingGap.gapH8,
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,12 +160,6 @@ class HybridTodoItem extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  // Only show completion checkbox when NOT in multi-select mode
-                  if (!selectable)
-                    Checkbox(
-                      value: todo.isCompleted,
-                      onChanged: (value) => onToggle(),
-                    ),
                 ],
               ),
             ),
