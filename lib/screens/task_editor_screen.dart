@@ -238,6 +238,21 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         ),
         SpacingGap.gapV12,
 
+        // Multi-day toggle (only show if date is selected)
+        if (_dueDate != null) ...[
+          _buildQuickActionChip(
+            icon: Icons.date_range_outlined,
+            label: _isMultiDay && _startDate != null
+                ? 'End: ${DateFormatters.formatSmart(_startDate!, now: ref.read(clockProvider).now(), includeTime: false)}'
+                : 'Make multi-day',
+            isSelected: _isMultiDay,
+            onTap: _toggleMultiDay,
+            theme: theme,
+            colorScheme: colorScheme,
+          ),
+          SpacingGap.gapV12,
+        ],
+
         // Time selection (only show if date is selected)
         if (_dueDate != null) ...[
           _buildQuickActionChip(
@@ -290,10 +305,10 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   String _getDueDateLabel() {
     final now = ref.read(clockProvider).now();
     if (_dueDate == null) {
-      return 'Select date or date range';
-    } else if (_isMultiDay && _startDate != null && _startDate != _dueDate) {
-      // Multi-day: show smart date range
-      return DateFormatters.formatSmartRange(_startDate!, _dueDate!, now: now);
+      return 'Select due date';
+    } else if (_isMultiDay && _startDate != null) {
+      // Multi-day: show "Due: [date] (ends [end date])"
+      return 'Due: ${DateFormatters.formatSmart(_dueDate!, now: now, includeTime: false)}';
     } else {
       // Single day: show smart date
       return DateFormatters.formatSmart(
@@ -993,16 +1008,14 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   Future<void> _selectDueDate() async {
     final now = ref.read(clockProvider).now();
     final firstDayOfWeek = ref.read(preferencesStateProvider).firstDayOfWeek;
-    // Show Material's built-in date range picker
-    final picked = await showDateRangePicker(
+
+    // Show single date picker for due date
+    final picked = await showDatePicker(
       context: context,
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
-      initialDateRange: _startDate != null && _dueDate != null
-          ? DateTimeRange(start: _startDate!, end: _dueDate!)
-          : null,
-      helpText: 'Select date or date range',
-      saveText: 'Done',
+      initialDate: _dueDate ?? now,
+      helpText: 'Select due date',
       builder: (context, child) {
         return WeekStartOverride(
           firstDayOfWeekIndex: firstDayOfWeek,
@@ -1013,11 +1026,47 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
 
     if (picked != null) {
       setState(() {
-        _startDate = picked.start;
-        _dueDate = picked.end;
-        // Only consider it multi-day if the dates are actually different
-        _isMultiDay = picked.start != picked.end;
+        _dueDate = picked;
+        // If it was multi-day, reset it since we're selecting a single date
+        if (!_isMultiDay) {
+          _startDate = null;
+        }
       });
+    }
+  }
+
+  Future<void> _toggleMultiDay() async {
+    if (_isMultiDay) {
+      // Disable multi-day mode
+      setState(() {
+        _isMultiDay = false;
+        _startDate = null;
+      });
+    } else {
+      // Enable multi-day mode - ask for end date
+      final now = ref.read(clockProvider).now();
+      final firstDayOfWeek = ref.read(preferencesStateProvider).firstDayOfWeek;
+
+      final picked = await showDatePicker(
+        context: context,
+        firstDate: _dueDate ?? now,
+        lastDate: (_dueDate ?? now).add(const Duration(days: 365)),
+        initialDate: _dueDate ?? now,
+        helpText: 'Select end date',
+        builder: (context, child) {
+          return WeekStartOverride(
+            firstDayOfWeekIndex: firstDayOfWeek,
+            child: child!,
+          );
+        },
+      );
+
+      if (picked != null) {
+        setState(() {
+          _startDate = picked;
+          _isMultiDay = true;
+        });
+      }
     }
   }
 
@@ -1042,9 +1091,29 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Combine date and time
+      // Combine date and time for the final due date
       DateTime? finalDueDate;
-      if (_dueDate != null) {
+      DateTime? finalStartDate;
+
+      if (_isMultiDay && _dueDate != null && _startDate != null) {
+        // Multi-day task: _dueDate is start, _startDate is end
+        finalStartDate = _dueDate; // Start date (without time)
+
+        // End date with optional time
+        if (_dueTime != null) {
+          finalDueDate = DateTime(
+            _startDate!.year,
+            _startDate!.month,
+            _startDate!.day,
+            _dueTime!.hour,
+            _dueTime!.minute,
+          );
+        } else {
+          finalDueDate = _startDate;
+        }
+      } else if (_dueDate != null) {
+        // Single day task
+        finalStartDate = null;
         if (_dueTime != null) {
           finalDueDate = DateTime(
             _dueDate!.year,
@@ -1074,7 +1143,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
-        startDate: _isMultiDay ? _startDate : null,
+        startDate: finalStartDate,
         dueDate: finalDueDate,
         priority: _priority,
         folderId: _selectedFolderId.isEmpty ? null : _selectedFolderId,

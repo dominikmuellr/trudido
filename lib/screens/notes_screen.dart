@@ -31,6 +31,9 @@ import '../theme/spacing_tokens.dart';
 /// Provider for notes search mode
 final notesSearchModeProvider = StateProvider<bool>((ref) => false);
 
+/// Provider for notes view mode (grid or list)
+final notesViewModeProvider = StateProvider<String>((ref) => 'grid');
+
 /// Main notes screen showing list of all notes
 class NotesScreen extends ConsumerStatefulWidget {
   const NotesScreen({super.key});
@@ -80,62 +83,116 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   }
 
   Widget _buildBody(List<Note> notes, bool isAllNotesView) {
+    final viewMode = ref.watch(notesViewModeProvider);
+
     return Column(
       children: [
         const NotesFilterChips(),
         Expanded(
           child: notes.isEmpty
               ? _buildEmptyState()
-              : NotificationListener<ScrollNotification>(
-                  onNotification: (scrollNotification) {
-                    // Detect pull-to-search gesture
-                    if (scrollNotification is ScrollUpdateNotification) {
-                      // Check if user is pulling down at the top (overscroll)
-                      if (scrollNotification.metrics.pixels < -20) {
-                        // Trigger search mode
-                        ref.read(notesSearchModeProvider.notifier).state = true;
-                        return true; // Consume the notification
-                      }
-                    }
-
-                    // Also listen for overscroll notifications
-                    if (scrollNotification is OverscrollNotification) {
-                      if (scrollNotification.overscroll < -20) {
-                        ref.read(notesSearchModeProvider.notifier).state = true;
-                        return true;
-                      }
-                    }
-
-                    return false;
-                  },
-                  child: MasonryGridView.count(
-                    padding: SpacingEdgeInsets.insets8,
-                    physics: const BouncingScrollPhysics(),
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    itemCount: notes.length,
-                    itemBuilder: (context, index) {
-                      final note = notes[index];
-                      final isInVault = _isNoteInVault(note);
-
-                      return NotePreviewCard(
-                        note: note,
-                        onTap: () => _editNote(note.id),
-                        onPin: () => _togglePin(note.id),
-                        onDelete: () => _deleteNote(note.id, note.title),
-                        onDeleteConfirmed: () => _deleteNoteConfirmed(note.id),
-                        isInVault: isInVault,
-                        onMoveToFolder: isInVault
-                            ? null
-                            : () => _moveNoteToFolder(note),
-                        showFormatIndicator: isAllNotesView,
-                      );
-                    },
-                  ),
-                ),
+              : viewMode == 'grid'
+              ? _buildGridView(notes, isAllNotesView)
+              : _buildListView(notes, isAllNotesView),
         ),
       ],
+    );
+  }
+
+  /// Build grid view (original MasonryGridView layout)
+  Widget _buildGridView(List<Note> notes, bool isAllNotesView) {
+    return NotificationListener<ScrollNotification>(
+      onNotification: (scrollNotification) {
+        // Detect pull-to-search gesture
+        if (scrollNotification is ScrollUpdateNotification) {
+          // Check if user is pulling down at the top (overscroll)
+          if (scrollNotification.metrics.pixels < -20) {
+            // Trigger search mode
+            ref.read(notesSearchModeProvider.notifier).state = true;
+            return true; // Consume the notification
+          }
+        }
+
+        // Also listen for overscroll notifications
+        if (scrollNotification is OverscrollNotification) {
+          if (scrollNotification.overscroll < -20) {
+            ref.read(notesSearchModeProvider.notifier).state = true;
+            return true;
+          }
+        }
+
+        return false;
+      },
+      child: MasonryGridView.count(
+        padding: SpacingEdgeInsets.insets8,
+        physics: const BouncingScrollPhysics(),
+        crossAxisCount: 2,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        itemCount: notes.length,
+        itemBuilder: (context, index) {
+          final note = notes[index];
+          final isInVault = _isNoteInVault(note);
+
+          return NotePreviewCard(
+            note: note,
+            onTap: () => _editNote(note.id),
+            onPin: () => _togglePin(note.id),
+            onDelete: () => _deleteNote(note.id, note.title),
+            onDeleteConfirmed: () => _deleteNoteConfirmed(note.id),
+            isInVault: isInVault,
+            onMoveToFolder: isInVault ? null : () => _moveNoteToFolder(note),
+            showFormatIndicator: isAllNotesView,
+          );
+        },
+      ),
+    );
+  }
+
+  /// Build list view
+  Widget _buildListView(List<Note> notes, bool isAllNotesView) {
+    return NotificationListener<ScrollNotification>(
+      onNotification: (scrollNotification) {
+        // Detect pull-to-search gesture
+        if (scrollNotification is ScrollUpdateNotification) {
+          if (scrollNotification.metrics.pixels < -20) {
+            ref.read(notesSearchModeProvider.notifier).state = true;
+            return true;
+          }
+        }
+
+        if (scrollNotification is OverscrollNotification) {
+          if (scrollNotification.overscroll < -20) {
+            ref.read(notesSearchModeProvider.notifier).state = true;
+            return true;
+          }
+        }
+
+        return false;
+      },
+      child: ListView.builder(
+        padding: const EdgeInsets.all(8),
+        physics: const BouncingScrollPhysics(),
+        itemCount: notes.length,
+        itemBuilder: (context, index) {
+          final note = notes[index];
+          final isInVault = _isNoteInVault(note);
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: NotePreviewCard(
+              note: note,
+              onTap: () => _editNote(note.id),
+              onPin: () => _togglePin(note.id),
+              onDelete: () => _deleteNote(note.id, note.title),
+              onDeleteConfirmed: () => _deleteNoteConfirmed(note.id),
+              isInVault: isInVault,
+              onMoveToFolder: isInVault ? null : () => _moveNoteToFolder(note),
+              showFormatIndicator: isAllNotesView,
+            ),
+          );
+        },
+      ),
     );
   }
 

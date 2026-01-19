@@ -2427,6 +2427,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           : _buildGreeting(currentTab),
       // Actions: avatar button and delete button in multi-select mode
       actions: [
+        // View toggle button for Notes tab
+        if (currentTab == 1 && !multiMode)
+          Consumer(
+            builder: (context, ref, _) {
+              final viewMode = ref.watch(notesViewModeProvider);
+              return IconButton(
+                icon: Icon(
+                  viewMode == 'grid'
+                      ? Icons.view_list_outlined
+                      : Icons.dashboard_outlined,
+                  color: colorScheme.primary,
+                ),
+                tooltip: viewMode == 'grid' ? 'List view' : 'Grid view',
+                onPressed: () {
+                  ref.read(notesViewModeProvider.notifier).state =
+                      viewMode == 'grid' ? 'list' : 'grid';
+                },
+              );
+            },
+          ),
         // Delete button in multi-select mode
         if (currentTab == 0 && multiMode)
           IconButton(

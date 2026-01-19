@@ -113,7 +113,12 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
 
     // Use responsive padding to prevent overflow across different screen sizes
     final extraPadding = _getResponsiveExtraPadding(context, fmt);
-    return headerHeight + daysOfWeekHeight + rows * cellHeight + extraPadding;
+    // Add 30px buffer for table_calendar internal padding variance between month configurations
+    return headerHeight +
+        daysOfWeekHeight +
+        rows * cellHeight +
+        extraPadding +
+        30;
   }
 
   Widget _buildDayTimetable(BuildContext context, ColorScheme colorScheme) {
