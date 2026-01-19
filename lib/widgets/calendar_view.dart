@@ -51,6 +51,8 @@ class CalendarView extends ConsumerStatefulWidget {
 class _CalendarViewState extends ConsumerState<CalendarView> {
   late DateTime _focusedDay;
   DateTime? _selectedDay;
+  DateTime? _lastTappedDay;
+  DateTime _lastTapTime = DateTime.now().subtract(const Duration(seconds: 1));
 
   // Convert custom format to table_calendar format
   CalendarFormat get _calendarFormat {
@@ -1123,6 +1125,33 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                         // Update the provider so other widgets can access the selected date
                         ref.read(selectedCalendarDateProvider.notifier).state =
                             selectedDay;
+
+                        // Detect double-tap to open task editor
+                        final now = DateTime.now();
+                        if (_lastTappedDay != null &&
+                            isSameDay(_lastTappedDay, selectedDay) &&
+                            now.difference(_lastTapTime).inMilliseconds < 500) {
+                          // Double-tap detected, open task editor
+                          final dateOnly = DateTime(
+                            selectedDay.year,
+                            selectedDay.month,
+                            selectedDay.day,
+                          );
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => TaskEditorScreen(
+                                presetDueDate: dateOnly,
+                                onSave: (t) => ref
+                                    .read(taskControllerProvider.notifier)
+                                    .add(t),
+                              ),
+                            ),
+                          );
+                          _lastTappedDay = null; // Reset for next double-tap
+                        } else {
+                          _lastTappedDay = selectedDay;
+                          _lastTapTime = now;
+                        }
                       },
 
                       onFormatChanged: (format) {
