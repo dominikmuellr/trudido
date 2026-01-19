@@ -171,6 +171,9 @@ class PreferencesService {
       useQuickInputBar:
           p.getBool('use_quick_input_bar') ??
           PreferencesState.defaultState.useQuickInputBar,
+      enableNoteHistory:
+          p.getBool('enable_note_history') ??
+          PreferencesState.defaultState.enableNoteHistory,
       hideBottomNavigation:
           p.getBool('hide_bottom_navigation') ??
           PreferencesState.defaultState.hideBottomNavigation,
@@ -208,6 +211,7 @@ class PreferencesService {
     bool? showMoreNoteToolbar,
     bool? useFloatingNoteToolbar,
     bool? useQuickInputBar,
+    bool? enableNoteHistory,
     bool? hideBottomNavigation,
     int? firstDayOfWeek,
     String? defaultTaskView,
@@ -243,6 +247,8 @@ class PreferencesService {
         await p.setBool('use_floating_note_toolbar', useFloatingNoteToolbar);
       if (useQuickInputBar != null)
         await p.setBool('use_quick_input_bar', useQuickInputBar);
+      if (enableNoteHistory != null)
+        await p.setBool('enable_note_history', enableNoteHistory);
       if (hideBottomNavigation != null)
         await p.setBool('hide_bottom_navigation', hideBottomNavigation);
       if (firstDayOfWeek != null)

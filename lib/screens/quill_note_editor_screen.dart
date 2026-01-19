@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:flutter_quill/quill_delta.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -34,6 +35,10 @@ import '../widgets/link_embed_builder.dart';
 import '../widgets/floating_note_toolbar.dart';
 import '../providers/app_providers.dart';
 import '../services/preferences_service.dart';
+import '../providers/note_history_provider.dart';
+import '../widgets/note_history_bottom_sheet.dart';
+import '../models/note_history.dart';
+import '../services/storage_service.dart';
 
 /// Media type enum
 enum MediaType { photo, video }
@@ -75,6 +80,22 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   Timer? _autoSaveTimer;
   String _saveStatus = '';
   static const Duration _autoSaveDuration = Duration(seconds: 1);
+
+  // History recording with debouncing
+  Timer? _historyRecordTimer;
+  String? _lastRecordedContent; // Content at last history entry
+  DateTime? _lastHistoryRecordTime;
+  static const Duration _historyRecordDelay = Duration(
+    seconds: 10,
+  ); // Wait 10s of inactivity
+  static const int _minContentChangeForHistory =
+      50; // Min characters changed for immediate history
+  static const Duration _maxHistoryInterval = Duration(
+    minutes: 2,
+  ); // Force history entry after 2 min
+
+  // Flag to skip history recording during undo/redo operations
+  bool _isRestoringFromHistory = false;
 
   // Slash menu
   bool _showSlashMenu = false;
@@ -636,6 +657,10 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       // Initialize tracked media files from loaded document
       _initializeTrackedMedia(document);
 
+      // Initialize last recorded content for history debouncing
+      _lastRecordedContent = _originalNote!.content;
+      _lastHistoryRecordTime = DateTime.now();
+
       setState(() {
         _quillController = quill.QuillController(
           document: document,
@@ -653,6 +678,22 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
           _focusNode.requestFocus();
         }
       });
+
+      // Initialize history stack from persisted storage
+      _initializeHistoryStack();
+    }
+  }
+
+  /// Initialize the in-memory history stack from persisted storage
+  Future<void> _initializeHistoryStack() async {
+    final noteId = _originalNote?.id ?? widget.noteId;
+    if (noteId == null) return;
+
+    final history = await StorageService.getNoteHistoryForNote(noteId);
+    if (history.isNotEmpty) {
+      ref
+          .read(noteHistoryStackProvider.notifier)
+          .initializeFromHistory(noteId, history);
     }
   }
 
@@ -925,6 +966,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     Note? savedNote;
     final existingId = _originalNote?.id ?? widget.noteId;
 
+    // Capture content before saving for history
+    final contentBefore = _originalNote?.content;
+
     if (existingId != null) {
       savedNote = await controller.updateNote(
         id: existingId,
@@ -933,6 +977,14 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         lineHeightMultiplier: _originalNote?.lineHeightMultiplier,
         paragraphSpacing: _originalNote?.paragraphSpacing,
       );
+
+      // Schedule history recording with debouncing (skip during undo/redo)
+      if (savedNote != null &&
+          contentBefore != null &&
+          contentBefore != content &&
+          !_isRestoringFromHistory) {
+        _scheduleHistoryRecord(existingId, contentBefore, content);
+      }
     } else {
       savedNote = await controller.createNote(
         title: title,
@@ -1021,6 +1073,143 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       return Theme.of(context).colorScheme.error;
     }
     return Theme.of(context).colorScheme.onSurfaceVariant;
+  }
+
+  // Handle undo operation - navigates back in history tree
+  void _handleUndo() {
+    final noteId = _originalNote?.id ?? widget.noteId;
+    if (noteId == null) return;
+
+    final tree = ref.read(historyTreeProvider(noteId));
+    if (tree == null) return;
+
+    // Get current content before navigating back (for live version save)
+    final currentContent = jsonEncode(
+      _quillController.document.toDelta().toJson(),
+    );
+
+    final navigator = ref.read(noteHistoryNavigatorProvider.notifier);
+    final entryId = navigator.navigateBack(
+      noteId,
+      tree,
+      currentLiveContent: currentContent,
+    );
+
+    if (entryId != null) {
+      final entry = tree.getNode(entryId)?.entry;
+      if (entry != null && entry.contentBefore != null) {
+        _isRestoringFromHistory = true;
+        _restoreContentFromJson(entry.contentBefore!);
+        // Reset flag after the save completes
+        Future.delayed(const Duration(milliseconds: 100), () {
+          _isRestoringFromHistory = false;
+        });
+      }
+    }
+  }
+
+  // Handle redo operation - navigates forward in history tree
+  void _handleRedo() {
+    final noteId = _originalNote?.id ?? widget.noteId;
+    if (noteId == null) return;
+
+    final notifier = ref.read(noteHistoryStackProvider.notifier);
+    final navigator = ref.read(noteHistoryNavigatorProvider.notifier);
+
+    // Check if we're about to return to live version
+    final isReturningToLive =
+        navigator.isAtLiveVersion(noteId) == false &&
+        ref.read(noteHistoryNavigatorProvider)[noteId]?.forwardStack.isEmpty ==
+            true;
+
+    final tree = ref.read(historyTreeProvider(noteId));
+    final entryId = navigator.navigateForward(noteId);
+
+    if (entryId != null && tree != null) {
+      // Navigating to a specific history entry
+      final entry = tree.getNode(entryId)?.entry;
+      if (entry != null && entry.contentAfter != null) {
+        _isRestoringFromHistory = true;
+        _restoreContentFromJson(entry.contentAfter!);
+        Future.delayed(const Duration(milliseconds: 100), () {
+          _isRestoringFromHistory = false;
+        });
+      }
+    } else if (isReturningToLive) {
+      // Returning to live version - restore the saved live content
+      final liveContent = notifier.getLiveContent(noteId);
+      if (liveContent != null) {
+        _isRestoringFromHistory = true;
+        _restoreContentFromJson(liveContent);
+        Future.delayed(const Duration(milliseconds: 100), () {
+          _isRestoringFromHistory = false;
+        });
+      }
+    }
+  }
+
+  // Restore content from JSON string (Quill Delta format)
+  void _restoreContentFromJson(String jsonContent) {
+    try {
+      // Try to parse as JSON (Quill Delta format)
+      final json = jsonDecode(jsonContent);
+      if (json is List) {
+        final delta = Delta.fromJson(json);
+        _quillController.document = quill.Document.fromDelta(delta);
+      } else {
+        // Fallback: treat as plain text/markdown
+        _quillController.document = MarkdownToQuillConverter.markdownToDocument(
+          jsonContent,
+        );
+      }
+      // Update _originalNote to reflect the restored content
+      // This prevents the restored content from being recorded as a new change
+      if (_originalNote != null) {
+        _originalNote = _originalNote!.copyWith(content: jsonContent);
+      }
+      setState(() {
+        _hasUnsavedChanges = true; // Mark as needing save
+      });
+      // Save the restored content (but skip history recording via _isRestoringFromHistory flag)
+      _saveNoteInternal(showFeedback: false);
+    } catch (e) {
+      // Fallback: treat as markdown/plain text
+      try {
+        _quillController.document = MarkdownToQuillConverter.markdownToDocument(
+          jsonContent,
+        );
+        if (_originalNote != null) {
+          _originalNote = _originalNote!.copyWith(content: jsonContent);
+        }
+        setState(() {
+          _hasUnsavedChanges = true;
+        });
+        _saveNoteInternal(showFeedback: false);
+      } catch (e2) {
+        debugPrint('Error restoring content: $e2');
+      }
+    }
+  }
+
+  // Show note history bottom sheet
+  void _showNoteHistory() {
+    final noteId = _originalNote?.id ?? widget.noteId;
+    if (noteId == null) return;
+
+    showNoteHistoryBottomSheet(
+      context: context,
+      noteId: noteId,
+      noteTitle: _originalNote?.title ?? 'Untitled',
+      onRestore: (content) {
+        if (content == null) return;
+        _isRestoringFromHistory = true;
+        _restoreContentFromJson(content);
+        // Reset flag after the save completes
+        Future.delayed(const Duration(milliseconds: 100), () {
+          _isRestoringFromHistory = false;
+        });
+      },
+    );
   }
 
   Future<void> _showExportOptions() async {
@@ -1153,6 +1342,195 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
       }
     }
+  }
+
+  /// Builds the floating history controls (undo/redo/history)
+  Widget _buildFloatingHistoryControls() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final noteId = _originalNote?.id ?? widget.noteId;
+        final canUndo = noteId != null
+            ? ref.watch(canUndoProvider(noteId))
+            : false;
+        final canRedo = noteId != null
+            ? ref.watch(canRedoProvider(noteId))
+            : false;
+
+        // Check if viewing a past version (not at live)
+        final historyPosition = noteId != null
+            ? ref.watch(currentHistoryPositionProvider(noteId))
+            : null;
+        final isViewingPast =
+            historyPosition != null && historyPosition.currentEntryId != null;
+        final isBranchingMode = historyPosition?.isBranchingMode ?? false;
+
+        return Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(28),
+          shadowColor: Theme.of(context).colorScheme.shadow.withOpacity(0.2),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isBranchingMode
+                  ? Theme.of(context).colorScheme.primaryContainer
+                  : isViewingPast
+                  ? Theme.of(context).colorScheme.tertiaryContainer
+                  : Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: isBranchingMode
+                    ? Theme.of(context).colorScheme.primary
+                    : isViewingPast
+                    ? Theme.of(context).colorScheme.tertiary
+                    : Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withOpacity(0.5),
+                width: (isViewingPast || isBranchingMode) ? 2 : 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // "Branching" indicator
+                if (isBranchingMode) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.call_split,
+                          size: 16,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'New Branch',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimaryContainer,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 24,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.5),
+                  ),
+                ]
+                // "Viewing past" indicator (only if not branching)
+                else if (isViewingPast) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.history,
+                          size: 16,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onTertiaryContainer,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Past',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onTertiaryContainer,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 24,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.tertiary.withOpacity(0.5),
+                  ),
+                ],
+                // Undo button
+                IconButton(
+                  icon: Icon(
+                    Icons.undo_rounded,
+                    size: 20,
+                    color: canUndo
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withOpacity(0.4),
+                  ),
+                  tooltip: 'Undo',
+                  onPressed: canUndo ? _handleUndo : null,
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
+                ),
+                // Redo button
+                IconButton(
+                  icon: Icon(
+                    Icons.redo_rounded,
+                    size: 20,
+                    color: canRedo
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withOpacity(0.4),
+                  ),
+                  tooltip: 'Redo',
+                  onPressed: canRedo ? _handleRedo : null,
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
+                ),
+                // Divider
+                Container(
+                  width: 1,
+                  height: 24,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withOpacity(0.5),
+                ),
+                // History button
+                IconButton(
+                  icon: Icon(
+                    Icons.history_rounded,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  tooltip: 'View history',
+                  onPressed: _showNoteHistory,
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildSlashMenu() {
@@ -1665,9 +2043,86 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     );
   }
 
+  /// Schedule a history record with debouncing.
+  /// Only creates a history entry after 10 seconds of inactivity,
+  /// or immediately if there's a large change (50+ chars).
+  void _scheduleHistoryRecord(
+    String noteId,
+    String contentBefore,
+    String contentAfter,
+  ) {
+    // Check if history feature is enabled
+    final preferences = ref.read(preferencesStateProvider);
+    if (!preferences.enableNoteHistory) {
+      return; // Don't record history when feature is disabled
+    }
+
+    // Cancel any pending history record
+    _historyRecordTimer?.cancel();
+
+    // Calculate content change size
+    final contentChange = (contentAfter.length - contentBefore.length).abs();
+
+    // Initialize last recorded content if needed
+    _lastRecordedContent ??= contentBefore;
+
+    // Check if we should record immediately (large change or max interval exceeded)
+    final now = DateTime.now();
+    final timeSinceLastRecord = _lastHistoryRecordTime != null
+        ? now.difference(_lastHistoryRecordTime!)
+        : _maxHistoryInterval;
+
+    final shouldRecordImmediately =
+        contentChange >= _minContentChangeForHistory ||
+        timeSinceLastRecord >= _maxHistoryInterval;
+
+    if (shouldRecordImmediately) {
+      _recordHistoryEntry(noteId, contentAfter);
+    } else {
+      // Schedule for later (after period of inactivity)
+      _historyRecordTimer = Timer(_historyRecordDelay, () {
+        if (mounted) {
+          _recordHistoryEntry(noteId, contentAfter);
+        }
+      });
+    }
+  }
+
+  /// Actually record a history entry
+  void _recordHistoryEntry(String noteId, String currentContent) {
+    // Don't record if content hasn't changed from last recorded version
+    if (_lastRecordedContent == currentContent) return;
+
+    final historyEntry = NoteHistoryEntry(
+      noteId: noteId,
+      contentBefore: _lastRecordedContent,
+      contentAfter: currentContent,
+    );
+
+    ref.read(noteHistoryStackProvider.notifier).pushUndo(noteId, historyEntry);
+
+    // Update tracking
+    _lastRecordedContent = currentContent;
+    _lastHistoryRecordTime = DateTime.now();
+  }
+
   @override
   void dispose() {
     _autoSaveTimer?.cancel();
+    _historyRecordTimer?.cancel();
+
+    // Record any pending history entry before disposing
+    final noteId = _originalNote?.id ?? widget.noteId;
+    final currentContent = jsonEncode(
+      _quillController.document.toDelta().toJson(),
+    );
+    if (noteId != null &&
+        _lastRecordedContent != null &&
+        _lastRecordedContent != currentContent &&
+        !_isRestoringFromHistory) {
+      _recordHistoryEntry(noteId, currentContent);
+    }
+
     _quillController.dispose();
     _titleController.dispose();
     _titleFocusNode.dispose();
@@ -2074,6 +2529,22 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                         top: _slashMenuTop,
                         child: _buildSlashMenu(),
                       ),
+                    // Floating history controls - visible when feature enabled
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final preferences = ref.watch(preferencesStateProvider);
+                        if (!preferences.enableNoteHistory) {
+                          return const SizedBox.shrink();
+                        }
+                        return Positioned(
+                          left: 16,
+                          bottom: MediaQuery.of(context).viewInsets.bottom > 0
+                              ? 8
+                              : 16,
+                          child: _buildFloatingHistoryControls(),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),

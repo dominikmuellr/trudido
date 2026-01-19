@@ -38,6 +38,16 @@ class ExperimentalSettingsScreen extends ConsumerWidget {
       body: ListView(
         children: [
           const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              'These features are in development and may contain bugs. Use at your own risk.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           ListTile(
             leading: ScaledIcon(Icons.widgets_outlined),
             title: const Text('Folder Templates'),
@@ -80,6 +90,22 @@ class ExperimentalSettingsScreen extends ConsumerWidget {
                 ),
                 value: preferences.useQuickInputBar,
                 onChanged: (v) => controller.toggleQuickInputBar(),
+              );
+            },
+          ),
+          Consumer(
+            builder: (context, ref, _) {
+              final preferences = ref.watch(preferencesStateProvider);
+              final controller = ref.read(preferencesControllerProvider);
+
+              return SwitchListTile(
+                secondary: const Icon(Icons.history),
+                title: const Text('Note History'),
+                subtitle: const Text(
+                  'Enable note history with undo/redo and version browsing',
+                ),
+                value: preferences.enableNoteHistory,
+                onChanged: (v) => controller.toggleNoteHistory(),
               );
             },
           ),

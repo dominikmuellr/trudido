@@ -24,6 +24,8 @@ import '../repositories/notes_repository.dart';
 import '../repositories/note_folder_repository.dart';
 import '../services/note_export_service.dart';
 import '../providers/app_providers.dart';
+import '../providers/note_history_provider.dart';
+import '../widgets/note_history_bottom_sheet.dart';
 
 /// Screen for creating and editing markdown notes
 class NoteEditorScreen extends ConsumerStatefulWidget {
@@ -224,6 +226,50 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                   size: 20,
                   color: _getStatusColor(),
                 ),
+              ),
+            // Undo button (only when editing existing note and feature enabled)
+            if (_isEditing && widget.noteId != null)
+              Consumer(
+                builder: (context, ref, _) {
+                  final preferences = ref.watch(preferencesStateProvider);
+                  if (!preferences.enableNoteHistory)
+                    return const SizedBox.shrink();
+                  final canUndo = ref.watch(canUndoProvider(widget.noteId!));
+                  return IconButton(
+                    icon: const Icon(Icons.undo),
+                    tooltip: 'Undo',
+                    onPressed: canUndo ? () => _handleUndo(ref) : null,
+                  );
+                },
+              ),
+            // Redo button (only when editing existing note and feature enabled)
+            if (_isEditing && widget.noteId != null)
+              Consumer(
+                builder: (context, ref, _) {
+                  final preferences = ref.watch(preferencesStateProvider);
+                  if (!preferences.enableNoteHistory)
+                    return const SizedBox.shrink();
+                  final canRedo = ref.watch(canRedoProvider(widget.noteId!));
+                  return IconButton(
+                    icon: const Icon(Icons.redo),
+                    tooltip: 'Redo',
+                    onPressed: canRedo ? () => _handleRedo(ref) : null,
+                  );
+                },
+              ),
+            // History button (only when editing existing note and feature enabled)
+            if (_isEditing && widget.noteId != null)
+              Consumer(
+                builder: (context, ref, _) {
+                  final preferences = ref.watch(preferencesStateProvider);
+                  if (!preferences.enableNoteHistory)
+                    return const SizedBox.shrink();
+                  return IconButton(
+                    icon: const Icon(Icons.history),
+                    tooltip: 'View history',
+                    onPressed: () => _showNoteHistory(),
+                  );
+                },
               ),
             IconButton(
               icon: const Icon(Icons.share_outlined),
@@ -1312,5 +1358,54 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       default:
         return Icons.info;
     }
+  }
+
+  void _handleUndo(WidgetRef ref) {
+    if (widget.noteId == null) return;
+    final entry = ref
+        .read(noteHistoryStackProvider.notifier)
+        .undo(widget.noteId!);
+    if (entry != null) {
+      setState(() {
+        _contentController.text = entry.contentBefore ?? '';
+        _hasUnsavedChanges = true;
+      });
+    }
+  }
+
+  void _handleRedo(WidgetRef ref) {
+    if (widget.noteId == null) return;
+    final entry = ref
+        .read(noteHistoryStackProvider.notifier)
+        .redo(widget.noteId!);
+    if (entry != null) {
+      setState(() {
+        _contentController.text = entry.contentAfter ?? '';
+        _hasUnsavedChanges = true;
+      });
+    }
+  }
+
+  void _showNoteHistory() {
+    if (widget.noteId == null) return;
+
+    // Extract title from content (first non-empty line)
+    final lines = _contentController.text.split('\n');
+    final title = lines
+        .firstWhere((line) => line.trim().isNotEmpty, orElse: () => 'Untitled')
+        .trim()
+        .replaceFirst(RegExp(r'^#+\s*'), '');
+
+    showNoteHistoryBottomSheet(
+      context: context,
+      noteId: widget.noteId!,
+      noteTitle: title,
+      onRestore: (restoredContent) {
+        setState(() {
+          _contentController.text = restoredContent ?? '';
+          _hasUnsavedChanges = true;
+        });
+      },
+    );
   }
 }

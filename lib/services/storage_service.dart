@@ -23,6 +23,7 @@ import '../models/folder.dart';
 import '../models/folder_template.dart';
 import '../models/note.dart';
 import '../models/note_folder.dart';
+import '../models/note_history.dart';
 import '../models/holiday.dart';
 import '../repositories/hive_folder_repository.dart';
 import '../repositories/hive_folder_template_repository.dart';
@@ -31,11 +32,13 @@ class StorageService {
   static const String _todosBoxName = 'todos';
   static const String _notesBoxName = 'notes';
   static const String _noteFoldersBoxName = 'note_folders';
+  static const String _noteHistoryBoxName = 'note_history';
 
   // Deferred / lazy boxes
   static LazyBox<Todo>? _todosLazyBox; // large dataset
   static Box<Note>? _notesBox; // notes storage
   static Box<NoteFolder>? _noteFoldersBox; // note folders storage
+  static Box<NoteHistoryEntry>? _noteHistoryBox; // note edit history storage
   static SharedPreferences? _prefs;
   static Completer<void>? _prefsCompleter; // separate fast prefs init
   // Exposed readiness flag so preference notifiers can avoid redundant async reloads.
@@ -59,6 +62,8 @@ class StorageService {
   static Completer<void>? _notesCompleter; // completion for notes box open
   static Completer<void>?
   _noteFoldersCompleter; // completion for note folders box open
+  static Completer<void>?
+  _noteHistoryCompleter; // completion for note history box open
 
   // Initialize Hive and boxes
   static Future<void> init() async {
@@ -78,6 +83,10 @@ class StorageService {
     // Register holiday adapter
     if (!Hive.isAdapterRegistered(8)) {
       Hive.registerAdapter(HolidayAdapter());
+    }
+    // Register note history adapter
+    if (!Hive.isAdapterRegistered(9)) {
+      Hive.registerAdapter(NoteHistoryEntryAdapter());
     }
     // Register template adapters if they exist
     try {
@@ -187,6 +196,45 @@ class StorageService {
       } catch (e, st) {
         _todosCompleter?.completeError(e, st);
       }
+
+      // Note history box (for undo/redo and edit history)
+      _noteHistoryCompleter ??= Completer<void>();
+      try {
+        _noteHistoryBox = await Hive.openBox<NoteHistoryEntry>(
+          _noteHistoryBoxName,
+        );
+        _noteHistoryCompleter?.complete();
+        if (enableLogging) {
+          debugPrint('[StorageService] Note history box opened successfully');
+        }
+      } catch (e) {
+        if (enableLogging) {
+          debugPrint(
+            '[StorageService] Failed to initialize note history box: $e',
+          );
+        }
+        // Attempt recovery by deleting and recreating the box
+        try {
+          await Hive.deleteBoxFromDisk(_noteHistoryBoxName);
+          _noteHistoryBox = await Hive.openBox<NoteHistoryEntry>(
+            _noteHistoryBoxName,
+          );
+          _noteHistoryCompleter?.complete();
+          if (enableLogging) {
+            debugPrint(
+              '[StorageService] Successfully recovered note history box',
+            );
+          }
+        } catch (recoveryError) {
+          _noteHistoryCompleter?.completeError(recoveryError);
+          if (enableLogging) {
+            debugPrint(
+              '[StorageService] Failed to recover note history box: $recoveryError',
+            );
+          }
+        }
+      }
+
       // Folder repo + defaults for folders (after both; not critical to initial tasks list)
       final repoStart = DateTime.now();
       try {
@@ -559,6 +607,77 @@ Happy note-taking! ✨''',
   static Future<void> clearAllNoteFolders() async {
     if (_noteFoldersBox == null) return;
     await _noteFoldersBox!.clear();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Note History operations (for undo/redo and edit history)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Wait for note history box to be ready.
+  static Future<void> waitNoteHistoryReady() async {
+    if (_noteHistoryBox != null) return;
+    await ensureReady();
+    _noteHistoryCompleter ??= Completer<void>();
+    return _noteHistoryCompleter!.future.timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {},
+    );
+  }
+
+  /// Save a note history entry.
+  static Future<void> saveNoteHistoryEntry(NoteHistoryEntry entry) async {
+    await waitNoteHistoryReady();
+    if (_noteHistoryBox == null) return;
+    await _noteHistoryBox!.put(entry.id, entry);
+  }
+
+  /// Get all note history entries for a specific note, sorted newest first.
+  static Future<List<NoteHistoryEntry>> getNoteHistoryForNote(
+    String noteId,
+  ) async {
+    await waitNoteHistoryReady();
+    if (_noteHistoryBox == null) return const [];
+    final entries = _noteHistoryBox!.values
+        .where((e) => e.noteId == noteId)
+        .toList();
+    entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    return entries;
+  }
+
+  /// Get all note history entries, sorted newest first.
+  static Future<List<NoteHistoryEntry>> getAllNoteHistory() async {
+    await waitNoteHistoryReady();
+    if (_noteHistoryBox == null) return const [];
+    final entries = _noteHistoryBox!.values.toList();
+    entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    return entries;
+  }
+
+  /// Delete a single note history entry by ID.
+  static Future<void> deleteNoteHistoryEntry(String id) async {
+    await waitNoteHistoryReady();
+    if (_noteHistoryBox == null) return;
+    await _noteHistoryBox!.delete(id);
+  }
+
+  /// Delete all note history entries for a specific note.
+  static Future<void> deleteNoteHistoryForNote(String noteId) async {
+    await waitNoteHistoryReady();
+    if (_noteHistoryBox == null) return;
+    final keysToDelete = _noteHistoryBox!.keys.where((key) {
+      final entry = _noteHistoryBox!.get(key);
+      return entry != null && entry.noteId == noteId;
+    }).toList();
+    for (final key in keysToDelete) {
+      await _noteHistoryBox!.delete(key);
+    }
+  }
+
+  /// Clear all note history entries.
+  static Future<void> clearAllNoteHistory() async {
+    await waitNoteHistoryReady();
+    if (_noteHistoryBox == null) return;
+    await _noteHistoryBox!.clear();
   }
 
   // Theme and preferences operations

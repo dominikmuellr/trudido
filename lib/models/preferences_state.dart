@@ -34,6 +34,8 @@ class PreferencesState {
   final bool
   useFloatingNoteToolbar; // Use floating FAB toolbar instead of top toolbar
   final bool useQuickInputBar; // Use bottom input bar instead of FAB menu
+  final bool
+  enableNoteHistory; // Enable note history, undo/redo feature (experimental)
   final bool hideBottomNavigation; // Hide bottom nav/rail
   final int firstDayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
   final String defaultTaskView; // list | calendar - default view on app start
@@ -59,6 +61,7 @@ class PreferencesState {
     required this.showMoreNoteToolbar,
     required this.useFloatingNoteToolbar,
     required this.useQuickInputBar,
+    required this.enableNoteHistory,
     required this.hideBottomNavigation,
     required this.firstDayOfWeek,
     required this.defaultTaskView,
@@ -84,6 +87,7 @@ class PreferencesState {
     bool? showMoreNoteToolbar,
     bool? useFloatingNoteToolbar,
     bool? useQuickInputBar,
+    bool? enableNoteHistory,
     bool? hideBottomNavigation,
     int? firstDayOfWeek,
     String? defaultTaskView,
@@ -107,6 +111,7 @@ class PreferencesState {
     useFloatingNoteToolbar:
         useFloatingNoteToolbar ?? this.useFloatingNoteToolbar,
     useQuickInputBar: useQuickInputBar ?? this.useQuickInputBar,
+    enableNoteHistory: enableNoteHistory ?? this.enableNoteHistory,
     hideBottomNavigation: hideBottomNavigation ?? this.hideBottomNavigation,
     firstDayOfWeek: firstDayOfWeek ?? this.firstDayOfWeek,
     defaultTaskView: defaultTaskView ?? this.defaultTaskView,
@@ -133,6 +138,8 @@ class PreferencesState {
     useFloatingNoteToolbar:
         false, // Default: use top toolbar (experimental feature off)
     useQuickInputBar: false, // Default: use FAB menu (experimental feature off)
+    enableNoteHistory:
+        false, // Default: note history feature off (experimental)
     hideBottomNavigation: false, // Default: show nav
     firstDayOfWeek: 1, // Default: Monday (0=Sunday, 1=Monday, etc.)
     defaultTaskView: 'list', // Default: list view
