@@ -55,6 +55,7 @@ class NotePreviewCard extends ConsumerWidget {
   final bool isInVault; // Whether note is in a vault folder
   final bool
   showFormatIndicator; // Show .md/.txt indicator (only in All Notes view)
+  final String? searchHighlight; // Search term to highlight
 
   const NotePreviewCard({
     super.key,
@@ -66,6 +67,7 @@ class NotePreviewCard extends ConsumerWidget {
     this.onMoveToFolder,
     this.isInVault = false, // Default to not in vault
     this.showFormatIndicator = false, // Default to hidden
+    this.searchHighlight,
   });
 
   /// Checks if content is Quill JSON format
@@ -475,17 +477,44 @@ class NotePreviewCard extends ConsumerWidget {
               fontStyle: FontStyle.italic,
             ),
           )
-        : _parseMarkdownToTextSpan(note.title, context, ref, isTitle: true);
+        : (searchHighlight != null && searchHighlight!.isNotEmpty
+              ? _applyHighlighting(
+                  note.title,
+                  context,
+                  Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                )
+              : _parseMarkdownToTextSpan(
+                  note.title,
+                  context,
+                  ref,
+                  isTitle: true,
+                ));
 
     // For Quill notes, render with formatting; for markdown, parse structure
-    final bodySpan = _isQuillFormat()
-        ? _quillToTextSpan(context, ref)
-        : _parseMarkdownToTextSpan(
-            _extractContentOnly(contentLines),
+    final contentText = _isQuillFormat()
+        ? _extractPlainTextFromQuill()
+        : _extractContentOnly(contentLines);
+
+    final bodySpan = searchHighlight != null && searchHighlight!.isNotEmpty
+        ? _applyHighlighting(
+            contentText,
             context,
-            ref,
-            isTitle: false,
-          );
+            Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          )
+        : (_isQuillFormat()
+              ? _quillToTextSpan(context, ref)
+              : _parseMarkdownToTextSpan(
+                  contentText,
+                  context,
+                  ref,
+                  isTitle: false,
+                ));
     debugPrint('Preview: bodySpan created successfully');
 
     final formattedDate = _formatCompactDate(note.updatedAt);
@@ -1005,6 +1034,26 @@ class NotePreviewCard extends ConsumerWidget {
     return contentOnlyLines.join(' ').trim();
   }
 
+  String _extractPlainTextFromQuill() {
+    try {
+      final List<dynamic> deltaJson = json.decode(note.content);
+      final buffer = StringBuffer();
+
+      for (final op in deltaJson) {
+        if (op is Map && op.containsKey('insert')) {
+          final insert = op['insert'];
+          if (insert is String) {
+            buffer.write(insert);
+          }
+        }
+      }
+
+      return buffer.toString().trim();
+    } catch (e) {
+      return note.content;
+    }
+  }
+
   /// Builds a preview of todo.txt tasks (max 2 tasks shown)
   List<Widget> _buildTodoTxtPreview(BuildContext context) {
     final todoContent = note.todoTxtContent ?? '';
@@ -1222,6 +1271,58 @@ class NotePreviewCard extends ConsumerWidget {
       // Different year, show full date
       return DateFormat('d MMM y').format(date);
     }
+  }
+
+  TextSpan _applyHighlighting(
+    String text,
+    BuildContext context,
+    TextStyle? baseStyle,
+  ) {
+    if (searchHighlight == null || searchHighlight!.isEmpty) {
+      return TextSpan(text: text, style: baseStyle);
+    }
+
+    final lowerText = text.toLowerCase();
+    final lowerHighlight = searchHighlight!.toLowerCase();
+    final spans = <TextSpan>[];
+    int start = 0;
+
+    while (true) {
+      final index = lowerText.indexOf(lowerHighlight, start);
+      if (index == -1) {
+        if (start < text.length) {
+          spans.add(TextSpan(text: text.substring(start), style: baseStyle));
+        }
+        break;
+      }
+
+      if (index > start) {
+        spans.add(
+          TextSpan(text: text.substring(start, index), style: baseStyle),
+        );
+      }
+
+      spans.add(
+        TextSpan(
+          text: text.substring(index, index + searchHighlight!.length),
+          style:
+              baseStyle?.copyWith(
+                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.w600,
+              ) ??
+              TextStyle(
+                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      );
+
+      start = index + searchHighlight!.length;
+    }
+
+    return TextSpan(children: spans);
   }
 }
 

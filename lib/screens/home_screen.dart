@@ -40,6 +40,8 @@ import '../models/todo.dart';
 import '../screens/task_editor_screen.dart';
 import '../screens/template_management_screen.dart';
 import '../widgets/todo_list_tab.dart';
+import '../widgets/hybrid_todo_item.dart';
+import '../widgets/note_preview_card_markdown.dart';
 import '../widgets/fab_menu.dart';
 import '../widgets/quick_input_bar.dart';
 import '../widgets/create_folder_dialog.dart';
@@ -266,11 +268,18 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   final _searchController = TextEditingController();
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isCalendarExpanded = false;
   // _isFilterExpanded removed - filters are now in the always-visible chip row
+
+  // Animation state for greeting → search bar transition
+  AnimationController? _greetingAnimationController;
+  Animation<double>? _greetingFadeAnimation;
+  Animation<double>? _searchBarScaleAnimation;
+  bool _showSearchBar = false;
+  DateTime? _lastPausedTime;
 
   @override
   void initState() {
@@ -279,6 +288,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     WidgetsBinding.instance.addObserver(this);
     // Update widget data on startup
     _updateWidgetOnStartup();
+
+    // Initialize animation controller for greeting → search bar transition
+    _greetingAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _greetingFadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _greetingAnimationController!,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    _searchBarScaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _greetingAnimationController!,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    // Trigger initial greeting → search bar animation on first launch
+    _triggerGreetingAnimation();
   }
 
   Future<void> _updateWidgetOnStartup() async {
@@ -295,6 +327,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Unregister lifecycle observer
     WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
+    _greetingAnimationController?.dispose();
     super.dispose();
   }
 
@@ -311,7 +344,257 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         state == AppLifecycleState.hidden) {
       // App completely hidden (iOS)
       _clearVaultSelectionIfNeeded();
+      _lastPausedTime = DateTime.now();
+    } else if (state == AppLifecycleState.resumed) {
+      // Check if app was backgrounded for meaningful time (not quick switch)
+      if (_lastPausedTime != null) {
+        final pauseDuration = DateTime.now().difference(_lastPausedTime!);
+        if (pauseDuration.inMilliseconds > 500) {
+          // Meaningful resume, trigger greeting animation
+          _triggerGreetingAnimation();
+        }
+      }
+      _lastPausedTime = null;
     }
+  }
+
+  /// Triggers the greeting → search bar animation after a 2-second delay
+  void _triggerGreetingAnimation() {
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted || _greetingAnimationController == null) return;
+      setState(() {
+        _showSearchBar = true;
+      });
+      _greetingAnimationController!.forward();
+    });
+  }
+
+  /// Builds the animated search bar widget (Google Keep style)
+  Widget _buildAnimatedSearchBar() {
+    if (_searchBarScaleAnimation == null) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final currentTab = ref.watch(currentTabProvider);
+
+    return AnimatedBuilder(
+      animation: _searchBarScaleAnimation!,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _searchBarScaleAnimation!.value,
+          child: Opacity(
+            opacity: _searchBarScaleAnimation!.value,
+            child: GestureDetector(
+              onTap: () {
+                // Activate full search mode when tapped
+                ref.read(searchModeProvider.notifier).state = true;
+              },
+              child: Container(
+                height: 48,
+                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.search,
+                      color: colorScheme.onSurfaceVariant,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Search...',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    // View toggle for Notes tab
+                    if (currentTab == 1)
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final viewMode = ref.watch(notesViewModeProvider);
+                          return IconButton(
+                            icon: Icon(
+                              viewMode == 'grid'
+                                  ? Icons.view_list
+                                  : Icons.grid_view,
+                              color: colorScheme.onSurfaceVariant,
+                              size: 24,
+                            ),
+                            tooltip: viewMode == 'grid'
+                                ? 'List view'
+                                : 'Grid view',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              ref.read(notesViewModeProvider.notifier).state =
+                                  viewMode == 'grid' ? 'list' : 'grid';
+                            },
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildUnifiedSearchResults() {
+    final searchQuery = ref.watch(searchQueryProvider);
+    final filteredTasks = ref.watch(filteredTasksProvider);
+    final filteredNotesAsync = ref.watch(filteredNotesProvider);
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Empty state
+          if (searchQuery.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.search,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Search Trudido',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Find tasks and notes',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Tasks section
+          if (searchQuery.isNotEmpty && filteredTasks.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                'Tasks (${filteredTasks.length})',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+            ...filteredTasks.map(
+              (task) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: HybridTodoItem(
+                  todo: task,
+                  onToggle: () => ref
+                      .read(taskControllerProvider.notifier)
+                      .toggleComplete(task.id),
+                  onEdit: () => _showEditTaskDialog(task),
+                  onDelete: () => _deleteTaskWithConfirmation(task),
+                  selectable: false,
+                  onSelectToggle: () {},
+                  searchHighlight: searchQuery,
+                ),
+              ),
+            ),
+          ],
+
+          // Notes section
+          if (searchQuery.isNotEmpty)
+            filteredNotesAsync.when(
+              data: (notes) {
+                if (notes.isEmpty) return const SizedBox.shrink();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Text(
+                        'Notes (${notes.length})',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    ...notes.map(
+                      (note) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: NotePreviewCard(
+                          note: note,
+                          onTap: () => _editNoteInSearch(note.id),
+                          onPin: () => _toggleNotePin(note.id),
+                          onDelete: () =>
+                              _deleteNoteInSearch(note.id, note.title),
+                          onDeleteConfirmed: () =>
+                              _deleteNoteConfirmed(note.id),
+                          isInVault: note.folderId != null,
+                          showFormatIndicator: true,
+                          searchHighlight: searchQuery,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+
+          // No results found
+          if (searchQuery.isNotEmpty &&
+              filteredTasks.isEmpty &&
+              (filteredNotesAsync.valueOrNull?.isEmpty ?? true))
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.search_off,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No results found',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Try different keywords',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -457,7 +740,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 Expanded(
                   child: Scaffold(
                     appBar: _buildAppBar(context),
-                    body: IndexedStack(index: currentTab, children: tabs),
+                    body: ref.watch(searchModeProvider)
+                        ? _buildUnifiedSearchResults()
+                        : IndexedStack(index: currentTab, children: tabs),
                   ),
                 ),
               ],
@@ -496,7 +781,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             behavior: HitTestBehavior.translucent,
             child: Stack(
               children: [
-                IndexedStack(index: currentTab, children: tabs),
+                ref.watch(searchModeProvider)
+                    ? _buildUnifiedSearchResults()
+                    : IndexedStack(index: currentTab, children: tabs),
                 // Quick Input Bar (experimental mode) - inside Scaffold so it goes behind drawer
                 if (useQuickInputBar)
                   _buildQuickInputBottomArea(
@@ -755,6 +1042,83 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         },
       ),
     );
+  }
+
+  void _showEditTaskDialog(Todo task) {
+    AnimatedNavigation.pushContainerTransform(
+      context,
+      TaskEditorScreen(
+        todo: task,
+        onSave: (updatedTodo) {
+          ref.read(taskControllerProvider.notifier).update(updatedTodo);
+        },
+      ),
+    );
+  }
+
+  void _deleteTaskWithConfirmation(Todo task) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Move to Bin'),
+        content: Text(
+          'Move "${task.text}" to bin? You can restore it later from the Bin.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(taskControllerProvider.notifier).delete(task.id);
+              Navigator.pop(context);
+            },
+            child: const Text('Move to Bin'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _editNoteInSearch(String noteId) async {
+    AnimatedNavigation.pushContainerTransform(
+      context,
+      QuillNoteEditorScreen(noteId: noteId),
+    );
+  }
+
+  void _toggleNotePin(String noteId) {
+    ref.read(notesControllerProvider.notifier).togglePin(noteId);
+  }
+
+  void _deleteNoteInSearch(String noteId, String noteTitle) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Move to Bin'),
+        content: Text(
+          'Move "$noteTitle" to bin? You can restore it later from the Bin.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              _deleteNoteConfirmed(noteId);
+              Navigator.pop(context);
+            },
+            child: const Text('Move to Bin'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteNoteConfirmed(String noteId) {
+    ref.read(notesControllerProvider.notifier).deleteNote(noteId);
   }
 
   /// Create note with optional preset title (from quick input bar)
@@ -2338,11 +2702,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           onPressed: () {
             ref.read(searchModeProvider.notifier).state = false;
             _searchController.clear();
-            if (currentTab == 0) {
-              ref.read(searchQueryProvider.notifier).state = '';
-            } else if (currentTab == 1) {
-              ref.read(notesSearchQueryProvider.notifier).state = '';
-            }
+            // Clear both search queries for universal search
+            ref.read(searchQueryProvider.notifier).state = '';
+            ref.read(notesSearchQueryProvider.notifier).state = '';
           },
         ),
         title: TextField(
@@ -2352,7 +2714,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             color: colorScheme.onSurface,
           ),
           decoration: InputDecoration(
-            hintText: currentTab == 0 ? 'Search tasks...' : 'Search notes...',
+            hintText: 'Search Trudido',
             hintStyle: theme.textTheme.bodyLarge?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -2361,11 +2723,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             contentPadding: EdgeInsets.zero,
           ),
           onChanged: (value) {
-            if (currentTab == 0) {
-              ref.read(searchQueryProvider.notifier).state = value;
-            } else if (currentTab == 1) {
-              ref.read(notesSearchQueryProvider.notifier).state = value;
-            }
+            // Universal search - update both tasks and notes
+            ref.read(searchQueryProvider.notifier).state = value;
+            ref.read(notesSearchQueryProvider.notifier).state = value;
           },
         ),
         actions: [
@@ -2375,11 +2735,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               tooltip: 'Clear search',
               onPressed: () {
                 _searchController.clear();
-                if (currentTab == 0) {
-                  ref.read(searchQueryProvider.notifier).state = '';
-                } else if (currentTab == 1) {
-                  ref.read(notesSearchQueryProvider.notifier).state = '';
-                }
+                // Clear both search queries for universal search
+                ref.read(searchQueryProvider.notifier).state = '';
+                ref.read(notesSearchQueryProvider.notifier).state = '';
               },
             ),
         ],
@@ -2424,29 +2782,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 color: colorScheme.onSurface,
               ),
             )
+          : _showSearchBar
+          ? _buildAnimatedSearchBar()
+          : _greetingFadeAnimation != null
+          ? AnimatedBuilder(
+              animation: _greetingFadeAnimation!,
+              builder: (context, child) {
+                return Opacity(
+                  opacity: _greetingFadeAnimation!.value,
+                  child: _buildGreeting(currentTab),
+                );
+              },
+            )
           : _buildGreeting(currentTab),
       // Actions: avatar button and delete button in multi-select mode
       actions: [
-        // View toggle button for Notes tab
-        if (currentTab == 1 && !multiMode)
-          Consumer(
-            builder: (context, ref, _) {
-              final viewMode = ref.watch(notesViewModeProvider);
-              return IconButton(
-                icon: Icon(
-                  viewMode == 'grid'
-                      ? Icons.view_list_outlined
-                      : Icons.dashboard_outlined,
-                  color: colorScheme.primary,
-                ),
-                tooltip: viewMode == 'grid' ? 'List view' : 'Grid view',
-                onPressed: () {
-                  ref.read(notesViewModeProvider.notifier).state =
-                      viewMode == 'grid' ? 'list' : 'grid';
-                },
-              );
-            },
-          ),
         // Delete button in multi-select mode
         if (currentTab == 0 && multiMode)
           IconButton(

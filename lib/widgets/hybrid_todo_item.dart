@@ -34,6 +34,7 @@ class HybridTodoItem extends ConsumerWidget {
   final bool selectable;
   final bool selected;
   final VoidCallback onSelectToggle;
+  final String? searchHighlight;
 
   const HybridTodoItem({
     super.key,
@@ -46,6 +47,7 @@ class HybridTodoItem extends ConsumerWidget {
     this.selectable = false,
     this.selected = false,
     required this.onSelectToggle,
+    this.searchHighlight,
   });
 
   @override
@@ -125,19 +127,30 @@ class HybridTodoItem extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          todo.text,
-                          style: TextStyle(
-                            decoration: todo.isCompleted
-                                ? TextDecoration.lineThrough
-                                : null,
-                            color: todo.isCompleted
-                                ? Theme.of(context).colorScheme.onSurfaceVariant
-                                : Theme.of(context).colorScheme.onSurface,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16,
-                          ),
-                        ),
+                        searchHighlight != null && searchHighlight!.isNotEmpty
+                            ? RichText(
+                                text: _buildHighlightedText(
+                                  todo.text,
+                                  searchHighlight!,
+                                  context,
+                                  isCompleted: todo.isCompleted,
+                                ),
+                              )
+                            : Text(
+                                todo.text,
+                                style: TextStyle(
+                                  decoration: todo.isCompleted
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                  color: todo.isCompleted
+                                      ? Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant
+                                      : Theme.of(context).colorScheme.onSurface,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 16,
+                                ),
+                              ),
                         const SizedBox(height: 6),
                         // Show priority and due date/time in a row
                         Wrap(
@@ -398,5 +411,89 @@ class HybridTodoItem extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  TextSpan _buildHighlightedText(
+    String text,
+    String highlight,
+    BuildContext context, {
+    bool isCompleted = false,
+  }) {
+    if (highlight.isEmpty) {
+      return TextSpan(
+        text: text,
+        style: TextStyle(
+          decoration: isCompleted ? TextDecoration.lineThrough : null,
+          color: isCompleted
+              ? Theme.of(context).colorScheme.onSurfaceVariant
+              : Theme.of(context).colorScheme.onSurface,
+          fontWeight: FontWeight.w500,
+          fontSize: 16,
+        ),
+      );
+    }
+
+    final lowerText = text.toLowerCase();
+    final lowerHighlight = highlight.toLowerCase();
+    final spans = <TextSpan>[];
+    int start = 0;
+
+    while (true) {
+      final index = lowerText.indexOf(lowerHighlight, start);
+      if (index == -1) {
+        // Add remaining text
+        if (start < text.length) {
+          spans.add(
+            TextSpan(
+              text: text.substring(start),
+              style: TextStyle(
+                decoration: isCompleted ? TextDecoration.lineThrough : null,
+                color: isCompleted
+                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                    : Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w500,
+                fontSize: 16,
+              ),
+            ),
+          );
+        }
+        break;
+      }
+
+      // Add text before match
+      if (index > start) {
+        spans.add(
+          TextSpan(
+            text: text.substring(start, index),
+            style: TextStyle(
+              decoration: isCompleted ? TextDecoration.lineThrough : null,
+              color: isCompleted
+                  ? Theme.of(context).colorScheme.onSurfaceVariant
+                  : Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.w500,
+              fontSize: 16,
+            ),
+          ),
+        );
+      }
+
+      // Add highlighted match
+      spans.add(
+        TextSpan(
+          text: text.substring(index, index + highlight.length),
+          style: TextStyle(
+            decoration: isCompleted ? TextDecoration.lineThrough : null,
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            color: Theme.of(context).colorScheme.onPrimaryContainer,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+      );
+
+      start = index + highlight.length;
+    }
+
+    return TextSpan(children: spans);
   }
 }
