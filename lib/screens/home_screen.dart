@@ -2229,7 +2229,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         Text(
           greeting,
           style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700, // Bold for prominence
+            fontWeight: FontWeight.w500, // Medium weight
             color: theme.colorScheme.primary,
             fontSize: 17,
           ),
@@ -2275,7 +2275,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         Text(
           greeting,
           style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700, // Bold for prominence
+            fontWeight: FontWeight.w600, // Semi-bold for refined look
             color: theme.colorScheme.primary,
             fontSize: 17,
           ),
