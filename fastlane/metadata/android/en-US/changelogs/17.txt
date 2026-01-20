@@ -1,0 +1,12 @@
+Version 1.2.6 - Enhanced Search & Customization
+
+• Universal Search: New unified search bar that searches across tasks, notes, folders, and settings
+• Fuzzy Search: Smart search with typo tolerance finds what you need even with minor spelling mistakes
+• Date Search: Type any date to see all tasks and events for that day, with quick task creation
+• Search Bar Toggle: New setting to show/hide search bar in header (Settings > Personalization > Layout)
+• Improved Search Bar: Better visibility in light mode with enhanced contrast and styling
+• Folder Search: Search now includes task folders and note folders (excluding vault content)
+• Settings Search: Quickly find settings through universal search
+• UI Refinements: Improved spacing and layout in personalization screen
+• Performance: Optimized search algorithms for better responsiveness
+• Bug Fixes: Various improvements to search functionality and UI consistency
