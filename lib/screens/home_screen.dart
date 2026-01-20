@@ -21,6 +21,7 @@ import 'package:table_calendar/table_calendar.dart';
 
 import 'dart:async';
 import '../providers/filter_providers.dart';
+import '../providers/settings_search_provider.dart';
 import '../providers/clock.dart';
 import '../controllers/task_controller.dart';
 import '../controllers/notes_controller.dart';
@@ -57,6 +58,11 @@ import 'quill_note_editor_screen.dart';
 import 'folder_management_screen.dart';
 import 'notes_folder_management_screen.dart';
 import 'personalization_screen.dart';
+import 'comprehensive_notification_settings.dart';
+import 'app_lock_settings_page.dart';
+import 'data_management_screen.dart';
+import 'about_screen.dart';
+import 'experimental_settings_screen.dart';
 import '../widgets/user_avatar_widget.dart';
 import '../theme/spacing_tokens.dart';
 
@@ -360,6 +366,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   /// Triggers the greeting → search bar animation after a 2-second delay
   void _triggerGreetingAnimation() {
+    // Check if search bar should be shown based on user preference
+    final showSearchBar = ref.read(preferencesStateProvider).showSearchBar;
+    if (!showSearchBar) return; // Don't show search bar if disabled in settings
+
     Future.delayed(const Duration(seconds: 2), () {
       if (!mounted || _greetingAnimationController == null) return;
       setState(() {
@@ -391,11 +401,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               },
               child: Container(
                 height: 48,
-                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                margin: const EdgeInsets.only(
+                  left: 4,
+                  right: 8,
+                  top: 4,
+                  bottom: 4,
+                ),
+                padding: const EdgeInsets.only(left: 12, right: 12),
                 decoration: BoxDecoration(
                   color: colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: colorScheme.outline.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.shadow.withValues(alpha: 0.05),
+                      blurRadius: 2,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
@@ -404,12 +430,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       color: colorScheme.onSurfaceVariant,
                       size: 24,
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Search...',
-                        style: theme.textTheme.bodyLarge?.copyWith(
+                        'Search Trudido',
+                        style: theme.textTheme.bodyMedium?.copyWith(
                           color: colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.normal,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -419,23 +446,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       Consumer(
                         builder: (context, ref, _) {
                           final viewMode = ref.watch(notesViewModeProvider);
-                          return IconButton(
-                            icon: Icon(
-                              viewMode == 'grid'
-                                  ? Icons.view_list
-                                  : Icons.grid_view,
-                              color: colorScheme.onSurfaceVariant,
-                              size: 24,
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 4),
+                            child: IconButton(
+                              icon: Icon(
+                                viewMode == 'grid'
+                                    ? Icons.view_list
+                                    : Icons.grid_view,
+                                color: colorScheme.onSurfaceVariant,
+                                size: 24,
+                              ),
+                              tooltip: viewMode == 'grid'
+                                  ? 'List view'
+                                  : 'Grid view',
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () {
+                                ref.read(notesViewModeProvider.notifier).state =
+                                    viewMode == 'grid' ? 'list' : 'grid';
+                              },
                             ),
-                            tooltip: viewMode == 'grid'
-                                ? 'List view'
-                                : 'Grid view',
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () {
-                              ref.read(notesViewModeProvider.notifier).state =
-                                  viewMode == 'grid' ? 'list' : 'grid';
-                            },
                           );
                         },
                       ),
@@ -453,6 +483,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final searchQuery = ref.watch(searchQueryProvider);
     final filteredTasks = ref.watch(filteredTasksProvider);
     final filteredNotesAsync = ref.watch(filteredNotesProvider);
+    final filteredSettings = ref.watch(filteredSettingsProvider);
+    final filteredFoldersAsync = ref.watch(filteredFoldersProvider);
+    final filteredNoteFoldersAsync = ref.watch(filteredNoteFoldersProvider);
+    final searchDate = ref.watch(searchDateProvider);
+    final tasksForDate = ref.watch(tasksForSearchDateProvider);
 
     return SingleChildScrollView(
       child: Column(
@@ -480,7 +515,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Find tasks and notes',
+                      'Find tasks, notes, folders, and settings\nOr search by date (e.g., 25.12.2024)',
+                      textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -490,79 +526,330 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             ),
 
-          // Tasks section
-          if (searchQuery.isNotEmpty && filteredTasks.isNotEmpty) ...[
+          // Date search results
+          if (searchDate != null) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                'Tasks (${filteredTasks.length})',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${searchDate.day}.${searchDate.month}.${searchDate.year}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
               ),
             ),
-            ...filteredTasks.map(
-              (task) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: HybridTodoItem(
-                  todo: task,
-                  onToggle: () => ref
-                      .read(taskControllerProvider.notifier)
-                      .toggleComplete(task.id),
-                  onEdit: () => _showEditTaskDialog(task),
-                  onDelete: () => _deleteTaskWithConfirmation(task),
-                  selectable: false,
-                  onSelectToggle: () {},
-                  searchHighlight: searchQuery,
+            // Add task button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: OutlinedButton.icon(
+                onPressed: () => _showAddTaskDialog(initialDate: searchDate),
+                icon: const Icon(Icons.add),
+                label: const Text('Add task for this date'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
                 ),
               ),
             ),
-          ],
-
-          // Notes section
-          if (searchQuery.isNotEmpty)
-            filteredNotesAsync.when(
-              data: (notes) {
-                if (notes.isEmpty) return const SizedBox.shrink();
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                      child: Text(
-                        'Notes (${notes.length})',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
+            if (tasksForDate.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: Text(
+                  'Tasks on this date (${tasksForDate.length})',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+              ...tasksForDate.map(
+                (task) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: HybridTodoItem(
+                    todo: task,
+                    onToggle: () => ref
+                        .read(taskControllerProvider.notifier)
+                        .toggleComplete(task.id),
+                    onEdit: () => _showEditTaskDialog(task),
+                    onDelete: () => _deleteTaskWithConfirmation(task),
+                    selectable: false,
+                    onSelectToggle: () {},
+                  ),
+                ),
+              ),
+            ] else ...[
+              Padding(
+                padding: const EdgeInsets.all(32),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.event_available,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                    ),
-                    ...notes.map(
-                      (note) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: NotePreviewCard(
-                          note: note,
-                          onTap: () => _editNoteInSearch(note.id),
-                          onPin: () => _toggleNotePin(note.id),
-                          onDelete: () =>
-                              _deleteNoteInSearch(note.id, note.title),
-                          onDeleteConfirmed: () =>
-                              _deleteNoteConfirmed(note.id),
-                          isInVault: note.folderId != null,
-                          showFormatIndicator: true,
-                          searchHighlight: searchQuery,
+                      const SizedBox(height: 8),
+                      Text(
+                        'No tasks scheduled for this date',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
-                    ),
-                  ],
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
 
-          // No results found
-          if (searchQuery.isNotEmpty &&
+          // Regular search results (only show if not a date search)
+          if (searchDate == null) ...[
+            // Tasks section
+            if (searchQuery.isNotEmpty && filteredTasks.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  'Tasks (${filteredTasks.length})',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              ...filteredTasks.map(
+                (task) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: HybridTodoItem(
+                    todo: task,
+                    onToggle: () => ref
+                        .read(taskControllerProvider.notifier)
+                        .toggleComplete(task.id),
+                    onEdit: () => _showEditTaskDialog(task),
+                    onDelete: () => _deleteTaskWithConfirmation(task),
+                    selectable: false,
+                    onSelectToggle: () {},
+                    searchHighlight: searchQuery,
+                  ),
+                ),
+              ),
+            ],
+
+            // Notes section
+            if (searchQuery.isNotEmpty)
+              filteredNotesAsync.when(
+                data: (notes) {
+                  if (notes.isEmpty) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Text(
+                          'Notes (${notes.length})',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      ...notes.map(
+                        (note) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: NotePreviewCard(
+                            note: note,
+                            onTap: () => _editNoteInSearch(note.id),
+                            onPin: () => _toggleNotePin(note.id),
+                            onDelete: () =>
+                                _deleteNoteInSearch(note.id, note.title),
+                            onDeleteConfirmed: () =>
+                                _deleteNoteConfirmed(note.id),
+                            isInVault: note.folderId != null,
+                            showFormatIndicator: true,
+                            searchHighlight: searchQuery,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+
+            // Folders section (exclude vault folders).
+            if (searchQuery.isNotEmpty)
+              filteredFoldersAsync.when(
+                data: (allFolders) {
+                  // Filter out vault folders
+                  final nonVaultFolders = allFolders
+                      .where((folder) => !folder.isVault)
+                      .toList();
+                  if (nonVaultFolders.isEmpty) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Text(
+                          'Folders (${nonVaultFolders.length})',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      ...nonVaultFolders.map(
+                        (folder) => ListTile(
+                          leading: Icon(
+                            _getIconData(folder.icon),
+                            color: Color(folder.color),
+                          ),
+                          title: Text(folder.name),
+                          subtitle:
+                              folder.description != null &&
+                                  folder.description!.isNotEmpty
+                              ? Text(folder.description!)
+                              : null,
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                          ),
+                          onTap: () {
+                            // Exit search mode and navigate to folder
+                            ref.read(searchModeProvider.notifier).state = false;
+                            _searchController.clear();
+                            ref.read(searchQueryProvider.notifier).state = '';
+                            ref.read(notesSearchQueryProvider.notifier).state =
+                                '';
+                            ref
+                                    .read(settingsSearchQueryProvider.notifier)
+                                    .state =
+                                '';
+                            ref.read(folderSearchQueryProvider.notifier).state =
+                                '';
+                            ref.read(selectedFolderProvider.notifier).state =
+                                folder.id;
+                            ref.read(currentTabProvider.notifier).setTab(0);
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+
+            // Note Folders section (exclude vault folders)
+            if (searchQuery.isNotEmpty)
+              filteredNoteFoldersAsync.when(
+                data: (allNoteFolders) {
+                  // Filter out vault note folders
+                  final nonVaultNoteFolders = allNoteFolders
+                      .where((folder) => !folder.isVault)
+                      .toList();
+                  if (nonVaultNoteFolders.isEmpty)
+                    return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Text(
+                          'Note Folders (${nonVaultNoteFolders.length})',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      ...nonVaultNoteFolders.map(
+                        (folder) => ListTile(
+                          leading: Icon(
+                            Icons.folder_special,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          title: Text(folder.name),
+                          subtitle:
+                              folder.description != null &&
+                                  folder.description!.isNotEmpty
+                              ? Text(folder.description!)
+                              : null,
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                          ),
+                          onTap: () {
+                            // Exit search mode and navigate to note folder
+                            ref.read(searchModeProvider.notifier).state = false;
+                            _searchController.clear();
+                            ref.read(searchQueryProvider.notifier).state = '';
+                            ref.read(notesSearchQueryProvider.notifier).state =
+                                '';
+                            ref
+                                    .read(settingsSearchQueryProvider.notifier)
+                                    .state =
+                                '';
+                            ref.read(folderSearchQueryProvider.notifier).state =
+                                '';
+                            ref
+                                    .read(
+                                      noteFolderSearchQueryProvider.notifier,
+                                    )
+                                    .state =
+                                '';
+                            ref
+                                    .read(selectedNoteFolderProvider.notifier)
+                                    .state =
+                                folder.id;
+                            ref.read(currentTabProvider.notifier).setTab(1);
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+
+            // Settings section
+            if (searchQuery.isNotEmpty && filteredSettings.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  'Settings (${filteredSettings.length})',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              ...filteredSettings.map(
+                (setting) => ListTile(
+                  leading: Icon(setting.icon),
+                  title: Text(setting.title),
+                  subtitle: Text(setting.subtitle),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () => _navigateToSetting(setting.route),
+                ),
+              ),
+            ],
+          ], // Close the if (searchDate == null) block
+          // No results found (only for non-date searches)
+          if (searchDate == null &&
+              searchQuery.isNotEmpty &&
               filteredTasks.isEmpty &&
-              (filteredNotesAsync.valueOrNull?.isEmpty ?? true))
+              filteredSettings.isEmpty &&
+              (filteredNotesAsync.valueOrNull?.isEmpty ?? true) &&
+              (filteredFoldersAsync.valueOrNull
+                      ?.where((f) => !f.isVault)
+                      .isEmpty ??
+                  true) &&
+              (filteredNoteFoldersAsync.valueOrNull
+                      ?.where((f) => !f.isVault)
+                      .isEmpty ??
+                  true))
             Center(
               child: Padding(
                 padding: const EdgeInsets.all(32.0),
@@ -640,11 +927,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         if (isSearchMode) {
           ref.read(searchModeProvider.notifier).state = false;
           _searchController.clear();
-          if (currentTab == 0) {
-            ref.read(searchQueryProvider.notifier).state = '';
-          } else if (currentTab == 1) {
-            ref.read(notesSearchQueryProvider.notifier).state = '';
-          }
+          ref.read(searchQueryProvider.notifier).state = '';
+          ref.read(notesSearchQueryProvider.notifier).state = '';
+          ref.read(settingsSearchQueryProvider.notifier).state = '';
+          ref.read(folderSearchQueryProvider.notifier).state = '';
+          ref.read(noteFolderSearchQueryProvider.notifier).state = '';
           return;
         }
 
@@ -714,11 +1001,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     if (isSearchMode) {
                       ref.read(searchModeProvider.notifier).state = false;
                       _searchController.clear();
-                      if (previousTab == 0) {
-                        ref.read(searchQueryProvider.notifier).state = '';
-                      } else if (previousTab == 1) {
-                        ref.read(notesSearchQueryProvider.notifier).state = '';
-                      }
+                      ref.read(searchQueryProvider.notifier).state = '';
+                      ref.read(notesSearchQueryProvider.notifier).state = '';
+                      ref.read(settingsSearchQueryProvider.notifier).state = '';
+                      ref.read(folderSearchQueryProvider.notifier).state = '';
+                      ref.read(noteFolderSearchQueryProvider.notifier).state =
+                          '';
                     }
                   },
                   labelType: NavigationRailLabelType.all,
@@ -983,11 +1271,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         if (isSearchMode) {
           ref.read(searchModeProvider.notifier).state = false;
           _searchController.clear();
-          if (previousTab == 0) {
-            ref.read(searchQueryProvider.notifier).state = '';
-          } else if (previousTab == 1) {
-            ref.read(notesSearchQueryProvider.notifier).state = '';
-          }
+          ref.read(searchQueryProvider.notifier).state = '';
+          ref.read(notesSearchQueryProvider.notifier).state = '';
+          ref.read(settingsSearchQueryProvider.notifier).state = '';
+          ref.read(folderSearchQueryProvider.notifier).state = '';
+          ref.read(noteFolderSearchQueryProvider.notifier).state = '';
         }
       },
       destinations: [
@@ -1326,6 +1614,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     // Close FAB menu
     ref.read(fabMenuExpandedProvider.notifier).state = false;
+  }
+
+  void _navigateToSetting(String route) {
+    // Exit search mode first
+    ref.read(searchModeProvider.notifier).state = false;
+    _searchController.clear();
+    ref.read(searchQueryProvider.notifier).state = '';
+    ref.read(notesSearchQueryProvider.notifier).state = '';
+    ref.read(settingsSearchQueryProvider.notifier).state = '';
+    ref.read(folderSearchQueryProvider.notifier).state = '';
+    ref.read(noteFolderSearchQueryProvider.notifier).state = '';
+
+    // Navigate to the settings screen or specific setting page
+    switch (route) {
+      case 'personalization':
+        AnimatedNavigation.push(context, const PersonalizationScreen());
+        break;
+      case 'notifications':
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const ComprehensiveNotificationSettings(),
+          ),
+        );
+        break;
+      case 'app_lock':
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const AppLockSettingsPage()),
+        );
+        break;
+      case 'data_management':
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const DataManagementScreen()),
+        );
+        break;
+      case 'about':
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const AboutScreen()));
+        break;
+      case 'support':
+        // Open settings screen (support is handled there with a bottom sheet)
+        AnimatedNavigation.push(context, const SettingsScreen());
+        break;
+      case 'experimental':
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const ExperimentalSettingsScreen(),
+          ),
+        );
+        break;
+      default:
+        // If route not recognized, just open the main settings screen
+        AnimatedNavigation.push(context, const SettingsScreen());
+    }
   }
 
   // Commented out - kept for potential future use
@@ -2702,9 +3044,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           onPressed: () {
             ref.read(searchModeProvider.notifier).state = false;
             _searchController.clear();
-            // Clear both search queries for universal search
+            // Clear all search queries for universal search
             ref.read(searchQueryProvider.notifier).state = '';
             ref.read(notesSearchQueryProvider.notifier).state = '';
+            ref.read(settingsSearchQueryProvider.notifier).state = '';
+            ref.read(folderSearchQueryProvider.notifier).state = '';
+            ref.read(noteFolderSearchQueryProvider.notifier).state = '';
           },
         ),
         title: TextField(
@@ -2723,9 +3068,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             contentPadding: EdgeInsets.zero,
           ),
           onChanged: (value) {
-            // Universal search - update both tasks and notes
+            // Universal search - update tasks, notes, folders, and settings
             ref.read(searchQueryProvider.notifier).state = value;
             ref.read(notesSearchQueryProvider.notifier).state = value;
+            ref.read(settingsSearchQueryProvider.notifier).state = value;
+            ref.read(folderSearchQueryProvider.notifier).state = value;
+            ref.read(noteFolderSearchQueryProvider.notifier).state = value;
           },
         ),
         actions: [
@@ -2735,9 +3083,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               tooltip: 'Clear search',
               onPressed: () {
                 _searchController.clear();
-                // Clear both search queries for universal search
+                // Clear all search queries for universal search
                 ref.read(searchQueryProvider.notifier).state = '';
                 ref.read(notesSearchQueryProvider.notifier).state = '';
+                ref.read(settingsSearchQueryProvider.notifier).state = '';
+                ref.read(folderSearchQueryProvider.notifier).state = '';
+                ref.read(noteFolderSearchQueryProvider.notifier).state = '';
               },
             ),
         ],
@@ -2782,10 +3133,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 color: colorScheme.onSurface,
               ),
             )
-          : _showSearchBar
+          : ref.watch(preferencesStateProvider).showSearchBar && _showSearchBar
           ? _buildAnimatedSearchBar()
-          : _greetingFadeAnimation != null
-          ? AnimatedBuilder(
+          : !ref.watch(preferencesStateProvider).showSearchBar ||
+                _greetingFadeAnimation == null
+          ? _buildGreeting(currentTab)
+          : AnimatedBuilder(
               animation: _greetingFadeAnimation!,
               builder: (context, child) {
                 return Opacity(
@@ -2793,8 +3146,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   child: _buildGreeting(currentTab),
                 );
               },
-            )
-          : _buildGreeting(currentTab),
+            ),
       // Actions: avatar button and delete button in multi-select mode
       actions: [
         // Delete button in multi-select mode

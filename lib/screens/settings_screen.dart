@@ -22,16 +22,29 @@ import '../utils/responsive_size.dart';
 import 'about_screen.dart';
 import 'personalization_screen.dart';
 import 'comprehensive_notification_settings.dart';
-import 'template_management_screen.dart';
 import 'app_lock_settings_page.dart';
 import 'data_management_screen.dart';
 import 'experimental_settings_screen.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Lazy ensure preferences initialized if user navigates directly before main init completes.
     final svc = ref.read(preferencesServiceProvider);
     if (!svc.isReady) {
@@ -45,130 +58,214 @@ class SettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        children: [
-          // Appearance Section
-          _buildSectionHeader(context, 'Appearance'),
-          ListTile(
-            leading: ScaledIcon(Icons.palette_outlined),
-            title: const Text('Personalization'),
-            subtitle: const Text(
-              'Profile, colors, layout, and visual preferences',
+      body: ListView(children: _buildFilteredSettings()),
+    );
+  }
+
+  List<Widget> _buildFilteredSettings() {
+    final List<Widget> allSettings = [
+      // Appearance Section
+      if (_matchesSearch(
+        'appearance personalization profile colors layout visual preferences',
+      )) ...[
+        _buildSectionHeader(context, 'Appearance'),
+        _buildPersonalizationTile(),
+      ],
+
+      // Notifications & Alerts Section
+      if (_matchesSearch(
+        'notifications alerts permissions settings reliability',
+      )) ...[
+        _buildSectionHeader(context, 'Notifications & Alerts'),
+        _buildNotificationsTile(),
+      ],
+
+      // Security Section
+      if (_matchesSearch('security app lock pin fingerprint protect')) ...[
+        _buildSectionHeader(context, 'Security'),
+        _buildAppLockTile(),
+      ],
+
+      // Data Management Section
+      if (_matchesSearch('data management calendar sync import backup')) ...[
+        _buildSectionHeader(context, 'Data Management'),
+        _buildDataManagementTile(),
+      ],
+
+      // About Section
+      if (_matchesSearch('about licenses app license package repository')) ...[
+        _buildSectionHeader(context, 'About'),
+        _buildAboutTile(),
+      ],
+
+      // Support Section
+      if (_matchesSearch('support development buy coffee donate')) ...[
+        _buildSectionHeader(context, 'Support'),
+        _buildSupportTile(),
+      ],
+
+      // Experimental Section
+      if (_matchesSearch('experimental features try new')) ...[
+        _buildSectionHeader(context, 'Experimental'),
+        _buildExperimentalTile(),
+      ],
+    ];
+
+    if (allSettings.isEmpty && _searchQuery.isNotEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.all(48),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(
+                  Icons.search_off,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No settings found',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Try a different search term',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
-            trailing: ScaledIcon(Icons.arrow_forward_ios),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const PersonalizationScreen(),
-                ),
-              );
-            },
           ),
+        ),
+      ];
+    }
 
-          // Notifications & Alerts Section
-          _buildSectionHeader(context, 'Notifications & Alerts'),
-          ListTile(
-            leading: ScaledIcon(Icons.notifications_outlined),
-            title: const Text('Notifications'),
-            subtitle: const Text('Permissions, settings, and reliability'),
-            trailing: ScaledIcon(Icons.arrow_forward_ios),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) =>
-                      const ComprehensiveNotificationSettings(),
-                ),
-              );
-            },
-          ),
-
-          // Security Section
-          _buildSectionHeader(context, 'Security'),
-          ListTile(
-            leading: ScaledIcon(Icons.lock_outline),
-            title: const Text('App Lock'),
-            subtitle: const Text('Protect app with PIN or fingerprint'),
-            trailing: ScaledIcon(Icons.arrow_forward_ios),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const AppLockSettingsPage(),
-                ),
-              );
-            },
-          ),
-
-          // Data Management Section
-          _buildSectionHeader(context, 'Data Management'),
-          ListTile(
-            leading: ScaledIcon(Icons.storage_outlined),
-            title: const Text('Data Management'),
-            subtitle: const Text('Calendar sync, import, backup, and data'),
-            trailing: ScaledIcon(Icons.arrow_forward_ios),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const DataManagementScreen(),
-                ),
-              );
-            },
-          ),
-
-          // About Section
-          _buildSectionHeader(context, 'About'),
-          ListTile(
-            leading: ScaledIcon(Icons.info_outline),
-            title: const Text('About & Licenses'),
-            subtitle: const Text(
-              'App license, package licenses and repository',
-            ),
-            trailing: ScaledIcon(Icons.arrow_forward_ios),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const AboutScreen()),
-              );
-            },
-          ),
-
-          // Support Section
-          _buildSectionHeader(context, 'Support'),
-          ListTile(
-            leading: ScaledIcon(Icons.favorite_outline),
-            title: const Text('Support Development'),
-            subtitle: const Text('Buy me a coffee or donate'),
-            trailing: ScaledIcon(Icons.arrow_forward_ios),
-            onTap: () => _showSupportSheet(context),
-          ),
-
-          // Experimental Section
-          _buildSectionHeader(context, 'Experimental'),
-          ListTile(
-            leading: ScaledIcon(Icons.science_outlined),
-            title: const Text('Experimental Features'),
-            subtitle: const Text('Try new and experimental features'),
-            trailing: ScaledIcon(Icons.arrow_forward_ios),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const ExperimentalSettingsScreen(),
-                ),
-              );
-            },
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 32),
-            child: Center(
-              child: Text(
-                'Made with ❤️ in Europe',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w500,
-                ),
+    if (_searchQuery.isEmpty) {
+      allSettings.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          child: Center(
+            child: Text(
+              'Made with ❤️ in Europe',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      );
+    }
+
+    return allSettings;
+  }
+
+  bool _matchesSearch(String keywords) {
+    if (_searchQuery.isEmpty) return true;
+    return keywords.toLowerCase().contains(_searchQuery);
+  }
+
+  Widget _buildPersonalizationTile() {
+    return ListTile(
+      leading: ScaledIcon(Icons.palette_outlined),
+      title: const Text('Personalization'),
+      subtitle: const Text('Profile, colors, layout, and visual preferences'),
+      trailing: ScaledIcon(Icons.arrow_forward_ios),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const PersonalizationScreen(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNotificationsTile() {
+    return ListTile(
+      leading: ScaledIcon(Icons.notifications_outlined),
+      title: const Text('Notifications'),
+      subtitle: const Text('Permissions, settings, and reliability'),
+      trailing: ScaledIcon(Icons.arrow_forward_ios),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const ComprehensiveNotificationSettings(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAppLockTile() {
+    return ListTile(
+      leading: ScaledIcon(Icons.lock_outline),
+      title: const Text('App Lock'),
+      subtitle: const Text('Protect app with PIN or fingerprint'),
+      trailing: ScaledIcon(Icons.arrow_forward_ios),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const AppLockSettingsPage()),
+        );
+      },
+    );
+  }
+
+  Widget _buildDataManagementTile() {
+    return ListTile(
+      leading: ScaledIcon(Icons.storage_outlined),
+      title: const Text('Data Management'),
+      subtitle: const Text('Calendar sync, import, backup, and data'),
+      trailing: ScaledIcon(Icons.arrow_forward_ios),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const DataManagementScreen()),
+        );
+      },
+    );
+  }
+
+  Widget _buildAboutTile() {
+    return ListTile(
+      leading: ScaledIcon(Icons.info_outline),
+      title: const Text('About & Licenses'),
+      subtitle: const Text('App license, package licenses and repository'),
+      trailing: ScaledIcon(Icons.arrow_forward_ios),
+      onTap: () {
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const AboutScreen()));
+      },
+    );
+  }
+
+  Widget _buildSupportTile() {
+    return ListTile(
+      leading: ScaledIcon(Icons.favorite_outline),
+      title: const Text('Support Development'),
+      subtitle: const Text('Buy me a coffee or donate'),
+      trailing: ScaledIcon(Icons.arrow_forward_ios),
+      onTap: () => _showSupportSheet(context),
+    );
+  }
+
+  Widget _buildExperimentalTile() {
+    return ListTile(
+      leading: ScaledIcon(Icons.science_outlined),
+      title: const Text('Experimental Features'),
+      subtitle: const Text('Try new and experimental features'),
+      trailing: ScaledIcon(Icons.arrow_forward_ios),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const ExperimentalSettingsScreen(),
+          ),
+        );
+      },
     );
   }
 

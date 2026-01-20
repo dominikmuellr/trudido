@@ -24,7 +24,6 @@ import '../providers/app_providers.dart';
 import '../controllers/preferences_controller.dart';
 import 'font_size_settings_screen.dart';
 import 'defaults_settings_screen.dart';
-import 'settings_screen.dart';
 import '../theme/spacing_tokens.dart';
 
 class PersonalizationScreen extends ConsumerStatefulWidget {
@@ -239,7 +238,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
                     ],
                   ),
                 ),
-                SpacingGap.gapV16,
+                SpacingGap.gapV32,
 
                 // Name Field
                 TextField(
@@ -273,8 +272,8 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
             ),
           ),
 
-          // Theme Section
-          _buildSectionHeader(context, 'Theme'),
+          // Layout Section
+          _buildSectionHeader(context, 'Layout'),
           const _ThemeModeSelector(),
           Consumer(
             builder: (context, ref, _) {
@@ -303,6 +302,21 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
           // Contrast Level Selector (Material 3 January 2026)
           const _ContrastLevelSelector(),
           _buildFontSizeLink(),
+          Consumer(
+            builder: (context, ref, _) {
+              final enabled = ref.watch(preferencesStateProvider).showSearchBar;
+              final controller = ref.read(preferencesControllerProvider);
+              return SwitchListTile(
+                secondary: const Icon(Icons.search),
+                title: const Text('Show Search Bar'),
+                subtitle: const Text(
+                  'Display search bar in header. Search is still available via the menu button',
+                ),
+                value: enabled,
+                onChanged: (v) => controller.toggleShowSearchBar(),
+              );
+            },
+          ),
 
           // Defaults Section
           _buildSectionHeader(context, 'Defaults'),

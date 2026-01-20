@@ -17,6 +17,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/todo.dart';
+import '../utils/date_search_parser.dart';
 import 'app_providers.dart';
 import '../services/folder_provider.dart';
 import '../widgets/calendar_view.dart';
@@ -90,12 +91,6 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
   final selectedFolder = ref.watch(selectedFolderProvider);
 
   var filtered = tasks.where((todo) {
-    if (searchQuery.isNotEmpty) {
-      final q = searchQuery.toLowerCase();
-      if (!todo.text.toLowerCase().contains(q) &&
-          !(todo.notes?.toLowerCase().contains(q) ?? false))
-        return false;
-    }
     if (selectedFolder != null && todo.folderId != selectedFolder) return false;
     if (selectedPriority != 'all' && todo.priority != selectedPriority)
       return false;
@@ -115,6 +110,16 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
 
     return true;
   }).toList();
+
+  // Apply fuzzy search if there's a query
+  if (searchQuery.isNotEmpty) {
+    filtered = FuzzySearch.filter(
+      items: filtered,
+      query: searchQuery,
+      getText: (todo) => '${todo.text} ${todo.notes ?? ''}',
+      minSimilarity: 0.4,
+    );
+  }
 
   // Get secondary sort keys for multi-sort
   final secondarySortKeys = ref.watch(secondarySortKeysProvider);
@@ -165,3 +170,27 @@ int _compareBySortKey(Todo a, Todo b, String key) {
       return 0; // 'default' key has no specific order beyond completion grouping
   }
 }
+
+/// Provider that checks if the search query is a valid date
+final searchDateProvider = Provider<DateTime?>((ref) {
+  final searchQuery = ref.watch(searchQueryProvider);
+  return DateSearchParser.parseDate(searchQuery);
+});
+
+/// Provider for tasks filtered by search date
+final tasksForSearchDateProvider = Provider<List<Todo>>((ref) {
+  final searchDate = ref.watch(searchDateProvider);
+  if (searchDate == null) return [];
+
+  final allTasks = ref.watch(tasksProvider);
+  return allTasks.where((task) {
+    if (task.dueDate == null) return false;
+    return DateSearchParser.isSameDay(task.dueDate!, searchDate);
+  }).toList()..sort((a, b) {
+    // Sort by time if available, otherwise by priority
+    if (a.dueDate != null && b.dueDate != null) {
+      return a.dueDate!.compareTo(b.dueDate!);
+    }
+    return 0;
+  });
+});

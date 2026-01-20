@@ -17,6 +17,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/note_folder.dart';
 import '../services/storage_service.dart';
+import '../utils/date_search_parser.dart';
 
 /// Repository for managing note folder data
 class NoteFolderRepository {
@@ -176,3 +177,33 @@ class NoteFoldersNotifier extends AsyncNotifier<List<NoteFolder>> {
     return success;
   }
 }
+
+/// Provider for note folder search query
+final noteFolderSearchQueryProvider = StateProvider<String>((ref) => '');
+
+/// Provider for filtered note folders based on search
+final filteredNoteFoldersProvider = Provider<AsyncValue<List<NoteFolder>>>((
+  ref,
+) {
+  final foldersAsync = ref.watch(noteFoldersProvider);
+  final searchQuery = ref.watch(noteFolderSearchQueryProvider);
+
+  return foldersAsync.when(
+    data: (folders) {
+      if (searchQuery.trim().isEmpty) {
+        return AsyncValue.data(folders);
+      }
+
+      final filteredFolders = FuzzySearch.filter(
+        items: folders,
+        query: searchQuery,
+        getText: (folder) => '${folder.name} ${folder.description ?? ''}',
+        minSimilarity: 0.4,
+      );
+
+      return AsyncValue.data(filteredFolders);
+    },
+    loading: () => const AsyncValue.loading(),
+    error: (error, stackTrace) => AsyncValue.error(error, stackTrace),
+  );
+});

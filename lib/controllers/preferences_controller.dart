@@ -91,6 +91,8 @@ class PreferencesController {
       _update(hideGreeting: !state.hideGreeting);
   Future<void> setGreetingLanguage(int languageIndex) =>
       _update(greetingLanguage: languageIndex);
+  Future<void> toggleShowSearchBar() =>
+      _update(showSearchBar: !state.showSearchBar);
   Future<void> setFabPosition(String pos) => _update(fabPosition: pos);
 
   Future<void> setSwipeLeftAction(String action) =>
@@ -128,6 +130,7 @@ class PreferencesController {
     int? accentColorSeed,
     bool? hideGreeting,
     int? greetingLanguage,
+    bool? showSearchBar,
     String? fabPosition,
     String? swipeLeftAction,
     String? swipeRightAction,
@@ -147,6 +150,7 @@ class PreferencesController {
       accentColorSeed: accentColorSeed,
       hideGreeting: hideGreeting,
       greetingLanguage: greetingLanguage,
+      showSearchBar: showSearchBar,
       fabPosition: fabPosition,
       swipeLeftAction: swipeLeftAction,
       swipeRightAction: swipeRightAction,

@@ -19,6 +19,7 @@ import '../models/folder.dart';
 import '../repositories/folder_repository.dart';
 import '../repositories/hive_folder_repository.dart';
 import '../use_cases/folder_use_cases.dart';
+import '../utils/date_search_parser.dart';
 
 // Repository provider
 final folderRepositoryProvider = Provider<FolderRepository>((ref) {
@@ -207,13 +208,12 @@ final filteredFoldersProvider = Provider<AsyncValue<List<Folder>>>((ref) {
         return AsyncValue.data(folders);
       }
 
-      final lowercaseQuery = searchQuery.toLowerCase();
-      final filteredFolders = folders.where((folder) {
-        final nameMatch = folder.name.toLowerCase().contains(lowercaseQuery);
-        final descriptionMatch =
-            folder.description?.toLowerCase().contains(lowercaseQuery) ?? false;
-        return nameMatch || descriptionMatch;
-      }).toList();
+      final filteredFolders = FuzzySearch.filter(
+        items: folders,
+        query: searchQuery,
+        getText: (folder) => '${folder.name} ${folder.description ?? ''}',
+        minSimilarity: 0.4,
+      );
 
       return AsyncValue.data(filteredFolders);
     },

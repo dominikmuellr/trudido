@@ -152,6 +152,9 @@ class PreferencesService {
       greetingLanguage:
           p.getInt('greeting_language') ??
           PreferencesState.defaultState.greetingLanguage,
+      showSearchBar:
+          p.getBool('show_search_bar') ??
+          PreferencesState.defaultState.showSearchBar,
       fabPosition: _sanitizeFabPosition(p.getString('fab_position')),
       swipeLeftAction:
           p.getString('swipe_left_action') ??
@@ -204,6 +207,7 @@ class PreferencesService {
     int? accentColorSeed,
     bool? hideGreeting,
     int? greetingLanguage,
+    bool? showSearchBar,
     String? fabPosition,
     String? swipeLeftAction,
     String? swipeRightAction,
@@ -234,6 +238,8 @@ class PreferencesService {
       if (hideGreeting != null) await p.setBool('hide_greeting', hideGreeting);
       if (greetingLanguage != null)
         await p.setInt('greeting_language', greetingLanguage);
+      if (showSearchBar != null)
+        await p.setBool('show_search_bar', showSearchBar);
       if (fabPosition != null) await p.setString('fab_position', fabPosition);
       if (swipeLeftAction != null)
         await p.setString('swipe_left_action', swipeLeftAction);

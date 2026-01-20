@@ -19,6 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/note.dart';
 import '../repositories/notes_repository.dart';
 import '../repositories/note_folder_repository.dart';
+import '../utils/date_search_parser.dart';
 
 /// Provider for selected folder filter (null = all notes)
 final selectedNoteFolderProvider = StateProvider<String?>((ref) => null);
@@ -224,16 +225,14 @@ final filteredNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
         });
       }
 
-      // Filter by search query if provided
+      // Filter by search query if provided with fuzzy matching
       if (searchQuery.isNotEmpty) {
-        final lowerQuery = searchQuery.toLowerCase();
-        filtered = filtered
-            .where(
-              (note) =>
-                  note.title.toLowerCase().contains(lowerQuery) ||
-                  note.content.toLowerCase().contains(lowerQuery),
-            )
-            .toList();
+        filtered = FuzzySearch.filter(
+          items: filtered,
+          query: searchQuery,
+          getText: (note) => '${note.title} ${note.content}',
+          minSimilarity: 0.4,
+        );
       }
 
       // Apply sorting
