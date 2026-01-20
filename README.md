@@ -15,7 +15,7 @@
     <img src="https://img.shields.io/github/license/dominikmuellr/trudido?style=for-the-badge&color=blue" alt="License"></a>
 </p>
 
-<h1 align="center">Trudido — Private and Minimalist Material You To-Do App</h1>
+<h1 align="center">Trudido - Private and Minimalist Material You To-Do App</h1>
 
 <p align="center">
   A lightweight, privacy-first to-do app built with Flutter and Material You.
