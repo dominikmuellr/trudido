@@ -33,7 +33,6 @@ class MarkdownExportService {
     try {
       debugPrint('[MarkdownExport] Starting notes export...');
 
-      // Get all notes
       await StorageService.waitNotesReady();
       final notes = StorageService.getAllNotes();
 
@@ -51,7 +50,6 @@ class MarkdownExportService {
       bool needsSafFallback = false;
 
       try {
-        // Create notes subdirectory
         final notesDir = Directory('$selectedDirectory/$_notesSubfolder');
         if (!await notesDir.exists()) {
           await notesDir.create(recursive: true);

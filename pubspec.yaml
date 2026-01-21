@@ -28,10 +28,10 @@ platforms:
 # Build metadata (helpful for reproducible builds and support requests)
 build_info:
   commit: TBD
-  tag: v1.2.5
+  tag: v1.2.6
   flutter: "3.35.5"
   flutter_path: "/c/dev/flutter/bin/flutter"
-  build_command: "flutter build apk --release --build-name=1.2.5 --build-number=16"
+  build_command: "flutter build apk --release --build-name=1.2.6 --build-number=17"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions

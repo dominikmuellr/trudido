@@ -685,7 +685,6 @@ class _CalendarSyncSettingsScreenState
                   itemCount: availableCalendars.length,
                   itemBuilder: (context, index) {
                     final calendar = availableCalendars[index];
-                    // Build a meaningful display name
                     final name = calendar.name;
                     final accountName = calendar.accountName;
                     final displayName = name.isNotEmpty
@@ -752,7 +751,6 @@ class _CalendarSyncSettingsScreenState
         syncEndDate: now.add(const Duration(days: 90)),
       );
 
-      // Add imported tasks
       if (result.imported.isNotEmpty) {
         final taskController = ref.read(taskControllerProvider.notifier);
         for (final todo in result.imported) {
@@ -972,7 +970,6 @@ class _CalendarSyncSettingsScreenState
         syncEndDate: now.add(const Duration(days: 90)),
       );
 
-      // Add imported todos
       if (result.imported.isNotEmpty) {
         final taskController = ref.read(taskControllerProvider.notifier);
         for (final todo in result.imported) {

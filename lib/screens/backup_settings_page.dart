@@ -36,7 +36,6 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
   void initState() {
     super.initState();
 
-    // Set up import callbacks for refreshing UI
     FilesChannel.instance.setImportCallbacks(
       onComplete: (message) {
         if (!mounted) return;
@@ -232,7 +231,6 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
   }
 
   Future<void> _showAutoBackupImportDialog() async {
-    // Show loading dialog first
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -266,7 +264,6 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
         return;
       }
 
-      // Show backup selection dialog
       AutoBackupFile? selectedBackup;
       final confirmed = await showDialog<bool>(
         context: context,
@@ -527,7 +524,6 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
 
   Future<void> _exportAllDataToPdf() async {
     try {
-      // Show loading
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

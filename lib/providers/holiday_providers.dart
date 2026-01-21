@@ -132,11 +132,9 @@ class HolidayNotifier extends StateNotifier<List<Holiday>> {
       // Use filename (without extension) as source calendar name
       final sourceName = file.name.replaceAll('.ics', '').replaceAll('_', ' ');
 
-      // Parse ICS content
       final parseResult = IcsParser.parse(content, sourceCalendar: sourceName);
 
       if (parseResult.success) {
-        // Add holidays to repository
         await repository.addHolidays(parseResult.holidays);
         // Fix any single-day holidays that were just imported with wrong endDate
         await _fixSingleDayHolidays();

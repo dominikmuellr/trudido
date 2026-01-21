@@ -145,7 +145,6 @@ class IcsParser {
         }
       }
 
-      // Get color for this calendar
       final calendarColor = ImportedCalendarColors.getColorForCalendarName(
         sourceCalendarName,
       );
@@ -366,7 +365,6 @@ class IcsParser {
       final value = _extractValue(line);
       if (value.isEmpty) return null;
 
-      // Check if it's a date-only value (YYYYMMDD) or datetime (YYYYMMDDTHHMMSS)
       if (value.length == 8) {
         // Date only: YYYYMMDD
         return DateTime(

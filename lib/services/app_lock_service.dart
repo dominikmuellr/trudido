@@ -42,49 +42,40 @@ class AppLockService {
   bool _biometricAttemptedThisSession = false;
   bool _isBiometricAuthInProgress = false;
 
-  /// Check if biometric was already attempted this lock session
   bool get biometricAttemptedThisSession => _biometricAttemptedThisSession;
 
-  /// Check if biometric auth is currently in progress
   bool get isBiometricAuthInProgress => _isBiometricAuthInProgress;
 
-  /// Mark that biometric auth was attempted
   void markBiometricAttempted() {
     _biometricAttemptedThisSession = true;
   }
 
-  /// Reset biometric attempt flag (call when app is locked again)
   void resetBiometricAttempt() {
     _biometricAttemptedThisSession = false;
     _isBiometricAuthInProgress = false;
   }
 
-  /// Check if app lock is enabled
   Future<bool> isEnabled() async {
     final enabled = await _storage.read(key: _enabledKey);
     return enabled == 'true';
   }
 
-  /// Check if biometric unlock is enabled
   Future<bool> isBiometricEnabled() async {
     final enabled = await _storage.read(key: _biometricEnabledKey);
     return enabled == 'true';
   }
 
-  /// Get the lock timeout in seconds (0 = immediate, -1 = never)
   Future<int> getTimeout() async {
     final timeout = await _storage.read(key: _timeoutKey);
     return int.tryParse(timeout ?? '0') ?? 0;
   }
 
-  /// Hash a PIN using SHA-256
   String _hashPin(String pin) {
     final bytes = utf8.encode(pin);
     final digest = sha256.convert(bytes);
     return digest.toString();
   }
 
-  /// Set up app lock with a PIN
   Future<void> setupPin(String pin) async {
     if (pin.length < 4 || pin.length > 6) {
       throw ArgumentError('PIN must be 4-6 digits');
@@ -100,7 +91,6 @@ class AppLockService {
     _lastUnlockTime = DateTime.now();
   }
 
-  /// Verify PIN
   Future<bool> verifyPin(String pin) async {
     final storedHash = await _storage.read(key: _pinKey);
     if (storedHash == null) return false;
@@ -120,7 +110,6 @@ class AppLockService {
     return isValid;
   }
 
-  /// Attempt biometric unlock
   Future<bool> unlockWithBiometrics() async {
     // Prevent concurrent biometric auth attempts
     if (_isBiometricAuthInProgress) return false;
@@ -151,17 +140,14 @@ class AppLockService {
     }
   }
 
-  /// Enable or disable biometric unlock
   Future<void> setBiometricEnabled(bool enabled) async {
     await _storage.write(key: _biometricEnabledKey, value: enabled.toString());
   }
 
-  /// Set lock timeout in seconds
   Future<void> setTimeout(int seconds) async {
     await _storage.write(key: _timeoutKey, value: seconds.toString());
   }
 
-  /// Change PIN (requires old PIN verification)
   Future<bool> changePin(String oldPin, String newPin) async {
     final isValid = await verifyPin(oldPin);
     if (!isValid) return false;
@@ -170,7 +156,6 @@ class AppLockService {
     return true;
   }
 
-  /// Disable app lock (requires PIN verification)
   Future<bool> disable(String pin) async {
     final isValid = await verifyPin(pin);
     if (!isValid) return false;
@@ -200,7 +185,6 @@ class AppLockService {
     // 0 means immediate lock when going to background
     if (timeout == 0) return true;
 
-    // Check if timeout has passed
     if (_lastUnlockTime == null) return true;
 
     final elapsed = DateTime.now().difference(_lastUnlockTime!).inSeconds;

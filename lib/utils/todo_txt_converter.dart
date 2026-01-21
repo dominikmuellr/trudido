@@ -16,8 +16,6 @@
 
 /// Utility for converting between Markdown and todo.txt formats
 class TodoTxtConverter {
-  /// Converts Markdown content to todo.txt format
-  /// Extracts checklist items and converts them to todo.txt lines
   static String markdownToTodoTxt(String markdown) {
     final lines = markdown.split('\n');
     final todoLines = <String>[];
@@ -31,7 +29,6 @@ class TodoTxtConverter {
         final isCompleted = match.group(1)?.toLowerCase() == 'x';
         final text = match.group(2) ?? '';
 
-        // Parse priority if present (A), (B), etc.
         String? priority;
         var taskText = text;
         final priorityMatch = RegExp(r'^\(([A-Z])\)\s+(.*)').firstMatch(text);
@@ -75,7 +72,6 @@ class TodoTxtConverter {
     return todoLines.join('\n');
   }
 
-  /// Converts todo.txt format to Markdown checklist
   static String todoTxtToMarkdown(String todoTxt) {
     final lines = todoTxt.split('\n');
     final markdownLines = <String>[];

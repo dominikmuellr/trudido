@@ -17,7 +17,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/task_controller.dart';
-import '../screens/home_screen.dart';
+import '../screens/home_screen_notifiers.dart';
 import '../services/theme_service.dart';
 
 class QuickProgressCard extends ConsumerWidget {

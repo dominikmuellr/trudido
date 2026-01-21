@@ -111,7 +111,6 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
           : _reminderOffsetsMinutes;
 
       if (widget.task != null) {
-        // Update existing task
         debugPrint(
           'EditTaskScreen: Updating existing task with reminders: $reminders',
         );
@@ -130,7 +129,6 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
 
         await ref.read(taskControllerProvider.notifier).update(updatedTask);
       } else {
-        // Create new task
         debugPrint(
           'EditTaskScreen: Creating new task with reminders: $reminders',
         );

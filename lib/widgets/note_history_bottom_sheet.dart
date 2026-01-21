@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/note_history.dart';
+import '../models/note_history_tree.dart';
 import '../providers/note_history_provider.dart';
 import '../theme/spacing_tokens.dart';
 

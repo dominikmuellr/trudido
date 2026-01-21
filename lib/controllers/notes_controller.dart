@@ -40,7 +40,6 @@ class NotesController extends StateNotifier<AsyncValue<void>> {
     String? folderId,
     String? todoTxtContent,
   }) async {
-    // Validate input
     if (title.trim().isEmpty) {
       state = const AsyncValue.error('Title cannot be empty', StackTrace.empty);
       return null;
@@ -71,7 +70,6 @@ class NotesController extends StateNotifier<AsyncValue<void>> {
     double? lineHeightMultiplier,
     double? paragraphSpacing,
   }) async {
-    // Validate input
     if (title != null && title.trim().isEmpty) {
       state = const AsyncValue.error('Title cannot be empty', StackTrace.empty);
       return null;
@@ -235,8 +233,6 @@ final filteredNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
         );
       }
 
-      // Apply sorting
-      // Create a mutable copy for sorting
       filtered = List.of(filtered);
 
       // First sort by the selected criteria

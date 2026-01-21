@@ -37,11 +37,9 @@ class _BinScreenState extends ConsumerState<BinScreen>
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
-    // Load tasks
     final taskRepo = ref.read(taskRepositoryProvider);
     _deletedTasks = await taskRepo.getDeletedTasks();
 
-    // Load notes (filter out vault notes)
     final notesRepo = ref.read(notesRepositoryProvider);
     final allDeletedNotes = await notesRepo.getDeletedNotes();
     final folderRepo = ref.read(noteFolderRepositoryProvider);

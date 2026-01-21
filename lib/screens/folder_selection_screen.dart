@@ -80,7 +80,6 @@ class FolderSelectionScreen extends ConsumerWidget {
 
             const SizedBox(height: 32),
 
-            // Create new folder button
             OutlinedButton.icon(
               onPressed: () {
                 Navigator.push(

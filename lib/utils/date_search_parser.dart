@@ -14,7 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-/// Utility class for fuzzy string matching using Levenshtein distance
+/// Provides fuzzy date parsing using Levenshtein distance algorithm.
+/// Enables matching user input to calendar dates with typo tolerance.
 class FuzzySearch {
   /// Calculates the Levenshtein distance between two strings
   /// Returns the minimum number of edits (insertions, deletions, substitutions)
@@ -23,13 +24,11 @@ class FuzzySearch {
     final len1 = s1.length;
     final len2 = s2.length;
 
-    // Create a matrix to store distances
     final matrix = List.generate(
       len1 + 1,
       (i) => List.generate(len2 + 1, (j) => 0),
     );
 
-    // Initialize first row and column
     for (var i = 0; i <= len1; i++) {
       matrix[i][0] = i;
     }
@@ -91,11 +90,9 @@ class FuzzySearch {
       final text = getText(item).toLowerCase();
       double bestScore = 0.0;
 
-      // Check for exact substring match first (highest priority)
       if (text.contains(queryLower)) {
         bestScore = 1.0;
       } else {
-        // Check word-level matching for better typo tolerance
         final words = text.split(RegExp(r'\s+'));
         for (final word in words) {
           // Skip very short words unless query is also very short
@@ -119,7 +116,6 @@ class FuzzySearch {
         }
       }
 
-      // Add item if it meets the adjusted minimum similarity threshold
       if (bestScore >= adjustedMinSimilarity) {
         results.add(_FuzzyResult(item, bestScore));
       }
@@ -167,7 +163,6 @@ class DateSearchParser {
       int part2 = int.parse(parts[1]);
       int part3 = int.parse(parts[2]);
 
-      // Handle 2-digit years
       if (part3 < 100) {
         part3 += (part3 < 50 ? 2000 : 1900);
       }
@@ -226,7 +221,6 @@ class DateSearchParser {
     if (month < 1 || month > 12) return false;
     if (day < 1) return false;
 
-    // Check day range for the month
     final daysInMonth = DateTime(year, month + 1, 0).day;
     return day <= daysInMonth;
   }

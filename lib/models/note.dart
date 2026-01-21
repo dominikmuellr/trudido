@@ -19,7 +19,6 @@ import 'package:uuid/uuid.dart';
 
 part 'note.g.dart';
 
-/// Represents a markdown note with metadata
 @HiveType(typeId: 6)
 class Note extends HiveObject {
   @HiveField(0)
@@ -71,7 +70,6 @@ class Note extends HiveObject {
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
-  /// Creates a copy of this note with updated fields
   Note copyWith({
     String? id,
     String? title,

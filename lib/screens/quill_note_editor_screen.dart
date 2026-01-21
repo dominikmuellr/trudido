@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_quill/quill_delta.dart';
@@ -33,6 +34,9 @@ import '../services/media_service.dart';
 import '../widgets/media_embed_builder.dart';
 import '../widgets/link_embed_builder.dart';
 import '../widgets/floating_note_toolbar.dart';
+import '../widgets/quill_toolbar_widgets.dart';
+import '../widgets/note_editor_dialogs.dart';
+import '../widgets/note_editor_controls.dart';
 import '../providers/app_providers.dart';
 import '../services/preferences_service.dart';
 import '../providers/note_history_provider.dart';
@@ -192,14 +196,18 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     );
     final lineCount = '\n'.allMatches(textBeforeCursor).length;
 
-    debugPrint(
-      '_handleScrollOnDelete: lineCount=$lineCount, previous=$_previousLineCount',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        '_handleScrollOnDelete: lineCount=$lineCount, previous=$_previousLineCount',
+      );
+    }
 
     // Detect line deletion and scroll up proportionally
     if (lineCount < _previousLineCount) {
       final linesDeleted = _previousLineCount - lineCount;
-      debugPrint('Lines deleted: $linesDeleted, scrolling up...');
+      if (kDebugMode) {
+        debugPrint('Lines deleted: $linesDeleted, scrolling up...');
+      }
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollController.hasClients) {
@@ -213,9 +221,11 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
             0.0,
             maxScroll,
           );
-          debugPrint(
-            'Scrolling from $currentScroll to $targetScroll (delta: $scrollAmount)',
-          );
+          if (kDebugMode) {
+            debugPrint(
+              'Scrolling from $currentScroll to $targetScroll (delta: $scrollAmount)',
+            );
+          }
           _scrollController.jumpTo(targetScroll);
         }
       });
@@ -518,7 +528,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       // Copy file to app directory
       final savedFile = await _mediaService.saveMediaToAppDirectory(file, type);
 
-      debugPrint('Inserting media: type=$type, path=${savedFile.path}');
+      if (kDebugMode) {
+        debugPrint('Inserting media: type=$type, path=${savedFile.path}');
+      }
 
       // Get current selection position
       int index = _quillController.selection.baseOffset;
@@ -533,13 +545,17 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       // Create a custom embed block with media data
       final mediaData = jsonEncode({'type': type, 'path': savedFile.path});
 
-      debugPrint('Media data JSON: $mediaData');
+      if (kDebugMode) {
+        debugPrint('Media data JSON: $mediaData');
+      }
 
       final mediaEmbed = quill.BlockEmbed.custom(
         quill.CustomBlockEmbed('media', mediaData),
       );
 
-      debugPrint('Created embed: ${mediaEmbed.toString()}');
+      if (kDebugMode) {
+        debugPrint('Created embed: ${mediaEmbed.toString()}');
+      }
 
       // Insert the embed with newlines around it
       _quillController.document.insert(index, '\n');
@@ -552,7 +568,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       );
 
       // Trigger auto-scroll after media insertion with a delay to ensure rendering
-      debugPrint('Scheduling auto-scroll after media insertion');
+      if (kDebugMode) {
+        debugPrint('Scheduling auto-scroll after media insertion');
+      }
       // Scroll handled by QuillEditor itself
 
       if (mounted) {
@@ -573,7 +591,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => _VoiceRecordingDialog(
+      builder: (context) => VoiceRecordingDialog(
         mediaService: _mediaService,
         onRecordingComplete: (File file) async {
           await _insertMediaFile(file, 'voice');
@@ -585,7 +603,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   void _insertLink() {
     showDialog(
       context: context,
-      builder: (context) => _LinkDialog(
+      builder: (context) => LinkInsertDialog(
         onInsert: (url, text) {
           final index = _quillController.selection.baseOffset;
           final displayText = text.isNotEmpty ? text : url;
@@ -768,7 +786,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                 _trackedMediaFiles.add(filePath);
               }
             } catch (e) {
-              debugPrint('Error parsing custom embed during init: $e');
+              if (kDebugMode) {
+                debugPrint('Error parsing custom embed during init: $e');
+              }
             }
           }
           // Fallback for old format
@@ -779,16 +799,22 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
               final filePath = mediaData['path'] as String;
               _trackedMediaFiles.add(filePath);
             } catch (e) {
-              debugPrint('Error parsing media during init: $e');
+              if (kDebugMode) {
+                debugPrint('Error parsing media during init: $e');
+              }
             }
           }
         }
       }
-      debugPrint(
-        'Initialized media tracking with ${_trackedMediaFiles.length} files',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'Initialized media tracking with ${_trackedMediaFiles.length} files',
+        );
+      }
     } catch (e) {
-      debugPrint('Error initializing media tracking: $e');
+      if (kDebugMode) {
+        debugPrint('Error initializing media tracking: $e');
+      }
     }
   }
 
@@ -814,7 +840,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                 currentMediaFiles.add(filePath);
               }
             } catch (e) {
-              debugPrint('Error parsing custom embed in tracker: $e');
+              if (kDebugMode) {
+                debugPrint('Error parsing custom embed in tracker: $e');
+              }
             }
           }
           // Fallback for old format
@@ -825,7 +853,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
               final filePath = mediaData['path'] as String;
               currentMediaFiles.add(filePath);
             } catch (e) {
-              debugPrint('Error parsing media in tracker: $e');
+              if (kDebugMode) {
+                debugPrint('Error parsing media in tracker: $e');
+              }
             }
           }
         }
@@ -840,17 +870,23 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
           final file = File(filePath);
           if (file.existsSync()) {
             file.deleteSync();
-            debugPrint('Deleted removed media file: $filePath');
+            if (kDebugMode) {
+              debugPrint('Deleted removed media file: $filePath');
+            }
           }
         } catch (e) {
-          debugPrint('Error deleting media file: $e');
+          if (kDebugMode) {
+            debugPrint('Error deleting media file: $e');
+          }
         }
       }
 
       // Update tracked files
       _trackedMediaFiles = currentMediaFiles;
     } catch (e) {
-      debugPrint('Error tracking media changes: $e');
+      if (kDebugMode) {
+        debugPrint('Error tracking media changes: $e');
+      }
     }
   }
 
@@ -942,12 +978,14 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     // Store Quill document as JSON to preserve all formatting
     final content = jsonEncode(_quillController.document.toDelta().toJson());
 
-    debugPrint('=== SAVING NOTE ===');
-    debugPrint('Title: $title');
-    debugPrint(
-      'Content preview: ${content.substring(0, content.length > 200 ? 200 : content.length)}...',
-    );
-    debugPrint('Content length: ${content.length}');
+    if (kDebugMode) {
+      debugPrint('=== SAVING NOTE ===');
+      debugPrint('Title: $title');
+      debugPrint(
+        'Content preview: ${content.substring(0, content.length > 200 ? 200 : content.length)}...',
+      );
+      debugPrint('Content length: ${content.length}');
+    }
 
     if (_quillController.document.toPlainText().trim().isEmpty &&
         _titleController.text.trim().isEmpty) {
@@ -1186,7 +1224,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         });
         _saveNoteInternal(showFeedback: false);
       } catch (e2) {
-        debugPrint('Error restoring content: $e2');
+        if (kDebugMode) {
+          debugPrint('Error restoring content: $e2');
+        }
       }
     }
   }
@@ -1344,260 +1384,6 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     }
   }
 
-  /// Builds the floating history controls (undo/redo/history)
-  Widget _buildFloatingHistoryControls() {
-    return Consumer(
-      builder: (context, ref, _) {
-        final noteId = _originalNote?.id ?? widget.noteId;
-        final canUndo = noteId != null
-            ? ref.watch(canUndoProvider(noteId))
-            : false;
-        final canRedo = noteId != null
-            ? ref.watch(canRedoProvider(noteId))
-            : false;
-
-        // Check if viewing a past version (not at live)
-        final historyPosition = noteId != null
-            ? ref.watch(currentHistoryPositionProvider(noteId))
-            : null;
-        final isViewingPast =
-            historyPosition != null && historyPosition.currentEntryId != null;
-        final isBranchingMode = historyPosition?.isBranchingMode ?? false;
-
-        return Material(
-          elevation: 4,
-          borderRadius: BorderRadius.circular(28),
-          shadowColor: Theme.of(context).colorScheme.shadow.withOpacity(0.2),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: isBranchingMode
-                  ? Theme.of(context).colorScheme.primaryContainer
-                  : isViewingPast
-                  ? Theme.of(context).colorScheme.tertiaryContainer
-                  : Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: isBranchingMode
-                    ? Theme.of(context).colorScheme.primary
-                    : isViewingPast
-                    ? Theme.of(context).colorScheme.tertiary
-                    : Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withOpacity(0.5),
-                width: (isViewingPast || isBranchingMode) ? 2 : 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // "Branching" indicator
-                if (isBranchingMode) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.call_split,
-                          size: 16,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimaryContainer,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'New Branch',
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onPrimaryContainer,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    width: 1,
-                    height: 24,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withOpacity(0.5),
-                  ),
-                ]
-                // "Viewing past" indicator (only if not branching)
-                else if (isViewingPast) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.history,
-                          size: 16,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onTertiaryContainer,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Past',
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onTertiaryContainer,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    width: 1,
-                    height: 24,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.tertiary.withOpacity(0.5),
-                  ),
-                ],
-                // Undo button
-                IconButton(
-                  icon: Icon(
-                    Icons.undo_rounded,
-                    size: 20,
-                    color: canUndo
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(
-                            context,
-                          ).colorScheme.onSurfaceVariant.withOpacity(0.4),
-                  ),
-                  tooltip: 'Undo',
-                  onPressed: canUndo ? _handleUndo : null,
-                  visualDensity: VisualDensity.compact,
-                  constraints: const BoxConstraints(
-                    minWidth: 36,
-                    minHeight: 36,
-                  ),
-                ),
-                // Redo button
-                IconButton(
-                  icon: Icon(
-                    Icons.redo_rounded,
-                    size: 20,
-                    color: canRedo
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(
-                            context,
-                          ).colorScheme.onSurfaceVariant.withOpacity(0.4),
-                  ),
-                  tooltip: 'Redo',
-                  onPressed: canRedo ? _handleRedo : null,
-                  visualDensity: VisualDensity.compact,
-                  constraints: const BoxConstraints(
-                    minWidth: 36,
-                    minHeight: 36,
-                  ),
-                ),
-                // Divider
-                Container(
-                  width: 1,
-                  height: 24,
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outlineVariant.withOpacity(0.5),
-                ),
-                // History button
-                IconButton(
-                  icon: Icon(
-                    Icons.history_rounded,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  tooltip: 'View history',
-                  onPressed: _showNoteHistory,
-                  visualDensity: VisualDensity.compact,
-                  constraints: const BoxConstraints(
-                    minWidth: 36,
-                    minHeight: 36,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSlashMenu() {
-    return Material(
-      elevation: 3,
-      borderRadius: BorderRadius.circular(12),
-      shadowColor: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant,
-          ),
-        ),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _buildCompactMenuItem(Icons.image_outlined, 'Photo', () {
-              _insertSlashCommand('image');
-            }),
-            _buildCompactMenuItem(Icons.videocam_outlined, 'Video', () {
-              _insertSlashCommand('video');
-            }),
-            _buildCompactMenuItem(Icons.mic_outlined, 'Voice', () {
-              _insertSlashCommand('voice');
-            }),
-            _buildCompactMenuItem(Icons.link, 'Link', () {
-              _insertSlashCommand('link');
-            }),
-            _buildCompactMenuItem(Icons.code, 'Code', () {
-              _insertSlashCommand('code');
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCompactMenuItem(
-    IconData icon,
-    String label,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(width: 8),
-            Text(label, style: Theme.of(context).textTheme.bodyMedium),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> _openLink(String url) async {
     try {
       // Add scheme if not present
@@ -1619,428 +1405,15 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         );
       }
     } catch (e) {
-      print('Error opening link: $e');
+      if (kDebugMode) {
+        print('Error opening link: $e');
+      }
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Error opening link')));
       }
     }
-  }
-
-  /// Builds a scrollable toolbar with fade indicators to hint at more content
-  Widget _buildScrollableToolbar({required Widget child}) {
-    return ShaderMask(
-      shaderCallback: (Rect bounds) {
-        return LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            Colors.transparent,
-            Colors.white,
-            Colors.white,
-            Colors.transparent,
-          ],
-          stops: const [0.0, 0.02, 0.98, 1.0],
-        ).createShader(bounds);
-      },
-      blendMode: BlendMode.dstIn,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: child,
-      ),
-    );
-  }
-
-  /// Builds a vertical divider for the toolbar to separate groups
-  Widget _buildToolbarDivider() {
-    return Container(
-      height: 24,
-      width: 1,
-      margin: const EdgeInsets.symmetric(horizontal: 6),
-      color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
-    );
-  }
-
-  Widget _buildFontSizeDropdown() {
-    // Common font sizes like in Word (8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72)
-    final fontSizes = [
-      8,
-      9,
-      10,
-      11,
-      12,
-      14,
-      16,
-      18,
-      20,
-      24,
-      28,
-      32,
-      36,
-      48,
-      72,
-    ];
-
-    // Get current font size from selection
-    int currentSize = 16; // Default size
-
-    try {
-      final style = _quillController.getSelectionStyle();
-      final sizeAttr = style.attributes[quill.Attribute.size.key]?.value;
-
-      if (sizeAttr != null) {
-        if (sizeAttr is String) {
-          // Extract numeric value from size attribute (handles both "18" and "18px")
-          final numStr = sizeAttr.replaceAll(RegExp(r'[^0-9]'), '');
-          final parsed = int.tryParse(numStr);
-          if (parsed != null && fontSizes.contains(parsed)) {
-            currentSize = parsed;
-          }
-        } else if (sizeAttr is num) {
-          // Handle numeric values directly
-          final parsed = sizeAttr.toInt();
-          if (fontSizes.contains(parsed)) {
-            currentSize = parsed;
-          }
-        }
-      }
-    } catch (e) {
-      // Ignore errors and use default
-    }
-
-    return PopupMenuButton<int>(
-      tooltip: 'Font size',
-      initialValue: currentSize,
-      offset: const Offset(0, 40),
-      child: Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '$currentSize',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontSize: 14),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.arrow_drop_down,
-              size: 20,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ],
-        ),
-      ),
-      itemBuilder: (context) => fontSizes.map((size) {
-        return PopupMenuItem<int>(
-          value: size,
-          child: Text(
-            '$size',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: size == currentSize
-                  ? FontWeight.bold
-                  : FontWeight.normal,
-            ),
-          ),
-        );
-      }).toList(),
-      onSelected: (newSize) {
-        // Apply font size using Quill's size attribute
-        _quillController.formatSelection(
-          quill.Attribute.fromKeyValue('size', '$newSize'),
-        );
-        setState(() {}); // Refresh to show new size
-      },
-    );
-  }
-
-  Widget _buildHeaderStyleDropdown() {
-    final headers = [
-      (label: 'Normal', value: 0),
-      (label: 'Header 1', value: 1),
-      (label: 'Header 2', value: 2),
-      (label: 'Header 3', value: 3),
-    ];
-
-    // Get current header style
-    int currentHeader = 0;
-    try {
-      final style = _quillController.getSelectionStyle();
-      final headerAttr = style.attributes[quill.Attribute.header.key]?.value;
-      if (headerAttr != null) {
-        if (headerAttr is int) {
-          currentHeader = headerAttr;
-        }
-      }
-    } catch (e) {
-      // Ignore errors and use default
-    }
-
-    final currentLabel = headers
-        .firstWhere((h) => h.value == currentHeader, orElse: () => headers[0])
-        .label;
-
-    return PopupMenuButton<int>(
-      tooltip: 'Header style',
-      offset: const Offset(0, 40),
-      child: Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              currentLabel,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontSize: 14),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.arrow_drop_down,
-              size: 20,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ],
-        ),
-      ),
-      itemBuilder: (context) => headers.map((header) {
-        return PopupMenuItem<int>(
-          value: header.value,
-          child: Text(
-            header.label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: header.value == currentHeader
-                  ? FontWeight.bold
-                  : FontWeight.normal,
-            ),
-          ),
-        );
-      }).toList(),
-      onSelected: (headerLevel) {
-        if (headerLevel == 0) {
-          // Remove header attribute
-          _quillController.formatSelection(quill.Attribute.header);
-        } else {
-          // Apply header attribute
-          _quillController.formatSelection(
-            quill.Attribute.fromKeyValue('header', headerLevel),
-          );
-        }
-        setState(() {});
-      },
-    );
-  }
-
-  Widget _buildFontFamilyDropdown() {
-    final fontFamilies = [
-      'Roboto',
-      'Courier',
-      'Monospace',
-      'Sans-serif',
-      'Serif',
-    ];
-
-    // Get current font family
-    String currentFamily = 'Roboto';
-    try {
-      final style = _quillController.getSelectionStyle();
-      final fontAttr = style.attributes[quill.Attribute.font.key]?.value;
-      if (fontAttr != null && fontAttr is String) {
-        currentFamily = fontAttr;
-      }
-    } catch (e) {
-      // Ignore errors and use default
-    }
-
-    return PopupMenuButton<String>(
-      tooltip: 'Font family',
-      offset: const Offset(0, 40),
-      child: Container(
-        height: 36,
-        constraints: const BoxConstraints(maxWidth: 140),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(
-                currentFamily,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontSize: 14),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.arrow_drop_down,
-              size: 20,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ],
-        ),
-      ),
-      itemBuilder: (context) => fontFamilies.map((family) {
-        return PopupMenuItem<String>(
-          value: family,
-          child: Text(
-            family,
-            style: TextStyle(
-              fontSize: 14,
-              fontFamily: family,
-              fontWeight: family == currentFamily
-                  ? FontWeight.bold
-                  : FontWeight.normal,
-            ),
-          ),
-        );
-      }).toList(),
-      onSelected: (newFamily) {
-        _quillController.formatSelection(
-          quill.Attribute.fromKeyValue('font', newFamily),
-        );
-        setState(() {});
-      },
-    );
-  }
-
-  Widget _buildLineHeightDropdown() {
-    final lineHeights = [1.0, 1.2, 1.5, 1.8, 2.0, 2.2, 2.5, 3.0];
-    final currentHeight = _originalNote?.lineHeightMultiplier ?? 1.5;
-
-    return PopupMenuButton<double>(
-      tooltip: 'Line height',
-      offset: const Offset(0, 40),
-      child: Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${currentHeight.toStringAsFixed(1)}x',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontSize: 14),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.arrow_drop_down,
-              size: 20,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ],
-        ),
-      ),
-      itemBuilder: (context) => lineHeights.map((height) {
-        return PopupMenuItem<double>(
-          value: height,
-          child: Text(
-            '${height.toStringAsFixed(1)}x',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: (height - currentHeight).abs() < 0.01
-                  ? FontWeight.bold
-                  : FontWeight.normal,
-            ),
-          ),
-        );
-      }).toList(),
-      onSelected: (newHeight) {
-        if (_originalNote != null) {
-          setState(() {
-            _originalNote = _originalNote!.copyWith(
-              lineHeightMultiplier: newHeight,
-            );
-            _hasUnsavedChanges = true;
-          });
-          _saveNoteInternal(showFeedback: false);
-        }
-      },
-    );
-  }
-
-  Widget _buildParagraphSpacingDropdown() {
-    final spacings = [0.0, 4.0, 8.0, 12.0, 16.0, 24.0];
-    final currentSpacing = _originalNote?.paragraphSpacing ?? 8.0;
-
-    return PopupMenuButton<double>(
-      tooltip: 'Paragraph spacing',
-      offset: const Offset(0, 40),
-      child: Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${currentSpacing.toStringAsFixed(0)}pt',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontSize: 14),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.arrow_drop_down,
-              size: 20,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ],
-        ),
-      ),
-      itemBuilder: (context) => spacings.map((spacing) {
-        return PopupMenuItem<double>(
-          value: spacing,
-          child: Text(
-            '${spacing.toStringAsFixed(0)}pt',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: (spacing - currentSpacing).abs() < 0.01
-                  ? FontWeight.bold
-                  : FontWeight.normal,
-            ),
-          ),
-        );
-      }).toList(),
-      onSelected: (newSpacing) {
-        if (_originalNote != null) {
-          setState(() {
-            _originalNote = _originalNote!.copyWith(
-              paragraphSpacing: newSpacing,
-            );
-            _hasUnsavedChanges = true;
-          });
-          _saveNoteInternal(showFeedback: false);
-        }
-      },
-    );
   }
 
   /// Schedule a history record with debouncing.
@@ -2286,7 +1659,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Primary toolbar - essential commands with scroll indicator
-                      _buildScrollableToolbar(
+                      ScrollableToolbar(
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -2309,13 +1682,19 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                 _saveToolbarPreferences();
                               },
                             ),
-                            _buildToolbarDivider(),
+                            const ToolbarDivider(),
                             // Font family dropdown - first, like Google Docs
-                            _buildFontFamilyDropdown(),
-                            _buildToolbarDivider(),
+                            FontFamilyDropdown(
+                              controller: _quillController,
+                              onChanged: () => setState(() {}),
+                            ),
+                            const ToolbarDivider(),
                             // Font size dropdown - numeric sizes like Word
-                            _buildFontSizeDropdown(),
-                            _buildToolbarDivider(),
+                            FontSizeDropdown(
+                              controller: _quillController,
+                              onChanged: () => setState(() {}),
+                            ),
+                            const ToolbarDivider(),
                             // Bold, Italic, Underline - most common actions
                             quill.QuillToolbarToggleStyleButton(
                               attribute: quill.Attribute.bold,
@@ -2335,10 +1714,13 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                               options:
                                   const quill.QuillToolbarToggleStyleButtonOptions(),
                             ),
-                            _buildToolbarDivider(),
+                            const ToolbarDivider(),
                             // Header style dropdown - paragraph formatting
-                            _buildHeaderStyleDropdown(),
-                            _buildToolbarDivider(),
+                            HeaderStyleDropdown(
+                              controller: _quillController,
+                              onChanged: () => setState(() {}),
+                            ),
+                            const ToolbarDivider(),
                             // Lists
                             quill.QuillToolbarToggleStyleButton(
                               attribute: quill.Attribute.ul,
@@ -2363,7 +1745,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                       ),
                       // Secondary toolbar - additional commands (collapsible)
                       if (_showMoreToolbar)
-                        _buildScrollableToolbar(
+                        ScrollableToolbar(
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -2380,7 +1762,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                 options:
                                     const quill.QuillToolbarToggleStyleButtonOptions(),
                               ),
-                              _buildToolbarDivider(),
+                              const ToolbarDivider(),
                               quill.QuillToolbarToggleStyleButton(
                                 attribute: quill.Attribute.blockQuote,
                                 controller: _quillController,
@@ -2393,7 +1775,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                 options:
                                     const quill.QuillToolbarToggleStyleButtonOptions(),
                               ),
-                              _buildToolbarDivider(),
+                              const ToolbarDivider(),
                               quill.QuillToolbarIndentButton(
                                 controller: _quillController,
                                 isIncrease: false,
@@ -2406,10 +1788,38 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                 options:
                                     const quill.QuillToolbarIndentButtonOptions(),
                               ),
-                              _buildToolbarDivider(),
-                              _buildLineHeightDropdown(),
-                              _buildParagraphSpacingDropdown(),
-                              _buildToolbarDivider(),
+                              const ToolbarDivider(),
+                              LineHeightDropdown(
+                                currentHeight:
+                                    _originalNote?.lineHeightMultiplier ?? 1.5,
+                                onChanged: (newHeight) {
+                                  if (_originalNote != null) {
+                                    setState(() {
+                                      _originalNote = _originalNote!.copyWith(
+                                        lineHeightMultiplier: newHeight,
+                                      );
+                                      _hasUnsavedChanges = true;
+                                    });
+                                    _saveNoteInternal(showFeedback: false);
+                                  }
+                                },
+                              ),
+                              ParagraphSpacingDropdown(
+                                currentSpacing:
+                                    _originalNote?.paragraphSpacing ?? 8.0,
+                                onChanged: (newSpacing) {
+                                  if (_originalNote != null) {
+                                    setState(() {
+                                      _originalNote = _originalNote!.copyWith(
+                                        paragraphSpacing: newSpacing,
+                                      );
+                                      _hasUnsavedChanges = true;
+                                    });
+                                    _saveNoteInternal(showFeedback: false);
+                                  }
+                                },
+                              ),
+                              const ToolbarDivider(),
                               quill.QuillToolbarColorButton(
                                 controller: _quillController,
                                 isBackground: false,
@@ -2422,7 +1832,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                 options:
                                     const quill.QuillToolbarColorButtonOptions(),
                               ),
-                              _buildToolbarDivider(),
+                              const ToolbarDivider(),
                               quill.QuillToolbarClearFormatButton(
                                 controller: _quillController,
                                 options:
@@ -2527,7 +1937,13 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                         left: 16,
                         right: 16,
                         top: _slashMenuTop,
-                        child: _buildSlashMenu(),
+                        child: SlashCommandMenu(
+                          onInsertImage: () => _insertSlashCommand('image'),
+                          onInsertVideo: () => _insertSlashCommand('video'),
+                          onInsertVoice: () => _insertSlashCommand('voice'),
+                          onInsertLink: () => _insertSlashCommand('link'),
+                          onInsertCode: () => _insertSlashCommand('code'),
+                        ),
                       ),
                     // Floating history controls - visible when feature enabled
                     Consumer(
@@ -2541,7 +1957,12 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                           bottom: MediaQuery.of(context).viewInsets.bottom > 0
                               ? 8
                               : 16,
-                          child: _buildFloatingHistoryControls(),
+                          child: FloatingHistoryControls(
+                            noteId: _originalNote?.id ?? widget.noteId,
+                            onUndo: _handleUndo,
+                            onRedo: _handleRedo,
+                            onShowHistory: _showNoteHistory,
+                          ),
                         );
                       },
                     ),
@@ -2552,225 +1973,6 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Dialog for inserting a link
-class _LinkDialog extends StatefulWidget {
-  final Function(String url, String text) onInsert;
-
-  const _LinkDialog({required this.onInsert});
-
-  @override
-  State<_LinkDialog> createState() => _LinkDialogState();
-}
-
-class _LinkDialogState extends State<_LinkDialog> {
-  final _urlController = TextEditingController();
-  final _textController = TextEditingController();
-
-  @override
-  void dispose() {
-    _urlController.dispose();
-    _textController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Insert Link'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _urlController,
-            decoration: const InputDecoration(
-              labelText: 'URL',
-              hintText: 'https://example.com',
-              border: OutlineInputBorder(),
-            ),
-            keyboardType: TextInputType.url,
-            autocorrect: false,
-            enableSuggestions: false,
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _textController,
-            decoration: const InputDecoration(
-              labelText: 'Link Text (optional)',
-              hintText: 'Click here',
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (_urlController.text.trim().isNotEmpty) {
-              widget.onInsert(
-                _urlController.text.trim(),
-                _textController.text.trim(),
-              );
-              Navigator.of(context).pop();
-            }
-          },
-          child: const Text('Insert'),
-        ),
-      ],
-    );
-  }
-}
-
-/// Dialog for recording voice notes
-class _VoiceRecordingDialog extends StatefulWidget {
-  final MediaService mediaService;
-  final Function(File) onRecordingComplete;
-
-  const _VoiceRecordingDialog({
-    required this.mediaService,
-    required this.onRecordingComplete,
-  });
-
-  @override
-  State<_VoiceRecordingDialog> createState() => _VoiceRecordingDialogState();
-}
-
-class _VoiceRecordingDialogState extends State<_VoiceRecordingDialog> {
-  bool _isRecording = false;
-  DateTime? _recordingStartTime;
-  Timer? _durationTimer;
-  Duration _recordingDuration = Duration.zero;
-
-  @override
-  void dispose() {
-    _durationTimer?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _startRecording() async {
-    final success = await widget.mediaService.startRecording();
-    if (success && mounted) {
-      setState(() {
-        _isRecording = true;
-        _recordingStartTime = DateTime.now();
-        _recordingDuration = Duration.zero;
-      });
-
-      // Update duration every second
-      _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (mounted && _recordingStartTime != null) {
-          setState(() {
-            _recordingDuration = DateTime.now().difference(
-              _recordingStartTime!,
-            );
-          });
-        }
-      });
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Failed to start recording. Check microphone permission.',
-          ),
-        ),
-      );
-      Navigator.pop(context);
-    }
-  }
-
-  Future<void> _stopRecording() async {
-    _durationTimer?.cancel();
-    final file = await widget.mediaService.stopRecording();
-    if (file != null && mounted) {
-      widget.onRecordingComplete(file);
-      Navigator.pop(context);
-    } else if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to save recording')));
-      Navigator.pop(context);
-    }
-  }
-
-  Future<void> _cancelRecording() async {
-    _durationTimer?.cancel();
-    await widget.mediaService.cancelRecording();
-    if (mounted) {
-      Navigator.pop(context);
-    }
-  }
-
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final minutes = twoDigits(duration.inMinutes.remainder(60));
-    final seconds = twoDigits(duration.inSeconds.remainder(60));
-    return '$minutes:$seconds';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Record Voice Note'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (_isRecording) ...[
-            const SizedBox(height: 20),
-            Icon(
-              Icons.mic,
-              size: 64,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              _formatDuration(_recordingDuration),
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 10),
-            const Text('Recording...'),
-          ] else ...[
-            const SizedBox(height: 20),
-            Icon(
-              Icons.mic_none,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 20),
-            const Text('Tap the microphone to start recording'),
-          ],
-        ],
-      ),
-      actions: [
-        if (!_isRecording) ...[
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton.icon(
-            onPressed: _startRecording,
-            icon: const Icon(Icons.mic),
-            label: const Text('Start Recording'),
-          ),
-        ] else ...[
-          TextButton(onPressed: _cancelRecording, child: const Text('Cancel')),
-          ElevatedButton.icon(
-            onPressed: _stopRecording,
-            icon: const Icon(Icons.stop),
-            label: const Text('Stop & Save'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
-            ),
-          ),
-        ],
-      ],
     );
   }
 }

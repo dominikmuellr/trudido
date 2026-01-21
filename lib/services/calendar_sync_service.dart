@@ -68,15 +68,7 @@ class SelectedCalendar {
   );
 }
 
-/// Service for syncing tasks with the device calendar.
-/// Works seamlessly with DAVx5 for CalDAV sync - users configure their
-/// CalDAV account in DAVx5, and this service reads/writes to Android calendar.
-///
-/// Supports bi-directional sync:
-/// - Trudido → Calendar: Tasks with due dates become calendar events
-/// - Calendar → Trudido: Calendar events can be imported as tasks
-///
-/// Supports multiple calendars for work, personal, shared calendars, etc.
+/// Service for syncing tasks with the device calendar
 class CalendarSyncService {
   static final CalendarSyncService _instance = CalendarSyncService._internal();
   factory CalendarSyncService() => _instance;
@@ -104,7 +96,6 @@ class CalendarSyncService {
 
   bool _isInitialized = false;
 
-  /// Initialize the service
   Future<void> ensureInitialized() async {
     if (_isInitialized) return;
     _prefs = await SharedPreferences.getInstance();
@@ -112,7 +103,6 @@ class CalendarSyncService {
     _isInitialized = true;
   }
 
-  /// Migrate from single calendar to multiple calendars
   Future<void> _migrateFromSingleCalendar() async {
     final oldId = _prefs?.getString(_keySelectedCalendarId);
     final oldName = _prefs?.getString(_keySelectedCalendarName);
@@ -275,24 +265,36 @@ class CalendarSyncService {
   /// Request calendar permissions
   Future<bool> requestPermissions() async {
     try {
-      debugPrint(
-        'CalendarSyncService: Checking if permissions already granted...',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'CalendarSyncService: Checking if permissions already granted...',
+        );
+      }
       final status = await _calendarPlugin.hasPermissions();
-      debugPrint('CalendarSyncService: hasPermissions result: $status');
+      if (kDebugMode) {
+        debugPrint('CalendarSyncService: hasPermissions result: $status');
+      }
 
       if (status == CalendarPermissionStatus.granted) {
-        debugPrint('CalendarSyncService: Permissions already granted');
+        if (kDebugMode) {
+          debugPrint('CalendarSyncService: Permissions already granted');
+        }
         return true;
       }
 
-      debugPrint('CalendarSyncService: Requesting permissions...');
+      if (kDebugMode) {
+        debugPrint('CalendarSyncService: Requesting permissions...');
+      }
       final result = await _calendarPlugin.requestPermissions();
-      debugPrint('CalendarSyncService: requestPermissions result: $result');
+      if (kDebugMode) {
+        debugPrint('CalendarSyncService: requestPermissions result: $result');
+      }
       return result == CalendarPermissionStatus.granted;
     } catch (e, stackTrace) {
-      debugPrint('CalendarSyncService: Error requesting permissions: $e');
-      debugPrint('CalendarSyncService: Stack trace: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('CalendarSyncService: Error requesting permissions: $e');
+        debugPrint('CalendarSyncService: Stack trace: $stackTrace');
+      }
       return false;
     }
   }
@@ -301,11 +303,15 @@ class CalendarSyncService {
   Future<bool> hasPermissions() async {
     try {
       final status = await _calendarPlugin.hasPermissions();
-      debugPrint('CalendarSyncService: hasPermissions check: $status');
+      if (kDebugMode) {
+        debugPrint('CalendarSyncService: hasPermissions check: $status');
+      }
       return status == CalendarPermissionStatus.granted;
     } catch (e, stackTrace) {
-      debugPrint('CalendarSyncService: Error checking permissions: $e');
-      debugPrint('CalendarSyncService: Stack trace: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('CalendarSyncService: Error checking permissions: $e');
+        debugPrint('CalendarSyncService: Stack trace: $stackTrace');
+      }
       return false;
     }
   }
@@ -343,20 +349,24 @@ class CalendarSyncService {
     try {
       final hasPerms = await hasPermissions();
       if (!hasPerms) {
-        debugPrint('CalendarSyncService: No calendar permissions');
+        if (kDebugMode) {
+          debugPrint('CalendarSyncService: No calendar permissions');
+        }
         return [];
       }
 
       final calendars = await _calendarPlugin.listCalendars();
-      debugPrint(
-        'CalendarSyncService: listCalendars returned ${calendars.length} calendars',
-      );
-
-      // Log all calendars for debugging
-      for (final cal in calendars) {
+      if (kDebugMode) {
         debugPrint(
-          'CalendarSyncService: Found calendar: ${cal.name}, id: ${cal.id}, readOnly: ${cal.readOnly}, accountName: ${cal.accountName}',
+          'CalendarSyncService: listCalendars returned ${calendars.length} calendars',
         );
+
+        // Log all calendars for debugging
+        for (final cal in calendars) {
+          debugPrint(
+            'CalendarSyncService: Found calendar: ${cal.name}, id: ${cal.id}, readOnly: ${cal.readOnly}, accountName: ${cal.accountName}',
+          );
+        }
       }
 
       if (includeReadOnly) {
@@ -364,13 +374,17 @@ class CalendarSyncService {
       }
       // Filter to only writable calendars
       final writable = calendars.where((c) => !c.readOnly).toList();
-      debugPrint(
-        'CalendarSyncService: Writable calendars count: ${writable.length}',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'CalendarSyncService: Writable calendars count: ${writable.length}',
+        );
+      }
       return writable;
     } catch (e, stackTrace) {
-      debugPrint('CalendarSyncService: Error retrieving calendars: $e');
-      debugPrint('CalendarSyncService: Stack trace: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('CalendarSyncService: Error retrieving calendars: $e');
+        debugPrint('CalendarSyncService: Stack trace: $stackTrace');
+      }
       return [];
     }
   }
@@ -421,9 +435,11 @@ class CalendarSyncService {
 
     // Skip tasks that were imported from a calendar
     if (task.sourceCalendarColor != null) {
-      debugPrint(
-        'CalendarSyncService: Skipping imported task ${task.id} (already from calendar)',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'CalendarSyncService: Skipping imported task ${task.id} (already from calendar)',
+        );
+      }
       return false;
     }
 
@@ -453,7 +469,6 @@ class CalendarSyncService {
       }
 
       if (existingEventId != null) {
-        // Update existing event
         try {
           await _calendarPlugin.updateEvent(
             eventId: existingEventId,
@@ -463,18 +478,23 @@ class CalendarSyncService {
             endDate: endTime,
             isAllDay: isAllDay,
           );
-          debugPrint(
-            'CalendarSyncService: Updated event $existingEventId for task ${task.id}',
-          );
+          if (kDebugMode) {
+            debugPrint(
+              'CalendarSyncService: Updated event $existingEventId for task ${task.id}',
+            );
+          }
           return true;
         } catch (e) {
           // Event might have been deleted, try creating new one
-          debugPrint('CalendarSyncService: Update failed, will create new: $e');
+          if (kDebugMode) {
+            debugPrint(
+              'CalendarSyncService: Update failed, will create new: $e',
+            );
+          }
           await _removeEventMapping(task.id, exportCal.id);
         }
       }
 
-      // Create new event
       final eventId = await _calendarPlugin.createEvent(
         calendarId: exportCal.id,
         title: _formatEventTitle(task),
@@ -485,12 +505,16 @@ class CalendarSyncService {
       );
 
       await _storeEventMapping(task.id, eventId, exportCal.id);
-      debugPrint(
-        'CalendarSyncService: Created event $eventId for task ${task.id}',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'CalendarSyncService: Created event $eventId for task ${task.id}',
+        );
+      }
       return true;
     } catch (e) {
-      debugPrint('CalendarSyncService: Error syncing task: $e');
+      if (kDebugMode) {
+        debugPrint('CalendarSyncService: Error syncing task: $e');
+      }
       return false;
     }
   }
@@ -615,7 +639,6 @@ class CalendarSyncService {
         }
       }
 
-      // Create task from event
       final task = Todo(
         text: event.title,
         notes: event.description,

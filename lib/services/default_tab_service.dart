@@ -42,7 +42,6 @@ class DefaultTabService {
       final prefs = await SharedPreferences.getInstance();
       final savedTab = prefs.getString(_defaultTabKey);
 
-      // Validate that the saved tab is still valid
       if (savedTab != null && tabIndices.containsKey(savedTab)) {
         _cachedTabId = savedTab;
         _cachedTabIndex = tabIndices[savedTab];
@@ -69,7 +68,6 @@ class DefaultTabService {
   /// Set the user's preferred default tab
   /// tabId should be one of: 'tasks', 'notes'
   static Future<bool> setDefaultTab(String tabId) async {
-    // Validate tab ID
     if (!tabIndices.containsKey(tabId)) {
       return false;
     }

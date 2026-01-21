@@ -514,7 +514,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   TextSpan _parseMarkdownToTextSpan(String text, BuildContext context) {
     if (text.isEmpty) return const TextSpan(text: '');
 
-    // Process line-by-line to handle block elements
     final lines = text.split('\n');
     List<TextSpan> allSpans = [];
 
@@ -522,7 +521,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       String line = lines[i];
       TextStyle? lineStyle;
 
-      // Handle headers
       if (line.startsWith('# ')) {
         line = line.substring(2);
         lineStyle = Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -541,9 +539,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
           color: Theme.of(context).colorScheme.onSurface,
           fontWeight: FontWeight.w600,
         );
-      }
-      // Handle lists
-      else if (line.trim().startsWith('- [ ] ')) {
+      } else if (line.trim().startsWith('- [ ] ')) {
         line = '☐ ${line.trim().substring(6)}';
       } else if (line.trim().startsWith('- [x] ')) {
         line = '☑ ${line.trim().substring(6)}';
@@ -621,12 +617,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       }
     }
 
-    // Build TextSpan
     for (var matchEntry in filteredMatches) {
       final match = matchEntry.key;
       final type = matchEntry.value;
 
-      // Add text before match
       if (match.start > currentIndex) {
         spans.add(
           TextSpan(
@@ -636,7 +630,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         );
       }
 
-      // Add formatted text
       final matchText = match.group(1) ?? '';
       TextStyle? style;
 
@@ -706,10 +699,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       return;
     }
 
-    // Check if user just typed "/"
     final textBeforeCursor = text.substring(0, selection.start);
     if (textBeforeCursor.endsWith('/')) {
-      // Check if it's at the start of a line or preceded by whitespace
       if (selection.start == 1 || text[selection.start - 2].trim().isEmpty) {
         _showSlashCommandMenu(controller, isMarkdown);
       } else {
@@ -718,8 +709,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     } else if (textBeforeCursor.endsWith('/ ') ||
         !textBeforeCursor.contains('/') ||
         (textBeforeCursor.lastIndexOf('/') < textBeforeCursor.length - 10)) {
-      // Remove menu if user continues typing after "/", deletes "/",
-      // or moves cursor far from the "/"
       _removeSlashMenu();
     }
   }
@@ -728,7 +717,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     TextEditingController controller,
     bool isMarkdown,
   ) {
-    // Remove existing menu if any
     _removeSlashMenu();
 
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
@@ -1021,7 +1009,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
 
     if (!selection.isValid || selection.start == 0) return;
 
-    // Check if there's a "/" in the text
     final lastSlashIndex = text.lastIndexOf('/');
     if (lastSlashIndex == -1) return; // No slash found
 
@@ -1029,10 +1016,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     final beforeSlash = text.substring(0, lastSlashIndex);
     final afterCursor = text.substring(selection.start);
 
-    // Build new text: before + prefix + suffix + after
     final newText = beforeSlash + prefix + suffix + afterCursor;
 
-    // Update controller
     controller.value = TextEditingValue(
       text: newText,
       selection: TextSelection.collapsed(
@@ -1052,8 +1037,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     // Extract title from first line of formatted content
     final lines = formattedContent.split('\n');
     final firstLine = lines.isNotEmpty ? lines.first.trim() : '';
-    // Remove markdown header symbols for clean title storage
-    // Use first line as title, or empty string if no content
     final title = firstLine.replaceFirst(RegExp(r'^#+\s*'), '');
     rawContent = formattedContent;
     print('DEBUG Save - Final content to save: "$rawContent"');
@@ -1100,7 +1083,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       _isEditing = true;
     }
 
-    // Update the controller text with formatted content to reflect the changes
     if (_contentController.text != rawContent) {
       _contentController.text = rawContent;
       // Move cursor to end to avoid disruption

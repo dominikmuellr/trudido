@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+/// Manages UI filtering state for tasks and notes (search, sort, view mode).
+/// These providers control what the user sees in task/note lists.
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/todo.dart';
@@ -59,7 +62,7 @@ class CalendarFormatNotifier extends StateNotifier<CustomCalendarFormat> {
         state = CustomCalendarFormat.values[savedIndex];
       }
     } catch (e) {
-      // If loading fails, keep default (month)
+      // Silently fall back to default month format if SharedPreferences unavailable
     }
   }
 
@@ -69,7 +72,7 @@ class CalendarFormatNotifier extends StateNotifier<CustomCalendarFormat> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('calendar_format_index', format.index);
     } catch (e) {
-      // Save failed, but state is updated locally
+      // Silently ignore save failure - format will reset on app restart
     }
   }
 }
@@ -121,10 +124,8 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
     );
   }
 
-  // Get secondary sort keys for multi-sort
   final secondarySortKeys = ref.watch(secondarySortKeysProvider);
 
-  // Build list of all sort keys: primary + secondary
   final allSortKeys = sortBy == 'manual'
       ? <String>[]
       : [sortBy, ...secondarySortKeys];

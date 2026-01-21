@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import '../screens/home_screen_notifiers.dart';
 import '../providers/filter_providers.dart';
 import '../providers/app_providers.dart';
 import '../providers/clock.dart';
@@ -30,7 +31,6 @@ import '../widgets/filter_chips.dart';
 import '../screens/task_editor_screen.dart';
 import '../models/todo.dart';
 import '../models/holiday.dart';
-import '../screens/home_screen.dart';
 import '../theme/spacing_tokens.dart';
 
 class TodoListTab extends ConsumerWidget {

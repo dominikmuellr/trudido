@@ -16,10 +16,12 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/note_history.dart';
+import '../models/note_history_tree.dart';
 import '../services/storage_service.dart';
 
+/// Manages note history state including versioning, undo/redo, and branching.
+
 /// Provider for note history entries for a specific note.
-/// Returns all history entries sorted by timestamp (newest first).
 final noteHistoryProvider =
     FutureProvider.family<List<NoteHistoryEntry>, String>((ref, noteId) async {
       return StorageService.getNoteHistoryForNote(noteId);
@@ -32,196 +34,8 @@ final allNoteHistoryProvider = FutureProvider<List<NoteHistoryEntry>>((
   return StorageService.getAllNoteHistory();
 });
 
-/// Represents a node in the history tree with its children (branches).
-class HistoryTreeNode {
-  final NoteHistoryEntry entry;
-  final List<HistoryTreeNode> children;
-  HistoryTreeNode? parent;
-
-  HistoryTreeNode({
-    required this.entry,
-    List<HistoryTreeNode>? children,
-    this.parent,
-  }) : children = children ?? [];
-
-  /// Check if this node has multiple children (is a branch point).
-  bool get isBranchPoint => children.length > 1;
-
-  /// Get all ancestors up to the root.
-  List<NoteHistoryEntry> get ancestors {
-    final result = <NoteHistoryEntry>[];
-    var current = parent;
-    while (current != null) {
-      result.add(current.entry);
-      current = current.parent;
-    }
-    return result;
-  }
-
-  /// Get the branch index of this node among its parent's children.
-  int get branchIndex {
-    if (parent == null) return 0;
-    return parent!.children.indexWhere((c) => c.entry.id == entry.id);
-  }
-}
-
-/// Builds a tree structure from a flat list of history entries.
-class HistoryTree {
-  final Map<String, HistoryTreeNode> _nodeMap = {};
-  final List<HistoryTreeNode> _roots = [];
-
-  HistoryTree(List<NoteHistoryEntry> entries) {
-    if (entries.isEmpty) return;
-
-    // Sort entries by timestamp (oldest first) for proper parent inference
-    final sortedEntries = List<NoteHistoryEntry>.from(entries)
-      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
-
-    // First pass: create all nodes
-    for (final entry in sortedEntries) {
-      _nodeMap[entry.id] = HistoryTreeNode(entry: entry);
-    }
-
-    // Second pass: link parents and children
-    // For entries without parentEntryId, infer parent from chronological order
-    for (int i = 0; i < sortedEntries.length; i++) {
-      final entry = sortedEntries[i];
-      final node = _nodeMap[entry.id]!;
-
-      if (entry.parentEntryId != null &&
-          _nodeMap.containsKey(entry.parentEntryId)) {
-        // Explicit parent link exists - use it (this is a branch)
-        final parentNode = _nodeMap[entry.parentEntryId]!;
-        node.parent = parentNode;
-        parentNode.children.add(node);
-      } else if (i == 0) {
-        // First entry is always a root
-        _roots.add(node);
-      } else {
-        // No explicit parent - infer from chronological order (linear history)
-        // The previous entry in time is the parent
-        final previousEntry = sortedEntries[i - 1];
-        final parentNode = _nodeMap[previousEntry.id]!;
-        node.parent = parentNode;
-        parentNode.children.add(node);
-      }
-    }
-
-    // Sort children by timestamp for consistent ordering
-    for (final node in _nodeMap.values) {
-      node.children.sort(
-        (a, b) => a.entry.timestamp.compareTo(b.entry.timestamp),
-      );
-    }
-  }
-
-  /// Get all root nodes (entries without parents).
-  List<HistoryTreeNode> get roots => _roots;
-
-  /// Get a node by entry ID.
-  HistoryTreeNode? getNode(String entryId) => _nodeMap[entryId];
-
-  /// Get all leaf nodes (entries without children).
-  List<HistoryTreeNode> get leaves {
-    return _nodeMap.values.where((node) => node.children.isEmpty).toList();
-  }
-
-  /// Get the path from root to a specific node.
-  List<NoteHistoryEntry> getPathToNode(String entryId) {
-    final node = _nodeMap[entryId];
-    if (node == null) return [];
-
-    final path = <NoteHistoryEntry>[node.entry];
-    var current = node.parent;
-    while (current != null) {
-      path.insert(0, current.entry);
-      current = current.parent;
-    }
-    return path;
-  }
-
-  /// Get all branch points in the tree.
-  List<HistoryTreeNode> get branchPoints {
-    return _nodeMap.values.where((node) => node.isBranchPoint).toList();
-  }
-
-  /// Find the latest entry overall (most recent timestamp).
-  NoteHistoryEntry? get latestEntry {
-    if (_nodeMap.isEmpty) return null;
-    final entries = _nodeMap.values.map((n) => n.entry).toList();
-    entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    return entries.first;
-  }
-
-  /// Get all entries as a flat list sorted by timestamp (newest first).
-  List<NoteHistoryEntry> get allEntries {
-    final entries = _nodeMap.values.map((n) => n.entry).toList();
-    entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    return entries;
-  }
-
-  /// Check if an entry has children (can navigate forward from it).
-  bool hasChildren(String entryId) {
-    final node = _nodeMap[entryId];
-    return node != null && node.children.isNotEmpty;
-  }
-
-  /// Get children of an entry.
-  List<NoteHistoryEntry> getChildren(String entryId) {
-    final node = _nodeMap[entryId];
-    if (node == null) return [];
-    return node.children.map((c) => c.entry).toList();
-  }
-}
-
-/// State for tracking the current position in the history tree.
-class NoteHistoryState {
-  /// The ID of the entry we're currently viewing (null = at current/live version).
-  final String? currentEntryId;
-
-  /// Stack of entry IDs for forward navigation (entries we came from when going back).
-  final List<String> forwardStack;
-
-  /// The content of the live version before we started navigating.
-  final String? liveContent;
-
-  /// The ID of the entry to branch from (set when user explicitly creates a branch).
-  /// When this is set, the next edit will create a branch from this entry.
-  final String? branchFromEntryId;
-
-  const NoteHistoryState({
-    this.currentEntryId,
-    this.forwardStack = const [],
-    this.liveContent,
-    this.branchFromEntryId,
-  });
-
-  NoteHistoryState copyWith({
-    String? currentEntryId,
-    List<String>? forwardStack,
-    String? liveContent,
-    String? branchFromEntryId,
-    bool clearCurrentEntryId = false,
-    bool clearLiveContent = false,
-    bool clearBranchFromEntryId = false,
-  }) {
-    return NoteHistoryState(
-      currentEntryId: clearCurrentEntryId
-          ? null
-          : (currentEntryId ?? this.currentEntryId),
-      forwardStack: forwardStack ?? this.forwardStack,
-      liveContent: clearLiveContent ? null : (liveContent ?? this.liveContent),
-      branchFromEntryId: clearBranchFromEntryId
-          ? null
-          : (branchFromEntryId ?? this.branchFromEntryId),
-    );
-  }
-
-  bool get isAtLiveVersion => currentEntryId == null;
-
-  /// True if the next edit should create a new branch.
-  bool get isBranchingMode => branchFromEntryId != null;
-}
+// HistoryTreeNode, HistoryTree, and NoteHistoryState are now in
+// lib/models/note_history_tree.dart for better separation of concerns.
 
 /// StateNotifier for managing navigation through the history tree.
 class NoteHistoryNavigator
@@ -240,13 +54,11 @@ class NoteHistoryNavigator
   }) {
     final currentState = _getState(noteId);
 
-    // Save live content if we're leaving live version
     String? liveContent = currentState.liveContent;
     if (currentState.isAtLiveVersion && currentLiveContent != null) {
       liveContent = currentLiveContent;
     }
 
-    // Build forward stack
     final newForwardStack = List<String>.from(currentState.forwardStack);
     if (currentState.currentEntryId != null) {
       newForwardStack.add(currentState.currentEntryId!);
@@ -397,7 +209,6 @@ class NoteHistoryNavigator
       return tree.latestEntry != null;
     }
 
-    // Check if current entry has a parent
     final currentNode = tree.getNode(currentState.currentEntryId!);
     return currentNode?.parent != null;
   }
@@ -469,15 +280,12 @@ class NoteHistoryStackNotifier
 
   /// Push a new entry - saves to storage with parent link for branching.
   Future<void> pushUndo(String noteId, NoteHistoryEntry entry) async {
-    // Get parent entry ID from navigator (enables branching)
     final history = await StorageService.getNoteHistoryForNote(noteId);
     final navigator = _ref.read(noteHistoryNavigatorProvider.notifier);
     final parentId = navigator.getParentForNewEntry(noteId, history);
 
-    // Check if we're creating a branch
     final isBranching = navigator.isInBranchingMode(noteId);
 
-    // Create entry with parent link
     final entryWithParent = NoteHistoryEntry(
       id: entry.id,
       noteId: entry.noteId,
@@ -488,7 +296,6 @@ class NoteHistoryStackNotifier
       branchLabel: isBranching ? 'Branch' : entry.branchLabel,
     );
 
-    // Save to storage
     await StorageService.saveNoteHistoryEntry(entryWithParent);
 
     // Clear branching mode after creating the branch

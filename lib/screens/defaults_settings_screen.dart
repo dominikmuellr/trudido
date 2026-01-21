@@ -17,11 +17,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/default_tab_service.dart';
+import 'home_screen_notifiers.dart';
 import '../services/preferences_service.dart';
 import '../providers/app_providers.dart';
 import '../controllers/preferences_controller.dart';
 import '../utils/week_start_utils.dart';
-import 'home_screen.dart';
 import '../theme/spacing_tokens.dart';
 
 /// Provider for saving default tab changes
@@ -342,8 +342,6 @@ class _WeekStartSheet extends StatelessWidget {
       );
     }
 
-    // Show common options first: Sunday, Monday, Saturday
-    // then the rest in order
     final commonDays = [0, 1, 6]; // Sunday, Monday, Saturday
     final otherDays = [2, 3, 4, 5]; // Tue-Fri
 

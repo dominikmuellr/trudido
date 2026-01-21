@@ -17,15 +17,8 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-/// Utility class for week start day configuration.
-///
-/// Week day indices follow the Material convention:
-/// 0 = Sunday, 1 = Monday, 2 = Tuesday, ..., 6 = Saturday
+/// Utility class for week start day configuration
 class WeekStartUtils {
-  /// Maps the preference index (0-6, where 0=Sunday) to TableCalendar's StartingDayOfWeek.
-  ///
-  /// TableCalendar enum order: monday=0, tuesday=1, ..., saturday=5, sunday=6
-  /// Material/preference order: sunday=0, monday=1, ..., saturday=6
   static StartingDayOfWeek toTableCalendarDay(int index) {
     // Convert from Material convention (0=Sunday) to TableCalendar convention (0=Monday)
     switch (index) {
@@ -48,7 +41,6 @@ class WeekStartUtils {
     }
   }
 
-  /// Returns the localized name for a day index (0=Sunday, 1=Monday, etc.)
   static String getDayName(int index) {
     const days = [
       'Sunday',
@@ -62,17 +54,12 @@ class WeekStartUtils {
     return days[index.clamp(0, 6)];
   }
 
-  /// Returns the short name for a day index
   static String getDayShortName(int index) {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     return days[index.clamp(0, 6)];
   }
 }
 
-/// A MaterialLocalizations that overrides only firstDayOfWeekIndex.
-///
-/// Extends DefaultMaterialLocalizations so we get all the English strings
-/// and only override the week start.
 class _WeekStartMaterialLocalizations extends DefaultMaterialLocalizations {
   final int _firstDayOfWeekIndex;
 
@@ -82,8 +69,6 @@ class _WeekStartMaterialLocalizations extends DefaultMaterialLocalizations {
   int get firstDayOfWeekIndex => _firstDayOfWeekIndex;
 }
 
-/// A LocalizationsDelegate that provides MaterialLocalizations
-/// with a custom firstDayOfWeekIndex.
 class WeekStartLocalizationsDelegate
     extends LocalizationsDelegate<MaterialLocalizations> {
   final int firstDayOfWeekIndex;

@@ -19,8 +19,6 @@ import '../models/app_error.dart';
 import '../models/todo.dart';
 import '../services/storage_service.dart';
 
-/// Repository abstraction over StorageService for todos, enabling future
-/// replacement (e.g. network sync) without touching UI providers.
 class TaskRepository {
   List<Todo> _cache = const [];
   bool _loaded = false;

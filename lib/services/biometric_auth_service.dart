@@ -18,19 +18,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
-/// Service for handling biometric authentication for vault access
 class BiometricAuthService {
   static final LocalAuthentication _auth = LocalAuthentication();
 
-  /// Global flag to track if any biometric auth is in progress
-  /// Used by AppLockWrapper to avoid triggering lock during biometric dialogs
   static bool isAuthInProgress = false;
 
-  /// Track when the last biometric auth completed
-  /// Used to provide a grace period after auth dialogs close
   static DateTime? lastAuthCompletedTime;
 
-  /// Checks if the device supports biometric authentication
   static Future<bool> canCheckBiometrics() async {
     try {
       return await _auth.canCheckBiometrics;
@@ -39,7 +33,6 @@ class BiometricAuthService {
     }
   }
 
-  /// Checks if biometrics are available (enrolled)
   static Future<bool> isBiometricsAvailable() async {
     try {
       final canCheck = await canCheckBiometrics();
@@ -52,7 +45,6 @@ class BiometricAuthService {
     }
   }
 
-  /// Gets list of available biometric types
   static Future<List<BiometricType>> getAvailableBiometrics() async {
     try {
       return await _auth.getAvailableBiometrics();
@@ -61,32 +53,37 @@ class BiometricAuthService {
     }
   }
 
-  /// Authenticates the user using biometrics or device credentials
-  /// Returns true if authentication was successful
   static Future<bool> authenticate({
     required String reason,
     bool biometricOnly = false,
   }) async {
-    // Set global flag to prevent app lock from triggering during auth
     isAuthInProgress = true;
 
     try {
-      debugPrint('[BiometricAuth] Starting authentication');
-      debugPrint(
-        '[BiometricAuth] Reason: $reason, biometricOnly: $biometricOnly',
-      );
+      if (kDebugMode) {
+        debugPrint('[BiometricAuth] Starting authentication');
+        debugPrint(
+          '[BiometricAuth] Reason: $reason, biometricOnly: $biometricOnly',
+        );
+      }
 
       final isAvailable = await isBiometricsAvailable();
-      debugPrint('[BiometricAuth] Biometrics available: $isAvailable');
+      if (kDebugMode) {
+        debugPrint('[BiometricAuth] Biometrics available: $isAvailable');
+      }
 
       if (!isAvailable && biometricOnly) {
-        debugPrint(
-          '[BiometricAuth] Biometrics not available and biometricOnly=true, returning false',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            '[BiometricAuth] Biometrics not available and biometricOnly=true, returning false',
+          );
+        }
         return false;
       }
 
-      debugPrint('[BiometricAuth] Calling local_auth.authenticate()...');
+      if (kDebugMode) {
+        debugPrint('[BiometricAuth] Calling local_auth.authenticate()...');
+      }
       final result = await _auth.authenticate(
         localizedReason: reason,
         options: AuthenticationOptions(
@@ -95,16 +92,22 @@ class BiometricAuthService {
         ),
       );
 
-      debugPrint('[BiometricAuth] Authentication result: $result');
+      if (kDebugMode) {
+        debugPrint('[BiometricAuth] Authentication result: $result');
+      }
       return result;
     } on PlatformException catch (e) {
-      debugPrint(
-        '[BiometricAuth] Platform exception: ${e.code} - ${e.message}',
-      );
-      print('Biometric authentication error: $e');
+      if (kDebugMode) {
+        debugPrint(
+          '[BiometricAuth] Platform exception: ${e.code} - ${e.message}',
+        );
+        print('Biometric authentication error: $e');
+      }
       return false;
     } catch (e) {
-      debugPrint('[BiometricAuth] Unexpected error: $e');
+      if (kDebugMode) {
+        debugPrint('[BiometricAuth] Unexpected error: $e');
+      }
       return false;
     } finally {
       // Reset global flag after auth completes

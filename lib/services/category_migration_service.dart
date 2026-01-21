@@ -27,7 +27,6 @@ class CategoryMigrationService {
   Future<void> createDefaultFolders() async {
     final foldersNotifier = ref.read(folderNotifierProvider.notifier);
 
-    // Get current folders
     final foldersAsync = ref.read(folderNotifierProvider);
     final existingFolders = foldersAsync.value ?? [];
 
@@ -59,7 +58,6 @@ class CategoryMigrationService {
       },
     ];
 
-    // Create folders that don't already exist
     for (final folderData in defaultFolders) {
       final name = folderData['name'] as String;
       final exists = existingFolders.any(

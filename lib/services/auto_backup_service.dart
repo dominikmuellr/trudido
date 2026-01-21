@@ -74,10 +74,6 @@ class AutoBackupService {
 
   static const MethodChannel _channel = MethodChannel('app.files');
 
-  /// Schedules automatic periodic backups
-  ///
-  /// [intervalHours] - How often to backup (default: 24 hours = daily)
-  /// [requiresCharging] - Only backup when device is charging
   Future<bool> scheduleAutoBackup({
     int intervalHours = 24,
     bool requiresCharging = false,
@@ -96,7 +92,6 @@ class AutoBackupService {
     }
   }
 
-  /// Cancels automatic backup scheduling
   Future<bool> cancelAutoBackup() async {
     if (!Platform.isAndroid) return false;
 
@@ -109,7 +104,6 @@ class AutoBackupService {
     }
   }
 
-  /// Checks if automatic backup is currently scheduled
   Future<bool> isAutoBackupScheduled() async {
     if (!Platform.isAndroid) return false;
 
@@ -122,7 +116,6 @@ class AutoBackupService {
     }
   }
 
-  /// Opens the backup folder in the system file manager
   Future<bool> openBackupFolder() async {
     if (!Platform.isAndroid) return false;
 
@@ -135,7 +128,6 @@ class AutoBackupService {
     }
   }
 
-  /// Opens folder picker to choose custom backup location
   Future<bool> chooseBackupFolder() async {
     if (!Platform.isAndroid) return false;
 
@@ -148,7 +140,6 @@ class AutoBackupService {
     }
   }
 
-  /// Gets the currently selected custom backup folder path (if any)
   Future<String?> getCustomBackupFolder() async {
     if (!Platform.isAndroid) return null;
 
@@ -161,7 +152,6 @@ class AutoBackupService {
     }
   }
 
-  /// Clears the custom backup folder setting (reverts to default)
   Future<bool> clearCustomBackupFolder() async {
     if (!Platform.isAndroid) return false;
 
@@ -176,7 +166,6 @@ class AutoBackupService {
     }
   }
 
-  /// Lists all available auto backup files
   Future<List<AutoBackupFile>> listAutoBackups() async {
     if (!Platform.isAndroid) return [];
 
@@ -194,7 +183,6 @@ class AutoBackupService {
     }
   }
 
-  /// Imports a specific auto backup file
   Future<bool> importAutoBackup(String filename) async {
     if (!Platform.isAndroid) return false;
 

@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -39,7 +40,10 @@ class AvatarService {
 
       return await _saveAvatar(File(image.path));
     } catch (e) {
-      debugPrint('Error picking avatar: $e');
+      // Silently return null - image picker cancelled or permission denied
+      if (kDebugMode) {
+        debugPrint('Error picking avatar: $e');
+      }
       return null;
     }
   }
@@ -58,12 +62,14 @@ class AvatarService {
 
       return await _saveAvatar(File(image.path));
     } catch (e) {
-      debugPrint('Error taking avatar photo: $e');
+      // Silently return null - camera unavailable or permission denied
+      if (kDebugMode) {
+        debugPrint('Error taking avatar photo: $e');
+      }
       return null;
     }
   }
 
-  /// Save the image file as avatar
   static Future<String?> _saveAvatar(File imageFile) async {
     try {
       final Directory appDir = await getApplicationDocumentsDirectory();
@@ -72,12 +78,14 @@ class AvatarService {
       // Copy the image to app directory
       await imageFile.copy(avatarPath);
 
-      // Save the path to storage
       await StorageService.setUserAvatarPath(avatarPath);
 
       return avatarPath;
     } catch (e) {
-      debugPrint('Error saving avatar: $e');
+      // Silently return null - directory access or file system error
+      if (kDebugMode) {
+        debugPrint('Error saving avatar: $e');
+      }
       return null;
     }
   }
@@ -94,7 +102,6 @@ class AvatarService {
     return null;
   }
 
-  /// Delete the current avatar
   static Future<void> deleteAvatar() async {
     final String? avatarPath = StorageService.getUserAvatarPath();
     if (avatarPath != null && avatarPath.isNotEmpty) {
@@ -104,13 +111,15 @@ class AvatarService {
           await file.delete();
         }
       } catch (e) {
-        debugPrint('Error deleting avatar file: $e');
+        // Silently continue - avatar file may already be deleted
+        if (kDebugMode) {
+          debugPrint('Error deleting avatar file: $e');
+        }
       }
     }
     await StorageService.setUserAvatarPath('');
   }
 
-  /// Generate initials from user name
   static String getInitials(String name) {
     if (name.isEmpty) return '?';
 
@@ -151,7 +160,6 @@ class AvatarService {
     Color backgroundColor,
     ColorScheme colorScheme,
   ) {
-    // Calculate luminance to determine if we need light or dark text
     final luminance = backgroundColor.computeLuminance();
     return luminance > 0.5 ? colorScheme.onSurface : colorScheme.surface;
   }

@@ -18,33 +18,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../services/theme_service.dart';
 
-/// Utility class for creating markdown stylesheets with smart blockquote colors
-/// and VS Code-style syntax highlighting
-///
-/// This utility automatically adjusts colors based on theme and provides:
-/// - Smart blockquote backgrounds with proper contrast
-/// - VS Code-style code block styling with syntax highlighting colors
-/// - GitHub/VS Code inspired color schemes for both light and dark themes
-/// - Accessible color combinations meeting WCAG standards
-///
-/// Note: For full syntax highlighting within code blocks, consider using
-/// packages like 'flutter_highlight' or 'syntax_highlight' with a custom
-/// code block builder.
-///
-/// Usage in your notes app:
-/// ```dart
-/// MarkdownBody(
-///   data: note.content,
-///   styleSheet: SmartMarkdownHelper.createStyleSheet(context),
-/// )
-/// ```
+/// Utility class for creating markdown stylesheets with smart blockquote colors and syntax highlighting
 class SmartMarkdownHelper {
-  /// Create a complete MarkdownStyleSheet with smart blockquote colors
-  ///
-  /// This method builds a stylesheet that:
-  /// - Uses theme colors for consistent design
-  /// - Automatically adjusts blockquote text for contrast
-  /// - Provides beautiful, readable formatting
   static MarkdownStyleSheet createStyleSheet(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;

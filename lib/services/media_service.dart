@@ -192,9 +192,7 @@ class MediaService {
     }
 
     try {
-      // Check if recorder has permission
       if (await _audioRecorder.hasPermission()) {
-        // Get temporary directory for recording
         final tempDir = await getTemporaryDirectory();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final filePath = path.join(tempDir.path, 'voice_note_$timestamp.m4a');

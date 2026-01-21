@@ -17,11 +17,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
+import 'home_screen_notifiers.dart';
 import '../controllers/preferences_controller.dart';
 import '../services/default_tab_service.dart';
 import '../services/preferences_service.dart';
 import '../utils/week_start_utils.dart';
-import 'home_screen.dart';
 
 import 'default_tab_settings_screen.dart';
 import '../theme/spacing_tokens.dart';
@@ -248,7 +248,6 @@ class _ThemeModeSheet extends ConsumerWidget {
     final useDynamicColor = ref.watch(preferencesStateProvider).useDynamicColor;
     final controller = ref.read(preferencesControllerProvider);
 
-    // Check if Hack, Dracula, or Solarized theme is selected and dynamic colors are disabled
     final isHackTheme = accentColorSeed == 0xFF00FF00 && !useDynamicColor;
     final isDraculaTheme = accentColorSeed == 0xFFBD93F9 && !useDynamicColor;
     final isSolarizedTheme = accentColorSeed == 0xFF268BD2 && !useDynamicColor;
@@ -262,7 +261,6 @@ class _ThemeModeSheet extends ConsumerWidget {
       IconData icon,
     ) {
       final selected = current == mode;
-      // Disable light mode and auto mode for dark-only themes
       final isEnabled =
           !(isDarkOnlyTheme &&
               (mode == ThemeMode.light || mode == ThemeMode.system));

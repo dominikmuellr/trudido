@@ -29,7 +29,6 @@ class LifecycleSyncObserver with WidgetsBindingObserver {
 
   void start() {
     WidgetsBinding.instance.addObserver(this);
-    // Initialize widget service
     _initWidgetService();
 
     // Listen for real-time toggles from the widget
@@ -47,9 +46,7 @@ class LifecycleSyncObserver with WidgetsBindingObserver {
     await ref.read(tasksProvider.notifier).refresh();
 
     await WidgetService.instance.initialize();
-    // Process any pending widget toggles
     await _processPendingWidgetToggles();
-    // Update widget with current data
     await _updateWidgetData();
   }
 
@@ -81,7 +78,6 @@ class LifecycleSyncObserver with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       NotificationActionSync.instance.syncPending(ref);
-      // Process any pending widget toggles and refresh widget
       _processPendingWidgetToggles();
       _updateWidgetData();
     }

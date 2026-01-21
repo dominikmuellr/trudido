@@ -37,7 +37,6 @@ class AppRefreshService {
       ref.invalidate(preferencesStateProvider);
       debugPrint('[AppRefreshService] Preferences state invalidated');
 
-      // Update home screen widget with new task data
       final tasks = ref.read(tasksProvider);
       final incomplete = tasks.where((t) => !t.isCompleted).toList();
       await WidgetService.instance.updateWidgetData(incomplete);

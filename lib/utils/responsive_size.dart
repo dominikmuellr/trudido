@@ -16,14 +16,11 @@
 
 import 'package:flutter/material.dart';
 
-/// Scales a size value based on the current text scale factor
 double scaledSize(BuildContext context, double baseSize) {
   final textScale = MediaQuery.textScaleFactorOf(context);
   return baseSize * textScale;
 }
 
-/// A wrapper around Icon that automatically scales based on text scale factor
-/// Use this instead of Icon() for icons that should scale with font size
 class ScaledIcon extends StatelessWidget {
   final IconData icon;
   final double? size;

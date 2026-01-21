@@ -19,13 +19,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Utility class for managing onboarding state
-///
-/// This class provides methods to check and reset the onboarding tooltip state
-/// for development and testing purposes.
 class OnboardingManager {
   static const String _tooltipSeenKey = 'notes_onboarding_tooltip_seen';
 
-  /// Check if the user has seen the onboarding tooltip
   static Future<bool> hasSeenTooltip() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -35,30 +31,20 @@ class OnboardingManager {
     }
   }
 
-  /// Mark the tooltip as seen (dismisses it permanently)
   static Future<void> markTooltipAsSeen() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_tooltipSeenKey, true);
-    } catch (e) {
-      // Handle error silently
-    }
+    } catch (e) {}
   }
 
-  /// Reset the tooltip state for testing/debugging
-  ///
-  /// Call this method to force the tooltip to show again.
-  /// Useful during development to test the onboarding flow.
   static Future<void> resetTooltip() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_tooltipSeenKey);
-    } catch (e) {
-      // Handle error silently
-    }
+    } catch (e) {}
   }
 
-  /// Clear all onboarding data
   static Future<void> clearAllOnboardingData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -68,9 +54,7 @@ class OnboardingManager {
           await prefs.remove(key);
         }
       }
-    } catch (e) {
-      // Handle error silently
-    }
+    } catch (e) {}
   }
 }
 

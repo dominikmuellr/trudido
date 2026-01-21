@@ -18,14 +18,6 @@ import 'package:intl/intl.dart';
 
 /// Smart date formatting utilities following Material Design 3 guidelines
 class DateFormatters {
-  /// Formats a date relative to now, showing "Today", "Tomorrow", "Yesterday" when appropriate
-  ///
-  /// Examples:
-  /// - Today at 3:30 PM
-  /// - Tomorrow at 10:00 AM
-  /// - Yesterday at 5:45 PM
-  /// - Wed, Oct 30 at 2:15 PM
-  /// - Oct 30, 2025
   static String formatSmart(
     DateTime date, {
     DateTime? now,
@@ -62,12 +54,6 @@ class DateFormatters {
     }
   }
 
-  /// Formats a date range smartly
-  ///
-  /// Examples:
-  /// - Today → Tomorrow
-  /// - Oct 28 → Oct 30
-  /// - Oct 28 → Nov 2
   static String formatSmartRange(
     DateTime start,
     DateTime end, {
@@ -81,13 +67,6 @@ class DateFormatters {
     return '$startStr → $endStr';
   }
 
-  /// Returns a short relative label suitable for chips
-  ///
-  /// Examples:
-  /// - Today
-  /// - Tomorrow
-  /// - Oct 30
-  /// - Wed
   static String formatChip(DateTime date, {DateTime? now}) {
     now ??= DateTime.now();
 

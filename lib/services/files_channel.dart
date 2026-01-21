@@ -108,7 +108,6 @@ class FilesChannel {
       // Keep call to ensureInitialized in case caller forgot
       await ensureInitialized();
 
-      // Get actual data to export
       final exportData = await StorageService.exportData();
       final jsonString = json.encode(exportData);
 

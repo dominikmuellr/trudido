@@ -32,8 +32,6 @@ class ImportedCalendarColors {
     0xFF607D8B, // Blue Grey
   ];
 
-  /// Get a deterministic color for a calendar name (hash-based)
-  /// Returns the same color for the same calendar name every time
   static int getColorForCalendarName(String calendarName) {
     if (calendarName.isEmpty) {
       return colorPalette.first;
@@ -45,7 +43,6 @@ class ImportedCalendarColors {
     return colorPalette[index];
   }
 
-  /// Get next color in sequence (for UI when showing available colors)
   static int getColorByIndex(int index) {
     return colorPalette[index % colorPalette.length];
   }

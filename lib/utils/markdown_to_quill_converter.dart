@@ -32,7 +32,6 @@ class MarkdownToQuillConverter {
     for (int i = 0; i < lines.length; i++) {
       String line = lines[i];
 
-      // Handle headers
       if (line.startsWith('### ')) {
         final text = line.substring(4);
         delta.insert(text);
@@ -45,9 +44,7 @@ class MarkdownToQuillConverter {
         final text = line.substring(2);
         delta.insert(text);
         delta.insert('\n', {'header': 1});
-      }
-      // Handle checkboxes
-      else if (line.trim().startsWith('- [x] ')) {
+      } else if (line.trim().startsWith('- [x] ')) {
         final text = line.trim().substring(6);
         _insertInlineFormatting(delta, text);
         delta.insert('\n', {'list': 'checked'});
@@ -55,27 +52,19 @@ class MarkdownToQuillConverter {
         final text = line.trim().substring(6);
         _insertInlineFormatting(delta, text);
         delta.insert('\n', {'list': 'unchecked'});
-      }
-      // Handle bullet lists
-      else if (line.trim().startsWith('- ')) {
+      } else if (line.trim().startsWith('- ')) {
         final text = line.trim().substring(2);
         _insertInlineFormatting(delta, text);
         delta.insert('\n', {'list': 'bullet'});
-      }
-      // Handle numbered lists
-      else if (RegExp(r'^\d+\.\s').hasMatch(line.trim())) {
+      } else if (RegExp(r'^\d+\.\s').hasMatch(line.trim())) {
         final text = line.trim().replaceFirst(RegExp(r'^\d+\.\s'), '');
         _insertInlineFormatting(delta, text);
         delta.insert('\n', {'list': 'ordered'});
-      }
-      // Handle quotes
-      else if (line.trim().startsWith('> ')) {
+      } else if (line.trim().startsWith('> ')) {
         final text = line.trim().substring(2);
         _insertInlineFormatting(delta, text);
         delta.insert('\n', {'blockquote': true});
-      }
-      // Handle code blocks
-      else if (line.trim().startsWith('```')) {
+      } else if (line.trim().startsWith('```')) {
         // Skip opening ```
         if (i + 1 < lines.length) {
           final codeLines = <String>[];
@@ -194,7 +183,6 @@ class MarkdownToQuillConverter {
           continue;
         }
 
-        // Handle block-level formatting
         if (attrs.containsKey('header')) {
           final level = attrs['header'] as int;
           buffer.write('${'#' * level} ${text.replaceAll('\n', '')}');
@@ -226,7 +214,6 @@ class MarkdownToQuillConverter {
           continue;
         }
 
-        // Handle inline formatting
         String formattedText = text;
 
         if (attrs.containsKey('bold') && attrs['bold'] == true) {

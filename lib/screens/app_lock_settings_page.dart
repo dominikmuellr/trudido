@@ -124,7 +124,6 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
     );
 
     if (verified == true) {
-      // Get PIN and disable
       final result = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -194,7 +193,6 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
 
   Future<void> _toggleBiometric(bool value) async {
     if (value) {
-      // Enable biometric - test it first
       final success = await BiometricAuthService.authenticate(
         reason: 'Verify your identity to enable fingerprint unlock',
       );
@@ -206,7 +204,6 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
         });
       }
     } else {
-      // Disable biometric
       await AppLockService.instance.setBiometricEnabled(false);
       setState(() {
         _biometricEnabled = false;

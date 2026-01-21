@@ -114,12 +114,9 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
     );
 
     if (!task.isCompleted && task.isRecurring) {
-      // Task is being marked complete and it's recurring
-      // Check if there's a next occurrence
       final nextOccurrence = _calculateNextOccurrence(task);
 
       if (nextOccurrence != null) {
-        // Create a new task for the next occurrence
         final now = ref.read(clockProvider).now();
         final newTask = task.copyWith(
           id: now.millisecondsSinceEpoch.toString(),
@@ -154,7 +151,6 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
     final now = ref.read(clockProvider).now();
     final currentDue = todo.dueDate!;
 
-    // Check if recurrence has ended
     if (todo.repeatEndDate != null && now.isAfter(todo.repeatEndDate!)) {
       return null;
     }

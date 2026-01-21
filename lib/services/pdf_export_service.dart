@@ -30,7 +30,9 @@ class PdfExportService {
   /// Export all todos and notes as a comprehensive PDF
   static Future<bool> exportAllDataToPdf() async {
     try {
-      debugPrint('[PdfExport] Starting comprehensive data export...');
+      if (kDebugMode) {
+        debugPrint('[PdfExport] Starting comprehensive data export...');
+      }
 
       // Get all data
       await StorageService.waitNotesReady();
@@ -39,12 +41,16 @@ class PdfExportService {
       final notes = StorageService.getAllNotes();
       final todos = await StorageService.getAllTodosAsync();
 
-      debugPrint(
-        '[PdfExport] Found ${todos.length} todos and ${notes.length} notes',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          '[PdfExport] Found ${todos.length} todos and ${notes.length} notes',
+        );
+      }
 
       if (notes.isEmpty && todos.isEmpty) {
-        debugPrint('[PdfExport] No data to export');
+        if (kDebugMode) {
+          debugPrint('[PdfExport] No data to export');
+        }
         return false;
       }
 
@@ -95,15 +101,21 @@ class PdfExportService {
 
       // Export todos section
       if (todos.isNotEmpty) {
-        debugPrint('[PdfExport] Adding ${todos.length} todos to PDF');
+        if (kDebugMode) {
+          debugPrint('[PdfExport] Adding ${todos.length} todos to PDF');
+        }
         _addTodosSection(pdf, todos, font, fontBold, fontItalic, dateFormat);
       } else {
-        debugPrint('[PdfExport] No todos to export');
+        if (kDebugMode) {
+          debugPrint('[PdfExport] No todos to export');
+        }
       }
 
       // Export notes section
       if (notes.isNotEmpty) {
-        debugPrint('[PdfExport] Adding ${notes.length} notes to PDF');
+        if (kDebugMode) {
+          debugPrint('[PdfExport] Adding ${notes.length} notes to PDF');
+        }
         await _addNotesSection(
           pdf,
           notes,
@@ -113,7 +125,9 @@ class PdfExportService {
           dateFormat,
         );
       } else {
-        debugPrint('[PdfExport] No notes to export');
+        if (kDebugMode) {
+          debugPrint('[PdfExport] No notes to export');
+        }
       }
 
       // Save or share the PDF
@@ -122,11 +136,15 @@ class PdfExportService {
         name: 'Trudido_Export_${DateFormat('yyyyMMdd_HHmmss').format(now)}.pdf',
       );
 
-      debugPrint('[PdfExport] Comprehensive export successful');
+      if (kDebugMode) {
+        debugPrint('[PdfExport] Comprehensive export successful');
+      }
       return true;
     } catch (e, stackTrace) {
-      debugPrint('[PdfExport] Export failed: $e');
-      debugPrint('[PdfExport] Stack trace: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('[PdfExport] Export failed: $e');
+        debugPrint('[PdfExport] Stack trace: $stackTrace');
+      }
       return false;
     }
   }
@@ -452,35 +470,55 @@ class PdfExportService {
         // Handle media embeds
         if (insert is Map) {
           final custom = insert['custom'];
-          debugPrint(
-            '[PdfExport] Found Map insert, custom field type: ${custom?.runtimeType}',
-          );
-          debugPrint('[PdfExport] Custom value: $custom');
+          if (kDebugMode) {
+            debugPrint(
+              '[PdfExport] Found Map insert, custom field type: ${custom?.runtimeType}',
+            );
+            debugPrint('[PdfExport] Custom value: $custom');
+          }
 
           if (custom is String) {
-            debugPrint('[PdfExport] Custom is String, attempting to parse...');
+            if (kDebugMode) {
+              debugPrint(
+                '[PdfExport] Custom is String, attempting to parse...',
+              );
+            }
             try {
               final parsed = jsonDecode(custom) as Map<String, dynamic>;
-              debugPrint('[PdfExport] Parsed media: $parsed');
+              if (kDebugMode) {
+                debugPrint('[PdfExport] Parsed media: $parsed');
+              }
 
               // The media field contains ANOTHER JSON string
               final mediaString = parsed['media'] as String?;
               if (mediaString != null) {
-                debugPrint('[PdfExport] Found media string, parsing again...');
+                if (kDebugMode) {
+                  debugPrint(
+                    '[PdfExport] Found media string, parsing again...',
+                  );
+                }
                 final media = jsonDecode(mediaString) as Map<String, dynamic>;
-                debugPrint('[PdfExport] Final parsed media: $media');
+                if (kDebugMode) {
+                  debugPrint('[PdfExport] Final parsed media: $media');
+                }
 
                 final type = media['type'] as String?;
                 final pathStr = media['path'] as String?;
-                debugPrint('[PdfExport] Type: $type, Path: $pathStr');
+                if (kDebugMode) {
+                  debugPrint('[PdfExport] Type: $type, Path: $pathStr');
+                }
 
                 if (type == 'image' && pathStr != null) {
                   final file = File(pathStr);
                   final exists = await file.exists();
-                  debugPrint('[PdfExport] Image file exists: $exists');
+                  if (kDebugMode) {
+                    debugPrint('[PdfExport] Image file exists: $exists');
+                  }
                   if (exists) {
                     final bytes = await file.readAsBytes();
-                    debugPrint('[PdfExport] Loaded ${bytes.length} bytes');
+                    if (kDebugMode) {
+                      debugPrint('[PdfExport] Loaded ${bytes.length} bytes');
+                    }
                     final image = pw.MemoryImage(bytes);
                     contentWidgets.add(pw.SizedBox(height: 8));
                     contentWidgets.add(
@@ -493,15 +531,21 @@ class PdfExportService {
                       ),
                     );
                     contentWidgets.add(pw.SizedBox(height: 8));
-                    debugPrint('[PdfExport] Image widget added!');
+                    if (kDebugMode) {
+                      debugPrint('[PdfExport] Image widget added!');
+                    }
                   }
                 }
               }
             } catch (e) {
-              debugPrint('[PdfExport] Error parsing custom: $e');
+              if (kDebugMode) {
+                debugPrint('[PdfExport] Error parsing custom: $e');
+              }
             }
           } else if (custom is Map) {
-            debugPrint('[PdfExport] Custom is Map: ${custom.keys.toList()}');
+            if (kDebugMode) {
+              debugPrint('[PdfExport] Custom is Map: ${custom.keys.toList()}');
+            }
           }
           continue;
         }

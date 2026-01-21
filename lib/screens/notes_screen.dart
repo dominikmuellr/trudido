@@ -105,7 +105,6 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       onNotification: (scrollNotification) {
         // Detect pull-to-search gesture
         if (scrollNotification is ScrollUpdateNotification) {
-          // Check if user is pulling down at the top (overscroll)
           if (scrollNotification.metrics.pixels < -20) {
             // Trigger search mode
             ref.read(notesSearchModeProvider.notifier).state = true;
@@ -234,7 +233,6 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   }
 
   void _editNote(String noteId) async {
-    // Check if note belongs to vault folder and require auth
     final note = await ref.read(notesRepositoryProvider).getNoteById(noteId);
     if (note != null && note.folderId != null) {
       final folderRepo = NoteFolderRepository();

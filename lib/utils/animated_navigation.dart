@@ -20,12 +20,8 @@ import '../services/haptic_feedback_service.dart';
 
 /// Navigation helper with Material Design 3 animated transitions
 class AnimatedNavigation {
-  /// When true, animations are disabled and navigation uses immediate
-  /// pushes. Tests can set this to true to avoid animation-related
-  /// overlays that interfere with widget tests.
   static bool disableAnimations = false;
 
-  /// Navigate to a new screen with shared axis transition (horizontal)
   static Future<T?> push<T>(
     BuildContext context,
     Widget page, {
@@ -46,7 +42,6 @@ class AnimatedNavigation {
     );
   }
 
-  /// Navigate to a new screen with fade through transition
   static Future<T?> pushFadeThrough<T>(BuildContext context, Widget page) {
     return Navigator.of(context).push<T>(
       AnimatedMaterialPageRoute<T>(
@@ -58,7 +53,6 @@ class AnimatedNavigation {
     );
   }
 
-  /// Navigate to a new screen with container transform transition
   static Future<T?> pushContainerTransform<T>(
     BuildContext context,
     Widget page,
@@ -82,7 +76,6 @@ class AnimatedNavigation {
     );
   }
 
-  /// Navigate and replace current screen
   static Future<T?> pushReplacement<T, TO>(
     BuildContext context,
     Widget page, {
