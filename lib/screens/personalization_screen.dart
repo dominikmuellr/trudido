@@ -18,6 +18,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../config/flavor_config.dart';
 import '../services/avatar_service.dart';
 import '../services/storage_service.dart';
 import '../providers/app_providers.dart';
@@ -336,9 +337,12 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
             },
           ),
 
-          // Support Section
+          // Support Section (FDroid only - hidden on PlayStore)
+          if (FlavorConfig.showDonations) ...[
+          if (FlavorConfig.showDonations) ..[
           _buildSectionHeader(context, 'Support'),
           _buildSupportButtons(),
+          ],
 
           const SizedBox(height: 32),
         ],
