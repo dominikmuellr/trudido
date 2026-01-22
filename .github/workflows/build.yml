@@ -1,4 +1,4 @@
-name: Build Signed APKs
+name: Build Signed Release Artifacts
 
 on:
   push:
@@ -34,34 +34,56 @@ jobs:
           VERSION=$(grep 'version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Build universal signed APK
+      # PlayStore build - AAB without donations
+      - name: Build PlayStore AAB
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        run: flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols
+        run: flutter build appbundle --release --flavor playstore --obfuscate --split-debug-info=build/app/outputs/symbols-playstore
 
-      - name: Rename universal APK with version
+      - name: Rename PlayStore AAB with version
         run: |
-          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-release-$VERSION.apk
+          mv build/app/outputs/bundle/playstoreRelease/app-playstore-release.aab build/app/outputs/bundle/playstoreRelease/trudido-playstore-$VERSION.aab
         env:
           VERSION: ${{ env.VERSION }}
 
-      - name: Build ARM64 signed APK
+      # FDroid build - APK with donations enabled
+      - name: Build FDroid universal APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        run: flutter build apk --release --target-platform=android-arm64 --obfuscate --split-debug-info=build/app/outputs/symbols-arm64
+        run: flutter build apk --release --flavor fdroid --dart-define=IS_FDROID=true --obfuscate --split-debug-info=build/app/outputs/symbols-fdroid
 
-      - name: Rename ARM64 APK with version
+      - name: Rename FDroid APK with version
         run: |
-          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-release-arm64-$VERSION.apk
+          mv build/app/outputs/flutter-apk/app-fdroid-release.apk build/app/outputs/flutter-apk/trudido-fdroid-$VERSION.apk
         env:
           VERSION: ${{ env.VERSION }}
 
-      - name: Upload APK artifacts
+      # FDroid ARM64 build for F-Droid submission
+      - name: Build FDroid ARM64 APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: flutter build apk --release --flavor fdroid --dart-define=IS_FDROID=true --target-platform=android-arm64 --obfuscate --split-debug-info=build/app/outputs/symbols-fdroid-arm64
+
+      - name: Rename FDroid ARM64 APK with version
+        run: |
+          mv build/app/outputs/flutter-apk/app-fdroid-release.apk build/app/outputs/flutter-apk/trudido-fdroid-arm64-$VERSION.apk
+        env:
+          VERSION: ${{ env.VERSION }}
+
+      - name: Upload PlayStore AAB
         uses: actions/upload-artifact@v4
         with:
-          name: signed-apks-$VERSION
-          path: build/app/outputs/flutter-apk/app-release*.apk
+          name: playstore-aab-${{ env.VERSION }}
+          path: build/app/outputs/bundle/playstoreRelease/trudido-playstore-*.aab
+
+      - name: Upload FDroid APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: fdroid-apks-${{ env.VERSION }}
+          path: build/app/outputs/flutter-apk/trudido-fdroid*.apk

@@ -28,6 +28,18 @@ android {
         versionName = flutter.versionName
     }
 
+    flavorDimensions += "store"
+    productFlavors {
+        create("playstore") {
+            dimension = "store"
+            // PlayStore build - donations hidden via Dart define
+        }
+        create("fdroid") {
+            dimension = "store"
+            // FDroid build - donations enabled via --dart-define=IS_FDROID=true
+        }
+    }
+
     signingConfigs {
     create("release") {
         val home = System.getenv("HOME") ?: System.getenv("USERPROFILE") ?: ""

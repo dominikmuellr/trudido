@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../config/flavor_config.dart';
 import '../providers/app_providers.dart';
 import '../utils/responsive_size.dart';
 import 'about_screen.dart';
@@ -98,8 +99,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _buildAboutTile(),
       ],
 
-      // Support Section
-      if (_matchesSearch('support development buy coffee donate')) ...[
+      // Support Section (FDroid only - hidden on PlayStore)
+      if (FlavorConfig.showDonations &&
+          _matchesSearch('support development buy coffee donate')) ...[
         _buildSectionHeader(context, 'Support'),
         _buildSupportTile(),
       ],
