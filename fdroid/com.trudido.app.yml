@@ -29,7 +29,7 @@ Repo: https://github.com/dominikmuellr/trudido.git
 
 Builds:
   - versionName: 1.2.6
-    versionCode: 17
+    versionCode: 18
     commit: v1.2.6
     output: build/app/outputs/flutter-apk/app-fdroid-arm64-v8a-release.apk
     srclibs:
@@ -54,4 +54,4 @@ AutoUpdateMode: Version
 UpdateCheckMode: Tags
 UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
 CurrentVersion: 1.2.6
-CurrentVersionCode: 17
+CurrentVersionCode: 18
