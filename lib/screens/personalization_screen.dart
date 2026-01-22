@@ -339,9 +339,8 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
 
           // Support Section (FDroid only - hidden on PlayStore)
           if (FlavorConfig.showDonations) ...[
-          if (FlavorConfig.showDonations) ..[
-          _buildSectionHeader(context, 'Support'),
-          _buildSupportButtons(),
+            _buildSectionHeader(context, 'Support'),
+            _buildSupportButtons(),
           ],
 
           const SizedBox(height: 32),
