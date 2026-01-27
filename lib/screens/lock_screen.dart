@@ -19,6 +19,7 @@ import 'package:flutter/services.dart';
 import '../services/app_lock_service.dart';
 import '../services/biometric_auth_service.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 /// Lock screen that requires PIN or biometric authentication
 class LockScreen extends StatefulWidget {
@@ -380,7 +381,7 @@ class _PinKeypad extends StatelessWidget {
         final colorScheme = Theme.of(context).colorScheme;
         return Material(
           color: Colors.transparent,
-          child: InkWell(
+          child: ExpressiveInkWell(
             onTap: isLoading ? null : () => onKeyPressed(key),
             borderRadius: BorderRadius.circular(36),
             child: Container(
@@ -410,7 +411,7 @@ class _PinKeypad extends StatelessWidget {
         final colorScheme = Theme.of(context).colorScheme;
         return Material(
           color: Colors.transparent,
-          child: InkWell(
+          child: ExpressiveInkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(36),
             child: Container(
@@ -774,7 +775,7 @@ class _VerifyPinDialogState extends State<VerifyPinDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton(
+                ExpressiveTextButton(
                   onPressed: () => Navigator.of(context).pop(false),
                   child: const Text('Cancel'),
                 ),
@@ -841,7 +842,7 @@ class _CompactPinKeypad extends StatelessWidget {
   Widget _buildKey(String key, BuildContext context) {
     return Material(
       color: Colors.transparent,
-      child: InkWell(
+      child: ExpressiveInkWell(
         onTap: isLoading ? null : () => onKeyPressed(key),
         borderRadius: BorderRadius.circular(28),
         child: Container(
@@ -861,7 +862,7 @@ class _CompactPinKeypad extends StatelessWidget {
   ) {
     return Material(
       color: Colors.transparent,
-      child: InkWell(
+      child: ExpressiveInkWell(
         onTap: isLoading ? null : onTap,
         borderRadius: BorderRadius.circular(28),
         child: Container(

@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 import '../utils/animations.dart';
 import '../services/haptic_feedback_service.dart';
+import '../widgets/common/common.dart';
 
 /// Animated FAB with scale, fade transitions, and haptic feedback
 class AnimatedFAB extends StatefulWidget {
@@ -135,7 +136,7 @@ class _AnimatedFABState extends State<AnimatedFAB>
         child: ScaleTransition(
           scale: _pressScaleAnimation,
           child: widget.label != null
-              ? FloatingActionButton.extended(
+              ? ExpressiveFloatingActionButton.extended(
                   heroTag: widget.heroTag,
                   onPressed: widget.onPressed,
                   icon: widget.icon,
@@ -143,11 +144,11 @@ class _AnimatedFABState extends State<AnimatedFAB>
                   backgroundColor: widget.backgroundColor,
                   foregroundColor: widget.foregroundColor,
                 )
-              : GestureDetector(
+              : ExpressiveGestureDetector(
                   onTapDown: _handleTapDown,
                   onTapUp: _handleTapUp,
                   onTapCancel: _handleTapCancel,
-                  child: FloatingActionButton(
+                  child: ExpressiveFloatingActionButton(
                     heroTag: widget.heroTag,
                     onPressed: widget.onPressed,
                     backgroundColor: widget.backgroundColor,
@@ -249,7 +250,7 @@ class _AnimatedCardState extends State<AnimatedCard>
                   widget.borderRadius as BorderRadius? ??
                   BorderRadius.circular(12),
             ),
-            child: InkWell(
+            child: ExpressiveInkWell(
               onTapDown: widget.onTap != null ? _handleTapDown : null,
               onTapUp: widget.onTap != null ? _handleTapUp : null,
               onTapCancel: widget.onTap != null ? _handleTapCancel : null,
@@ -337,7 +338,7 @@ class _AnimatedChipState extends State<AnimatedChip>
 
     return ScaleTransition(
       scale: _scaleAnimation,
-      child: GestureDetector(
+      child: ExpressiveGestureDetector(
         onTapDown: widget.onTap != null ? _handleTapDown : null,
         onTapUp: widget.onTap != null ? _handleTapUp : null,
         onTapCancel: widget.onTap != null ? _handleTapCancel : null,
@@ -445,7 +446,7 @@ class _AnimatedIconButtonState extends State<AnimatedIconButton>
 
   @override
   Widget build(BuildContext context) {
-    final button = GestureDetector(
+    final button = ExpressiveGestureDetector(
       onTapDown: _handleTapDown,
       onTapUp: _handleTapUp,
       onTapCancel: _handleTapCancel,

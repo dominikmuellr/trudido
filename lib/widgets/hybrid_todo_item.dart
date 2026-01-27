@@ -23,6 +23,7 @@ import '../models/todo.dart';
 import '../providers/app_providers.dart';
 import '../utils/responsive_size.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 class HybridTodoItem extends ConsumerWidget {
   final Todo todo;
@@ -89,7 +90,7 @@ class HybridTodoItem extends ConsumerWidget {
         DismissDirection.endToStart,
         preferences,
       ),
-      child: GestureDetector(
+      child: ExpressiveGestureDetector(
         onTap: selectable ? onSelectToggle : onEdit,
         onLongPress: selectable ? null : onSelectToggle,
         child: Card(

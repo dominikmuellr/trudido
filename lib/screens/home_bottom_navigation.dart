@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../controllers/task_controller.dart';
+import '../providers/app_providers.dart';
 import '../providers/filter_providers.dart';
 import '../providers/settings_search_provider.dart';
 import '../controllers/notes_controller.dart';
@@ -25,6 +26,8 @@ import '../services/folder_provider.dart';
 import '../repositories/note_folder_repository.dart';
 import '../widgets/quick_input_bar.dart';
 import 'home_screen_notifiers.dart';
+import '../widgets/common/common.dart';
+import '../theme/expressive_motion.dart';
 
 /// Bottom navigation bar for the home screen
 /// Handles tab switching and search mode exit
@@ -44,12 +47,16 @@ class HomeNavigationBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final hapticsEnabled = ref.watch(preferencesStateProvider).hapticsEnabled;
     return NavigationBar(
       backgroundColor: Theme.of(context).brightness == Brightness.dark
           ? null // Use default in dark mode
           : Theme.of(context).colorScheme.surfaceContainerLow,
       selectedIndex: currentTab,
       onDestinationSelected: (index) {
+        // Trigger haptic feedback on tab change
+        ExpressiveHaptics.lightTap(enabled: hapticsEnabled);
+
         final previousTab = ref.read(currentTabProvider);
 
         // If tapping the same tab, open the drawer
@@ -192,7 +199,7 @@ class QuickInputBottomArea extends ConsumerWidget {
             // Side button: Calendar switcher for Tasks, Create Note FAB for Notes
             if (currentTab == 0)
               // Tasks tab: Calendar/List switcher
-              FloatingActionButton.small(
+              ExpressiveFloatingActionButton.small(
                 heroTag: 'view_toggle_quick',
                 backgroundColor: colorScheme.secondaryContainer,
                 foregroundColor: colorScheme.onSecondaryContainer,
@@ -214,7 +221,7 @@ class QuickInputBottomArea extends ConsumerWidget {
               )
             else if (isNotesTab)
               // Notes tab: Create full note button (pencil icon, no circle)
-              IconButton(
+              ExpressiveIconButton(
                 onPressed: isVaultContext ? onCreateVaultNote : onCreateNote,
                 icon: Icon(Icons.edit_outlined, color: colorScheme.primary),
                 tooltip: 'Open note editor',

@@ -26,6 +26,7 @@ import '../widgets/add_reminder_dialog.dart';
 import '../utils/date_formatters.dart';
 import '../utils/week_start_utils.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 class EditTaskScreen extends ConsumerStatefulWidget {
   final Todo? task;
@@ -307,7 +308,7 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                     ),
                   ),
                 )
-              : IconButton(
+              : ExpressiveIconButton(
                   icon: const Icon(Icons.save_outlined),
                   onPressed: _isLoading ? null : _saveTask,
                   tooltip: 'Save',
@@ -370,7 +371,7 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                           const Spacer(),
                           if (_selectedDueDate != null ||
                               _selectedStartDate != null)
-                            IconButton(
+                            ExpressiveIconButton(
                               icon: const Icon(Icons.close, size: 20),
                               tooltip: 'Clear schedule',
                               visualDensity: VisualDensity.compact,
@@ -417,7 +418,7 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                         },
                       ),
                     ),
-                    InkWell(
+                    ExpressiveInkWell(
                       borderRadius: const BorderRadius.vertical(
                         bottom: Radius.circular(12),
                       ),
@@ -536,7 +537,7 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                         child: Row(
                           children: [
-                            OutlinedButton.icon(
+                            ExpressiveOutlinedButton.icon(
                               icon: const Icon(Icons.access_time),
                               label: const Text('Adjust time'),
                               onPressed: _selectDueDate,

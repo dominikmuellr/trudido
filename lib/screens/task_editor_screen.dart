@@ -27,6 +27,7 @@ import '../widgets/create_folder_dialog.dart';
 import '../utils/date_formatters.dart';
 import '../utils/week_start_utils.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 /// Unified Task Editor Screen
 /// Handles both creating new tasks and editing existing ones
@@ -145,7 +146,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         elevation: 0,
         actions: [
           // Save button in app bar
-          TextButton(
+          ExpressiveTextButton(
             onPressed: _isLoading ? null : _saveTodo,
             child: _isLoading
                 ? SizedBox(
@@ -373,7 +374,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   }) {
     return Material(
       color: Colors.transparent,
-      child: InkWell(
+      child: ExpressiveInkWell(
         onTap: isDisabled ? null : onTap,
         borderRadius: SpacingBorderRadius.md,
         child: Opacity(
@@ -670,7 +671,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                                 : 'Ends ${DateFormatters.formatSmart(_repeatEndDate!, now: ref.read(clockProvider).now(), includeTime: false)}',
                           ),
                           trailing: _repeatEndDate != null
-                              ? IconButton(
+                              ? ExpressiveIconButton(
                                   icon: ScaledIcon(Icons.clear, size: 18),
                                   onPressed: () {
                                     setModalState(() => _repeatEndDate = null);

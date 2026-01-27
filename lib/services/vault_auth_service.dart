@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 import 'biometric_auth_service.dart';
 import 'vault_password_service.dart';
+import '../widgets/common/common.dart';
 
 /// Service for authenticating access to vault folders
 /// Tries biometric first, falls back to password after 3 failed attempts
@@ -145,7 +146,7 @@ class VaultAuthService {
             decoration: InputDecoration(
               labelText: 'Password',
               border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
+              suffixIcon: ExpressiveIconButton(
                 icon: Icon(
                   obscureText ? Icons.visibility : Icons.visibility_off,
                 ),
@@ -163,7 +164,7 @@ class VaultAuthService {
             },
           ),
           actions: [
-            TextButton(
+            ExpressiveTextButton(
               onPressed: () => Navigator.of(context).pop(null),
               child: const Text('Cancel'),
             ),

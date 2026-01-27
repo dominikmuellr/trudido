@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
+import '../widgets/common/common.dart';
 
 class NotificationSettingsScreen extends StatelessWidget {
   const NotificationSettingsScreen({super.key});
@@ -49,7 +50,7 @@ class NotificationSettingsScreen extends StatelessWidget {
                   subtitle: const Text(
                     'Schedules a notification 10 seconds from now.',
                   ),
-                  trailing: ElevatedButton(
+                  trailing: ExpressiveElevatedButton(
                     onPressed: () async {
                       final dt = DateTime.now().add(
                         const Duration(seconds: 10),
@@ -76,8 +77,8 @@ class NotificationSettingsScreen extends StatelessWidget {
                   subtitle: const Text(
                     'Cancels the test notification if pending.',
                   ),
-                  trailing: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
+                  trailing: ExpressiveElevatedButton(
+                    style: ExpressiveElevatedButton.styleFrom(
                       backgroundColor: Colors.red[100],
                       foregroundColor: Colors.red[800],
                     ),

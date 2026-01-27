@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import '../models/folder_template.dart';
+import '../widgets/common/common.dart';
 
 class TemplateItem extends StatelessWidget {
   final FolderTemplate template;
@@ -41,7 +42,7 @@ class TemplateItem extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
+      child: ExpressiveInkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -203,11 +204,11 @@ class TemplateItem extends StatelessWidget {
                   const SizedBox(width: 8),
 
                   if (onDuplicate != null)
-                    OutlinedButton.icon(
+                    ExpressiveOutlinedButton.icon(
                       onPressed: onDuplicate,
                       icon: const Icon(Icons.copy_outlined, size: 16),
                       label: const Text('Copy'),
-                      style: OutlinedButton.styleFrom(
+                      style: ExpressiveOutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,

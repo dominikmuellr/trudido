@@ -21,6 +21,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import '../widgets/common/common.dart';
 
 /// Service for handling media operations (photos, videos, voice recordings)
 class MediaService {
@@ -130,7 +131,7 @@ class MediaService {
           ],
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
@@ -173,7 +174,7 @@ class MediaService {
           ],
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),

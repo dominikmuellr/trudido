@@ -35,6 +35,7 @@ import 'notes_folder_management_screen.dart';
 import 'bin_screen.dart';
 import 'vault_bin_screen.dart';
 import '../utils/animated_navigation.dart';
+import '../widgets/common/common.dart';
 
 /// Helper to get icon data from icon name string.
 IconData getIconDataFromName(String? iconName) {
@@ -207,7 +208,7 @@ class _ThemeCycleIcon extends ConsumerWidget {
         break;
     }
 
-    return IconButton(
+    return ExpressiveIconButton(
       icon: Icon(icon),
       iconSize: 20,
       color: colorScheme.primary,

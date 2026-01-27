@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 import '../services/system_settings_service.dart';
 import '../services/navigation_service.dart';
+import '../widgets/common/common.dart';
 
 Future<bool> showExactAlarmDialogIfNeeded(BuildContext context) async {
   final service = SystemSettingsService.instance;
@@ -36,7 +37,7 @@ Future<bool> showExactAlarmDialogIfNeeded(BuildContext context) async {
           'Android requires a manual toggle. We\'ll open system settings; enable it then come back.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('Later'),
           ),
@@ -70,7 +71,7 @@ Future<bool> showBatteryOptimizationDialogIfNeeded(BuildContext context) async {
           'We will open the system screen; accept the prompt (or add to the allowlist), then return here.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('Later'),
           ),

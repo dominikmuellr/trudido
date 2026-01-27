@@ -23,6 +23,7 @@ import '../services/system_settings_service.dart';
 import '../services/files_channel.dart';
 
 import '../providers/app_providers.dart';
+import '../widgets/common/common.dart';
 
 /// Single consolidated settings page using AlarmSettingsWatcher (Riverpod) and unified dialogs.
 class UnifiedSettingsPage extends ConsumerStatefulWidget {
@@ -178,7 +179,7 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage>
                         'Permission not granted. Open system notification settings?',
                       ),
                       actions: [
-                        TextButton(
+                        ExpressiveTextButton(
                           onPressed: () => Navigator.pop(c, false),
                           child: const Text('Cancel'),
                         ),
@@ -335,7 +336,7 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage>
         title: Text(title),
         content: Text(body),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Not now'),
           ),

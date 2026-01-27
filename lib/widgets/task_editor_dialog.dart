@@ -22,6 +22,7 @@ import '../services/storage_service.dart';
 import '../providers/clock.dart';
 import '../providers/app_providers.dart';
 import '../utils/week_start_utils.dart';
+import '../widgets/common/common.dart';
 
 class TaskEditorDialog extends ConsumerStatefulWidget {
   final Todo? todo;
@@ -183,10 +184,10 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
             ),
           ),
 
-          IconButton(
+          ExpressiveIconButton(
             onPressed: () => Navigator.of(context).pop(),
             icon: Icon(Icons.close),
-            style: IconButton.styleFrom(
+            style: ExpressiveIconButton.styleFrom(
               foregroundColor: colorScheme.onSurfaceVariant,
             ),
           ),
@@ -292,7 +293,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
   }) {
     return Material(
       color: Colors.transparent,
-      child: InkWell(
+      child: ExpressiveInkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
@@ -370,7 +371,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
   }
 
   Widget _buildAdvancedToggle(ThemeData theme) {
-    return TextButton.icon(
+    return ExpressiveTextButton.icon(
       onPressed: () {
         setState(() => _showAdvancedOptions = !_showAdvancedOptions);
       },
@@ -392,7 +393,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
       child: Row(
         children: [
           Expanded(
-            child: OutlinedButton(
+            child: ExpressiveOutlinedButton(
               onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
               child: const Text('Cancel'),
             ),

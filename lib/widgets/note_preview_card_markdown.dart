@@ -25,6 +25,7 @@ import '../models/note.dart';
 import '../providers/app_providers.dart';
 import '../services/theme_service.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import '../widgets/common/common.dart';
 
 /// A clean, scannable preview card with lightweight markdown rendering
 ///
@@ -617,13 +618,13 @@ class NotePreviewCard extends ConsumerWidget {
                     'Move this note to bin? You can restore it later from the Bin.',
                   ),
                   actions: [
-                    TextButton(
+                    ExpressiveTextButton(
                       onPressed: () => Navigator.of(context).pop(false),
                       child: const Text('Cancel'),
                     ),
-                    TextButton(
+                    ExpressiveTextButton(
                       onPressed: () => Navigator.of(context).pop(true),
-                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      style: ExpressiveTextButton.styleFrom(foregroundColor: Colors.red),
                       child: const Text('Move to Bin'),
                     ),
                   ],
@@ -658,7 +659,7 @@ class NotePreviewCard extends ConsumerWidget {
         // This should now be empty since we handle everything in confirmDismiss
         // The deletion should already be completed by the time this is called
       },
-      child: GestureDetector(
+      child: ExpressiveGestureDetector(
         onTap: onTap,
         onLongPress: () {
           // Show context menu on long press

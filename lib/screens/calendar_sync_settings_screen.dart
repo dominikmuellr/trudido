@@ -22,6 +22,7 @@ import '../providers/app_providers.dart';
 import '../controllers/task_controller.dart';
 import '../utils/responsive_size.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 /// Provider for calendar sync service
 final calendarSyncServiceProvider = Provider<CalendarSyncService>((ref) {
@@ -268,7 +269,7 @@ class _CalendarSyncSettingsScreenState
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            OutlinedButton.icon(
+                            ExpressiveOutlinedButton.icon(
                               onPressed: () {
                                 ref.invalidate(calendarSyncStatusProvider);
                               },
@@ -276,7 +277,7 @@ class _CalendarSyncSettingsScreenState
                               label: const Text('Refresh'),
                             ),
                             SpacingGap.gapH8,
-                            OutlinedButton.icon(
+                            ExpressiveOutlinedButton.icon(
                               onPressed: () => _showDiagnostics(context),
                               icon: const Icon(Icons.bug_report),
                               label: const Text('Diagnostics'),
@@ -450,7 +451,7 @@ class _CalendarSyncSettingsScreenState
           ),
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
           ),
@@ -790,7 +791,7 @@ class _CalendarSyncSettingsScreenState
           'Existing calendar events will not be deleted.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
@@ -863,7 +864,7 @@ class _CalendarSyncSettingsScreenState
             ],
           ),
           actions: [
-            TextButton(
+            ExpressiveTextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
@@ -1024,7 +1025,7 @@ class _CalendarSyncSettingsScreenState
           'This is useful if you accidentally synced the same tasks multiple times.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
@@ -1097,7 +1098,7 @@ class _CalendarSyncSettingsScreenState
           'This cannot be undone. Your tasks in Trudido will not be affected.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),

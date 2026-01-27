@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/common/common.dart';
 
 ///
 /// Usage:
@@ -148,7 +149,7 @@ class _NotesOnboardingTooltipState extends State<NotesOnboardingTooltip>
             builder: (context, child) {
               return Opacity(
                 opacity: _fadeAnimation.value,
-                child: GestureDetector(
+                child: ExpressiveGestureDetector(
                   onTap: _dismissTooltip,
                   child: Container(
                     width: double.infinity,
@@ -376,7 +377,7 @@ class _NoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return ExpressiveGestureDetector(
       onTap: () {
         // Handle tap - navigate to preview
         ScaffoldMessenger.of(context).showSnackBar(

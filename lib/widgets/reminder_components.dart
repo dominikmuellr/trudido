@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import '../utils/formatters.dart';
+import '../widgets/common/common.dart';
 
 class ReminderChip extends StatelessWidget {
   final int minutes;
@@ -32,7 +33,7 @@ class ReminderChip extends StatelessWidget {
     return ListTile(
       leading: const Icon(Icons.notifications_active_outlined, size: 20),
       title: Text(formatMinutesReadable(minutes)),
-      trailing: IconButton(
+      trailing: ExpressiveIconButton(
         icon: const Icon(Icons.delete_outline, size: 20),
         onPressed: onDelete,
       ),

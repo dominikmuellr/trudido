@@ -40,6 +40,7 @@ import 'services/system_settings_service.dart';
 import 'widgets/system_permission_dialogs.dart';
 import 'widgets/app_lock_wrapper.dart';
 import 'screens/home_screen.dart';
+import 'widgets/common/common.dart';
 
 /// Provider to signal widget-triggered task creation request.
 /// HomeScreen listens to this and opens TaskEditorScreen when triggered.
@@ -259,7 +260,7 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
             'Enable notifications so task reminders can appear on time.',
           ),
           actions: [
-            TextButton(
+            ExpressiveTextButton(
               onPressed: () => Navigator.pop(dCtx, false),
               child: const Text('Later'),
             ),
@@ -288,7 +289,7 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
             'Notifications are still disabled. Open system notification settings?',
           ),
           actions: [
-            TextButton(
+            ExpressiveTextButton(
               onPressed: () => Navigator.pop(c, false),
               child: const Text('Cancel'),
             ),

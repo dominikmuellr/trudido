@@ -40,6 +40,7 @@ import 'quill_note_editor_screen.dart';
 import 'settings_screen.dart';
 import 'task_editor_screen.dart';
 import 'template_management_screen.dart';
+import '../widgets/common/common.dart';
 
 /// Mixin providing action handlers for HomeScreen
 /// Separates action logic from UI building
@@ -93,11 +94,11 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
           'Move "${task.text}" to bin? You can restore it later from the Bin.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () {
               ref.read(taskControllerProvider.notifier).delete(task.id);
               Navigator.pop(context);
@@ -132,11 +133,11 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
           'Move "$noteTitle" to bin? You can restore it later from the Bin.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () {
               deleteNoteConfirmed(noteId);
               Navigator.pop(context);

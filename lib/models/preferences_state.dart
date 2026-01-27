@@ -41,6 +41,7 @@ class PreferencesState {
   final bool hideBottomNavigation; // Hide bottom nav/rail
   final int firstDayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
   final String defaultTaskView; // list | calendar - default view on app start
+  final bool hapticsEnabled; // Enable haptic feedback for interactions
   final double? _lineHeightMultiplier; // Line height multiplier (e.g. 1.2)
   double get lineHeightMultiplier => _lineHeightMultiplier ?? 1.2;
   final double? _paragraphSpacing; // Paragraph spacing in points (e.g. 8.0)
@@ -68,6 +69,7 @@ class PreferencesState {
     required this.hideBottomNavigation,
     required this.firstDayOfWeek,
     required this.defaultTaskView,
+    required this.hapticsEnabled,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
   }) : _lineHeightMultiplier = lineHeightMultiplier,
@@ -95,6 +97,7 @@ class PreferencesState {
     bool? hideBottomNavigation,
     int? firstDayOfWeek,
     String? defaultTaskView,
+    bool? hapticsEnabled,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
   }) => PreferencesState(
@@ -120,6 +123,7 @@ class PreferencesState {
     hideBottomNavigation: hideBottomNavigation ?? this.hideBottomNavigation,
     firstDayOfWeek: firstDayOfWeek ?? this.firstDayOfWeek,
     defaultTaskView: defaultTaskView ?? this.defaultTaskView,
+    hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
     lineHeightMultiplier: lineHeightMultiplier ?? this.lineHeightMultiplier,
     paragraphSpacing: paragraphSpacing ?? this.paragraphSpacing,
   );
@@ -149,6 +153,7 @@ class PreferencesState {
     hideBottomNavigation: false, // Default: show nav
     firstDayOfWeek: 1, // Default: Monday (0=Sunday, 1=Monday, etc.)
     defaultTaskView: 'list', // Default: list view
+    hapticsEnabled: true, // Default: haptic feedback enabled
     lineHeightMultiplier: 1.2,
     paragraphSpacing: 8.0,
   );

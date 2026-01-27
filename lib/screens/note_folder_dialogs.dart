@@ -22,6 +22,7 @@ import '../repositories/note_folder_repository.dart';
 import '../services/biometric_auth_service.dart';
 import '../services/vault_password_service.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 /// Shows password setup dialog for vault folders
 /// Returns a map with 'password' and 'useBiometric' keys, or null if cancelled
@@ -63,7 +64,7 @@ Future<Map<String, dynamic>?> showPasswordSetupDialogForFolder(
                   decoration: InputDecoration(
                     labelText: 'Password/PIN',
                     border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
+                    suffixIcon: ExpressiveIconButton(
                       icon: Icon(
                         obscurePassword
                             ? Icons.visibility
@@ -93,7 +94,7 @@ Future<Map<String, dynamic>?> showPasswordSetupDialogForFolder(
                   decoration: InputDecoration(
                     labelText: 'Confirm Password',
                     border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
+                    suffixIcon: ExpressiveIconButton(
                       icon: Icon(
                         obscureConfirm
                             ? Icons.visibility
@@ -135,7 +136,7 @@ Future<Map<String, dynamic>?> showPasswordSetupDialogForFolder(
           ),
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context, null),
             child: const Text('Cancel'),
           ),
@@ -230,7 +231,7 @@ Future<bool> showCreateNoteFolderDialog(
           ),
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
@@ -401,7 +402,7 @@ Future<Map<String, dynamic>?> showVaultSetup(
                   decoration: InputDecoration(
                     labelText: 'Password/PIN',
                     border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
+                    suffixIcon: ExpressiveIconButton(
                       icon: Icon(
                         obscurePassword
                             ? Icons.visibility
@@ -431,7 +432,7 @@ Future<Map<String, dynamic>?> showVaultSetup(
                   decoration: InputDecoration(
                     labelText: 'Confirm Password',
                     border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
+                    suffixIcon: ExpressiveIconButton(
                       icon: Icon(
                         obscureConfirm
                             ? Icons.visibility
@@ -473,7 +474,7 @@ Future<Map<String, dynamic>?> showVaultSetup(
           ),
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context, null),
             child: const Text('Cancel'),
           ),

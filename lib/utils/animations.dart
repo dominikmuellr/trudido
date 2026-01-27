@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import '../widgets/common/common.dart';
 
 /// Material Design 3 Animation Constants
 /// Based on Material Design motion guidelines - Optimized for speed
@@ -359,7 +360,7 @@ class _AnimatedListItemState extends State<AnimatedListItem>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return ExpressiveGestureDetector(
       onTapDown: widget.onTap != null ? _handleTapDown : null,
       onTapUp: widget.onTap != null ? _handleTapUp : null,
       onTapCancel: widget.onTap != null ? _handleTapCancel : null,

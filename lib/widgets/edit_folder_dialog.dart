@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/folder.dart';
 import '../services/folder_provider.dart';
 import '../use_cases/folder_use_cases.dart';
+import '../widgets/common/common.dart';
 
 class EditFolderDialog extends ConsumerStatefulWidget {
   final Folder folder;
@@ -162,7 +163,7 @@ class _EditFolderDialogState extends ConsumerState<EditFolderDialog> {
                       final iconData = _availableIcons[index];
                       final isSelected = _selectedIcon == iconData['name'];
 
-                      return InkWell(
+                      return ExpressiveInkWell(
                         onTap: () {
                           setState(() {
                             _selectedIcon = iconData['name'];
@@ -218,7 +219,7 @@ class _EditFolderDialogState extends ConsumerState<EditFolderDialog> {
 
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
-                        child: InkWell(
+                        child: ExpressiveInkWell(
                           onTap: () {
                             setState(() {
                               _selectedColor = color;
@@ -257,11 +258,11 @@ class _EditFolderDialogState extends ConsumerState<EditFolderDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        ExpressiveTextButton(
           onPressed: _isLoading ? null : () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        ElevatedButton(
+        ExpressiveElevatedButton(
           onPressed: _isLoading ? null : _updateFolder,
           child: _isLoading
               ? const SizedBox(

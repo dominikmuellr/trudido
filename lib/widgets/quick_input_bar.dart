@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../screens/home_screen_notifiers.dart';
 import '../controllers/notes_controller.dart';
 import '../repositories/note_folder_repository.dart';
+import '../widgets/common/common.dart';
 
 /// Input context type for quick input bar
 enum QuickInputContext { tasks, notes, vaultNotes }
@@ -201,7 +202,7 @@ class _QuickInputBarState extends ConsumerState<QuickInputBar> {
           // Pencil icon - only for Tasks tab (opens task editor)
           if (isTasksContext) ...[
             const SizedBox(width: 8),
-            IconButton(
+            ExpressiveIconButton(
               onPressed: _handleSubmit,
               icon: Icon(Icons.edit_outlined, color: colorScheme.primary),
               tooltip: 'Open task editor',

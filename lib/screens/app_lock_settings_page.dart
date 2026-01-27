@@ -22,6 +22,7 @@ import '../services/biometric_auth_service.dart';
 import '../utils/responsive_size.dart';
 import '../theme/spacing_tokens.dart';
 import 'lock_screen.dart';
+import '../widgets/common/common.dart';
 
 /// Settings page for App Lock configuration
 class AppLockSettingsPage extends ConsumerStatefulWidget {
@@ -94,7 +95,7 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
           'Would you like to use your fingerprint to unlock the app in addition to your PIN?',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Not Now'),
           ),
@@ -132,7 +133,7 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
             'This will remove PIN protection from the app. Anyone with access to your device will be able to open Trudido.',
           ),
           actions: [
-            TextButton(
+            ExpressiveTextButton(
               onPressed: () => Navigator.pop(context, false),
               child: const Text('Cancel'),
             ),

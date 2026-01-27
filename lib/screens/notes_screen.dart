@@ -27,6 +27,7 @@ import '../widgets/note_preview_card_markdown.dart';
 import '../widgets/notes_filter_chips.dart';
 import 'quill_note_editor_screen.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 /// Provider for notes search mode
 final notesSearchModeProvider = StateProvider<bool>((ref) => false);
@@ -359,7 +360,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           'Move "$noteTitle" to bin? You can restore it later from the Bin.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancel'),
           ),
@@ -437,7 +438,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           ),
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),

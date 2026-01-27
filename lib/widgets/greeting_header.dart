@@ -23,6 +23,7 @@ import '../services/theme_service.dart';
 import '../providers/app_providers.dart';
 import '../providers/clock.dart';
 import '../services/storage_service.dart';
+import '../widgets/common/common.dart';
 
 // Matrix Rain Animation Widget for Hack Theme
 class MatrixNameAnimation extends StatefulWidget {
@@ -375,7 +376,7 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
                                   ),
                                   Flexible(
                                     child: userName.isNotEmpty
-                                        ? GestureDetector(
+                                        ? ExpressiveGestureDetector(
                                             onTap: () =>
                                                 _showNameDialog(context),
                                             child: MatrixNameAnimation(
@@ -394,7 +395,7 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
                                   ),
                                 ],
                               )
-                            : GestureDetector(
+                            : ExpressiveGestureDetector(
                                 onTap: () => _showNameDialog(context),
                                 child: Text(
                                   _getGreetingText(greeting['text']!, userName),
@@ -463,13 +464,13 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
           autofocus: true,
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
           // Show "Clear" option if user currently has a name
           if (hasName)
-            TextButton(
+            ExpressiveTextButton(
               onPressed: () async {
                 // Use a special marker to indicate user cleared their name (different from never setting one)
                 await StorageService.setUserName('_CLEARED_NAME_');
@@ -480,7 +481,7 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
             ),
           // Show "Skip" option only if user has no name currently
           if (!hasName)
-            TextButton(
+            ExpressiveTextButton(
               onPressed: () async {
                 // Set a special marker to indicate user chose not to use name
                 await StorageService.setUserName('_SKIP_NAME_');
@@ -489,7 +490,7 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
               },
               child: const Text('Skip'),
             ),
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () async {
               final name = textController.text.trim();
               if (name.isNotEmpty) {

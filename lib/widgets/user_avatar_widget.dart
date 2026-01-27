@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 import '../services/avatar_service.dart';
 import '../services/storage_service.dart';
+import '../widgets/common/common.dart';
 
 class UserAvatarWidget extends StatelessWidget {
   final double radius;
@@ -45,7 +46,7 @@ class UserAvatarWidget extends StatelessWidget {
       colorScheme,
     );
 
-    return GestureDetector(
+    return ExpressiveGestureDetector(
       onTap: onTap,
       child: CircleAvatar(
         radius: radius,

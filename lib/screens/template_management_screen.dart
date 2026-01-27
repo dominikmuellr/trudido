@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/folder_template.dart';
 import '../services/template_provider.dart';
 import '../widgets/template_editor_dialog.dart';
+import '../widgets/common/common.dart';
 
 class TemplateManagementScreen extends ConsumerStatefulWidget {
   const TemplateManagementScreen({super.key});
@@ -126,7 +127,7 @@ class _TemplateManagementScreenState
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: ExpressiveFloatingActionButton.extended(
         onPressed: _createNewTemplate,
         icon: const Icon(Icons.add),
         label: const Text('New Template'),
@@ -304,7 +305,7 @@ class _TemplateManagementScreenState
           'Are you sure you want to delete "${template.name}"?\n\nThis action cannot be undone.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
@@ -334,7 +335,7 @@ class _TemplateManagementScreenState
           'Reset "${template.name}" to its original built-in version?\n\nYour customizations will be lost.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),

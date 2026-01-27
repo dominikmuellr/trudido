@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import '../models/folder_template.dart';
+import '../widgets/common/common.dart';
 
 class TemplateEditorDialog extends StatefulWidget {
   final FolderTemplate? template;
@@ -86,7 +87,7 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
                   ),
                 ),
                 const Spacer(),
-                IconButton(
+                ExpressiveIconButton(
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close),
                 ),
@@ -147,7 +148,7 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           const Spacer(),
-                          TextButton.icon(
+                          ExpressiveTextButton.icon(
                             onPressed: () {
                               setState(() {
                                 _tasks.add(TaskTemplateData());
@@ -169,7 +170,7 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
             const SizedBox(height: 16),
             Row(
               children: [
-                TextButton(
+                ExpressiveTextButton(
                   onPressed: _isLoading
                       ? null
                       : () => Navigator.of(context).pop(),
@@ -251,7 +252,7 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
                     ),
                     const Spacer(),
                     if (_tasks.length > 1)
-                      IconButton(
+                      ExpressiveIconButton(
                         onPressed: () {
                           setState(() {
                             _tasks.removeAt(index);
@@ -336,7 +337,7 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
           autofocus: true,
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),

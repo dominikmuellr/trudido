@@ -6,6 +6,7 @@ import '../models/note.dart';
 import '../providers/app_providers.dart';
 import '../repositories/notes_repository.dart';
 import '../repositories/note_folder_repository.dart';
+import '../widgets/common/common.dart';
 
 class BinScreen extends ConsumerStatefulWidget {
   final int initialTab;
@@ -69,13 +70,13 @@ class _BinScreenState extends ConsumerState<BinScreen>
           'All items in the bin will be permanently deleted. This cannot be undone.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: ExpressiveTextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Empty Bin'),
           ),
         ],
@@ -107,7 +108,7 @@ class _BinScreenState extends ConsumerState<BinScreen>
           ],
         ),
         actions: [
-          IconButton(
+          ExpressiveIconButton(
             icon: const Icon(Icons.delete_forever),
             tooltip: 'Empty Bin',
             onPressed: _emptyBin,
@@ -139,7 +140,7 @@ class _BinScreenState extends ConsumerState<BinScreen>
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
+              ExpressiveIconButton(
                 icon: const Icon(Icons.restore),
                 onPressed: () async {
                   await ref.read(taskRepositoryProvider).restoreTask(task.id);
@@ -147,7 +148,7 @@ class _BinScreenState extends ConsumerState<BinScreen>
                   final _ = ref.refresh(tasksProvider); // Refresh main list
                 },
               ),
-              IconButton(
+              ExpressiveIconButton(
                 icon: const Icon(Icons.delete_forever, color: Colors.red),
                 onPressed: () async {
                   await ref
@@ -181,7 +182,7 @@ class _BinScreenState extends ConsumerState<BinScreen>
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
+              ExpressiveIconButton(
                 icon: const Icon(Icons.restore),
                 onPressed: () async {
                   await ref.read(notesRepositoryProvider).restoreNote(note.id);
@@ -189,7 +190,7 @@ class _BinScreenState extends ConsumerState<BinScreen>
                   final _ = ref.refresh(notesProvider); // Refresh main list
                 },
               ),
-              IconButton(
+              ExpressiveIconButton(
                 icon: const Icon(Icons.delete_forever, color: Colors.red),
                 onPressed: () async {
                   await ref

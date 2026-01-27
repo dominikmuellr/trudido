@@ -20,6 +20,7 @@ import '../providers/app_providers.dart';
 import '../providers/clock.dart';
 import '../utils/date_formatters.dart';
 import '../utils/week_start_utils.dart';
+import '../widgets/common/common.dart';
 
 /// Material Design 3 compliant date picker with smart suggestions
 ///
@@ -237,7 +238,7 @@ class _MD3DatePickerDialogState extends State<_MD3DatePickerDialog> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(
+                  ExpressiveTextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text('Cancel'),
                   ),
@@ -431,7 +432,7 @@ class _MD3DateRangePickerDialogState extends State<_MD3DateRangePickerDialog> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(
+                  ExpressiveTextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text('Cancel'),
                   ),

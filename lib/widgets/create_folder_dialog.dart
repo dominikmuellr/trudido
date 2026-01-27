@@ -22,6 +22,7 @@ import '../providers/app_providers.dart';
 import '../use_cases/folder_use_cases.dart';
 import '../widgets/template_selection_dialog.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 class CreateFolderDialog extends ConsumerStatefulWidget {
   const CreateFolderDialog({super.key});
@@ -154,7 +155,7 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
                       final iconData = _availableIcons[index];
                       final isSelected = _selectedIcon == iconData['name'];
 
-                      return InkWell(
+                      return ExpressiveInkWell(
                         onTap: () {
                           setState(() {
                             _selectedIcon = iconData['name'];
@@ -210,7 +211,7 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
 
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
-                        child: InkWell(
+                        child: ExpressiveInkWell(
                           onTap: () {
                             setState(() {
                               _selectedColor = color;
@@ -249,11 +250,11 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        ExpressiveTextButton(
           onPressed: _isLoading ? null : () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        ElevatedButton(
+        ExpressiveElevatedButton(
           onPressed: _isLoading ? null : _createFolder,
           child: _isLoading
               ? const SizedBox(

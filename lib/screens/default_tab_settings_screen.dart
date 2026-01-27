@@ -20,6 +20,7 @@ import '../services/default_tab_service.dart';
 import '../providers/app_providers.dart';
 import '../services/preferences_service.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 /// Provider for the current default tab setting
 final defaultTabProvider = FutureProvider<String>((ref) async {
@@ -115,7 +116,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
                 textAlign: TextAlign.center,
               ),
               SpacingGap.gapV16,
-              ElevatedButton.icon(
+              ExpressiveElevatedButton.icon(
                 onPressed: () => ref.refresh(defaultTabNotifierProvider),
                 icon: Icon(Icons.refresh),
                 label: const Text('Retry'),
@@ -271,7 +272,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
         // Reset button
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton.icon(
+          child: ExpressiveOutlinedButton.icon(
             onPressed: () => _showResetDialog(context, ref),
             icon: Icon(Icons.undo),
             label: const Text('Reset to Default (Tasks)'),
@@ -292,7 +293,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: InkWell(
+      child: ExpressiveInkWell(
         onTap: () => _selectTab(context, ref, tabId, tabName),
         borderRadius: SpacingBorderRadius.sm,
         child: Container(
@@ -415,7 +416,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
           'Are you sure you want to continue?',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancel'),
           ),

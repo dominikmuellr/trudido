@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import '../widgets/common/common.dart';
 
 /// Provider to track floating toolbar expanded state
 /// Using a simple ValueNotifier instead of Riverpod to keep this widget self-contained
@@ -563,7 +564,7 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
     // Determine which items to show based on _showMoreOptions
     final currentItems = _showMoreOptions ? secondaryItems : primaryItems;
 
-    return GestureDetector(
+    return ExpressiveGestureDetector(
       onTapDown: (_) => _onToolbarTouched(),
       onPanStart: (_) => _onToolbarTouched(),
       child: AnimatedOpacity(
@@ -657,7 +658,7 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
             ),
 
             // Main FAB
-            FloatingActionButton(
+            ExpressiveFloatingActionButton(
               onPressed: _toggleExpanded,
               backgroundColor: _isExpanded ? cs.primaryContainer : cs.primary,
               foregroundColor: _isExpanded
@@ -692,7 +693,7 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
       message: _showMoreOptions ? 'Back to basics' : 'More options',
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
+        child: ExpressiveInkWell(
           onTap: () {
             _onToolbarTouched(); // Unfade toolbar
             _toggleMoreOptions();
@@ -719,7 +720,7 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
       message: item.tooltip,
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
+        child: ExpressiveInkWell(
           onTap: () {
             _onToolbarTouched(); // Unfade toolbar
             item.onTap();

@@ -21,6 +21,7 @@ import '../widgets/create_folder_dialog.dart';
 import '../widgets/edit_folder_dialog.dart';
 import '../use_cases/folder_use_cases.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 class FolderManagementScreen extends ConsumerStatefulWidget {
   const FolderManagementScreen({super.key});
@@ -123,13 +124,13 @@ class _FolderManagementScreenState
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          IconButton(
+                          ExpressiveIconButton(
                             icon: const Icon(Icons.edit),
                             onPressed: () =>
                                 _showEditFolderDialog(context, folder),
                             tooltip: 'Edit folder',
                           ),
-                          IconButton(
+                          ExpressiveIconButton(
                             icon: const Icon(Icons.delete),
                             onPressed: () => _deleteFolder(folder.id),
                             tooltip: 'Delete folder',
@@ -167,7 +168,7 @@ class _FolderManagementScreenState
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: ExpressiveFloatingActionButton(
         onPressed: () => _showCreateFolderDialog(context),
         child: const Icon(Icons.add),
       ),
@@ -216,11 +217,11 @@ class _FolderManagementScreenState
           'Tasks in this folder will be moved to the default folder.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () async {
               Navigator.pop(context);
               final result = await ref
@@ -236,7 +237,7 @@ class _FolderManagementScreenState
                 );
               }
             },
-            style: TextButton.styleFrom(
+            style: ExpressiveTextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
             child: const Text('Delete'),

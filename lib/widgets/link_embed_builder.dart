@@ -18,6 +18,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/common/common.dart';
 
 /// Custom embed builder for rendering clickable links in Quill editor
 class LinkEmbedBuilder extends quill.EmbedBuilder {
@@ -40,7 +41,7 @@ class LinkEmbedBuilder extends quill.EmbedBuilder {
     final url = data['url'] as String;
     final text = data['text'] as String? ?? url;
 
-    return InkWell(
+    return ExpressiveInkWell(
       onTap: () => _openLink(context, url),
       child: Text(
         text,

@@ -26,6 +26,7 @@ import '../controllers/preferences_controller.dart';
 import 'font_size_settings_screen.dart';
 import 'defaults_settings_screen.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 class PersonalizationScreen extends ConsumerStatefulWidget {
   const PersonalizationScreen({super.key});
@@ -191,7 +192,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
             child: Column(
               children: [
                 // Avatar (centered)
-                GestureDetector(
+                ExpressiveGestureDetector(
                   onTap: _showAvatarOptions,
                   child: Stack(
                     children: [
@@ -249,7 +250,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
                     hintText: 'Enter your name',
                     border: const OutlineInputBorder(),
                     suffixIcon: _hasNameChanges
-                        ? IconButton(
+                        ? ExpressiveIconButton(
                             icon: Icon(Icons.check, color: colorScheme.primary),
                             onPressed: _saveName,
                           )
@@ -303,6 +304,23 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
           // Contrast Level Selector (Material 3 January 2026)
           const _ContrastLevelSelector(),
           _buildFontSizeLink(),
+          Consumer(
+            builder: (context, ref, _) {
+              final enabled = ref
+                  .watch(preferencesStateProvider)
+                  .hapticsEnabled;
+              final controller = ref.read(preferencesControllerProvider);
+              return SwitchListTile(
+                secondary: const Icon(Icons.vibration),
+                title: const Text('Haptic Feedback'),
+                subtitle: const Text(
+                  'Vibrate when tapping buttons and interactive elements',
+                ),
+                value: enabled,
+                onChanged: (v) => controller.toggleHaptics(),
+              );
+            },
+          ),
           Consumer(
             builder: (context, ref, _) {
               final enabled = ref.watch(preferencesStateProvider).showSearchBar;
@@ -419,7 +437,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
     required String url,
     required Color color,
   }) {
-    return OutlinedButton.icon(
+    return ExpressiveOutlinedButton.icon(
       onPressed: () async {
         final uri = Uri.parse(url);
         try {
@@ -430,7 +448,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
       },
       icon: Icon(icon, color: color, size: 18),
       label: Text(label),
-      style: OutlinedButton.styleFrom(
+      style: ExpressiveOutlinedButton.styleFrom(
         foregroundColor: Theme.of(context).colorScheme.onSurface,
         side: BorderSide(color: color.withValues(alpha: 0.5)),
       ),

@@ -21,6 +21,7 @@ import '../models/note_folder.dart';
 import '../services/biometric_auth_service.dart';
 import '../services/vault_password_service.dart';
 import '../services/vault_auth_service.dart';
+import '../widgets/common/common.dart';
 
 /// Folder management screen specifically for Notes (with vault support)
 class NotesFolderManagementScreen extends ConsumerStatefulWidget {
@@ -122,12 +123,12 @@ class _NotesFolderManagementScreenState
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      IconButton(
+                      ExpressiveIconButton(
                         icon: const Icon(Icons.edit),
                         onPressed: () => _showEditFolderDialog(folder),
                         tooltip: 'Edit folder',
                       ),
-                      IconButton(
+                      ExpressiveIconButton(
                         icon: const Icon(Icons.delete),
                         onPressed: () => _deleteFolder(folder),
                         tooltip: 'Delete folder',
@@ -160,7 +161,7 @@ class _NotesFolderManagementScreenState
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: ExpressiveFloatingActionButton(
         onPressed: () => _showCreateFolderDialog(),
         child: const Icon(Icons.add),
       ),
@@ -233,7 +234,7 @@ class _NotesFolderManagementScreenState
             ),
           ),
           actions: [
-            TextButton(
+            ExpressiveTextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
@@ -385,7 +386,7 @@ class _NotesFolderManagementScreenState
             ),
           ),
           actions: [
-            TextButton(
+            ExpressiveTextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
@@ -467,7 +468,7 @@ class _NotesFolderManagementScreenState
           'Delete "${folder.name}"?\n\nNotes in this folder will not be deleted, but they will no longer be associated with this folder.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
@@ -545,7 +546,7 @@ class _NotesFolderManagementScreenState
                     decoration: InputDecoration(
                       labelText: 'Password/PIN',
                       border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
+                      suffixIcon: ExpressiveIconButton(
                         icon: Icon(
                           obscurePassword
                               ? Icons.visibility
@@ -575,7 +576,7 @@ class _NotesFolderManagementScreenState
                     decoration: InputDecoration(
                       labelText: 'Confirm Password',
                       border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
+                      suffixIcon: ExpressiveIconButton(
                         icon: Icon(
                           obscureConfirm
                               ? Icons.visibility
@@ -617,7 +618,7 @@ class _NotesFolderManagementScreenState
             ),
           ),
           actions: [
-            TextButton(
+            ExpressiveTextButton(
               onPressed: () => Navigator.pop(context, null),
               child: const Text('Cancel'),
             ),

@@ -21,6 +21,7 @@ import '../utils/animations.dart';
 import '../utils/animated_navigation.dart';
 import '../widgets/animated_widgets.dart';
 import '../services/haptic_feedback_service.dart';
+import '../widgets/common/common.dart';
 
 class ExampleScreen extends StatefulWidget {
   const ExampleScreen({super.key});
@@ -128,7 +129,7 @@ class _ExampleScreenState extends State<ExampleScreen> {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: OutlinedButton(
+                child: ExpressiveOutlinedButton(
                   onPressed: () {
                     HapticFeedbackService.warning();
                     setState(() => _count = 0);
@@ -151,7 +152,7 @@ class _ExampleScreenState extends State<ExampleScreen> {
                   title: const Text('Confirm Action'),
                   content: const Text('Are you sure?'),
                   actions: [
-                    TextButton(
+                    ExpressiveTextButton(
                       onPressed: () => Navigator.pop(context),
                       child: const Text('Cancel'),
                     ),

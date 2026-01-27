@@ -21,6 +21,7 @@ import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:intl/intl.dart';
 import 'package:video_player/video_player.dart';
+import '../widgets/common/common.dart';
 
 /// Custom embed builder for rendering media (images, videos, audio) in Quill editor
 class MediaEmbedBuilder extends quill.EmbedBuilder {
@@ -84,7 +85,7 @@ class MediaEmbedBuilder extends quill.EmbedBuilder {
       );
     }
 
-    return GestureDetector(
+    return ExpressiveGestureDetector(
       onTap: () {
         // Open fullscreen image viewer
         Navigator.of(context).push(
@@ -277,7 +278,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                         ),
                       ),
                     )
-                  : IconButton(
+                  : ExpressiveIconButton(
                       onPressed: _togglePlayPause,
                       icon: Icon(
                         _isPlaying
@@ -406,10 +407,10 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer> {
             Positioned(
               top: 16,
               right: 16,
-              child: IconButton(
+              child: ExpressiveIconButton(
                 icon: const Icon(Icons.close, color: Colors.white),
                 onPressed: () => Navigator.of(context).pop(),
-                style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                style: ExpressiveIconButton.styleFrom(backgroundColor: Colors.black54),
               ),
             ),
           ],
@@ -542,7 +543,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               VideoPlayer(_controller),
               // Play/Pause overlay
               Positioned.fill(
-                child: GestureDetector(
+                child: ExpressiveGestureDetector(
                   onTap: () {
                     setState(() {
                       if (_controller.value.isPlaying) {

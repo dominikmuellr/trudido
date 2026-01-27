@@ -18,6 +18,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/media_service.dart';
+import '../widgets/common/common.dart';
 
 /// Dialog for inserting a link in the note editor
 class LinkInsertDialog extends StatefulWidget {
@@ -70,11 +71,11 @@ class _LinkInsertDialogState extends State<LinkInsertDialog> {
         ],
       ),
       actions: [
-        TextButton(
+        ExpressiveTextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        ElevatedButton(
+        ExpressiveElevatedButton(
           onPressed: () {
             if (_urlController.text.trim().isNotEmpty) {
               widget.onInsert(
@@ -212,22 +213,22 @@ class _VoiceRecordingDialogState extends State<VoiceRecordingDialog> {
       ),
       actions: [
         if (!_isRecording) ...[
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          ElevatedButton.icon(
+          ExpressiveElevatedButton.icon(
             onPressed: _startRecording,
             icon: const Icon(Icons.mic),
             label: const Text('Start Recording'),
           ),
         ] else ...[
-          TextButton(onPressed: _cancelRecording, child: const Text('Cancel')),
-          ElevatedButton.icon(
+          ExpressiveTextButton(onPressed: _cancelRecording, child: const Text('Cancel')),
+          ExpressiveElevatedButton.icon(
             onPressed: _stopRecording,
             icon: const Icon(Icons.stop),
             label: const Text('Stop & Save'),
-            style: ElevatedButton.styleFrom(
+            style: ExpressiveElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),

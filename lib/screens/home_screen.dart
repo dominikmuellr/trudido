@@ -37,6 +37,7 @@ import 'home_app_bar.dart';
 import 'home_bottom_navigation.dart';
 import 'home_screen_actions.dart';
 import 'note_folder_dialogs.dart';
+import '../widgets/common/common.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -360,9 +361,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 openPersonalizationScreen(() => setState(() {})),
           ),
           // Wrap body in GestureDetector to unfocus quick input bar when tapping elsewhere
-          body: GestureDetector(
+          body: ExpressiveGestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
             behavior: HitTestBehavior.translucent,
+            enableHaptics: false,
             child: Stack(
               children: [
                 ref.watch(searchModeProvider)
@@ -435,7 +437,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       right:
                           20, // Offset to center-align with FAB (FAB is larger)
                       bottom: viewToggleBottom,
-                      child: FloatingActionButton.small(
+                      child: ExpressiveFloatingActionButton.small(
                         heroTag: 'view_toggle',
                         backgroundColor: Theme.of(context)
                             .colorScheme

@@ -152,70 +152,87 @@ class AppTheme {
   static const Color mediumPriority = Color(0xFFFFB74D);
   static const Color lowPriority = Color(0xFF81C784);
 
-  /// Creates a comprehensive text theme using system default fonts (Roboto on Android)
+  /// Creates a comprehensive text theme using Google Sans font
   static TextTheme _buildTextTheme(Brightness brightness) {
-    // Use system default text theme - no custom fonts to reduce APK size
+    // Use Google Sans for modern Material Design typography
+    const String fontFamily = 'GoogleSans';
+
     final baseTextTheme = brightness == Brightness.light
         ? ThemeData.light().textTheme
         : ThemeData.dark().textTheme;
 
-    // Customize weights and letter spacing while using default font
+    // Customize weights and letter spacing with Google Sans
     return baseTextTheme.copyWith(
       displayLarge: baseTextTheme.displayLarge?.copyWith(
-        fontWeight: FontWeight.w300,
+        fontFamily: fontFamily,
+        fontWeight: FontWeight.w400,
         letterSpacing: -1.5,
       ),
       displayMedium: baseTextTheme.displayMedium?.copyWith(
-        fontWeight: FontWeight.w300,
+        fontFamily: fontFamily,
+        fontWeight: FontWeight.w400,
         letterSpacing: -0.5,
       ),
       displaySmall: baseTextTheme.displaySmall?.copyWith(
+        fontFamily: fontFamily,
         fontWeight: FontWeight.w400,
       ),
       headlineLarge: baseTextTheme.headlineLarge?.copyWith(
+        fontFamily: fontFamily,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.25,
       ),
       headlineMedium: baseTextTheme.headlineMedium?.copyWith(
+        fontFamily: fontFamily,
         fontWeight: FontWeight.w600,
       ),
       headlineSmall: baseTextTheme.headlineSmall?.copyWith(
+        fontFamily: fontFamily,
         fontWeight: FontWeight.w600,
       ),
       titleLarge: baseTextTheme.titleLarge?.copyWith(
+        fontFamily: fontFamily,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.15,
       ),
       titleMedium: baseTextTheme.titleMedium?.copyWith(
+        fontFamily: fontFamily,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.15,
       ),
       titleSmall: baseTextTheme.titleSmall?.copyWith(
+        fontFamily: fontFamily,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.1,
       ),
       labelLarge: baseTextTheme.labelLarge?.copyWith(
+        fontFamily: fontFamily,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.1,
       ),
       labelMedium: baseTextTheme.labelMedium?.copyWith(
+        fontFamily: fontFamily,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.5,
       ),
       labelSmall: baseTextTheme.labelSmall?.copyWith(
+        fontFamily: fontFamily,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.5,
       ),
       bodyLarge: baseTextTheme.bodyLarge?.copyWith(
-        fontWeight: FontWeight.w500,
+        fontFamily: fontFamily,
+        fontWeight: FontWeight.w400,
         letterSpacing: 0.5,
       ),
       bodyMedium: baseTextTheme.bodyMedium?.copyWith(
-        fontWeight: FontWeight.w500,
+        fontFamily: fontFamily,
+        fontWeight: FontWeight.w400,
         letterSpacing: 0.25,
       ),
       bodySmall: baseTextTheme.bodySmall?.copyWith(
-        fontWeight: FontWeight.w500,
+        fontFamily: fontFamily,
+        fontWeight: FontWeight.w400,
         letterSpacing: 0.4,
       ),
     );

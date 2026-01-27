@@ -20,6 +20,7 @@ import 'package:intl/intl.dart';
 import '../providers/app_providers.dart';
 import '../providers/clock.dart';
 import '../utils/week_start_utils.dart';
+import '../widgets/common/common.dart';
 
 class SmartDatePicker extends ConsumerStatefulWidget {
   final DateTime? initialStartDate;
@@ -85,7 +86,7 @@ class _SmartDatePickerState extends ConsumerState<SmartDatePicker> {
                     ],
                   ),
                 ),
-                IconButton(
+                ExpressiveIconButton(
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close),
                 ),
@@ -158,7 +159,7 @@ class _SmartDatePickerState extends ConsumerState<SmartDatePicker> {
             Row(
               children: [
                 if (_startDate != null)
-                  TextButton(
+                  ExpressiveTextButton(
                     onPressed: () {
                       setState(() {
                         _startDate = null;
@@ -168,7 +169,7 @@ class _SmartDatePickerState extends ConsumerState<SmartDatePicker> {
                     child: const Text('Clear'),
                   ),
                 const Spacer(),
-                OutlinedButton(
+                ExpressiveOutlinedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   child: const Text('Cancel'),
                 ),

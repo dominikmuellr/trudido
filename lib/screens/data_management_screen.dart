@@ -21,6 +21,7 @@ import '../utils/responsive_size.dart';
 import 'calendar_sync_settings_screen.dart';
 import 'holiday_calendar_settings_screen.dart';
 import 'backup_settings_page.dart';
+import '../widgets/common/common.dart';
 
 class DataManagementScreen extends ConsumerWidget {
   const DataManagementScreen({super.key});
@@ -179,7 +180,7 @@ class _DangerZoneSheet extends ConsumerWidget {
           'Are you sure you want to delete all completed tasks? This action cannot be undone.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
@@ -207,7 +208,7 @@ class _DangerZoneSheet extends ConsumerWidget {
           'Are you sure you want to delete ALL tasks and categories? This will permanently remove all your data and cannot be undone.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),

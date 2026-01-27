@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/note_history_provider.dart';
+import '../widgets/common/common.dart';
 
 /// Slash command menu for quick media/content insertion
 class SlashCommandMenu extends StatelessWidget {
@@ -99,7 +100,7 @@ class _SlashMenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return ExpressiveInkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
@@ -205,7 +206,7 @@ class FloatingHistoryControls extends ConsumerWidget {
               ),
             ],
             // Undo button
-            IconButton(
+            ExpressiveIconButton(
               icon: Icon(
                 Icons.undo_rounded,
                 size: 20,
@@ -221,7 +222,7 @@ class FloatingHistoryControls extends ConsumerWidget {
               constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             ),
             // Redo button
-            IconButton(
+            ExpressiveIconButton(
               icon: Icon(
                 Icons.redo_rounded,
                 size: 20,
@@ -242,7 +243,7 @@ class FloatingHistoryControls extends ConsumerWidget {
               Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
             ),
             // History button
-            IconButton(
+            ExpressiveIconButton(
               icon: Icon(
                 Icons.history_rounded,
                 size: 20,

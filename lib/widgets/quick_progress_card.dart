@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/task_controller.dart';
 import '../screens/home_screen_notifiers.dart';
 import '../services/theme_service.dart';
+import '../widgets/common/common.dart';
 
 class QuickProgressCard extends ConsumerWidget {
   final TaskStatistics statistics;
@@ -50,7 +51,7 @@ class QuickProgressCard extends ConsumerWidget {
 
     return Card(
       margin: EdgeInsets.zero,
-      child: InkWell(
+      child: ExpressiveInkWell(
         onTap: () => ref.read(currentTabProvider.notifier).setTab(2),
         borderRadius: BorderRadius.circular(12),
         child: Padding(

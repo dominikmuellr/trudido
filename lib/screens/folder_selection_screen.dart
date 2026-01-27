@@ -20,6 +20,7 @@ import '../models/folder.dart';
 import '../services/folder_provider.dart';
 import '../screens/folder_management_screen.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 class FolderSelectionScreen extends ConsumerWidget {
   const FolderSelectionScreen({super.key});
@@ -34,7 +35,7 @@ class FolderSelectionScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Select Folder'),
         actions: [
-          IconButton(
+          ExpressiveIconButton(
             onPressed: () {
               Navigator.push(
                 context,
@@ -80,7 +81,7 @@ class FolderSelectionScreen extends ConsumerWidget {
 
             const SizedBox(height: 32),
 
-            OutlinedButton.icon(
+            ExpressiveOutlinedButton.icon(
               onPressed: () {
                 Navigator.push(
                   context,
@@ -103,7 +104,7 @@ class FolderSelectionScreen extends ConsumerWidget {
               SpacingGap.gapV16,
               Text('Error loading folders', style: theme.textTheme.titleMedium),
               SpacingGap.gapV8,
-              ElevatedButton(
+              ExpressiveElevatedButton(
                 onPressed: () =>
                     ref.read(folderNotifierProvider.notifier).loadFolders(),
                 child: const Text('Retry'),
@@ -134,7 +135,7 @@ class _FolderTile extends StatelessWidget {
 
     return Material(
       borderRadius: SpacingBorderRadius.md,
-      child: InkWell(
+      child: ExpressiveInkWell(
         borderRadius: SpacingBorderRadius.md,
         onTap: onTap,
         child: Container(

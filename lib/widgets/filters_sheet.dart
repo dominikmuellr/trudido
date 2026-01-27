@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/filter_providers.dart';
+import '../widgets/common/common.dart';
 
 /// Shows the full, draggable filters sheet used by the overflow menu.
 ///
@@ -195,12 +196,12 @@ Future<void> showFiltersSheet(BuildContext context) {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        TextButton(
+                        ExpressiveTextButton(
                           onPressed: () => Navigator.of(sheetContext).pop(),
                           child: const Text('Close'),
                         ),
                         const SizedBox(width: 8),
-                        ElevatedButton(
+                        ExpressiveElevatedButton(
                           onPressed: () => Navigator.of(sheetContext).pop(),
                           child: const Text('Done'),
                         ),

@@ -186,6 +186,9 @@ class PreferencesService {
       defaultTaskView:
           p.getString('default_task_view') ??
           PreferencesState.defaultState.defaultTaskView,
+      hapticsEnabled:
+          p.getBool('haptics_enabled') ??
+          PreferencesState.defaultState.hapticsEnabled,
       lineHeightMultiplier:
           p.getDouble('line_height_multiplier') ??
           PreferencesState.defaultState.lineHeightMultiplier,
@@ -219,6 +222,7 @@ class PreferencesService {
     bool? hideBottomNavigation,
     int? firstDayOfWeek,
     String? defaultTaskView,
+    bool? hapticsEnabled,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
     String? contrastLevel,
@@ -261,6 +265,8 @@ class PreferencesService {
         await p.setInt('first_day_of_week', firstDayOfWeek);
       if (defaultTaskView != null)
         await p.setString('default_task_view', defaultTaskView);
+      if (hapticsEnabled != null)
+        await p.setBool('haptics_enabled', hapticsEnabled);
       if (lineHeightMultiplier != null)
         await p.setDouble('line_height_multiplier', lineHeightMultiplier);
       if (paragraphSpacing != null)

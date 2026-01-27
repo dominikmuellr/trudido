@@ -27,6 +27,7 @@ import '../repositories/notes_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'quill_note_editor_screen.dart';
+import '../widgets/common/common.dart';
 
 /// Full-screen note preview that renders complete markdown
 ///
@@ -286,7 +287,7 @@ class _NotePreviewScreenState extends ConsumerState<NotePreviewScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: ExpressiveFloatingActionButton(
         onPressed: () async {
           // Check if note belongs to vault folder and require auth
           if (_currentNote.folderId != null) {
@@ -523,7 +524,7 @@ class _NotePreviewScreenState extends ConsumerState<NotePreviewScreen> {
           : Theme.of(context).colorScheme.surfaceContainerLow,
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        leading: IconButton(
+        leading: ExpressiveIconButton(
           icon: Icon(
             isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
             color: isCompleted

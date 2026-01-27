@@ -31,6 +31,7 @@ import '../repositories/note_folder_repository.dart';
 import '../widgets/user_avatar_widget.dart';
 import 'home_screen_notifiers.dart';
 import 'notes_screen.dart';
+import '../widgets/common/common.dart';
 
 /// AppBar widget for the home screen
 /// Handles search mode, multi-select mode, and regular greeting display
@@ -85,7 +86,7 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
       surfaceTintColor: isAmoledBlack
           ? Colors.transparent
           : colorScheme.surfaceTint,
-      leading: IconButton(
+      leading: ExpressiveIconButton(
         icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
         onPressed: () {
           ref.read(searchModeProvider.notifier).state = false;
@@ -124,7 +125,7 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
       ),
       actions: [
         if (searchController.text.isNotEmpty)
-          IconButton(
+          ExpressiveIconButton(
             icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
             tooltip: 'Clear search',
             onPressed: () {
@@ -160,7 +161,7 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
           : colorScheme.surfaceTint,
       // Leading: Menu button to open drawer (or close button in multi-select mode)
       leading: multiMode
-          ? IconButton(
+          ? ExpressiveIconButton(
               icon: ScaledIcon(Icons.close),
               onPressed: () {
                 ref.read(multiSelectModeProvider.notifier).state = false;
@@ -168,7 +169,7 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
               },
             )
           : Builder(
-              builder: (context) => IconButton(
+              builder: (context) => ExpressiveIconButton(
                 icon: ScaledIcon(Icons.menu, color: colorScheme.primary),
                 tooltip: 'Open menu',
                 onPressed: () {
@@ -203,7 +204,7 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
       actions: [
         // Delete button in multi-select mode
         if (currentTab == 0 && multiMode)
-          IconButton(
+          ExpressiveIconButton(
             icon: Icon(
               Icons.delete_outline,
               color: selectedIds.isEmpty
@@ -245,11 +246,11 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
           'Move ${selectedIds.length} selected ${selectedIds.length == 1 ? 'task' : 'tasks'} to bin? You can restore them later from the Bin.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context, true),
             child: Text(
               'Move to Bin',
@@ -285,7 +286,7 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
           scale: searchBarScaleAnimation!.value,
           child: Opacity(
             opacity: searchBarScaleAnimation!.value,
-            child: GestureDetector(
+            child: ExpressiveGestureDetector(
               onTap: () {
                 // Activate full search mode when tapped
                 ref.read(searchModeProvider.notifier).state = true;
@@ -339,7 +340,7 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
                           final viewMode = ref.watch(notesViewModeProvider);
                           return Padding(
                             padding: const EdgeInsets.only(left: 4),
-                            child: IconButton(
+                            child: ExpressiveIconButton(
                               icon: Icon(
                                 viewMode == 'grid'
                                     ? Icons.view_list

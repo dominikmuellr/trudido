@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 /// Separate screen for vault password setup to avoid dialog context issues.
 /// Provides a full-screen form for creating vault passwords with optional biometric.
@@ -62,7 +63,7 @@ class _VaultSetupScreenState extends State<VaultSetupScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Setup ${widget.folderName}'),
-        leading: IconButton(
+        leading: ExpressiveIconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(null),
         ),
@@ -83,7 +84,7 @@ class _VaultSetupScreenState extends State<VaultSetupScreen> {
               decoration: InputDecoration(
                 labelText: 'Password/PIN',
                 border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
+                suffixIcon: ExpressiveIconButton(
                   icon: Icon(
                     _obscurePassword ? Icons.visibility : Icons.visibility_off,
                   ),
@@ -111,7 +112,7 @@ class _VaultSetupScreenState extends State<VaultSetupScreen> {
               decoration: InputDecoration(
                 labelText: 'Confirm Password',
                 border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
+                suffixIcon: ExpressiveIconButton(
                   icon: Icon(
                     _obscureConfirm ? Icons.visibility : Icons.visibility_off,
                   ),
@@ -145,7 +146,7 @@ class _VaultSetupScreenState extends State<VaultSetupScreen> {
               ),
             ],
             SpacingGap.gapV24,
-            ElevatedButton(
+            ExpressiveElevatedButton(
               onPressed: _submit,
               child: const Padding(
                 padding: SpacingEdgeInsets.insets16,

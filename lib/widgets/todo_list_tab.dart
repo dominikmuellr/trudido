@@ -32,6 +32,7 @@ import '../screens/task_editor_screen.dart';
 import '../models/todo.dart';
 import '../models/holiday.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 class TodoListTab extends ConsumerWidget {
   const TodoListTab({super.key});
@@ -46,7 +47,7 @@ class TodoListTab extends ConsumerWidget {
         // Hide filters in calendar view
         if (viewType != TaskViewType.calendar) const FilterChips(),
         Expanded(
-          child: GestureDetector(
+          child: ExpressiveGestureDetector(
             onPanUpdate: (details) {
               if (viewType == TaskViewType.calendar || filteredTodos.isEmpty) {
                 if (details.delta.dy > 60) {
@@ -155,11 +156,11 @@ class TodoListTab extends ConsumerWidget {
           'Move "${todo.text}" to bin? You can restore it later from the Bin.',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () {
               ref.read(taskControllerProvider.notifier).delete(todo.id);
               Navigator.pop(context);
@@ -377,11 +378,11 @@ class TodoListTab extends ConsumerWidget {
               title: const Text('Move to Bin'),
               content: Text('Move "${holiday.name}" to bin?'),
               actions: [
-                TextButton(
+                ExpressiveTextButton(
                   onPressed: () => Navigator.pop(context, false),
                   child: const Text('Cancel'),
                 ),
-                TextButton(
+                ExpressiveTextButton(
                   onPressed: () => Navigator.pop(context, true),
                   child: const Text('Move to Bin'),
                 ),

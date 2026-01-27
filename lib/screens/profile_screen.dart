@@ -18,6 +18,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/avatar_service.dart';
 import '../services/storage_service.dart';
+import '../widgets/common/common.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -170,7 +171,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Avatar Section
-            GestureDetector(
+            ExpressiveGestureDetector(
               onTap: _showAvatarOptions,
               child: Stack(
                 children: [
@@ -232,7 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 border: const OutlineInputBorder(),
                 prefixIcon: const Icon(Icons.person_outline),
                 suffixIcon: _hasChanges
-                    ? IconButton(
+                    ? ExpressiveIconButton(
                         icon: Icon(Icons.check, color: colorScheme.primary),
                         onPressed: _saveName,
                       )

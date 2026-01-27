@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import '../models/folder.dart';
+import '../widgets/common/common.dart';
 
 class FolderItem extends StatelessWidget {
   final Folder folder;
@@ -39,7 +40,7 @@ class FolderItem extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
+      child: ExpressiveInkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -190,7 +191,7 @@ class FolderItem extends StatelessWidget {
 
                         // Action buttons
                         if (onEdit != null) ...[
-                          IconButton(
+                          ExpressiveIconButton(
                             onPressed: onEdit,
                             icon: Icon(Icons.edit),
                             iconSize: 18,
@@ -204,7 +205,7 @@ class FolderItem extends StatelessWidget {
                         ],
 
                         if (onDelete != null) ...[
-                          IconButton(
+                          ExpressiveIconButton(
                             onPressed: onDelete,
                             icon: Icon(Icons.delete),
                             iconSize: 18,
@@ -213,7 +214,7 @@ class FolderItem extends StatelessWidget {
                               minWidth: 32,
                               minHeight: 32,
                             ),
-                            style: IconButton.styleFrom(
+                            style: ExpressiveIconButton.styleFrom(
                               foregroundColor: theme.colorScheme.error,
                             ),
                             tooltip: 'Delete folder',

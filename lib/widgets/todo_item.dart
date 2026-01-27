@@ -21,6 +21,7 @@ import 'package:intl/intl.dart';
 import '../screens/task_editor_screen.dart';
 import '../models/todo.dart';
 import '../services/theme_service.dart';
+import '../widgets/common/common.dart';
 
 class TodoItem extends StatelessWidget {
   final Todo todo;
@@ -99,7 +100,7 @@ class TodoItem extends StatelessWidget {
                 : (theme.brightness == Brightness.dark
                       ? cs.surfaceContainerHigh
                       : null),
-            child: InkWell(
+            child: ExpressiveInkWell(
               onTap: () {
                 if (selectable && onSelectToggle != null) {
                   onSelectToggle!();
@@ -125,7 +126,7 @@ class TodoItem extends StatelessWidget {
                 child: Row(
                   children: [
                     selectable
-                        ? GestureDetector(
+                        ? ExpressiveGestureDetector(
                             onTap: onSelectToggle,
                             child: Container(
                               padding: EdgeInsets.all(controlPad),
@@ -156,7 +157,7 @@ class TodoItem extends StatelessWidget {
                               ),
                             ),
                           )
-                        : GestureDetector(
+                        : ExpressiveGestureDetector(
                             onTap: onToggle,
                             child: Container(
                               padding: EdgeInsets.all(controlPad),

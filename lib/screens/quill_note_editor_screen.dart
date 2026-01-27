@@ -43,6 +43,7 @@ import '../providers/note_history_provider.dart';
 import '../widgets/note_history_bottom_sheet.dart';
 import '../models/note_history.dart';
 import '../services/storage_service.dart';
+import '../widgets/common/common.dart';
 
 /// Media type enum
 enum MediaType { photo, video }
@@ -514,7 +515,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
           ],
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
@@ -1078,13 +1079,13 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
               'You have unsaved changes. Do you want to discard them?',
             ),
             actions: [
-              TextButton(
+              ExpressiveTextButton(
                 onPressed: () => Navigator.of(context).pop(false),
                 child: const Text('Cancel'),
               ),
-              TextButton(
+              ExpressiveTextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                style: ExpressiveTextButton.styleFrom(foregroundColor: Colors.red),
                 child: const Text('Discard'),
               ),
             ],
@@ -1569,7 +1570,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
               ),
             // Toolbar toggle button - only show when not using floating toolbar
             if (!_useFloatingToolbar)
-              IconButton(
+              ExpressiveIconButton(
                 icon: Icon(
                   _hideToolbar
                       ? Icons.keyboard_arrow_down
@@ -1586,7 +1587,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                   _saveToolbarPreferences();
                 },
               ),
-            IconButton(
+            ExpressiveIconButton(
               icon: const Icon(Icons.share_outlined),
               tooltip: 'Export',
               onPressed: () => _showExportOptions(),
@@ -1665,7 +1666,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                           children: [
                             const SizedBox(width: 8),
                             // More options toggle button - at the beginning for visibility
-                            IconButton(
+                            ExpressiveIconButton(
                               icon: Icon(
                                 _showMoreToolbar
                                     ? Icons.expand_less
@@ -1849,7 +1850,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
               Expanded(
                 child: Stack(
                   children: [
-                    GestureDetector(
+                    ExpressiveGestureDetector(
                       behavior: HitTestBehavior.translucent,
                       onLongPress: () {
                         // Check if cursor is on a link

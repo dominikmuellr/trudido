@@ -26,6 +26,7 @@ import '../services/note_export_service.dart';
 import '../providers/app_providers.dart';
 import '../providers/note_history_provider.dart';
 import '../widgets/note_history_bottom_sheet.dart';
+import '../widgets/common/common.dart';
 
 /// Screen for creating and editing markdown notes
 class NoteEditorScreen extends ConsumerStatefulWidget {
@@ -235,7 +236,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                   if (!preferences.enableNoteHistory)
                     return const SizedBox.shrink();
                   final canUndo = ref.watch(canUndoProvider(widget.noteId!));
-                  return IconButton(
+                  return ExpressiveIconButton(
                     icon: const Icon(Icons.undo),
                     tooltip: 'Undo',
                     onPressed: canUndo ? () => _handleUndo(ref) : null,
@@ -250,7 +251,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                   if (!preferences.enableNoteHistory)
                     return const SizedBox.shrink();
                   final canRedo = ref.watch(canRedoProvider(widget.noteId!));
-                  return IconButton(
+                  return ExpressiveIconButton(
                     icon: const Icon(Icons.redo),
                     tooltip: 'Redo',
                     onPressed: canRedo ? () => _handleRedo(ref) : null,
@@ -264,14 +265,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                   final preferences = ref.watch(preferencesStateProvider);
                   if (!preferences.enableNoteHistory)
                     return const SizedBox.shrink();
-                  return IconButton(
+                  return ExpressiveIconButton(
                     icon: const Icon(Icons.history),
                     tooltip: 'View history',
                     onPressed: () => _showNoteHistory(),
                   );
                 },
               ),
-            IconButton(
+            ExpressiveIconButton(
               icon: const Icon(Icons.share_outlined),
               tooltip: 'Export',
               onPressed: () => _showExportOptions(),
@@ -294,7 +295,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
               ),
               child: Material(
                 color: Theme.of(context).colorScheme.surface,
-                child: InkWell(
+                child: ExpressiveInkWell(
                   onTap: () {
                     setState(() {
                       _showPreview = !_showPreview;
@@ -346,7 +347,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                 child: Column(
                   children: [
                     // Draggable divider
-                    GestureDetector(
+                    ExpressiveGestureDetector(
                       onVerticalDragUpdate: (details) {
                         setState(() {
                           // Calculate max height based on available screen space
@@ -973,7 +974,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     required String hint,
     required VoidCallback onTap,
   }) {
-    return InkWell(
+    return ExpressiveInkWell(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1294,7 +1295,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
           'You have unsaved changes. Are you sure you want to leave without saving?',
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancel'),
           ),

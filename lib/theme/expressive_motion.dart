@@ -15,18 +15,15 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
+import 'package:vibration/vibration.dart';
 
 /// Material 3 Expressive Motion Abstraction Layer (January 2026)
 ///
-/// This module provides interfaces and no-op implementations for M3 Expressive
-/// features that are not yet available in Flutter. When Flutter implements
-/// M3 Expressive (physics-based springs, shape morphing, etc.), this layer
-/// can be updated to use the real implementations.
+/// This module provides physics-based spring animations and haptic feedback
+/// for a modern, expressive Material Design 3 experience.
 ///
-/// Current status (January 2026):
-/// - Flutter: Original M3 components only
-/// - M3 Expressive: Available in Jetpack Compose / MDC-Android
-/// - This layer: Provides fallback implementations
+/// Updated to use Flutter's built-in physics engine for real spring animations.
 
 // ============================================================================
 // Motion Spring Configuration
@@ -89,30 +86,44 @@ class MotionSpringConfig {
     dampingRatio: 1.0, // Critical damping = no bounce
   );
 
-  /// Convert to Flutter's SpringDescription (when available)
-  /// For now, returns a placeholder curve
+  /// Convert to a physics-based spring curve
+  /// Uses Flutter's SpringSimulation for real bouncy animations
   Curve toCurve() {
-    // When Flutter implements M3 Expressive springs, this will return
-    // a proper physics-based curve. For now, approximate with easing.
-    if (dampingRatio >= 1.0) {
-      return Curves.easeOutCubic;
-    } else if (dampingRatio >= 0.85) {
-      return Curves.easeOutBack;
-    } else {
-      return Curves.elasticOut;
-    }
+    // Create a spring description from our config
+    final spring = SpringDescription(
+      mass: 1.0,
+      stiffness: stiffness,
+      damping: dampingRatio * 2 * (stiffness).clamp(1.0, double.infinity).abs(),
+    );
+
+    // Return a custom spring curve
+    return _SpringCurve(spring);
   }
 
   /// Get animation duration based on spring config
-  /// In real M3 Expressive, duration is determined by physics
+  /// Physics-based duration estimation
   Duration get approximateDuration {
     if (stiffness >= 500) {
-      return const Duration(milliseconds: 200);
+      return const Duration(milliseconds: 250);
     } else if (stiffness >= 350) {
-      return const Duration(milliseconds: 300);
+      return const Duration(milliseconds: 350);
     } else {
-      return const Duration(milliseconds: 400);
+      return const Duration(milliseconds: 450);
     }
+  }
+}
+
+/// Custom spring curve using Flutter's physics engine
+class _SpringCurve extends Curve {
+  final SpringDescription spring;
+
+  const _SpringCurve(this.spring);
+
+  @override
+  double transformInternal(double t) {
+    // Simulate spring from 0 to 1
+    final simulation = SpringSimulation(spring, 0.0, 1.0, 0.0);
+    return simulation.x(t * simulation.dx(0.0).abs().clamp(0.5, 2.0));
   }
 }
 
@@ -334,14 +345,302 @@ class MotionSchemeProvider {
 // ============================================================================
 
 /// When Flutter implements M3 Expressive (expected 2026-2027):
-/// 
+///
 /// 1. MotionSpringConfig will map to Flutter's physics-based animation system
 /// 2. ShapeMorphConfig will use Flutter's shape interpolation
 /// 3. ExpressiveButtonState will integrate with MaterialStateProperty
 /// 4. MotionSchemeProvider will integrate with ThemeData
-/// 
+///
 /// Migration path:
 /// 1. Update MotionSpringConfig.toCurve() to return real spring curves
 /// 2. Update ShapeMorphingMixin to use Flutter's animation controllers
 /// 3. Update button themes to use ExpressiveButtonState
 /// 4. Add motion scheme to ThemeData extensions
+
+// ============================================================================
+// Haptic Feedback Service
+// ============================================================================
+
+/// Haptic feedback utility for Material 3 expressive interactions
+///
+/// Provides consistent haptic feedback across all interactive elements
+/// to enhance the tactile experience of the app.
+class ExpressiveHaptics {
+  /// Light haptic feedback for taps on buttons, list items, cards
+  ///
+  /// Set [enabled] to false to skip vibration. Defaults to true.
+  static void lightTap({bool enabled = true}) {
+    if (!enabled) return;
+    // Subtle vibration for button presses
+    Vibration.vibrate(duration: 10);
+  }
+
+  /// Medium haptic feedback for important interactions
+  static void mediumTap({bool enabled = true}) {
+    if (!enabled) return;
+    Vibration.vibrate(duration: 100);
+  }
+
+  /// Heavy haptic feedback for significant actions
+  static void heavyTap({bool enabled = true}) {
+    if (!enabled) return;
+    Vibration.vibrate(duration: 200);
+  }
+
+  /// Selection changed feedback (e.g., picker, dropdown)
+  static void selectionChanged({bool enabled = true}) {
+    if (!enabled) return;
+    Vibration.vibrate(duration: 30);
+  }
+
+  /// Success feedback after completing an action
+  static void success({bool enabled = true}) {
+    if (!enabled) return;
+    Vibration.vibrate(duration: 150);
+  }
+
+  /// Error feedback for failed actions
+  static void error({bool enabled = true}) {
+    if (!enabled) return;
+    Vibration.vibrate(duration: 300);
+  }
+
+  /// Vibrate for attention (e.g., long press activated)
+  static void vibrate({bool enabled = true}) {
+    if (!enabled) return;
+    Vibration.vibrate(duration: 100);
+  }
+}
+
+// ============================================================================
+// Animated Scale Widget
+// ============================================================================
+
+/// A widget that provides springy scale animation on tap
+///
+/// Wraps any child widget to add a press animation with haptic feedback.
+class ExpressiveTapScale extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final double pressedScale;
+  final bool enableHaptics;
+  final MotionSpringConfig springConfig;
+
+  const ExpressiveTapScale({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.onLongPress,
+    this.pressedScale = 0.97,
+    this.enableHaptics = true,
+    this.springConfig = MotionSpringConfig.standardSpring,
+  });
+
+  @override
+  State<ExpressiveTapScale> createState() => _ExpressiveTapScaleState();
+}
+
+class _ExpressiveTapScaleState extends State<ExpressiveTapScale>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.springConfig.approximateDuration,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: widget.pressedScale)
+        .animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: widget.springConfig.toCurve(),
+          ),
+        );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails details) {
+    _controller.forward();
+    if (widget.enableHaptics) {
+      ExpressiveHaptics.lightTap();
+    }
+  }
+
+  void _onTapUp(TapUpDetails details) {
+    _controller.reverse();
+  }
+
+  void _onTapCancel() {
+    _controller.reverse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      onTap: widget.onTap,
+      onLongPress: widget.onLongPress != null
+          ? () {
+              if (widget.enableHaptics) {
+                ExpressiveHaptics.mediumTap();
+              }
+              widget.onLongPress?.call();
+            }
+          : null,
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) {
+          return Transform.scale(scale: _scaleAnimation.value, child: child);
+        },
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// Expressive Page Transitions
+// ============================================================================
+
+/// Material 3 expressive page route with spring-based transitions
+class ExpressivePageRoute<T> extends PageRouteBuilder<T> {
+  final Widget page;
+  final MotionSpringConfig springConfig;
+
+  ExpressivePageRoute({
+    required this.page,
+    this.springConfig = MotionSpringConfig.defaultSpring,
+    super.settings,
+  }) : super(
+         pageBuilder: (context, animation, secondaryAnimation) => page,
+         transitionDuration: springConfig.approximateDuration,
+         reverseTransitionDuration: springConfig.approximateDuration,
+         transitionsBuilder: (context, animation, secondaryAnimation, child) {
+           final curvedAnimation = CurvedAnimation(
+             parent: animation,
+             curve: springConfig.toCurve(),
+           );
+
+           return FadeTransition(
+             opacity: Tween<double>(
+               begin: 0.0,
+               end: 1.0,
+             ).animate(curvedAnimation),
+             child: SlideTransition(
+               position: Tween<Offset>(
+                 begin: const Offset(0.0, 0.05),
+                 end: Offset.zero,
+               ).animate(curvedAnimation),
+               child: child,
+             ),
+           );
+         },
+       );
+}
+
+/// Shared axis transition for navigation within the same hierarchy
+class ExpressiveSharedAxisRoute<T> extends PageRouteBuilder<T> {
+  final Widget page;
+  final SharedAxisTransitionType type;
+
+  ExpressiveSharedAxisRoute({
+    required this.page,
+    this.type = SharedAxisTransitionType.horizontal,
+    super.settings,
+  }) : super(
+         pageBuilder: (context, animation, secondaryAnimation) => page,
+         transitionDuration: const Duration(milliseconds: 350),
+         reverseTransitionDuration: const Duration(milliseconds: 350),
+         transitionsBuilder: (context, animation, secondaryAnimation, child) {
+           return SharedAxisTransition(
+             animation: animation,
+             secondaryAnimation: secondaryAnimation,
+             transitionType: type,
+             child: child,
+           );
+         },
+       );
+}
+
+/// Shared axis transition type
+enum SharedAxisTransitionType { horizontal, vertical, scaled }
+
+/// Shared axis transition widget
+class SharedAxisTransition extends StatelessWidget {
+  final Animation<double> animation;
+  final Animation<double> secondaryAnimation;
+  final SharedAxisTransitionType transitionType;
+  final Widget child;
+
+  const SharedAxisTransition({
+    super.key,
+    required this.animation,
+    required this.secondaryAnimation,
+    required this.transitionType,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fadeIn = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: animation, curve: const Interval(0.3, 1.0)),
+    );
+    final fadeOut = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: secondaryAnimation,
+        curve: const Interval(0.0, 0.3),
+      ),
+    );
+
+    Offset beginOffset;
+    switch (transitionType) {
+      case SharedAxisTransitionType.horizontal:
+        beginOffset = const Offset(0.1, 0.0);
+        break;
+      case SharedAxisTransitionType.vertical:
+        beginOffset = const Offset(0.0, 0.1);
+        break;
+      case SharedAxisTransitionType.scaled:
+        beginOffset = Offset.zero;
+        break;
+    }
+
+    final slideIn = Tween<Offset>(
+      begin: beginOffset,
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+
+    return FadeTransition(
+      opacity: fadeIn,
+      child: FadeTransition(
+        opacity: fadeOut,
+        child: SlideTransition(
+          position: slideIn,
+          child: transitionType == SharedAxisTransitionType.scaled
+              ? ScaleTransition(
+                  scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+                    CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutCubic,
+                    ),
+                  ),
+                  child: child,
+                )
+              : child,
+        ),
+      ),
+    );
+  }
+}

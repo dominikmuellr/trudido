@@ -20,6 +20,7 @@ import '../models/note_history.dart';
 import '../models/note_history_tree.dart';
 import '../providers/note_history_provider.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 /// Colors for different branches in the history tree.
 const List<Color> _branchColors = [
@@ -676,7 +677,7 @@ class _NoteHistoryBottomSheetState
             // Cancel button
             SizedBox(
               width: double.infinity,
-              child: TextButton(
+              child: ExpressiveTextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
                 child: const Text('Cancel'),
               ),
@@ -799,7 +800,7 @@ class _CompactEntryTile extends StatelessWidget {
                           width: 1,
                         ),
                 ),
-                child: InkWell(
+                child: ExpressiveInkWell(
                   onTap: onTap,
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
@@ -987,7 +988,7 @@ class _HistoryEntryTile extends StatelessWidget {
             ? BorderSide(color: colorScheme.primary, width: 2)
             : BorderSide.none,
       ),
-      child: InkWell(
+      child: ExpressiveInkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(

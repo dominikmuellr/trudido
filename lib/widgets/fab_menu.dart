@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../screens/home_screen_notifiers.dart';
 import '../controllers/notes_controller.dart';
 import '../repositories/note_folder_repository.dart';
+import '../widgets/common/common.dart';
 
 // Provider to track FAB menu expanded state
 final fabMenuExpandedProvider = StateProvider<bool>((ref) => false);
@@ -257,7 +258,7 @@ class _FabMenuState extends ConsumerState<FabMenu>
           );
         }),
         // Main FAB
-        FloatingActionButton(
+        ExpressiveFloatingActionButton(
           onPressed: _toggleMenu,
           shape: const CircleBorder(),
           child: AnimatedSwitcher(
@@ -293,7 +294,7 @@ class _FabMenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return FloatingActionButton.extended(
+    return ExpressiveFloatingActionButton.extended(
       heroTag: null,
       onPressed: () {
         onTap();
@@ -321,7 +322,7 @@ class FabMenuBackdrop extends ConsumerWidget {
         child,
         if (isFabExpanded)
           Positioned.fill(
-            child: GestureDetector(
+            child: ExpressiveGestureDetector(
               onTap: () {
                 ref.read(fabMenuExpandedProvider.notifier).state = false;
               },
@@ -348,7 +349,7 @@ class FabMenuScreenBackdrop extends ConsumerWidget {
     }
 
     return Positioned.fill(
-      child: GestureDetector(
+      child: ExpressiveGestureDetector(
         onTap: () {
           ref.read(fabMenuExpandedProvider.notifier).state = false;
         },

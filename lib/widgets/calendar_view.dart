@@ -28,6 +28,7 @@ import '../providers/holiday_providers.dart';
 import '../utils/week_start_utils.dart';
 import 'hybrid_todo_item.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 /// Custom calendar format that extends table_calendar formats
 enum CustomCalendarFormat {
@@ -154,7 +155,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
           child: Row(
             children: [
               // Left chevron
-              IconButton(
+              ExpressiveIconButton(
                 icon: const Icon(Icons.chevron_left),
                 onPressed: () {
                   setState(() {
@@ -183,7 +184,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                 ),
                 child: Material(
                   color: Colors.transparent,
-                  child: InkWell(
+                  child: ExpressiveInkWell(
                     borderRadius: SpacingBorderRadius.md,
                     onTap: _cycleCalendarFormat,
                     child: Padding(
@@ -204,7 +205,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
               ),
               SpacingGap.gapH8,
               // Right chevron
-              IconButton(
+              ExpressiveIconButton(
                 icon: const Icon(Icons.chevron_right),
                 onPressed: () {
                   setState(() {
@@ -241,7 +242,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                   spacing: 8,
                   runSpacing: 8,
                   children: allDayTasks.map((task) {
-                    return InkWell(
+                    return ExpressiveInkWell(
                       onTap: () => _editTask(context, task),
                       onLongPress: () {
                         // Show confirmation dialog before deleting
@@ -251,11 +252,11 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                             title: const Text('Delete Task'),
                             content: Text('Delete "${task.text}"?'),
                             actions: [
-                              TextButton(
+                              ExpressiveTextButton(
                                 onPressed: () => Navigator.pop(context),
                                 child: const Text('Cancel'),
                               ),
-                              TextButton(
+                              ExpressiveTextButton(
                                 onPressed: () {
                                   ref
                                       .read(taskControllerProvider.notifier)
@@ -375,7 +376,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                                       runSpacing: 8,
                                       children: tasksAtSameTime.map((task) {
                                         return IntrinsicWidth(
-                                          child: InkWell(
+                                          child: ExpressiveInkWell(
                                             onTap: () =>
                                                 _editTask(context, task),
                                             onLongPress: () {
@@ -390,7 +391,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                                                     'Delete "${task.text}"?',
                                                   ),
                                                   actions: [
-                                                    TextButton(
+                                                    ExpressiveTextButton(
                                                       onPressed: () =>
                                                           Navigator.pop(
                                                             context,
@@ -399,7 +400,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                                                         'Cancel',
                                                       ),
                                                     ),
-                                                    TextButton(
+                                                    ExpressiveTextButton(
                                                       onPressed: () {
                                                         ref
                                                             .read(
@@ -886,7 +887,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                           // Fade out today's underline when another day is selected
                           final opacity = isSelected ? 1.0 : 0.5;
 
-                          return GestureDetector(
+                          return ExpressiveGestureDetector(
                             onDoubleTap: () {
                               final dateOnly = DateTime(
                                 day.year,
@@ -972,7 +973,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                             // Return the same visual with gesture detector
                           }
 
-                          return GestureDetector(
+                          return ExpressiveGestureDetector(
                             onDoubleTap: () {
                               final dateOnly = DateTime(
                                 day.year,

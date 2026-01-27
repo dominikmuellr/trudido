@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import '../models/folder_template.dart';
+import '../widgets/common/common.dart';
 
 class TemplateSelectionDialog extends StatelessWidget {
   final List<FolderTemplate> suggestedTemplates;
@@ -70,7 +71,7 @@ class TemplateSelectionDialog extends StatelessWidget {
           ],
         ),
       ),
-      actions: [TextButton(onPressed: onSkip, child: const Text('Skip'))],
+      actions: [ExpressiveTextButton(onPressed: onSkip, child: const Text('Skip'))],
     );
   }
 
@@ -79,7 +80,7 @@ class TemplateSelectionDialog extends StatelessWidget {
       elevation: 0,
       color: Theme.of(context).colorScheme.surfaceContainerLow,
       margin: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
+      child: ExpressiveInkWell(
         onTap: () => onSelectTemplate(template),
         borderRadius: BorderRadius.circular(12),
         child: Padding(

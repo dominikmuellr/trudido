@@ -23,6 +23,7 @@ import '../providers/app_providers.dart';
 import '../controllers/task_controller.dart';
 import '../utils/ics_parser.dart';
 import '../utils/imported_calendar_colors.dart';
+import '../widgets/common/common.dart';
 
 /// Screen for managing holiday calendar imports and settings
 class HolidayCalendarSettingsScreen extends ConsumerWidget {
@@ -79,7 +80,7 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
                   ),
                   title: Text(source),
                   subtitle: Text('${countBySource[source] ?? 0} events'),
-                  trailing: IconButton(
+                  trailing: ExpressiveIconButton(
                     icon: Icon(Icons.delete_outline, color: colorScheme.error),
                     tooltip: 'Remove calendar',
                     onPressed: () => _confirmDeleteSource(context, ref, source),
@@ -255,11 +256,11 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
         title: const Text('Remove Calendar'),
         content: Text('Remove all events from "$source"?'),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.pop(context, true),
             child: Text(
               'Remove',

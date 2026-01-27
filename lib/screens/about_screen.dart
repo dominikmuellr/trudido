@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
@@ -242,7 +243,7 @@ class _AboutScreenState extends State<AboutScreen> {
               : SingleChildScrollView(child: Text(_licenseText)),
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Close'),
           ),

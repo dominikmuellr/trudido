@@ -23,6 +23,7 @@ import '../services/pdf_export_service.dart';
 import '../providers/app_providers.dart';
 import '../repositories/notes_repository.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/common/common.dart';
 
 class BackupSettingsPage extends ConsumerStatefulWidget {
   const BackupSettingsPage({super.key});
@@ -188,11 +189,11 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
             ),
           ),
           actions: [
-            TextButton(
+            ExpressiveTextButton(
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Cancel'),
             ),
-            ElevatedButton(
+            ExpressiveElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
               child: const Text('Enable'),
             ),
@@ -300,11 +301,11 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
               ),
             ),
             actions: [
-              TextButton(
+              ExpressiveTextButton(
                 onPressed: () => Navigator.of(context).pop(false),
                 child: const Text('Cancel'),
               ),
-              ElevatedButton(
+              ExpressiveElevatedButton(
                 onPressed: selectedBackup != null
                     ? () => Navigator.of(context).pop(true)
                     : null,
@@ -327,13 +328,13 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
               'This will replace your current data with the backup.',
             ),
             actions: [
-              TextButton(
+              ExpressiveTextButton(
                 onPressed: () => Navigator.of(context).pop(false),
                 child: const Text('Cancel'),
               ),
-              ElevatedButton(
+              ExpressiveElevatedButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                style: ExpressiveElevatedButton.styleFrom(backgroundColor: Colors.red),
                 child: const Text('Import'),
               ),
             ],
@@ -389,11 +390,11 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
           children: [Text('Where would you like to save your backup?')],
         ),
         actions: [
-          TextButton(
+          ExpressiveTextButton(
             onPressed: () => Navigator.of(context).pop('cancel'),
             child: const Text('Cancel'),
           ),
-          OutlinedButton(
+          ExpressiveOutlinedButton(
             onPressed: () => Navigator.of(context).pop('custom'),
             child: const Text('Custom Folder'),
           ),
@@ -611,7 +612,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (hasCustomFolder)
-                      IconButton(
+                      ExpressiveIconButton(
                         icon: const Icon(Icons.restore),
                         tooltip: 'Reset to default',
                         onPressed: () async {
@@ -788,7 +789,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                               ],
                             ),
                             actions: [
-                              TextButton(
+                              ExpressiveTextButton(
                                 onPressed: () => Navigator.pop(context),
                                 child: const Text('OK'),
                               ),

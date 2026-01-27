@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import '../utils/animations.dart';
 import '../utils/animated_navigation.dart';
 import '../widgets/animated_widgets.dart';
+import '../widgets/common/common.dart';
 
 /// Animation Showcase Screen
 /// Demonstrates all Material Design 3 animations implemented in the app
@@ -114,7 +115,7 @@ class _AnimationShowcaseScreenState extends State<AnimationShowcaseScreen>
                       'This dialog appears with a smooth fade and scale animation.',
                     ),
                     actions: [
-                      TextButton(
+                      ExpressiveTextButton(
                         onPressed: () => Navigator.pop(context),
                         child: const Text('Close'),
                       ),
@@ -240,7 +241,7 @@ class _AnimationShowcaseScreenState extends State<AnimationShowcaseScreen>
               ),
               const SizedBox(height: 16),
               Center(
-                child: ElevatedButton(
+                child: ExpressiveElevatedButton(
                   onPressed: () => setState(() => _fabVisible = !_fabVisible),
                   child: Text(_fabVisible ? 'Hide FAB' : 'Show FAB'),
                 ),
@@ -326,12 +327,12 @@ class _AnimationShowcaseScreenState extends State<AnimationShowcaseScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton(
+                  ExpressiveElevatedButton(
                     onPressed: () => setState(() => _counter++),
                     child: const Text('Increment'),
                   ),
                   const SizedBox(width: 8),
-                  OutlinedButton(
+                  ExpressiveOutlinedButton(
                     onPressed: () => setState(
                       () => _counter = (_counter - 1) < 0 ? 0 : _counter - 1,
                     ),
@@ -428,7 +429,7 @@ class _AnimationShowcaseScreenState extends State<AnimationShowcaseScreen>
               ),
               const SizedBox(height: 16),
               Center(
-                child: ElevatedButton(
+                child: ExpressiveElevatedButton(
                   onPressed: () => setState(() => _loading = !_loading),
                   child: Text(_loading ? 'Hide Loading' : 'Show Loading'),
                 ),
@@ -463,7 +464,7 @@ class _AnimationShowcaseScreenState extends State<AnimationShowcaseScreen>
               ),
               const SizedBox(height: 16),
               Center(
-                child: ElevatedButton(
+                child: ExpressiveElevatedButton(
                   onPressed: () => setState(() => _showContent = !_showContent),
                   child: Text(_showContent ? 'Hide Content' : 'Show Content'),
                 ),
@@ -499,7 +500,7 @@ class _AnimationShowcaseScreenState extends State<AnimationShowcaseScreen>
               ),
               const SizedBox(height: 16),
               Center(
-                child: ElevatedButton(
+                child: ExpressiveElevatedButton(
                   onPressed: () {
                     _listController.reset();
                     _listController.forward();

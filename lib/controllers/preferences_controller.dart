@@ -123,6 +123,9 @@ class PreferencesController {
 
   Future<void> setContrastLevel(String level) => _update(contrastLevel: level);
 
+  Future<void> toggleHaptics() =>
+      _update(hapticsEnabled: !state.hapticsEnabled);
+
   Future<void> _update({
     String? themeMode,
     bool? useDynamicColor,
@@ -142,6 +145,7 @@ class PreferencesController {
     double? lineHeightMultiplier,
     double? paragraphSpacing,
     String? contrastLevel,
+    bool? hapticsEnabled,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -162,6 +166,7 @@ class PreferencesController {
       lineHeightMultiplier: lineHeightMultiplier,
       paragraphSpacing: paragraphSpacing,
       contrastLevel: contrastLevel,
+      hapticsEnabled: hapticsEnabled,
     );
     ref.read(preferencesStateProvider.notifier).state = updated;
   }

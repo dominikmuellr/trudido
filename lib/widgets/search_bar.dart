@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import '../widgets/common/common.dart';
 
 class TodoSearchBar extends StatefulWidget {
   final String searchQuery;
@@ -53,7 +54,7 @@ class _TodoSearchBarState extends State<TodoSearchBar> {
         hintText: 'Search todos...',
         prefixIcon: Icon(Icons.search),
         suffixIcon: widget.searchQuery.isNotEmpty
-            ? IconButton(
+            ? ExpressiveIconButton(
                 icon: Icon(Icons.close),
                 onPressed: () {
                   _controller.clear();
