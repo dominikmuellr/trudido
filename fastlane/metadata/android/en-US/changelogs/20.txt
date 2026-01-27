@@ -1,0 +1,11 @@
+Version 1.2.7 - Material 3 Modernization & Haptics
+
+• Upgraded to Flutter 3.38.6 and dynamic_color 1.8.1 for improved Material You support
+• Bundled Google Sans font (4 weights) for modern typography
+• Added physics-based spring animations to expressive_motion.dart
+• Replaced 70+ files with ExpressiveTapScale wrapper widgets for enhanced button feedback
+• Added vibration package and global haptic feedback toggle in Personalization settings
+• Enabled vibration/haptic feedback for all interactive elements (buttons, tabs, cards, notes, tasks, drawer)
+• Converted Expressive widgets to ConsumerWidget for preference access
+• Various theme and animation improvements throughout the app
+• Bug fixes and performance enhancements
