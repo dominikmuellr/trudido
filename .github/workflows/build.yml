@@ -20,8 +20,9 @@ jobs:
 
       - name: Restore keystore
         run: |
-          echo "$KEYSTORE_BASE64" | base64 --decode > $HOME/trudido-release-key.jks
-          echo "TRUDIDO_KEYSTORE=$HOME/trudido-release-key.jks" >> $GITHUB_ENV
+          mkdir -p $HOME/Documents/keystores
+          echo "$KEYSTORE_BASE64" | base64 --decode > $HOME/Documents/keystores/trudido-release-key.jks
+          echo "TRUDIDO_KEYSTORE=$HOME/Documents/keystores/trudido-release-key.jks" >> $GITHUB_ENV
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
 
