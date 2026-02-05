@@ -27,6 +27,7 @@ import 'package:flutter_quill/flutter_quill.dart'
     show FlutterQuillLocalizations;
 
 import 'services/storage_service.dart';
+import 'services/auto_backup_service.dart';
 import 'services/permissions_channel.dart';
 import 'services/theme_service.dart';
 import 'services/text_scale_service.dart';
@@ -145,6 +146,22 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
     // Refresh dynamic colors when app resumes (user might have changed wallpaper)
     if (state == AppLifecycleState.resumed) {
       ref.invalidate(dynamicColorSchemesProvider);
+      // Cache backup data for auto-backup when app becomes active
+      _cacheBackupDataIfNeeded();
+    }
+  }
+
+  /// Caches backup data for auto-backup if auto-backup is enabled
+  Future<void> _cacheBackupDataIfNeeded() async {
+    try {
+      final isScheduled = await AutoBackupService.instance
+          .isAutoBackupScheduled();
+      if (isScheduled) {
+        debugPrint('[Main] Auto-backup is enabled, caching backup data...');
+        await AutoBackupService.instance.cacheBackupData();
+      }
+    } catch (e) {
+      debugPrint('[Main] Error caching backup data: $e');
     }
   }
 

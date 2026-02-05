@@ -20,8 +20,10 @@ import '../services/auto_backup_service.dart';
 import '../services/files_channel.dart';
 import '../services/markdown_export_service.dart';
 import '../services/pdf_export_service.dart';
+import '../services/storage_service.dart';
 import '../providers/app_providers.dart';
 import '../repositories/notes_repository.dart';
+import '../repositories/note_folder_repository.dart';
 import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
 
@@ -61,6 +63,87 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
       onRefreshNeeded: () {
         _refreshProviders();
       },
+      onPasswordRequired: () => _showPasswordInputDialog(
+        title: 'Encrypted Backup',
+        message:
+            'This backup is password protected. Enter the password to decrypt:',
+      ),
+    );
+  }
+
+  /// Shows a password input dialog and returns the entered password
+  Future<String?> _showPasswordInputDialog({
+    required String title,
+    required String message,
+    bool isConfirm = false,
+  }) async {
+    final controller = TextEditingController();
+    final confirmController = TextEditingController();
+    bool obscureText = true;
+
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(message),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                obscureText: obscureText,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscureText ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () => setState(() => obscureText = !obscureText),
+                  ),
+                ),
+              ),
+              if (isConfirm) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmController,
+                  obscureText: obscureText,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirm Password',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (isConfirm && controller.text != confirmController.text) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Passwords do not match'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                Navigator.of(context).pop(controller.text);
+              },
+              child: Text(isConfirm ? 'Encrypt' : 'Decrypt'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -75,11 +158,13 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
       ref.invalidate(tasksProvider);
       ref.invalidate(preferencesStateProvider);
       ref.invalidate(notesProvider);
+      ref.invalidate(noteFoldersProvider);
 
       // Force rebuild by reading providers
       ref.read(tasksProvider.notifier).refresh();
       ref.read(preferencesStateProvider);
       ref.read(notesProvider.notifier).refresh();
+      ref.read(noteFoldersProvider.notifier).refresh();
 
       // Wait a moment for providers to refresh
       await Future.delayed(const Duration(milliseconds: 100));
@@ -90,7 +175,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         const SnackBar(
           content: Text(
-            'Data refreshed - your imported tasks and notes should now be visible!',
+            'Data refreshed - your imported tasks, notes and folders should now be visible!',
           ),
           backgroundColor: Colors.green,
         ),
@@ -109,104 +194,221 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
   }
 
   Future<void> _showAutoBackupSetupDialog() async {
+    // Load current settings
+    final isCurrentlyEnabled = await AutoBackupService.instance
+        .isAutoBackupScheduled();
     int selectedInterval = 24; // Default: daily
     bool requiresCharging = false;
+    final currentPassword = StorageService.getAutoBackupPassword();
+    final passwordController = TextEditingController(
+      text: currentPassword ?? '',
+    );
+    final confirmPasswordController = TextEditingController(
+      text: currentPassword ?? '',
+    );
+    bool isEnabled = isCurrentlyEnabled;
+    bool obscurePassword = true;
 
-    final result = await showDialog<bool>(
+    final result = await showDialog<Map<String, dynamic>?>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Setup Automatic Backup'),
+          title: const Text('Auto Backup Settings'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Configure when automatic backups should run:'),
-                SpacingGap.gapV16,
-
-                // Info about backup location
-                Container(
-                  padding: SpacingEdgeInsets.insets12,
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                    borderRadius: SpacingBorderRadius.sm,
+                // Enable/Disable toggle
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Enable Auto Backup'),
+                  subtitle: Text(
+                    isEnabled
+                        ? 'Backups run automatically'
+                        : 'Backups are disabled',
                   ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 20,
-                      ),
-                      SpacingGap.gapH8,
-                      Expanded(
-                        child: Text(
-                          'Backups will be saved to your chosen backup location (set in main settings)',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                    ],
-                  ),
+                  value: isEnabled,
+                  onChanged: (value) => setState(() => isEnabled = value),
                 ),
-                SpacingGap.gapV16,
+                SpacingGap.gapV8,
 
-                // Backup Frequency
-                DropdownButtonFormField<int>(
-                  value: selectedInterval,
-                  decoration: const InputDecoration(
-                    labelText: 'Backup Frequency',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: AutoBackupService.backupIntervals.entries
-                      .map(
-                        (entry) => DropdownMenuItem(
-                          value: entry.value,
-                          child: Text(entry.key),
+                // Settings (only shown when enabled)
+                AnimatedOpacity(
+                  opacity: isEnabled ? 1.0 : 0.5,
+                  duration: const Duration(milliseconds: 200),
+                  child: IgnorePointer(
+                    ignoring: !isEnabled,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Info about backup location
+                        Container(
+                          padding: SpacingEdgeInsets.insets12,
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                            borderRadius: SpacingBorderRadius.sm,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: Theme.of(context).colorScheme.primary,
+                                size: 20,
+                              ),
+                              SpacingGap.gapH8,
+                              Expanded(
+                                child: Text(
+                                  'Backups are saved to Android/data/com.trudido.app/files/AutoBackups/',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => selectedInterval = value);
-                    }
-                  },
-                ),
-                SpacingGap.gapV16,
+                        SpacingGap.gapV16,
 
-                // Conditions
-                CheckboxListTile(
-                  title: const Text('Only when charging'),
-                  subtitle: const Text('Saves battery life'),
-                  value: requiresCharging,
-                  onChanged: (value) {
-                    setState(() => requiresCharging = value ?? false);
-                  },
+                        // Backup Frequency
+                        DropdownButtonFormField<int>(
+                          value: selectedInterval,
+                          decoration: const InputDecoration(
+                            labelText: 'Backup Frequency',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: AutoBackupService.backupIntervals.entries
+                              .map(
+                                (entry) => DropdownMenuItem(
+                                  value: entry.value,
+                                  child: Text(entry.key),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => selectedInterval = value);
+                            }
+                          },
+                        ),
+                        SpacingGap.gapV12,
+
+                        // Charging condition
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Only when charging'),
+                          subtitle: const Text('Saves battery life'),
+                          value: requiresCharging,
+                          onChanged: (value) {
+                            setState(() => requiresCharging = value ?? false);
+                          },
+                        ),
+                        SpacingGap.gapV16,
+
+                        // Password section
+                        Text(
+                          'Encryption (Optional)',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        SpacingGap.gapV8,
+                        Text(
+                          'Set a password to encrypt backups. Leave empty for no encryption.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                        SpacingGap.gapV12,
+                        TextField(
+                          controller: passwordController,
+                          obscureText: obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                obscurePassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () => setState(
+                                () => obscurePassword = !obscurePassword,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SpacingGap.gapV12,
+                        TextField(
+                          controller: confirmPasswordController,
+                          obscureText: obscurePassword,
+                          decoration: const InputDecoration(
+                            labelText: 'Confirm Password',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
           actions: [
-            ExpressiveTextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
               child: const Text('Cancel'),
             ),
-            ExpressiveElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Enable'),
+            FilledButton(
+              onPressed: () {
+                // Validate passwords match if set
+                if (passwordController.text.isNotEmpty &&
+                    passwordController.text != confirmPasswordController.text) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Passwords do not match'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                Navigator.of(context).pop({
+                  'enabled': isEnabled,
+                  'interval': selectedInterval,
+                  'requiresCharging': requiresCharging,
+                  'password': passwordController.text,
+                });
+              },
+              child: const Text('Save'),
             ),
           ],
         ),
       ),
     );
 
-    if (result == true) {
+    if (result == null) return; // Cancelled
+
+    final enabled = result['enabled'] as bool;
+    final interval = result['interval'] as int;
+    final charging = result['requiresCharging'] as bool;
+    final password = result['password'] as String;
+
+    // Save password setting
+    if (password.isEmpty) {
+      await StorageService.setAutoBackupPassword(null);
+    } else {
+      await StorageService.setAutoBackupPassword(password);
+    }
+
+    if (enabled) {
       final success = await AutoBackupService.instance.scheduleAutoBackup(
-        intervalHours: selectedInterval,
-        requiresCharging: requiresCharging,
+        intervalHours: interval,
+        requiresCharging: charging,
       );
+
+      // Cache backup data immediately
+      await AutoBackupService.instance.cacheBackupData();
 
       if (!mounted) return;
 
@@ -215,7 +417,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Auto backup enabled! Backing up ${AutoBackupService.getBackupFrequencyDescription(selectedInterval).toLowerCase()}',
+              'Auto backup enabled! Backing up ${AutoBackupService.getBackupFrequencyDescription(interval).toLowerCase()}${password.isNotEmpty ? ' (encrypted)' : ''}',
             ),
             backgroundColor: Colors.green,
           ),
@@ -228,6 +430,16 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
           ),
         );
       }
+    } else {
+      await AutoBackupService.instance.cancelAutoBackup();
+      if (!mounted) return;
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Auto backup disabled'),
+          backgroundColor: Colors.orange,
+        ),
+      );
     }
   }
 
@@ -334,7 +546,9 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
               ),
               ExpressiveElevatedButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                style: ExpressiveElevatedButton.styleFrom(backgroundColor: Colors.red),
+                style: ExpressiveElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                ),
                 child: const Text('Import'),
               ),
             ],
@@ -414,13 +628,23 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
   }
 
   Future<void> _performCustomFolderExport() async {
+    // Ask user if they want to encrypt the backup
+    final password = await _askForExportPassword();
+    if (password == null) return; // User cancelled the password dialog
+
     // Export to the user's chosen backup folder
     try {
-      await FilesChannel.instance.startExport();
+      await FilesChannel.instance.startExport(
+        password: password.isEmpty ? null : password,
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Export saved to your backup folder!'),
+        SnackBar(
+          content: Text(
+            password.isEmpty
+                ? 'Export saved to your backup folder!'
+                : 'Encrypted export saved to your backup folder!',
+          ),
           backgroundColor: Colors.green,
         ),
       );
@@ -436,13 +660,23 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
   }
 
   Future<void> _performTraditionalExport() async {
+    // Ask user if they want to encrypt the backup
+    final password = await _askForExportPassword();
+    if (password == null) return; // User cancelled the password dialog
+
     // Use the traditional file picker
     try {
-      await FilesChannel.instance.startExport();
+      await FilesChannel.instance.startExport(
+        password: password.isEmpty ? null : password,
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Export started - choose save location'),
+        SnackBar(
+          content: Text(
+            password.isEmpty
+                ? 'Export started - choose save location'
+                : 'Encrypted export started - choose save location',
+          ),
           backgroundColor: Colors.blue,
         ),
       );
@@ -455,6 +689,57 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
         ),
       );
     }
+  }
+
+  /// Asks user if they want to protect the backup with a password
+  /// Returns empty string for no protection, password string for encryption, null if cancelled
+  Future<String?> _askForExportPassword() async {
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Protect Backup?'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Would you like to encrypt this backup with a password?'),
+            SizedBox(height: 12),
+            Text(
+              '• Recommended if you have vault/locked folders\n'
+              '• Protects your data if the backup file is accessed by others\n'
+              '• If you forget the password, the backup cannot be restored',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(null), // Cancel
+            child: const Text('Cancel'),
+          ),
+          OutlinedButton(
+            onPressed: () => Navigator.of(context).pop(''), // No password
+            child: const Text('No Protection'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(
+              context,
+            ).pop('SET_PASSWORD'), // Signal to show password dialog
+            child: const Text('Set Password'),
+          ),
+        ],
+      ),
+    );
+
+    if (choice == null) return null; // Cancelled
+    if (choice == '') return ''; // No protection
+
+    // User wants to set a password
+    return await _showPasswordInputDialog(
+      title: 'Set Backup Password',
+      message: 'Enter a password to encrypt your backup:',
+      isConfirm: true,
+    );
   }
 
   Future<void> _exportNotesToMarkdown() async {
@@ -718,28 +1003,57 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
             future: AutoBackupService.instance.isAutoBackupScheduled(),
             builder: (context, snapshot) {
               final isScheduled = snapshot.data ?? false;
-              return SwitchListTile(
-                secondary: Icon(
+              final hasPassword =
+                  StorageService.getAutoBackupPassword() != null;
+
+              String subtitle;
+              if (isScheduled) {
+                subtitle = hasPassword
+                    ? 'Enabled with encryption'
+                    : 'Enabled (no encryption)';
+              } else {
+                subtitle = 'Disabled - tap to configure';
+              }
+
+              return ListTile(
+                leading: Icon(
                   isScheduled ? Icons.backup : Icons.backup_outlined,
                   color: isScheduled
                       ? colorScheme.primary
                       : colorScheme.onSurfaceVariant,
                 ),
-                title: const Text('Auto Backup'),
-                subtitle: Text(
-                  isScheduled
-                      ? 'Backing up automatically on schedule'
-                      : 'Enable to protect your data automatically',
+                title: const Text('Configure Auto Backup'),
+                subtitle: Text(subtitle),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isScheduled && hasPassword)
+                      Icon(Icons.lock, size: 16, color: colorScheme.primary),
+                    if (isScheduled)
+                      Container(
+                        margin: const EdgeInsets.only(left: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'ON',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_forward_ios, size: 16),
+                  ],
                 ),
-                value: isScheduled,
-                onChanged: (enabled) async {
-                  if (enabled) {
-                    await _showAutoBackupSetupDialog();
-                  } else {
-                    await AutoBackupService.instance.cancelAutoBackup();
-                    setState(() {});
-                  }
-                },
+                onTap: _showAutoBackupSetupDialog,
               );
             },
           ),
@@ -751,12 +1065,6 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
 
               return Column(
                 children: [
-                  ListTile(
-                    leading: const Icon(Icons.settings_outlined),
-                    title: const Text('Configure Schedule'),
-                    subtitle: const Text('Adjust backup frequency'),
-                    onTap: _showAutoBackupSetupDialog,
-                  ),
                   ListTile(
                     leading: const Icon(Icons.restore_outlined),
                     title: const Text('Restore from Auto Backup'),

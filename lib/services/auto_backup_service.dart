@@ -17,6 +17,8 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'storage_service.dart';
 
 /// Represents an automatic backup file
 class AutoBackupFile {
@@ -227,4 +229,35 @@ class AutoBackupService {
     'Bi-weekly': 336,
     'Monthly': 720,
   };
+
+  /// Cache backup data to a file that AutoBackupWorker can read
+  /// This should be called periodically when the app is active
+  Future<bool> cacheBackupData() async {
+    if (!Platform.isAndroid) return false;
+
+    try {
+      debugPrint('[AutoBackupService] Caching backup data for auto-backup...');
+
+      // Get export data from StorageService (already handles encryption if password set)
+      final jsonData = await StorageService.exportDataForAutoBackup();
+
+      // Write to app's files directory where AutoBackupWorker can read it
+      final appDir = await getApplicationDocumentsDirectory();
+      final cacheFile = File(
+        '${appDir.parent.path}/files/auto_backup_cache.json',
+      );
+
+      // Ensure parent directory exists
+      await cacheFile.parent.create(recursive: true);
+      await cacheFile.writeAsString(jsonData);
+
+      debugPrint(
+        '[AutoBackupService] Backup data cached: ${cacheFile.path} (${jsonData.length} bytes)',
+      );
+      return true;
+    } catch (e, st) {
+      debugPrint('[AutoBackupService] Failed to cache backup data: $e\n$st');
+      return false;
+    }
+  }
 }

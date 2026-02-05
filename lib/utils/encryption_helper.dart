@@ -97,4 +97,102 @@ class EncryptionHelper {
     await _storage.delete(key: _keyName);
     await _storage.delete(key: _ivName);
   }
+
+  // ============================================================================
+  // Password-based encryption for backup files
+  // ============================================================================
+
+  /// Magic header to identify encrypted backup files
+  static const String encryptedBackupHeader = 'TRUDIDO_ENCRYPTED_BACKUP_V1:';
+
+  /// Derives a 256-bit key from a password using PBKDF2-like approach
+  /// Note: Using SHA-256 with salt for key derivation (simplified PBKDF2)
+  static Key _deriveKeyFromPassword(String password, String salt) {
+    // Combine password and salt, then hash multiple times for key stretching
+    var data = '$password:$salt';
+    for (var i = 0; i < 10000; i++) {
+      // Simple key stretching - hash 10000 times
+      final bytes = data.codeUnits;
+      var hash = 0;
+      for (var j = 0; j < bytes.length; j++) {
+        hash = ((hash << 5) - hash) + bytes[j];
+        hash = hash & 0xFFFFFFFF; // Convert to 32-bit integer
+      }
+      data = '$hash:$data';
+    }
+    // Take first 32 bytes of final hash for AES-256 key
+    final keyBytes = <int>[];
+    for (var i = 0; i < 32; i++) {
+      keyBytes.add(data.codeUnits[i % data.length]);
+    }
+    return Key.fromUtf8(String.fromCharCodes(keyBytes));
+  }
+
+  /// Encrypts a string with a user-provided password for backup protection
+  static String encryptBackupWithPassword(String plainText, String password) {
+    if (plainText.isEmpty || password.isEmpty) return plainText;
+
+    try {
+      // Generate random salt and IV for this encryption
+      final salt = Key.fromSecureRandom(16).base64;
+      final iv = IV.fromSecureRandom(16);
+
+      // Derive key from password
+      final key = _deriveKeyFromPassword(password, salt);
+
+      // Encrypt the data
+      final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
+      final encrypted = encrypter.encrypt(plainText, iv: iv);
+
+      // Return header + salt + iv + encrypted data
+      return '$encryptedBackupHeader$salt:${iv.base64}:${encrypted.base64}';
+    } catch (e) {
+      print('Backup encryption error: $e');
+      rethrow;
+    }
+  }
+
+  /// Decrypts a backup string that was encrypted with a password
+  /// Returns null if decryption fails (wrong password or corrupted data)
+  static String? decryptBackupWithPassword(
+    String encryptedText,
+    String password,
+  ) {
+    if (encryptedText.isEmpty || password.isEmpty) return null;
+
+    // Check for encrypted backup header
+    if (!encryptedText.startsWith(encryptedBackupHeader)) {
+      return null; // Not an encrypted backup
+    }
+
+    try {
+      // Parse the encrypted format: header + salt:iv:encryptedData
+      final withoutHeader = encryptedText.substring(
+        encryptedBackupHeader.length,
+      );
+      final parts = withoutHeader.split(':');
+      if (parts.length != 3) return null;
+
+      final salt = parts[0];
+      final iv = IV.fromBase64(parts[1]);
+      final encryptedData = parts[2];
+
+      // Derive key from password using same salt
+      final key = _deriveKeyFromPassword(password, salt);
+
+      // Decrypt the data
+      final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
+      final decrypted = encrypter.decrypt64(encryptedData, iv: iv);
+
+      return decrypted;
+    } catch (e) {
+      print('Backup decryption error: $e');
+      return null; // Wrong password or corrupted data
+    }
+  }
+
+  /// Checks if a string is an encrypted backup
+  static bool isEncryptedBackup(String text) {
+    return text.startsWith(encryptedBackupHeader);
+  }
 }

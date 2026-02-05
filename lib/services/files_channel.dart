@@ -19,6 +19,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../services/storage_service.dart';
+import '../utils/encryption_helper.dart';
 
 /// FilesChannel bridges Flutter and native (Android) import/export using SAF.
 /// On Android, it uses MethodChannel('app.files') to trigger native pickers.
@@ -36,14 +37,20 @@ class FilesChannel {
   Function(String)? _onBackupFolderSelected;
   Function(int)? _onMarkdownExportComplete;
 
+  /// Callback to request password for encrypted backup import
+  /// Returns the password entered by user, or null if cancelled
+  Future<String?> Function()? _onPasswordRequired;
+
   void setImportCallbacks({
     Function(String)? onComplete,
     Function(String)? onError,
     Function()? onRefreshNeeded,
+    Future<String?> Function()? onPasswordRequired,
   }) {
     _onImportComplete = onComplete;
     _onImportError = onError;
     _onRefreshNeeded = onRefreshNeeded;
+    _onPasswordRequired = onPasswordRequired;
   }
 
   void setBackupFolderCallback(Function(String)? onFolderSelected) {
@@ -61,17 +68,57 @@ class FilesChannel {
       return;
     }
     _ch.setMethodCallHandler((call) async {
+      // Handle request for auto-backup data from Android
+      if (call.method == 'getAutoBackupData') {
+        debugPrint('[FilesChannel] Android requested auto-backup data');
+        try {
+          final jsonData = await StorageService.exportDataForAutoBackup();
+          debugPrint(
+            '[FilesChannel] Returning backup data, length: ${jsonData.length}',
+          );
+          return jsonData;
+        } catch (e, st) {
+          debugPrint('[FilesChannel] Error getting auto-backup data: $e\n$st');
+          return null;
+        }
+      }
       if (call.method == 'onImport') {
-        final jsonStr = call.arguments as String?;
+        var jsonStr = call.arguments as String?;
         debugPrint(
           '[FilesChannel] Received import data, length: ${jsonStr?.length ?? 0}',
         );
         if (jsonStr == null) {
           debugPrint('[FilesChannel] Import data is null, aborting');
           _onImportError?.call('No data received');
-          return;
+          return null;
         }
         try {
+          // Check if backup is encrypted
+          if (EncryptionHelper.isEncryptedBackup(jsonStr)) {
+            debugPrint(
+              '[FilesChannel] Detected encrypted backup, requesting password...',
+            );
+            if (_onPasswordRequired == null) {
+              _onImportError?.call('Encrypted backup requires password dialog');
+              return null;
+            }
+            final password = await _onPasswordRequired!();
+            if (password == null || password.isEmpty) {
+              _onImportError?.call('Password required for encrypted backup');
+              return null;
+            }
+            final decrypted = EncryptionHelper.decryptBackupWithPassword(
+              jsonStr,
+              password,
+            );
+            if (decrypted == null) {
+              _onImportError?.call('Wrong password or corrupted backup');
+              return null;
+            }
+            jsonStr = decrypted;
+            debugPrint('[FilesChannel] Backup decrypted successfully');
+          }
+
           debugPrint('[FilesChannel] Parsing JSON...');
           final map = json.decode(jsonStr) as Map<String, dynamic>;
           debugPrint(
@@ -102,14 +149,26 @@ class FilesChannel {
     _initialized = true;
   }
 
-  Future<void> startExport() async {
+  /// Starts the export process with optional password protection
+  /// If [password] is provided, the backup will be encrypted
+  Future<void> startExport({String? password}) async {
     if (!Platform.isAndroid) return;
     try {
       // Keep call to ensureInitialized in case caller forgot
       await ensureInitialized();
 
       final exportData = await StorageService.exportData();
-      final jsonString = json.encode(exportData);
+      var jsonString = json.encode(exportData);
+
+      // Encrypt backup if password is provided
+      if (password != null && password.isNotEmpty) {
+        debugPrint('[FilesChannel] Encrypting backup with password...');
+        jsonString = EncryptionHelper.encryptBackupWithPassword(
+          jsonString,
+          password,
+        );
+        debugPrint('[FilesChannel] Backup encrypted successfully');
+      }
 
       // Trigger native export flow with real data
       await _ch.invokeMethod('startExport', jsonString);

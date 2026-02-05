@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -27,6 +28,7 @@ import '../models/note_history.dart';
 import '../models/holiday.dart';
 import '../repositories/hive_folder_repository.dart';
 import '../repositories/hive_folder_template_repository.dart';
+import '../utils/encryption_helper.dart';
 
 class StorageService {
   static const String _todosBoxName = 'todos';
@@ -880,6 +882,44 @@ Happy note-taking! ✨''',
     await _prefs!.setString('meta_$key', value);
   }
 
+  // Auto-backup password (optional - for encrypting automatic backups)
+  static Future<void> setAutoBackupPassword(String? password) async {
+    await _ensurePrefs();
+    if (password == null || password.isEmpty) {
+      await _prefs!.remove('auto_backup_password');
+    } else {
+      await _prefs!.setString('auto_backup_password', password);
+    }
+  }
+
+  static String? getAutoBackupPassword() {
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getString('auto_backup_password');
+  }
+
+  /// Export data for auto-backup (called from Android via MethodChannel)
+  /// Returns JSON string, optionally encrypted if auto-backup password is set
+  static Future<String> exportDataForAutoBackup() async {
+    debugPrint('[StorageService] Exporting data for auto-backup...');
+    final data = await exportData();
+    var jsonString = jsonEncode(data);
+
+    // Encrypt if auto-backup password is set
+    final password = getAutoBackupPassword();
+    if (password != null && password.isNotEmpty) {
+      debugPrint('[StorageService] Encrypting auto-backup with password...');
+      jsonString = EncryptionHelper.encryptBackupWithPassword(
+        jsonString,
+        password,
+      );
+    }
+
+    debugPrint(
+      '[StorageService] Auto-backup export complete, length: ${jsonString.length}',
+    );
+    return jsonString;
+  }
+
   // Backup and restore functionality
   static Future<Map<String, dynamic>> exportData() async {
     try {
@@ -889,11 +929,57 @@ Happy note-taking! ✨''',
         (l) => l.map((todo) => todo.toJson()).toList(),
       );
 
-      // Export notes
+      // Export notes - decrypt vault notes before export
       await waitNotesReady();
-      final notes = getAllNotes().map((note) => note.toJson()).toList();
+      await waitNoteFoldersReady();
+      final rawNotes = getAllNotes();
+      final noteFolders = getAllNoteFolders();
 
-      // Export folders
+      // Create a set of vault folder IDs for quick lookup
+      final vaultFolderIds = noteFolders
+          .where((f) => f.isVault)
+          .map((f) => f.id)
+          .toSet();
+
+      // Decrypt notes that are in vault folders before export
+      final decryptedNotes = <Map<String, dynamic>>[];
+      for (final note in rawNotes) {
+        if (note.folderId != null && vaultFolderIds.contains(note.folderId)) {
+          try {
+            // Decrypt vault note before export
+            final decryptedTitle = await EncryptionHelper.decryptText(
+              note.title,
+            );
+            final decryptedContent = await EncryptionHelper.decryptText(
+              note.content,
+            );
+            final decryptedNote = note.copyWith(
+              title: decryptedTitle,
+              content: decryptedContent,
+            );
+            decryptedNotes.add(decryptedNote.toJson());
+            debugPrint(
+              '[StorageService] Decrypted vault note for export: ${decryptedTitle.substring(0, decryptedTitle.length.clamp(0, 20))}...',
+            );
+          } catch (e) {
+            // If decryption fails, export as-is (might be already decrypted or corrupted)
+            debugPrint(
+              '[StorageService] Failed to decrypt note ${note.id}, exporting as-is: $e',
+            );
+            decryptedNotes.add(note.toJson());
+          }
+        } else {
+          // Non-vault note, export as-is
+          decryptedNotes.add(note.toJson());
+        }
+      }
+
+      // Export note folders (including vault folders)
+      final noteFoldersJson = noteFolders
+          .map((folder) => folder.toJson())
+          .toList();
+
+      // Export task folders
       final folders = _folderRepository != null
           ? (await _folderRepository!.getAllFolders())
                 .map((folder) => folder.toJson())
@@ -908,12 +994,15 @@ Happy note-taking! ✨''',
           : <Map<String, dynamic>>[];
 
       debugPrint(
-        '[StorageService] Exporting ${todos.length} todos, ${notes.length} notes, ${folders.length} folders, and ${templates.length} templates',
+        '[StorageService] Exporting ${todos.length} todos, ${decryptedNotes.length} notes, '
+        '${noteFoldersJson.length} note folders, ${folders.length} task folders, '
+        'and ${templates.length} templates',
       );
 
       final exportMap = {
         'todos': todos,
-        'notes': notes,
+        'notes': decryptedNotes,
+        'noteFolders': noteFoldersJson,
         'folders': folders,
         'templates': templates,
         'settings': {
@@ -925,7 +1014,7 @@ Happy note-taking! ✨''',
           'show_completed_tasks': getShowCompletedTasks(),
         },
         'exported_at': DateTime.now().toIso8601String(),
-        'version': '1.2.4', // Version for v1.2.4 release
+        'version': '1.3.0', // Version bump for vault backup support
       };
 
       debugPrint('[StorageService] Export data prepared successfully');
@@ -971,6 +1060,8 @@ Happy note-taking! ✨''',
 
       // Ensure storage is fully initialized
       await waitTodosReady();
+      await waitNotesReady();
+      await waitNoteFoldersReady();
 
       debugPrint('[StorageService] Clearing data...');
       await clearAllTodos();
@@ -996,16 +1087,45 @@ Happy note-taking! ✨''',
         }
       }
 
-      // Import folders
+      // Clear and import note folders FIRST (before notes, so notes can reference them)
+      // This includes vault folders
+      final existingNoteFolders = getAllNoteFolders();
+      for (final folder in existingNoteFolders) {
+        await deleteNoteFolder(folder.id);
+      }
+
+      // Build a set of vault folder IDs for re-encryption
+      final vaultFolderIds = <String>{};
+
+      if (data['noteFolders'] != null) {
+        final noteFoldersData = data['noteFolders'] as List;
+        debugPrint(
+          '[StorageService] Importing ${noteFoldersData.length} note folders...',
+        );
+        for (final folderJson in noteFoldersData) {
+          final folder = NoteFolder.fromJson(
+            folderJson as Map<String, dynamic>,
+          );
+          await saveNoteFolder(folder);
+          if (folder.isVault) {
+            vaultFolderIds.add(folder.id);
+          }
+          debugPrint(
+            '[StorageService] Imported note folder: ${folder.name} (isVault: ${folder.isVault})',
+          );
+        }
+      }
+
+      // Import task folders
       if (data['folders'] != null && _folderRepository != null) {
         final foldersData = data['folders'] as List;
         debugPrint(
-          '[StorageService] Importing ${foldersData.length} folders...',
+          '[StorageService] Importing ${foldersData.length} task folders...',
         );
         for (final folderJson in foldersData) {
           final folder = Folder.fromJson(folderJson);
           await _folderRepository!.createFolder(folder);
-          debugPrint('[StorageService] Imported folder: ${folder.name}');
+          debugPrint('[StorageService] Imported task folder: ${folder.name}');
         }
       }
 
@@ -1025,18 +1145,42 @@ Happy note-taking! ✨''',
         }
       }
 
-      // Import notes
+      // Import notes - re-encrypt vault notes on import
       if (data['notes'] != null) {
-        await waitNotesReady();
         final notesData = data['notes'] as List;
         debugPrint('[StorageService] Importing ${notesData.length} notes...');
 
         await clearAllNotes();
 
         for (final noteJson in notesData) {
-          final note = Note.fromJson(noteJson);
+          var note = Note.fromJson(noteJson);
+
+          // Re-encrypt notes that belong to vault folders
+          if (note.folderId != null && vaultFolderIds.contains(note.folderId)) {
+            try {
+              final encryptedTitle = await EncryptionHelper.encryptText(
+                note.title,
+              );
+              final encryptedContent = await EncryptionHelper.encryptText(
+                note.content,
+              );
+              note = note.copyWith(
+                title: encryptedTitle,
+                content: encryptedContent,
+              );
+              debugPrint('[StorageService] Re-encrypted vault note for import');
+            } catch (e) {
+              debugPrint(
+                '[StorageService] Failed to encrypt note ${note.id}: $e',
+              );
+              // Continue with unencrypted note - better than losing data
+            }
+          }
+
           await saveNote(note);
-          debugPrint('[StorageService] Imported note: ${note.title}');
+          debugPrint(
+            '[StorageService] Imported note: ${note.title.substring(0, note.title.length.clamp(0, 30))}...',
+          );
         }
       }
 

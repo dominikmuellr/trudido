@@ -131,24 +131,41 @@ class AutoBackupWorker(
     }
 
     /**
-     * Gets app data for backup (placeholder - would need method channel integration)
-     * In a full implementation, this would communicate with Flutter to get real data
+     * Gets app data for backup by reading the cached backup data
+     * Flutter caches the backup data to a file when the app is active
      */
     private fun getAppDataForBackup(): String {
-        // For now, return sample data structure
-        // In real implementation, this would use MethodChannel to get data from Flutter
+        // Read from cached backup data file
+        val cacheFile = File(context.filesDir, "auto_backup_cache.json")
+        
+        if (cacheFile.exists()) {
+            try {
+                val cachedData = cacheFile.readText(Charsets.UTF_8)
+                if (cachedData.isNotEmpty()) {
+                    Log.d(TAG, "Using cached backup data (${cachedData.length} bytes)")
+                    return cachedData
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error reading cached backup data", e)
+            }
+        }
+        
+        // No cached data available - this means the app hasn't been opened recently
+        // Return empty backup with error indicator
+        Log.w(TAG, "No cached backup data available - app may not have been opened recently")
         val timestamp = System.currentTimeMillis()
         return """
         {
-          "version": "1.0.0",
+          "version": "1.3.0",
           "backup_type": "automatic",
           "exported_at": "${Date(timestamp)}",
           "timestamp": $timestamp,
+          "error": "no_cached_data",
+          "message": "No backup data available. Please open the app to refresh backup cache.",
           "todos": [],
           "categories": [],
-          "settings": {
-            "backup_created_by": "AutoBackupWorker"
-          }
+          "notes": [],
+          "noteFolders": []
         }
         """.trimIndent()
     }
