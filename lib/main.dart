@@ -35,6 +35,7 @@ import 'services/notification_service.dart';
 import 'services/notification_action_sync.dart';
 import 'providers/app_providers.dart';
 import 'providers/filter_providers.dart';
+import 'services/folder_provider.dart';
 import 'services/navigation_service.dart';
 import 'services/system_settings_service.dart';
 import 'widgets/system_permission_dialogs.dart';
@@ -159,12 +160,27 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
 
     // Hydrate showCompletedProvider from persisted storage
     if (mounted) {
+      // Ensure SharedPreferences is ready before reading the persisted value
+      await StorageService.ensurePrefs();
       final savedShowCompleted = StorageService.getShowCompletedTasks();
       ref.read(showCompletedProvider.notifier).state = savedShowCompleted;
 
       // Listen for changes and persist them
       ref.listen<bool>(showCompletedProvider, (previous, next) {
         StorageService.setShowCompletedTasks(next);
+      });
+
+      // Restore last selected folder if it exists and is still valid
+      final lastSelectedFolder = StorageService.getLastSelectedFolder();
+      if (lastSelectedFolder != null) {
+        ref.read(selectedFolderProvider.notifier).state = lastSelectedFolder;
+      }
+
+      // Listen for folder selection changes and persist them
+      ref.listen<String?>(selectedFolderProvider, (previous, next) {
+        if (next != null) {
+          StorageService.setLastSelectedFolder(next);
+        }
       });
     }
   }
