@@ -21,7 +21,6 @@ import 'package:flutter/foundation.dart'
     show
         defaultTargetPlatform,
         TargetPlatform; // platform check without BuildContext
-
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart'
     show FlutterQuillLocalizations;
@@ -43,13 +42,14 @@ import 'widgets/system_permission_dialogs.dart';
 import 'widgets/app_lock_wrapper.dart';
 import 'screens/home_screen.dart';
 import 'widgets/common/common.dart';
+import 'utils/state_notifiers.dart';
 
 /// Provider to signal widget-triggered task creation request.
 /// HomeScreen listens to this and opens TaskEditorScreen when triggered.
-final widgetTaskCreationRequestProvider = StateProvider<int>((ref) => 0);
+final widgetTaskCreationRequestProvider = stateProvider<int>(0);
 
 /// Provider for widget task creation date
-final widgetTaskCreationDateProvider = StateProvider<DateTime?>((ref) => null);
+final widgetTaskCreationDateProvider = stateProvider<DateTime?>(null);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -171,7 +171,7 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
       await svc.ensureInitialized();
       if (mounted) {
         // Push hydrated snapshot into reactive state provider.
-        ref.read(preferencesStateProvider.notifier).state = svc.snapshot;
+        ref.read(preferencesStateProvider.notifier).update(svc.snapshot);
       }
     }
 
@@ -180,7 +180,7 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
       // Ensure SharedPreferences is ready before reading the persisted value
       await StorageService.ensurePrefs();
       final savedShowCompleted = StorageService.getShowCompletedTasks();
-      ref.read(showCompletedProvider.notifier).state = savedShowCompleted;
+      ref.read(showCompletedProvider.notifier).update(savedShowCompleted);
 
       // Listen for changes and persist them
       ref.listen<bool>(showCompletedProvider, (previous, next) {
@@ -190,7 +190,7 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
       // Restore last selected folder if it exists and is still valid
       final lastSelectedFolder = StorageService.getLastSelectedFolder();
       if (lastSelectedFolder != null) {
-        ref.read(selectedFolderProvider.notifier).state = lastSelectedFolder;
+        ref.read(selectedFolderProvider.notifier).update(lastSelectedFolder);
       }
 
       // Listen for folder selection changes and persist them
@@ -484,12 +484,16 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap>
     // Trigger task creation via provider that HomeScreen listens to
     // This increments a counter which HomeScreen listens to and opens TaskEditorScreen
     if (dateMillis != null) {
-      ref.read(widgetTaskCreationDateProvider.notifier).state =
-          DateTime.fromMillisecondsSinceEpoch(dateMillis);
+      ref
+          .read(widgetTaskCreationDateProvider.notifier)
+          .update(DateTime.fromMillisecondsSinceEpoch(dateMillis));
     } else {
-      ref.read(widgetTaskCreationDateProvider.notifier).state = null;
+      ref.read(widgetTaskCreationDateProvider.notifier).update(null);
     }
-    ref.read(widgetTaskCreationRequestProvider.notifier).state++;
+    final currentCount = ref.read(widgetTaskCreationRequestProvider);
+    ref
+        .read(widgetTaskCreationRequestProvider.notifier)
+        .update(currentCount + 1);
     debugPrint('[Bootstrap] Triggered task creation from widget');
   }
 

@@ -170,30 +170,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         if (didPop) return;
 
         if (fabMenuExpanded) {
-          ref.read(fabMenuExpandedProvider.notifier).state = false;
+          ref.read(fabMenuExpandedProvider.notifier).update(false);
           return;
         }
 
         if (isSearchMode) {
-          ref.read(searchModeProvider.notifier).state = false;
+          ref.read(searchModeProvider.notifier).update(false);
           _searchController.clear();
-          ref.read(searchQueryProvider.notifier).state = '';
-          ref.read(notesSearchQueryProvider.notifier).state = '';
-          ref.read(settingsSearchQueryProvider.notifier).state = '';
-          ref.read(folderSearchQueryProvider.notifier).state = '';
-          ref.read(noteFolderSearchQueryProvider.notifier).state = '';
+          ref.read(searchQueryProvider.notifier).update('');
+          ref.read(notesSearchQueryProvider.notifier).update('');
+          ref.read(settingsSearchQueryProvider.notifier).update('');
+          ref.read(folderSearchQueryProvider.notifier).update('');
+          ref.read(noteFolderSearchQueryProvider.notifier).update('');
           return;
         }
 
         if (selectedNoteFolderId != null) {
           final foldersAsync = ref.read(noteFoldersProvider);
-          final folders = foldersAsync.valueOrNull ?? [];
+          final folders = foldersAsync.value ?? [];
           final folder = folders
               .where((f) => f.id == selectedNoteFolderId)
               .firstOrNull;
 
           if (folder != null && folder.isVault) {
-            ref.read(selectedNoteFolderProvider.notifier).state = null;
+            ref.read(selectedNoteFolderProvider.notifier).update(null);
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -248,14 +248,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     // Exit search mode when switching tabs
                     final isSearchMode = ref.read(searchModeProvider);
                     if (isSearchMode) {
-                      ref.read(searchModeProvider.notifier).state = false;
+                      ref.read(searchModeProvider.notifier).update(false);
                       _searchController.clear();
-                      ref.read(searchQueryProvider.notifier).state = '';
-                      ref.read(notesSearchQueryProvider.notifier).state = '';
-                      ref.read(settingsSearchQueryProvider.notifier).state = '';
-                      ref.read(folderSearchQueryProvider.notifier).state = '';
-                      ref.read(noteFolderSearchQueryProvider.notifier).state =
-                          '';
+                      ref.read(searchQueryProvider.notifier).update('');
+                      ref.read(notesSearchQueryProvider.notifier).update('');
+                      ref.read(settingsSearchQueryProvider.notifier).update('');
+                      ref.read(folderSearchQueryProvider.notifier).update('');
+                      ref
+                          .read(noteFolderSearchQueryProvider.notifier)
+                          .update('');
                     }
                   },
                   labelType: NavigationRailLabelType.all,
@@ -454,9 +455,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           final current = ref.read(taskViewTypeProvider);
                           ref
                               .read(taskViewTypeProvider.notifier)
-                              .state = current == TaskViewType.list
-                              ? TaskViewType.calendar
-                              : TaskViewType.list;
+                              .update(
+                                current == TaskViewType.list
+                                    ? TaskViewType.calendar
+                                    : TaskViewType.list,
+                              );
                         },
                         child: Icon(
                           ref.watch(taskViewTypeProvider) == TaskViewType.list

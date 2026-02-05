@@ -165,7 +165,11 @@ class _AboutScreenState extends State<AboutScreen> {
           _buildPackageTile('File Picker', 'file_picker', '^10.3.2'),
           _buildPackageTile('Image Picker', 'image_picker', '^1.1.2'),
           _buildPackageTile('Video Player', 'video_player', '^2.9.2'),
-          _buildPackageTile('Video Thumbnails', 'video_thumbnail', '^0.5.3'),
+          _buildPackageTile(
+            'Video Thumbnails',
+            'fc_native_video_thumbnail',
+            '^0.17.2',
+          ),
           _buildPackageTile('Audio Recording', 'record', '^5.1.2'),
           _buildPackageTile('Audio Playback', 'audioplayers', '^6.0.0'),
           _buildPackageTile('PDF Generation', 'pdf', '^3.11.1'),

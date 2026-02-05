@@ -74,13 +74,13 @@ class HomeNavigationBar extends ConsumerWidget {
         // Exit search mode when switching tabs
         final isSearchMode = ref.read(searchModeProvider);
         if (isSearchMode) {
-          ref.read(searchModeProvider.notifier).state = false;
+          ref.read(searchModeProvider.notifier).update(false);
           searchController.clear();
-          ref.read(searchQueryProvider.notifier).state = '';
-          ref.read(notesSearchQueryProvider.notifier).state = '';
-          ref.read(settingsSearchQueryProvider.notifier).state = '';
-          ref.read(folderSearchQueryProvider.notifier).state = '';
-          ref.read(noteFolderSearchQueryProvider.notifier).state = '';
+          ref.read(searchQueryProvider.notifier).update('');
+          ref.read(notesSearchQueryProvider.notifier).update('');
+          ref.read(settingsSearchQueryProvider.notifier).update('');
+          ref.read(folderSearchQueryProvider.notifier).update('');
+          ref.read(noteFolderSearchQueryProvider.notifier).update('');
         }
       },
       destinations: [
@@ -164,7 +164,7 @@ class QuickInputBottomArea extends ConsumerWidget {
     // Determine if we're in vault notes context
     final selectedFolderId = ref.watch(selectedNoteFolderProvider);
     final foldersAsync = ref.watch(noteFoldersProvider);
-    final folders = foldersAsync.valueOrNull ?? [];
+    final folders = foldersAsync.value ?? [];
     final folder = selectedFolderId != null
         ? folders.where((f) => f.id == selectedFolderId).firstOrNull
         : null;
@@ -209,9 +209,11 @@ class QuickInputBottomArea extends ConsumerWidget {
                   final current = ref.read(taskViewTypeProvider);
                   ref
                       .read(taskViewTypeProvider.notifier)
-                      .state = current == TaskViewType.list
-                      ? TaskViewType.calendar
-                      : TaskViewType.list;
+                      .update(
+                        current == TaskViewType.list
+                            ? TaskViewType.calendar
+                            : TaskViewType.list,
+                      );
                 },
                 child: Icon(
                   ref.watch(taskViewTypeProvider) == TaskViewType.list

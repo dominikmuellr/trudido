@@ -71,12 +71,15 @@ class FilterChips extends ConsumerWidget {
                     PopupMenuButton<String>(
                       initialValue: sortBy,
                       onSelected: (value) {
-                        ref.read(sortByProvider.notifier).state = value;
+                        ref.read(sortByProvider.notifier).update(value);
                         // Remove from secondary if user selects it as primary
                         final current = ref.read(secondarySortKeysProvider);
                         if (current.contains(value)) {
-                          ref.read(secondarySortKeysProvider.notifier).state =
-                              current.where((k) => k != value).toList();
+                          ref
+                              .read(secondarySortKeysProvider.notifier)
+                              .update(
+                                current.where((k) => k != value).toList(),
+                              );
                         }
                       },
                       position: PopupMenuPosition.under,
@@ -112,10 +115,10 @@ class FilterChips extends ConsumerWidget {
                       PopupMenuButton<String>(
                         onSelected: (value) {
                           final current = ref.read(secondarySortKeysProvider);
-                          ref.read(secondarySortKeysProvider.notifier).state = [
+                          ref.read(secondarySortKeysProvider.notifier).update([
                             ...current,
                             value,
-                          ];
+                          ]);
                         },
                         position: PopupMenuPosition.under,
                         popUpAnimationStyle: const AnimationStyle(
@@ -151,8 +154,11 @@ class FilterChips extends ConsumerWidget {
                           deleteIcon: const Icon(Icons.close, size: 16),
                           onDeleted: () {
                             final current = ref.read(secondarySortKeysProvider);
-                            ref.read(secondarySortKeysProvider.notifier).state =
-                                current.where((k) => k != key).toList();
+                            ref
+                                .read(secondarySortKeysProvider.notifier)
+                                .update(
+                                  current.where((k) => k != key).toList(),
+                                );
                           },
                           onPressed: () {}, // keep chip visually enabled
                         ),
@@ -167,9 +173,9 @@ class FilterChips extends ConsumerWidget {
                       avatar: const Icon(Icons.calendar_today, size: 18),
                       selected: dueToday,
                       showCheckmark: false,
-                      onSelected: (selected) =>
-                          ref.read(dueTodayFilterProvider.notifier).state =
-                              selected,
+                      onSelected: (selected) => ref
+                          .read(dueTodayFilterProvider.notifier)
+                          .update(selected),
                     ),
 
                     SpacingGap.gapH8,
@@ -189,10 +195,11 @@ class FilterChips extends ConsumerWidget {
                           !showCompleted, // selected when hiding (filter active)
                       showCheckmark: false,
                       onSelected: (selected) {
-                        // Toggle: if selected (wants to hide), set false; else true
+                        // Toggle: if selected (wants to hide), set false); else true
                         final newValue = !selected;
-                        ref.read(showCompletedProvider.notifier).state =
-                            newValue;
+                        ref
+                            .read(showCompletedProvider.notifier)
+                            .update(newValue);
                         // Persist choice
                         StorageService.setShowCompletedTasks(newValue);
                       },
@@ -207,17 +214,19 @@ class FilterChips extends ConsumerWidget {
                       onPressed: hasActiveFilters
                           ? () {
                               // Reset filters
-                              ref.read(dueTodayFilterProvider.notifier).state =
-                                  false;
-                              ref.read(showCompletedProvider.notifier).state =
-                                  true;
-                              // Reset sort
-                              ref.read(sortByProvider.notifier).state =
-                                  'default';
                               ref
-                                      .read(secondarySortKeysProvider.notifier)
-                                      .state =
-                                  [];
+                                  .read(dueTodayFilterProvider.notifier)
+                                  .update(false);
+                              ref
+                                  .read(showCompletedProvider.notifier)
+                                  .update(true);
+                              // Reset sort
+                              ref
+                                  .read(sortByProvider.notifier)
+                                  .update('default');
+                              ref
+                                  .read(secondarySortKeysProvider.notifier)
+                                  .update([]);
                               // Persist reset
                               StorageService.setShowCompletedTasks(true);
                             }

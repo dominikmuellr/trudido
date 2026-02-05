@@ -20,18 +20,20 @@ import '../models/note.dart';
 import '../repositories/notes_repository.dart';
 import '../repositories/note_folder_repository.dart';
 import '../utils/date_search_parser.dart';
+import '../utils/state_notifiers.dart';
 
 /// Provider for selected folder filter (null = all notes)
-final selectedNoteFolderProvider = StateProvider<String?>((ref) => null);
+final selectedNoteFolderProvider = stateProvider<String?>(null);
 
 /// Provider for tracking the last accessed vault folder ID
-final lastAccessedVaultProvider = StateProvider<String?>((ref) => null);
+final lastAccessedVaultProvider = stateProvider<String?>(null);
 
 /// Controller for handling notes business logic
-class NotesController extends StateNotifier<AsyncValue<void>> {
-  final NotesNotifier _notesNotifier;
+class NotesController extends Notifier<AsyncValue<void>> {
+  NotesNotifier get _notesNotifier => ref.read(notesProvider.notifier);
 
-  NotesController(this._notesNotifier) : super(const AsyncValue.data(null));
+  @override
+  AsyncValue<void> build() => const AsyncValue.data(null);
 
   /// Creates a new note
   Future<Note?> createNote({
@@ -145,17 +147,16 @@ class NotesController extends StateNotifier<AsyncValue<void>> {
 
 /// Provider for the notes controller
 final notesControllerProvider =
-    StateNotifierProvider<NotesController, AsyncValue<void>>((ref) {
-      final notesNotifier = ref.watch(notesProvider.notifier);
-      return NotesController(notesNotifier);
-    });
+    NotifierProvider<NotesController, AsyncValue<void>>(NotesController.new);
 
 /// Provider for search functionality
-final notesSearchQueryProvider = StateProvider<String>((ref) => '');
+final notesSearchQueryProvider = stateProvider<String>('');
 
-class NotesSortNotifier extends StateNotifier<String> {
-  NotesSortNotifier() : super('date_modified') {
+class NotesSortNotifier extends Notifier<String> {
+  @override
+  String build() {
     _loadSavedSort();
+    return 'date_modified';
   }
 
   Future<void> _loadSavedSort() async {
@@ -181,8 +182,8 @@ class NotesSortNotifier extends StateNotifier<String> {
   }
 }
 
-final notesSortByProvider = StateNotifierProvider<NotesSortNotifier, String>(
-  (ref) => NotesSortNotifier(),
+final notesSortByProvider = NotifierProvider<NotesSortNotifier, String>(
+  NotesSortNotifier.new,
 );
 
 /// Provider for filtered/searched notes

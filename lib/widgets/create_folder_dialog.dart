@@ -345,7 +345,7 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
     if (mounted) {
       if (result is FolderCreationSuccess) {
         // Select the newly created folder so the task list shows its contents
-        ref.read(selectedFolderProvider.notifier).state = result.folder.id;
+        ref.read(selectedFolderProvider.notifier).update(result.folder.id);
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -387,7 +387,7 @@ class _CreateFolderDialogState extends ConsumerState<CreateFolderDialog> {
         // Refresh the tasks provider to show new todos
         await ref.read(tasksProvider.notifier).refresh();
         // Select the newly created folder so the UI shows the new tasks
-        ref.read(selectedFolderProvider.notifier).state = result.folder.id;
+        ref.read(selectedFolderProvider.notifier).update(result.folder.id);
 
         if (mounted) {
           Navigator.pop(context);

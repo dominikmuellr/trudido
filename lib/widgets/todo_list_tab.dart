@@ -51,7 +51,7 @@ class TodoListTab extends ConsumerWidget {
             onPanUpdate: (details) {
               if (viewType == TaskViewType.calendar || filteredTodos.isEmpty) {
                 if (details.delta.dy > 60) {
-                  ref.read(searchModeProvider.notifier).state = true;
+                  ref.read(searchModeProvider.notifier).update(true);
                 }
               }
             },
@@ -61,7 +61,7 @@ class TodoListTab extends ConsumerWidget {
                   if (scrollNotification is ScrollUpdateNotification) {
                     if (scrollNotification.metrics.extentBefore <= 0) {
                       if (scrollNotification.metrics.pixels <= -120) {
-                        ref.read(searchModeProvider.notifier).state = true;
+                        ref.read(searchModeProvider.notifier).update(true);
                         return true;
                       }
                     }
@@ -70,7 +70,7 @@ class TodoListTab extends ConsumerWidget {
                   if (scrollNotification is OverscrollNotification) {
                     if (scrollNotification.metrics.extentBefore <= 0) {
                       if (scrollNotification.overscroll <= -80) {
-                        ref.read(searchModeProvider.notifier).state = true;
+                        ref.read(searchModeProvider.notifier).update(true);
                         return true;
                       }
                     }
@@ -340,7 +340,7 @@ class TodoListTab extends ConsumerWidget {
           onSelectToggle: () {
             final wasMulti = ref.read(multiSelectModeProvider);
             if (!wasMulti) {
-              ref.read(multiSelectModeProvider.notifier).state = true;
+              ref.read(multiSelectModeProvider.notifier).update(true);
             }
             ref.read(selectedTodoIdsProvider.notifier).toggle(item.id);
             HapticFeedback.selectionClick();

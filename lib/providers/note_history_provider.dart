@@ -38,9 +38,9 @@ final allNoteHistoryProvider = FutureProvider<List<NoteHistoryEntry>>((
 // lib/models/note_history_tree.dart for better separation of concerns.
 
 /// StateNotifier for managing navigation through the history tree.
-class NoteHistoryNavigator
-    extends StateNotifier<Map<String, NoteHistoryState>> {
-  NoteHistoryNavigator() : super({});
+class NoteHistoryNavigator extends Notifier<Map<String, NoteHistoryState>> {
+  @override
+  Map<String, NoteHistoryState> build() => {};
 
   NoteHistoryState _getState(String noteId) {
     return state[noteId] ?? const NoteHistoryState();
@@ -233,8 +233,8 @@ class NoteHistoryNavigator
 
 /// Provider for the history navigator.
 final noteHistoryNavigatorProvider =
-    StateNotifierProvider<NoteHistoryNavigator, Map<String, NoteHistoryState>>(
-      (ref) => NoteHistoryNavigator(),
+    NotifierProvider<NoteHistoryNavigator, Map<String, NoteHistoryState>>(
+      NoteHistoryNavigator.new,
     );
 
 /// Provider for building a history tree from entries.
@@ -273,15 +273,14 @@ final currentHistoryPositionProvider =
 
 /// Legacy stack-based notifier - now uses navigator internally.
 class NoteHistoryStackNotifier
-    extends StateNotifier<Map<String, NoteHistoryStacks>> {
-  final Ref _ref;
-
-  NoteHistoryStackNotifier(this._ref) : super({});
+    extends Notifier<Map<String, NoteHistoryStacks>> {
+  @override
+  Map<String, NoteHistoryStacks> build() => {};
 
   /// Push a new entry - saves to storage with parent link for branching.
   Future<void> pushUndo(String noteId, NoteHistoryEntry entry) async {
     final history = await StorageService.getNoteHistoryForNote(noteId);
-    final navigator = _ref.read(noteHistoryNavigatorProvider.notifier);
+    final navigator = ref.read(noteHistoryNavigatorProvider.notifier);
     final parentId = navigator.getParentForNewEntry(noteId, history);
 
     final isBranching = navigator.isInBranchingMode(noteId);
@@ -307,15 +306,15 @@ class NoteHistoryStackNotifier
     navigator.resetToLive(noteId);
 
     // Invalidate history provider to refresh
-    _ref.invalidate(noteHistoryProvider(noteId));
+    ref.invalidate(noteHistoryProvider(noteId));
   }
 
   /// Navigate back (undo) - returns the entry to restore from.
   NoteHistoryEntry? undo(String noteId) {
-    final tree = _ref.read(historyTreeProvider(noteId));
+    final tree = ref.read(historyTreeProvider(noteId));
     if (tree == null) return null;
 
-    final navigator = _ref.read(noteHistoryNavigatorProvider.notifier);
+    final navigator = ref.read(noteHistoryNavigatorProvider.notifier);
     final entryId = navigator.navigateBack(noteId, tree);
     if (entryId == null) return null;
 
@@ -324,7 +323,7 @@ class NoteHistoryStackNotifier
 
   /// Navigate forward (redo) - returns the entry to restore to.
   NoteHistoryEntry? redo(String noteId) {
-    final navigator = _ref.read(noteHistoryNavigatorProvider.notifier);
+    final navigator = ref.read(noteHistoryNavigatorProvider.notifier);
     final entryId = navigator.navigateForward(noteId);
 
     if (entryId == null) {
@@ -332,7 +331,7 @@ class NoteHistoryStackNotifier
       return null;
     }
 
-    final tree = _ref.read(historyTreeProvider(noteId));
+    final tree = ref.read(historyTreeProvider(noteId));
     return tree?.getNode(entryId)?.entry;
   }
 
@@ -340,18 +339,18 @@ class NoteHistoryStackNotifier
   void initializeFromHistory(String noteId, List<NoteHistoryEntry> history) {
     // History is managed by noteHistoryProvider
     // Just invalidate to ensure fresh data
-    _ref.invalidate(noteHistoryProvider(noteId));
+    ref.invalidate(noteHistoryProvider(noteId));
   }
 
   /// Check if at live version (not viewing history).
   bool isAtLiveVersion(String noteId) {
-    final navigator = _ref.read(noteHistoryNavigatorProvider.notifier);
+    final navigator = ref.read(noteHistoryNavigatorProvider.notifier);
     return navigator.isAtLiveVersion(noteId);
   }
 
   /// Get the saved live content for restoring.
   String? getLiveContent(String noteId) {
-    final navigator = _ref.read(noteHistoryNavigatorProvider.notifier);
+    final navigator = ref.read(noteHistoryNavigatorProvider.notifier);
     return navigator.getLiveContent(noteId);
   }
 }
@@ -376,7 +375,6 @@ class NoteHistoryStacks {
 
 /// Provider for the legacy stack notifier.
 final noteHistoryStackProvider =
-    StateNotifierProvider<
-      NoteHistoryStackNotifier,
-      Map<String, NoteHistoryStacks>
-    >((ref) => NoteHistoryStackNotifier(ref));
+    NotifierProvider<NoteHistoryStackNotifier, Map<String, NoteHistoryStacks>>(
+      NoteHistoryStackNotifier.new,
+    );

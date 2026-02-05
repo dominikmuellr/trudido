@@ -24,6 +24,7 @@ import '../providers/app_providers.dart';
 import '../providers/clock.dart';
 import '../services/storage_service.dart';
 import '../widgets/common/common.dart';
+import '../utils/state_notifiers.dart';
 
 // Matrix Rain Animation Widget for Hack Theme
 class MatrixNameAnimation extends StatefulWidget {
@@ -258,9 +259,7 @@ class _MatrixNameAnimationState extends State<MatrixNameAnimation>
 }
 
 // Provider for user's name
-final userNameProvider = StateProvider<String>(
-  (ref) => StorageService.getUserName(),
-);
+final userNameProvider = stateProvider<String>(StorageService.getUserName());
 
 // Provider for current greeting language - directly reads from preferences
 final greetingLanguageProvider = Provider<int>((ref) {
@@ -474,7 +473,7 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
               onPressed: () async {
                 // Use a special marker to indicate user cleared their name (different from never setting one)
                 await StorageService.setUserName('_CLEARED_NAME_');
-                ref.read(userNameProvider.notifier).state = '_CLEARED_NAME_';
+                ref.read(userNameProvider.notifier).update('_CLEARED_NAME_');
                 if (context.mounted) Navigator.pop(context);
               },
               child: const Text('Clear'),
@@ -485,7 +484,7 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
               onPressed: () async {
                 // Set a special marker to indicate user chose not to use name
                 await StorageService.setUserName('_SKIP_NAME_');
-                ref.read(userNameProvider.notifier).state = '_SKIP_NAME_';
+                ref.read(userNameProvider.notifier).update('_SKIP_NAME_');
                 if (context.mounted) Navigator.pop(context);
               },
               child: const Text('Skip'),
@@ -495,7 +494,7 @@ class _GreetingHeaderState extends ConsumerState<GreetingHeader> {
               final name = textController.text.trim();
               if (name.isNotEmpty) {
                 await StorageService.setUserName(name);
-                ref.read(userNameProvider.notifier).state = name;
+                ref.read(userNameProvider.notifier).update(name);
               }
               if (context.mounted) Navigator.pop(context);
             },

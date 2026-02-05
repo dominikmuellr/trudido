@@ -28,12 +28,14 @@ import '../widgets/notes_filter_chips.dart';
 import 'quill_note_editor_screen.dart';
 import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
+import '../utils/state_notifiers.dart';
+
 
 /// Provider for notes search mode
-final notesSearchModeProvider = StateProvider<bool>((ref) => false);
+final notesSearchModeProvider = stateProvider<bool>(false);
 
 /// Provider for notes view mode (grid or list)
-final notesViewModeProvider = StateProvider<String>((ref) => 'grid');
+final notesViewModeProvider = stateProvider<String>('grid');
 
 /// Main notes screen showing list of all notes
 class NotesScreen extends ConsumerStatefulWidget {
@@ -108,7 +110,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         if (scrollNotification is ScrollUpdateNotification) {
           if (scrollNotification.metrics.pixels < -20) {
             // Trigger search mode
-            ref.read(notesSearchModeProvider.notifier).state = true;
+            ref.read(notesSearchModeProvider.notifier).update(true);
             return true; // Consume the notification
           }
         }
@@ -116,7 +118,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         // Also listen for overscroll notifications
         if (scrollNotification is OverscrollNotification) {
           if (scrollNotification.overscroll < -20) {
-            ref.read(notesSearchModeProvider.notifier).state = true;
+            ref.read(notesSearchModeProvider.notifier).update(true);
             return true;
           }
         }
@@ -156,14 +158,14 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         // Detect pull-to-search gesture
         if (scrollNotification is ScrollUpdateNotification) {
           if (scrollNotification.metrics.pixels < -20) {
-            ref.read(notesSearchModeProvider.notifier).state = true;
+            ref.read(notesSearchModeProvider.notifier).update(true);
             return true;
           }
         }
 
         if (scrollNotification is OverscrollNotification) {
           if (scrollNotification.overscroll < -20) {
-            ref.read(notesSearchModeProvider.notifier).state = true;
+            ref.read(notesSearchModeProvider.notifier).update(true);
             return true;
           }
         }

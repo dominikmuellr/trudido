@@ -203,7 +203,7 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   /// Create a new vault note with authentication
   Future<void> createVaultNote() async {
     final foldersAsync = ref.read(noteFoldersProvider);
-    final folders = foldersAsync.valueOrNull ?? [];
+    final folders = foldersAsync.value ?? [];
     final vaultFolders = folders.where((f) => f.isVault).toList();
 
     if (vaultFolders.isEmpty) {
@@ -249,7 +249,7 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
 
     if (!authenticated) return;
 
-    ref.read(lastAccessedVaultProvider.notifier).state = defaultVault.id;
+    ref.read(lastAccessedVaultProvider.notifier).update(defaultVault.id);
 
     if (!mounted) return;
 
@@ -269,8 +269,8 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
 
   /// Lock the current vault
   void lockVault() {
-    ref.read(selectedNoteFolderProvider.notifier).state = null;
-    ref.read(fabMenuExpandedProvider.notifier).state = false;
+    ref.read(selectedNoteFolderProvider.notifier).update(null);
+    ref.read(fabMenuExpandedProvider.notifier).update(false);
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -282,20 +282,20 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
 
   /// Trigger search mode
   void triggerSearch() {
-    ref.read(searchModeProvider.notifier).state = true;
-    ref.read(fabMenuExpandedProvider.notifier).state = false;
+    ref.read(searchModeProvider.notifier).update(true);
+    ref.read(fabMenuExpandedProvider.notifier).update(false);
   }
 
   /// Navigate to a specific settings page
   void navigateToSetting(String route) {
     // Exit search mode first
-    ref.read(searchModeProvider.notifier).state = false;
+    ref.read(searchModeProvider.notifier).update(false);
     searchController.clear();
-    ref.read(searchQueryProvider.notifier).state = '';
-    ref.read(notesSearchQueryProvider.notifier).state = '';
-    ref.read(settingsSearchQueryProvider.notifier).state = '';
-    ref.read(folderSearchQueryProvider.notifier).state = '';
-    ref.read(noteFolderSearchQueryProvider.notifier).state = '';
+    ref.read(searchQueryProvider.notifier).update('');
+    ref.read(notesSearchQueryProvider.notifier).update('');
+    ref.read(settingsSearchQueryProvider.notifier).update('');
+    ref.read(folderSearchQueryProvider.notifier).update('');
+    ref.read(noteFolderSearchQueryProvider.notifier).update('');
 
     switch (route) {
       case 'personalization':
@@ -343,11 +343,11 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     final selectedFolderId = ref.read(selectedNoteFolderProvider);
     if (selectedFolderId != null) {
       final foldersAsync = ref.read(noteFoldersProvider);
-      final folders = foldersAsync.valueOrNull ?? [];
+      final folders = foldersAsync.value ?? [];
       final folder = folders.where((f) => f.id == selectedFolderId).firstOrNull;
 
       if (folder != null && folder.isVault) {
-        ref.read(selectedNoteFolderProvider.notifier).state = null;
+        ref.read(selectedNoteFolderProvider.notifier).update(null);
       }
     }
   }

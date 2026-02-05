@@ -20,6 +20,7 @@ import '../repositories/folder_repository.dart';
 import '../repositories/hive_folder_repository.dart';
 import '../use_cases/folder_use_cases.dart';
 import '../utils/date_search_parser.dart';
+import '../utils/state_notifiers.dart';
 
 // Repository provider
 final folderRepositoryProvider = Provider<FolderRepository>((ref) {
@@ -59,21 +60,22 @@ final searchFoldersUseCaseProvider = Provider<SearchFoldersUseCase>((ref) {
 });
 
 // State notifier for managing folder state
-class FolderNotifier extends StateNotifier<AsyncValue<List<Folder>>> {
-  final GetFoldersUseCase _getFoldersUseCase;
-  final CreateFolderUseCase _createFolderUseCase;
-  final UpdateFolderUseCase _updateFolderUseCase;
-  final DeleteFolderUseCase _deleteFolderUseCase;
-  final ReorderFoldersUseCase _reorderFoldersUseCase;
+class FolderNotifier extends Notifier<AsyncValue<List<Folder>>> {
+  GetFoldersUseCase get _getFoldersUseCase =>
+      ref.read(getFoldersUseCaseProvider);
+  CreateFolderUseCase get _createFolderUseCase =>
+      ref.read(createFolderUseCaseProvider);
+  UpdateFolderUseCase get _updateFolderUseCase =>
+      ref.read(updateFolderUseCaseProvider);
+  DeleteFolderUseCase get _deleteFolderUseCase =>
+      ref.read(deleteFolderUseCaseProvider);
+  ReorderFoldersUseCase get _reorderFoldersUseCase =>
+      ref.read(reorderFoldersUseCaseProvider);
 
-  FolderNotifier(
-    this._getFoldersUseCase,
-    this._createFolderUseCase,
-    this._updateFolderUseCase,
-    this._deleteFolderUseCase,
-    this._reorderFoldersUseCase,
-  ) : super(const AsyncValue.loading()) {
+  @override
+  AsyncValue<List<Folder>> build() {
     loadFolders();
+    return const AsyncValue.loading();
   }
 
   /// Load all folders
@@ -173,15 +175,9 @@ class FolderNotifier extends StateNotifier<AsyncValue<List<Folder>>> {
 
 // State notifier provider for folders
 final folderNotifierProvider =
-    StateNotifierProvider<FolderNotifier, AsyncValue<List<Folder>>>((ref) {
-      return FolderNotifier(
-        ref.read(getFoldersUseCaseProvider),
-        ref.read(createFolderUseCaseProvider),
-        ref.read(updateFolderUseCaseProvider),
-        ref.read(deleteFolderUseCaseProvider),
-        ref.read(reorderFoldersUseCaseProvider),
-      );
-    });
+    NotifierProvider<FolderNotifier, AsyncValue<List<Folder>>>(
+      FolderNotifier.new,
+    );
 
 // Provider for folders with task counts
 final foldersWithTaskCountsProvider = FutureProvider<List<FolderWithTaskCount>>(
@@ -192,10 +188,10 @@ final foldersWithTaskCountsProvider = FutureProvider<List<FolderWithTaskCount>>(
 );
 
 // Provider for selected folder
-final selectedFolderProvider = StateProvider<String?>((ref) => null);
+final selectedFolderProvider = stateProvider<String?>(null);
 
 // Provider for folder search query
-final folderSearchQueryProvider = StateProvider<String>((ref) => '');
+final folderSearchQueryProvider = stateProvider<String>('');
 
 // Provider for filtered folders based on search
 final filteredFoldersProvider = Provider<AsyncValue<List<Folder>>>((ref) {

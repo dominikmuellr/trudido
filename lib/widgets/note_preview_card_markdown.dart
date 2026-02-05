@@ -20,7 +20,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:fc_native_video_thumbnail/fc_native_video_thumbnail.dart';
 import '../models/note.dart';
 import '../providers/app_providers.dart';
 import '../services/theme_service.dart';
@@ -624,7 +625,9 @@ class NotePreviewCard extends ConsumerWidget {
                     ),
                     ExpressiveTextButton(
                       onPressed: () => Navigator.of(context).pop(true),
-                      style: ExpressiveTextButton.styleFrom(foregroundColor: Colors.red),
+                      style: ExpressiveTextButton.styleFrom(
+                        foregroundColor: Colors.red,
+                      ),
                       child: const Text('Move to Bin'),
                     ),
                   ],
@@ -1350,16 +1353,28 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
 
   Future<void> _generateThumbnail() async {
     try {
-      final thumbnail = await VideoThumbnail.thumbnailFile(
-        video: widget.videoPath,
-        imageFormat: ImageFormat.JPEG,
-        maxWidth: 120, // Higher resolution for better quality
+      // Generate temp file path first
+      final tempDir = await getTemporaryDirectory();
+      final thumbPath =
+          '${tempDir.path}/thumb_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      final success = await FcNativeVideoThumbnail().getVideoThumbnail(
+        srcFile: widget.videoPath,
+        destFile: thumbPath,
+        width: 240,
+        height: 180,
         quality: 75,
+        format: 'jpeg',
       );
 
-      if (mounted) {
+      if (mounted && success) {
         setState(() {
-          _thumbnailPath = thumbnail;
+          _thumbnailPath = thumbPath;
+          _isLoading = false;
+        });
+      } else if (mounted) {
+        setState(() {
+          _hasError = true;
           _isLoading = false;
         });
       }

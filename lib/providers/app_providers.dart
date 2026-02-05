@@ -21,6 +21,7 @@ import '../repositories/task_repository.dart';
 import '../services/preferences_service.dart';
 import '../services/lifecycle_sync_observer.dart';
 import 'clock.dart';
+import '../utils/state_notifiers.dart';
 
 /// Singleton preferences service provider.
 final preferencesServiceProvider = Provider<PreferencesService>(
@@ -28,21 +29,24 @@ final preferencesServiceProvider = Provider<PreferencesService>(
 );
 
 /// Reactive preferences state for quick rebuilds.
-final preferencesStateProvider = StateProvider<PreferencesState>((ref) {
-  final svc = ref.watch(preferencesServiceProvider);
-  return svc.snapshot;
-});
+final preferencesStateProvider = stateProvider<PreferencesState>(
+  PreferencesState.defaultState,
+);
 
 /// Task repository provider (lazy load). Use [tasksProvider] for list.
 final taskRepositoryProvider = Provider<TaskRepository>(
   (ref) => TaskRepository(),
 );
 
-class _TasksNotifier extends StateNotifier<List<Todo>> {
-  final TaskRepository repo;
-  _TasksNotifier(this.repo) : super(const []) {
+class _TasksNotifier extends Notifier<List<Todo>> {
+  TaskRepository get repo => ref.read(taskRepositoryProvider);
+
+  @override
+  List<Todo> build() {
     _load();
+    return const [];
   }
+
   Future<void> _load() async {
     await repo.load();
     state = repo.tasks;
@@ -54,10 +58,9 @@ class _TasksNotifier extends StateNotifier<List<Todo>> {
   }
 }
 
-final tasksProvider = StateNotifierProvider<_TasksNotifier, List<Todo>>((ref) {
-  final repo = ref.watch(taskRepositoryProvider);
-  return _TasksNotifier(repo);
-});
+final tasksProvider = NotifierProvider<_TasksNotifier, List<Todo>>(
+  _TasksNotifier.new,
+);
 
 /// Convenience filtered list example (incomplete tasks only).
 final incompleteTasksProvider = Provider<List<Todo>>((ref) {

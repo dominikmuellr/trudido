@@ -466,7 +466,7 @@ class _DefaultTabSheet extends ConsumerWidget {
               final updated = await prefsService.update(
                 hideBottomNavigation: !value,
               );
-              ref.read(preferencesStateProvider.notifier).state = updated;
+              ref.read(preferencesStateProvider.notifier).update(updated);
             },
           ),
           SpacingGap.gapV8,

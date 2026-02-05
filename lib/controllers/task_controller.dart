@@ -26,13 +26,11 @@ import '../services/widget_service.dart';
 import '../models/app_error.dart';
 
 final taskControllerProvider =
-    StateNotifierProvider<TaskController, AsyncValue<void>>(
-      (ref) => TaskController(ref),
-    );
+    NotifierProvider<TaskController, AsyncValue<void>>(TaskController.new);
 
-class TaskController extends StateNotifier<AsyncValue<void>> {
-  final Ref ref;
-  TaskController(this.ref) : super(const AsyncData(null));
+class TaskController extends Notifier<AsyncValue<void>> {
+  @override
+  AsyncValue<void> build() => const AsyncData(null);
   TaskRepository get _repo => ref.read(taskRepositoryProvider);
   final _notifications = NotificationBridge.instance;
   final _calendarSync = CalendarSyncService();

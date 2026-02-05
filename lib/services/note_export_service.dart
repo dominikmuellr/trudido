@@ -20,7 +20,8 @@ import 'package:flutter/material.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:fc_native_video_thumbnail/fc_native_video_thumbnail.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/note.dart';
 import 'package:path/path.dart' as path;
 import 'dart:convert';
@@ -266,14 +267,21 @@ class NoteExportService {
                       );
                     }
                   } else if (type == 'video' && pathStr != null) {
-                    final uint8list = await VideoThumbnail.thumbnailData(
-                      video: pathStr,
-                      imageFormat: ImageFormat.JPEG,
-                      maxWidth: 800,
-                      quality: 75,
-                    );
-                    if (uint8list != null) {
-                      final image = pw.MemoryImage(uint8list);
+                    final tempDir = await getTemporaryDirectory();
+                    final thumbPath =
+                        '${tempDir.path}/thumb_${DateTime.now().millisecondsSinceEpoch}.jpg';
+                    final success = await FcNativeVideoThumbnail()
+                        .getVideoThumbnail(
+                          srcFile: pathStr,
+                          destFile: thumbPath,
+                          width: 800,
+                          height: 600,
+                          quality: 75,
+                          format: 'jpeg',
+                        );
+                    if (success) {
+                      final bytes = await File(thumbPath).readAsBytes();
+                      final image = pw.MemoryImage(bytes);
                       contentWidgets.add(pw.SizedBox(height: 8));
                       contentWidgets.add(
                         pw.Center(
@@ -284,30 +292,24 @@ class NoteExportService {
                           ),
                         ),
                       );
-                      contentWidgets.add(
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.only(top: 4),
-                          child: pw.Text(
-                            'Video: ${path.basename(pathStr)}',
-                            style: pw.TextStyle(
-                              fontSize: 10,
-                              color: PdfColors.grey,
-                            ),
-                          ),
-                        ),
-                      );
-                      contentWidgets.add(pw.SizedBox(height: 8));
-                    } else {
-                      contentWidgets.add(
-                        pw.Text(
-                          '[Video thumbnail unavailable]',
+                      // Clean up temp file
+                      try {
+                        await File(thumbPath).delete();
+                      } catch (_) {}
+                    }
+                    contentWidgets.add(
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.only(top: 4),
+                        child: pw.Text(
+                          'Video: ${path.basename(pathStr)}',
                           style: pw.TextStyle(
                             fontSize: 10,
                             color: PdfColors.grey,
                           ),
                         ),
-                      );
-                    }
+                      ),
+                    );
+                    contentWidgets.add(pw.SizedBox(height: 8));
                   } else if (type == 'voice' && pathStr != null) {
                     contentWidgets.add(
                       pw.Padding(

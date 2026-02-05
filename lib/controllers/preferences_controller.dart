@@ -168,6 +168,6 @@ class PreferencesController {
       contrastLevel: contrastLevel,
       hapticsEnabled: hapticsEnabled,
     );
-    ref.read(preferencesStateProvider.notifier).state = updated;
+    ref.read(preferencesStateProvider.notifier).update(updated);
   }
 }

@@ -56,8 +56,7 @@ class _HolidayCalendarSettingsScreenState
               subtitle: Text('${importedTasks.length} events imported'),
               value: showImported,
               onChanged: (value) {
-                ref.read(showImportedEventsInCalendarProvider.notifier).state =
-                    value;
+                ref.read(showImportedEventsInCalendarProvider.notifier).update(value);
               },
             ),
 

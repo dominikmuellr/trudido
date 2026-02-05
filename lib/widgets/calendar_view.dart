@@ -627,7 +627,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
       _selectedDay = now;
       // Initialize the provider with today's date
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(selectedCalendarDateProvider.notifier).state = _selectedDay;
+        ref.read(selectedCalendarDateProvider.notifier).update(_selectedDay);
       });
     }
   }
@@ -798,8 +798,9 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                           selectedDay.day,
                         );
                         // Update provider so editor can prefill the date
-                        ref.read(selectedCalendarDateProvider.notifier).state =
-                            dateOnly;
+                        ref
+                            .read(selectedCalendarDateProvider.notifier)
+                            .update(dateOnly);
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => TaskEditorScreen(
@@ -895,11 +896,8 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                                 day.day,
                               );
                               ref
-                                      .read(
-                                        selectedCalendarDateProvider.notifier,
-                                      )
-                                      .state =
-                                  dateOnly;
+                                  .read(selectedCalendarDateProvider.notifier)
+                                  .update(dateOnly);
                               Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (_) => TaskEditorScreen(
@@ -981,11 +979,8 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                                 day.day,
                               );
                               ref
-                                      .read(
-                                        selectedCalendarDateProvider.notifier,
-                                      )
-                                      .state =
-                                  dateOnly;
+                                  .read(selectedCalendarDateProvider.notifier)
+                                  .update(dateOnly);
                               Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (_) => TaskEditorScreen(
@@ -1124,8 +1119,9 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                           _focusedDay = focusedDay;
                         });
                         // Update the provider so other widgets can access the selected date
-                        ref.read(selectedCalendarDateProvider.notifier).state =
-                            selectedDay;
+                        ref
+                            .read(selectedCalendarDateProvider.notifier)
+                            .update(selectedDay);
 
                         // Detect double-tap to open task editor
                         final now = DateTime.now();

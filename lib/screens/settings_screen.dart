@@ -52,7 +52,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       svc.ensureInitialized().then((_) {
         // Only update if still on settings screen.
         if (context.mounted) {
-          ref.read(preferencesStateProvider.notifier).state = svc.snapshot;
+          ref.read(preferencesStateProvider.notifier).update(svc.snapshot);
         }
       });
     }

@@ -18,6 +18,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/note_folder.dart';
 import '../services/storage_service.dart';
 import '../utils/date_search_parser.dart';
+import '../utils/state_notifiers.dart';
+
 
 /// Repository for managing note folder data
 class NoteFolderRepository {
@@ -179,7 +181,7 @@ class NoteFoldersNotifier extends AsyncNotifier<List<NoteFolder>> {
 }
 
 /// Provider for note folder search query
-final noteFolderSearchQueryProvider = StateProvider<String>((ref) => '');
+final noteFolderSearchQueryProvider = stateProvider<String>('');
 
 /// Provider for filtered note folders based on search
 final filteredNoteFoldersProvider = Provider<AsyncValue<List<NoteFolder>>>((

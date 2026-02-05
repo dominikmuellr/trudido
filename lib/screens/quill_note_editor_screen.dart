@@ -178,7 +178,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       hideNoteToolbar: _hideToolbar,
       showMoreNoteToolbar: _showMoreToolbar,
     );
-    ref.read(preferencesStateProvider.notifier).state = updated;
+    ref.read(preferencesStateProvider.notifier).update(updated);
   }
 
   void _handleScrollOnDelete() {

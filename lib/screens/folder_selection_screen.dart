@@ -58,7 +58,7 @@ class FolderSelectionScreen extends ConsumerWidget {
               folder: null,
               isSelected: selectedFolderId == null,
               onTap: () {
-                ref.read(selectedFolderProvider.notifier).state = null;
+                ref.read(selectedFolderProvider.notifier).update(null);
                 Navigator.pop(context);
               },
             ),
@@ -72,7 +72,7 @@ class FolderSelectionScreen extends ConsumerWidget {
                   folder: folder,
                   isSelected: selectedFolderId == folder.id,
                   onTap: () {
-                    ref.read(selectedFolderProvider.notifier).state = folder.id;
+                    ref.read(selectedFolderProvider.notifier).update(folder.id);
                     Navigator.pop(context);
                   },
                 ),

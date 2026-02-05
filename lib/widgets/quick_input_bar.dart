@@ -79,7 +79,7 @@ class _QuickInputBarState extends ConsumerState<QuickInputBar> {
     final selectedFolderId = ref.watch(selectedNoteFolderProvider);
     if (selectedFolderId != null) {
       final foldersAsync = ref.watch(noteFoldersProvider);
-      final folders = foldersAsync.valueOrNull ?? [];
+      final folders = foldersAsync.value ?? [];
       final folder = folders.where((f) => f.id == selectedFolderId).firstOrNull;
       if (folder != null && folder.isVault) {
         return QuickInputContext.vaultNotes;

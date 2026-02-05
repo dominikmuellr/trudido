@@ -24,33 +24,33 @@ import '../utils/date_search_parser.dart';
 import 'app_providers.dart';
 import '../services/folder_provider.dart';
 import '../widgets/calendar_view.dart';
+import '../utils/state_notifiers.dart';
 
 // Filter state providers
-final searchQueryProvider = StateProvider<String>((ref) => '');
-final selectedPriorityProvider = StateProvider<String>((ref) => 'all');
-final showCompletedProvider = StateProvider<bool>((ref) => true);
-final sortByProvider = StateProvider<String>(
-  (ref) => 'default',
+final searchQueryProvider = stateProvider<String>('');
+final selectedPriorityProvider = stateProvider<String>('all');
+final showCompletedProvider = stateProvider<bool>(true);
+final sortByProvider = stateProvider<String>(
+  'default',
 ); // default|date_created|date_due|priority|alphabetical|manual
-final dueTodayFilterProvider = StateProvider<bool>((ref) => false);
+final dueTodayFilterProvider = stateProvider<bool>(false);
 
 /// Secondary sort keys for multi-sort. Primary sort is sortByProvider.
 /// Example: ['alphabetical'] means sort by primary first, then alphabetical.
-final secondarySortKeysProvider = StateProvider<List<String>>((ref) => []);
+final secondarySortKeysProvider = stateProvider<List<String>>([]);
 
 // View state providers
 enum TaskViewType { list, calendar }
 
-final taskViewTypeProvider = StateProvider<TaskViewType>((ref) {
-  final defaultView = ref.watch(preferencesStateProvider).defaultTaskView;
-  return defaultView == 'calendar' ? TaskViewType.calendar : TaskViewType.list;
-});
-final selectedCalendarDateProvider = StateProvider<DateTime?>((ref) => null);
+final taskViewTypeProvider = stateProvider<TaskViewType>(TaskViewType.list);
+final selectedCalendarDateProvider = stateProvider<DateTime?>(null);
 
 // Calendar format notifier with persistence
-class CalendarFormatNotifier extends StateNotifier<CustomCalendarFormat> {
-  CalendarFormatNotifier() : super(CustomCalendarFormat.month) {
+class CalendarFormatNotifier extends Notifier<CustomCalendarFormat> {
+  @override
+  CustomCalendarFormat build() {
     _loadSavedFormat();
+    return CustomCalendarFormat.month;
   }
 
   Future<void> _loadSavedFormat() async {
@@ -78,8 +78,8 @@ class CalendarFormatNotifier extends StateNotifier<CustomCalendarFormat> {
 }
 
 final calendarFormatProvider =
-    StateNotifierProvider<CalendarFormatNotifier, CustomCalendarFormat>(
-      (ref) => CalendarFormatNotifier(),
+    NotifierProvider<CalendarFormatNotifier, CustomCalendarFormat>(
+      CalendarFormatNotifier.new,
     );
 
 /// Derived filtered task list based on filters above.

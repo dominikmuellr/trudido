@@ -86,10 +86,7 @@ class BiometricAuthService {
       }
       final result = await _auth.authenticate(
         localizedReason: reason,
-        options: AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: biometricOnly,
-        ),
+        authMessages: const [],
       );
 
       if (kDebugMode) {

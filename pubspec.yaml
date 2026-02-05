@@ -50,7 +50,7 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # State management
-  flutter_riverpod: ^2.5.1
+  flutter_riverpod: ^3.2.1
 
   # Local storage
   shared_preferences: ^2.3.2
@@ -73,7 +73,7 @@ dependencies:
   # Removed google_fonts to reduce APK size - using system default fonts (Roboto on Android)
 
   # Markdown support
-  flutter_markdown_plus: ^1.0.5
+  flutter_markdown_plus: ^1.0.7
 
   # Rich text editor (WYSIWYG)
   flutter_quill: ^11.5.0
@@ -84,7 +84,7 @@ dependencies:
   # (Removed flutter_local_notifications + related timezone/permission packages in favor of pure native Android implementation)
 
   # File picker for import/export (upgrade to fix v1 embedding + desktop default plugin warnings)
-  file_picker: ^10.3.2
+  file_picker: ^10.3.10
 
   # Permissions handler
   permission_handler: ^12.0.1
@@ -92,14 +92,14 @@ dependencies:
   # Image/video picker with camera support
   image_picker: ^1.1.2
 
-  # Video thumbnail generation
-  video_thumbnail: ^0.5.3
+  # Video thumbnail generation (actively maintained)
+  fc_native_video_thumbnail: ^0.17.2
 
   # Video player
   video_player: ^2.9.2
 
   # Audio recording
-  record: ^5.1.2
+  record: ^6.2.0
   path: ^1.9.0
 
   # Audio playback
@@ -111,17 +111,17 @@ dependencies:
 
   # Encryption for vault notes
   encrypt: ^5.0.3
-  flutter_secure_storage: ^9.2.2
+  flutter_secure_storage: ^10.0.0
 
   # Biometric authentication for vault access
-  local_auth: ^2.3.0
+  local_auth: ^3.0.0
 
   # Cryptographic hashing for secure password storage
   crypto: ^3.0.3
 
   # Calendar integration (for DAVx5/Android Calendar sync)
   # Using device_calendar_plus - modern replacement with built-in ProGuard rules
-  device_calendar_plus: ^0.3.1
+  device_calendar_plus: ^0.3.3
   share_plus: ^12.0.1
 
 dev_dependencies:
@@ -146,7 +146,7 @@ dev_dependencies:
 # Override dependencies to fix compatibility issues
 dependency_overrides:
   # Fix record_linux compatibility issue
-  record_linux: ^1.0.0
+  record_linux: ^1.3.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

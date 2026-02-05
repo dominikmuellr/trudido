@@ -104,12 +104,12 @@ class UnifiedSearchResults extends ConsumerWidget {
               searchQuery.isNotEmpty &&
               filteredTasks.isEmpty &&
               filteredSettings.isEmpty &&
-              (filteredNotesAsync.valueOrNull?.isEmpty ?? true) &&
-              (filteredFoldersAsync.valueOrNull
+              (filteredNotesAsync.value?.isEmpty ?? true) &&
+              (filteredFoldersAsync.value
                       ?.where((f) => !f.isVault)
                       .isEmpty ??
                   true) &&
-              (filteredNoteFoldersAsync.valueOrNull
+              (filteredNoteFoldersAsync.value
                       ?.where((f) => !f.isVault)
                       .isEmpty ??
                   true))
@@ -477,25 +477,25 @@ class UnifiedSearchResults extends ConsumerWidget {
   }
 
   void _navigateToFolder(WidgetRef ref, String folderId) {
-    ref.read(searchModeProvider.notifier).state = false;
+    ref.read(searchModeProvider.notifier).update(false);
     searchController.clear();
-    ref.read(searchQueryProvider.notifier).state = '';
-    ref.read(notesSearchQueryProvider.notifier).state = '';
-    ref.read(settingsSearchQueryProvider.notifier).state = '';
-    ref.read(folderSearchQueryProvider.notifier).state = '';
-    ref.read(selectedFolderProvider.notifier).state = folderId;
+    ref.read(searchQueryProvider.notifier).update('');
+    ref.read(notesSearchQueryProvider.notifier).update('');
+    ref.read(settingsSearchQueryProvider.notifier).update('');
+    ref.read(folderSearchQueryProvider.notifier).update('');
+    ref.read(selectedFolderProvider.notifier).update(folderId);
     ref.read(currentTabProvider.notifier).setTab(0);
   }
 
   void _navigateToNoteFolder(WidgetRef ref, String folderId) {
-    ref.read(searchModeProvider.notifier).state = false;
+    ref.read(searchModeProvider.notifier).update(false);
     searchController.clear();
-    ref.read(searchQueryProvider.notifier).state = '';
-    ref.read(notesSearchQueryProvider.notifier).state = '';
-    ref.read(settingsSearchQueryProvider.notifier).state = '';
-    ref.read(folderSearchQueryProvider.notifier).state = '';
-    ref.read(noteFolderSearchQueryProvider.notifier).state = '';
-    ref.read(selectedNoteFolderProvider.notifier).state = folderId;
+    ref.read(searchQueryProvider.notifier).update('');
+    ref.read(notesSearchQueryProvider.notifier).update('');
+    ref.read(settingsSearchQueryProvider.notifier).update('');
+    ref.read(folderSearchQueryProvider.notifier).update('');
+    ref.read(noteFolderSearchQueryProvider.notifier).update('');
+    ref.read(selectedNoteFolderProvider.notifier).update(folderId);
     ref.read(currentTabProvider.notifier).setTab(1);
   }
 }

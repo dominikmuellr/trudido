@@ -16,10 +16,12 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/default_tab_service.dart';
+import '../utils/state_notifiers.dart';
 
 /// Manages the set of selected todo IDs for bulk operations (multi-select mode).
-class SelectedTodoIdsNotifier extends StateNotifier<Set<String>> {
-  SelectedTodoIdsNotifier() : super(<String>{});
+class SelectedTodoIdsNotifier extends Notifier<Set<String>> {
+  @override
+  Set<String> build() => <String>{};
 
   /// Toggle the selection state of a todo ID.
   void toggle(String id) {
@@ -35,9 +37,11 @@ class SelectedTodoIdsNotifier extends StateNotifier<Set<String>> {
 }
 
 /// Notifier for managing current tab state with default tab support.
-class CurrentTabNotifier extends StateNotifier<int> {
-  CurrentTabNotifier() : super(0) {
+class CurrentTabNotifier extends Notifier<int> {
+  @override
+  int build() {
     _initializeDefaultTab();
+    return 0;
   }
 
   /// Initialize with user's preferred default tab.
@@ -64,19 +68,17 @@ class CurrentTabNotifier extends StateNotifier<int> {
 }
 
 // Multi-select providers
-final multiSelectModeProvider = StateProvider<bool>((ref) => false);
+final multiSelectModeProvider = stateProvider<bool>(false);
 
 final selectedTodoIdsProvider =
-    StateNotifierProvider<SelectedTodoIdsNotifier, Set<String>>(
-      (ref) => SelectedTodoIdsNotifier(),
+    NotifierProvider<SelectedTodoIdsNotifier, Set<String>>(
+      SelectedTodoIdsNotifier.new,
     );
 
 // Provider for tracking search mode state
-final searchModeProvider = StateProvider<bool>((ref) => false);
+final searchModeProvider = stateProvider<bool>(false);
 
 // Provider for current tab index with default tab initialization
-final currentTabProvider = StateNotifierProvider<CurrentTabNotifier, int>((
-  ref,
-) {
-  return CurrentTabNotifier();
-});
+final currentTabProvider = NotifierProvider<CurrentTabNotifier, int>(
+  CurrentTabNotifier.new,
+);

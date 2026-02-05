@@ -20,9 +20,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/app_lock_service.dart';
 import '../services/biometric_auth_service.dart';
 import '../screens/lock_screen.dart';
+import '../utils/state_notifiers.dart';
 
 /// Provider to track app lock state
-final appLockedProvider = StateProvider<bool>((ref) => true);
+final appLockedProvider = stateProvider<bool>(true);
 
 /// Widget that wraps the app and shows lock screen when needed
 class AppLockWrapper extends ConsumerStatefulWidget {
@@ -62,7 +63,7 @@ class _AppLockWrapperState extends ConsumerState<AppLockWrapper>
         _isLocked = shouldLock;
         _isCheckingLock = false;
       });
-      ref.read(appLockedProvider.notifier).state = shouldLock;
+      ref.read(appLockedProvider.notifier).update(shouldLock);
     }
   }
 
@@ -152,7 +153,7 @@ class _AppLockWrapperState extends ConsumerState<AppLockWrapper>
       setState(() {
         _isLocked = true;
       });
-      ref.read(appLockedProvider.notifier).state = true;
+      ref.read(appLockedProvider.notifier).update(true);
       AppLockService.instance.lock();
     }
   }
@@ -162,7 +163,7 @@ class _AppLockWrapperState extends ConsumerState<AppLockWrapper>
       setState(() {
         _isLocked = false;
       });
-      ref.read(appLockedProvider.notifier).state = false;
+      ref.read(appLockedProvider.notifier).update(false);
       // Clear pause time and record unlock time to prevent immediate re-lock
       _pausedAt = null;
       _lastUnlockTime = DateTime.now();

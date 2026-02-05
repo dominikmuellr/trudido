@@ -24,6 +24,7 @@ import '../repositories/holiday_repository.dart';
 import '../utils/ics_parser.dart';
 import 'app_providers.dart';
 import 'clock.dart';
+import '../utils/state_notifiers.dart';
 
 /// Holiday repository provider (singleton)
 final holidayRepositoryProvider = Provider<HolidayRepository>((ref) {
@@ -31,11 +32,13 @@ final holidayRepositoryProvider = Provider<HolidayRepository>((ref) {
 });
 
 /// State for holiday list with notifier
-class HolidayNotifier extends StateNotifier<List<Holiday>> {
-  final HolidayRepository repository;
+class HolidayNotifier extends Notifier<List<Holiday>> {
+  HolidayRepository get repository => ref.read(holidayRepositoryProvider);
 
-  HolidayNotifier(this.repository) : super(const []) {
+  @override
+  List<Holiday> build() {
     _load();
+    return const [];
   }
 
   Future<void> _load() async {
@@ -207,12 +210,9 @@ class HolidayNotifier extends StateNotifier<List<Holiday>> {
 }
 
 /// Main holidays provider
-final holidaysProvider = StateNotifierProvider<HolidayNotifier, List<Holiday>>((
-  ref,
-) {
-  final repository = ref.watch(holidayRepositoryProvider);
-  return HolidayNotifier(repository);
-});
+final holidaysProvider = NotifierProvider<HolidayNotifier, List<Holiday>>(
+  HolidayNotifier.new,
+);
 
 /// Visible holidays only (not hidden)
 final visibleHolidaysProvider = Provider<List<Holiday>>((ref) {
@@ -254,7 +254,7 @@ final hasHolidaysProvider = Provider<bool>((ref) {
 });
 
 /// Provider to show/hide holidays in calendar (user preference)
-final showHolidaysInCalendarProvider = StateProvider<bool>((ref) => true);
+final showHolidaysInCalendarProvider = stateProvider<bool>(true);
 
 // ============================================================================
 // Imported Events Providers (for ICS → Tasks refactor)
@@ -296,7 +296,7 @@ final importedTaskCountBySourceProvider = Provider<Map<String, int>>((ref) {
 });
 
 /// Show/hide imported calendar events in calendar view
-final showImportedEventsInCalendarProvider = StateProvider<bool>((ref) => true);
+final showImportedEventsInCalendarProvider = stateProvider<bool>(true);
 
 /// Get past imported uncompleted tasks (before today)
 final pastImportedUncompletedTasksProvider = Provider<List<Todo>>((ref) {

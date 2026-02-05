@@ -89,14 +89,14 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
       leading: ExpressiveIconButton(
         icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
         onPressed: () {
-          ref.read(searchModeProvider.notifier).state = false;
+          ref.read(searchModeProvider.notifier).update(false);
           searchController.clear();
           // Clear all search queries for universal search
-          ref.read(searchQueryProvider.notifier).state = '';
-          ref.read(notesSearchQueryProvider.notifier).state = '';
-          ref.read(settingsSearchQueryProvider.notifier).state = '';
-          ref.read(folderSearchQueryProvider.notifier).state = '';
-          ref.read(noteFolderSearchQueryProvider.notifier).state = '';
+          ref.read(searchQueryProvider.notifier).update('');
+          ref.read(notesSearchQueryProvider.notifier).update('');
+          ref.read(settingsSearchQueryProvider.notifier).update('');
+          ref.read(folderSearchQueryProvider.notifier).update('');
+          ref.read(noteFolderSearchQueryProvider.notifier).update('');
         },
       ),
       title: TextField(
@@ -116,11 +116,11 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
         ),
         onChanged: (value) {
           // Universal search - update tasks, notes, folders, and settings
-          ref.read(searchQueryProvider.notifier).state = value;
-          ref.read(notesSearchQueryProvider.notifier).state = value;
-          ref.read(settingsSearchQueryProvider.notifier).state = value;
-          ref.read(folderSearchQueryProvider.notifier).state = value;
-          ref.read(noteFolderSearchQueryProvider.notifier).state = value;
+          ref.read(searchQueryProvider.notifier).update(value);
+          ref.read(notesSearchQueryProvider.notifier).update(value);
+          ref.read(settingsSearchQueryProvider.notifier).update(value);
+          ref.read(folderSearchQueryProvider.notifier).update(value);
+          ref.read(noteFolderSearchQueryProvider.notifier).update(value);
         },
       ),
       actions: [
@@ -131,11 +131,11 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
             onPressed: () {
               searchController.clear();
               // Clear all search queries for universal search
-              ref.read(searchQueryProvider.notifier).state = '';
-              ref.read(notesSearchQueryProvider.notifier).state = '';
-              ref.read(settingsSearchQueryProvider.notifier).state = '';
-              ref.read(folderSearchQueryProvider.notifier).state = '';
-              ref.read(noteFolderSearchQueryProvider.notifier).state = '';
+              ref.read(searchQueryProvider.notifier).update('');
+              ref.read(notesSearchQueryProvider.notifier).update('');
+              ref.read(settingsSearchQueryProvider.notifier).update('');
+              ref.read(folderSearchQueryProvider.notifier).update('');
+              ref.read(noteFolderSearchQueryProvider.notifier).update('');
             },
           ),
       ],
@@ -164,7 +164,7 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
           ? ExpressiveIconButton(
               icon: ScaledIcon(Icons.close),
               onPressed: () {
-                ref.read(multiSelectModeProvider.notifier).state = false;
+                ref.read(multiSelectModeProvider.notifier).update(false);
                 ref.read(selectedTodoIdsProvider.notifier).clear();
               },
             )
@@ -264,7 +264,7 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
       final controller = ref.read(taskControllerProvider.notifier);
       await controller.bulkDelete(selectedIds);
       ref.read(selectedTodoIdsProvider.notifier).clear();
-      ref.read(multiSelectModeProvider.notifier).state = false;
+      ref.read(multiSelectModeProvider.notifier).update(false);
     }
   }
 
@@ -289,7 +289,7 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
             child: ExpressiveGestureDetector(
               onTap: () {
                 // Activate full search mode when tapped
-                ref.read(searchModeProvider.notifier).state = true;
+                ref.read(searchModeProvider.notifier).update(true);
               },
               child: Container(
                 height: 48,
@@ -354,8 +354,7 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
                               onPressed: () {
-                                ref.read(notesViewModeProvider.notifier).state =
-                                    viewMode == 'grid' ? 'list' : 'grid';
+                                ref.read(notesViewModeProvider.notifier).update(viewMode == 'grid' ? 'list' : 'grid');
                               },
                             ),
                           );

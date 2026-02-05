@@ -20,9 +20,11 @@ import '../screens/home_screen_notifiers.dart';
 import '../controllers/notes_controller.dart';
 import '../repositories/note_folder_repository.dart';
 import '../widgets/common/common.dart';
+import '../utils/state_notifiers.dart';
+
 
 // Provider to track FAB menu expanded state
-final fabMenuExpandedProvider = StateProvider<bool>((ref) => false);
+final fabMenuExpandedProvider = stateProvider<bool>(false);
 
 // Data class for menu items
 class _MenuItem {
@@ -92,7 +94,7 @@ class _FabMenuState extends ConsumerState<FabMenu>
   void _toggleMenu() {
     setState(() {
       _isExpanded = !_isExpanded;
-      ref.read(fabMenuExpandedProvider.notifier).state = _isExpanded;
+      ref.read(fabMenuExpandedProvider.notifier).update(_isExpanded);
     });
     _animateItems();
   }
@@ -145,7 +147,7 @@ class _FabMenuState extends ConsumerState<FabMenu>
       // Notes Tab - check if we're in a vault
       final selectedFolderId = ref.watch(selectedNoteFolderProvider);
       final foldersAsync = ref.watch(noteFoldersProvider);
-      final folders = foldersAsync.valueOrNull ?? [];
+      final folders = foldersAsync.value ?? [];
       final selectedFolder = selectedFolderId != null
           ? folders.where((f) => f.id == selectedFolderId).firstOrNull
           : null;
@@ -324,7 +326,7 @@ class FabMenuBackdrop extends ConsumerWidget {
           Positioned.fill(
             child: ExpressiveGestureDetector(
               onTap: () {
-                ref.read(fabMenuExpandedProvider.notifier).state = false;
+                ref.read(fabMenuExpandedProvider.notifier).update(false);
               },
               child: Container(
                 color: Colors.black.withOpacity(0.5), // Semi-transparent black
@@ -351,7 +353,7 @@ class FabMenuScreenBackdrop extends ConsumerWidget {
     return Positioned.fill(
       child: ExpressiveGestureDetector(
         onTap: () {
-          ref.read(fabMenuExpandedProvider.notifier).state = false;
+          ref.read(fabMenuExpandedProvider.notifier).update(false);
         },
         child: Container(color: Colors.black.withOpacity(0.5)),
       ),

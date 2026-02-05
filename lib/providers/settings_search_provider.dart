@@ -17,6 +17,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/date_search_parser.dart';
+import '../utils/state_notifiers.dart';
+
 
 class SettingsItem {
   final String title;
@@ -111,4 +113,4 @@ final filteredSettingsProvider = Provider<List<SettingsItem>>((ref) {
 });
 
 /// Search query for settings
-final settingsSearchQueryProvider = StateProvider<String>((ref) => '');
+final settingsSearchQueryProvider = stateProvider<String>('');

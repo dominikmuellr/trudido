@@ -55,23 +55,21 @@ final applyTemplateUseCaseProvider = Provider<ApplyTemplateUseCase>((ref) {
 
 // State notifier for templates
 final templateNotifierProvider =
-    StateNotifierProvider<TemplateNotifier, AsyncValue<List<FolderTemplate>>>((
-      ref,
-    ) {
-      return TemplateNotifier(
-        ref.read(getTemplatesUseCaseProvider),
-        ref.read(folderTemplateRepositoryProvider),
-      );
-    });
+    NotifierProvider<TemplateNotifier, AsyncValue<List<FolderTemplate>>>(
+      TemplateNotifier.new,
+    );
 
 /// State notifier for managing folder templates
-class TemplateNotifier extends StateNotifier<AsyncValue<List<FolderTemplate>>> {
-  final GetTemplatesUseCase _getTemplatesUseCase;
-  final FolderTemplateRepository _repository;
+class TemplateNotifier extends Notifier<AsyncValue<List<FolderTemplate>>> {
+  GetTemplatesUseCase get _getTemplatesUseCase =>
+      ref.read(getTemplatesUseCaseProvider);
+  FolderTemplateRepository get _repository =>
+      ref.read(folderTemplateRepositoryProvider);
 
-  TemplateNotifier(this._getTemplatesUseCase, this._repository)
-    : super(const AsyncValue.loading()) {
+  @override
+  AsyncValue<List<FolderTemplate>> build() {
     loadTemplates();
+    return const AsyncValue.loading();
   }
 
   /// Load all templates

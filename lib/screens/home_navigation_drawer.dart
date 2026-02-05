@@ -216,7 +216,7 @@ class _ThemeCycleIcon extends ConsumerWidget {
       onPressed: () async {
         final prefsService = ref.read(preferencesServiceProvider);
         final updated = await prefsService.update(themeMode: nextMode);
-        ref.read(preferencesStateProvider.notifier).state = updated;
+        ref.read(preferencesStateProvider.notifier).update(updated);
       },
     );
   }
@@ -270,7 +270,7 @@ class _TaskFoldersList extends ConsumerWidget {
                 borderRadius: SpacingBorderRadius.md,
               ),
               onTap: () {
-                ref.read(selectedFolderProvider.notifier).state = null;
+                ref.read(selectedFolderProvider.notifier).update(null);
                 Navigator.of(context).pop();
               },
             ),
@@ -304,7 +304,7 @@ class _TaskFoldersList extends ConsumerWidget {
                   borderRadius: SpacingBorderRadius.md,
                 ),
                 onTap: () {
-                  ref.read(selectedFolderProvider.notifier).state = folder.id;
+                  ref.read(selectedFolderProvider.notifier).update(folder.id);
                   Navigator.of(context).pop();
                 },
               );
@@ -399,7 +399,7 @@ class _NoteFoldersList extends ConsumerWidget {
                 borderRadius: SpacingBorderRadius.md,
               ),
               onTap: () {
-                ref.read(selectedNoteFolderProvider.notifier).state = null;
+                ref.read(selectedNoteFolderProvider.notifier).update(null);
                 Navigator.of(context).pop();
               },
             ),
@@ -464,12 +464,14 @@ class _NoteFoldersList extends ConsumerWidget {
                       return;
                     }
 
-                    ref.read(lastAccessedVaultProvider.notifier).state =
-                        folder.id;
+                    ref
+                        .read(lastAccessedVaultProvider.notifier)
+                        .update(folder.id);
                   }
 
-                  ref.read(selectedNoteFolderProvider.notifier).state =
-                      folder.id;
+                  ref
+                      .read(selectedNoteFolderProvider.notifier)
+                      .update(folder.id);
                   if (context.mounted) {
                     Navigator.of(context).pop();
                   }
@@ -610,7 +612,7 @@ class _BinListTile extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final selectedFolderId = ref.watch(selectedNoteFolderProvider);
-    final folders = ref.watch(noteFoldersProvider).valueOrNull ?? [];
+    final folders = ref.watch(noteFoldersProvider).value ?? [];
     final folder = folders.where((f) => f.id == selectedFolderId).firstOrNull;
     final isVault = folder?.isVault == true;
 
@@ -901,23 +903,28 @@ class _CompactCalendar extends ConsumerWidget {
                 onDaySelected: (selectedDay, focusedDay) {
                   ref
                       .read(selectedCalendarDateProvider.notifier)
-                      .state = DateTime(
-                    selectedDay.year,
-                    selectedDay.month,
-                    selectedDay.day,
-                  );
-                  ref.read(taskViewTypeProvider.notifier).state =
-                      TaskViewType.calendar;
+                      .update(
+                        DateTime(
+                          selectedDay.year,
+                          selectedDay.month,
+                          selectedDay.day,
+                        ),
+                      );
+                  ref
+                      .read(taskViewTypeProvider.notifier)
+                      .update(TaskViewType.calendar);
                   Navigator.of(context).pop();
                 },
                 onPageChanged: (focusedDay) {
                   ref
                       .read(selectedCalendarDateProvider.notifier)
-                      .state = DateTime(
-                    focusedDay.year,
-                    focusedDay.month,
-                    focusedDay.day,
-                  );
+                      .update(
+                        DateTime(
+                          focusedDay.year,
+                          focusedDay.month,
+                          focusedDay.day,
+                        ),
+                      );
                 },
               ),
             ),

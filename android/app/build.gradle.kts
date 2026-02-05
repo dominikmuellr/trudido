@@ -41,19 +41,28 @@ android {
     }
 
     signingConfigs {
-    create("release") {
-        val home = System.getenv("HOME") ?: System.getenv("USERPROFILE") ?: ""
-        storeFile = file("$home/Documents/keystores/trudido-release-key.jks")
-        storePassword = System.getenv("KEYSTORE_PASSWORD")
-        keyAlias = System.getenv("KEY_ALIAS")
-        keyPassword = System.getenv("KEY_PASSWORD")
+        create("release") {
+            val home = System.getenv("HOME") ?: System.getenv("USERPROFILE") ?: ""
+            val keystorePath = "$home/Documents/keystores/trudido-release-key.jks"
+            val keystoreFile = file(keystorePath)
+            
+            // Only configure signing if keystore exists and env vars are set
+            if (keystoreFile.exists() && System.getenv("KEYSTORE_PASSWORD") != null) {
+                storeFile = keystoreFile
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
     }
-}
-
 
     buildTypes {
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            // Only use signing config if keystore exists and is configured
+            val releaseSigningConfig = signingConfigs.getByName("release")
+            if (releaseSigningConfig.storeFile?.exists() == true) {
+                signingConfig = releaseSigningConfig
+            }
             // Enable code shrinking, obfuscation, and optimization (standard for production)
             isMinifyEnabled = true
             // Remove unused resources to reduce APK size

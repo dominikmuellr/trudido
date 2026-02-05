@@ -29,14 +29,16 @@ final defaultTabProvider = FutureProvider<String>((ref) async {
 
 /// Provider for saving default tab changes
 final defaultTabNotifierProvider =
-    StateNotifierProvider<DefaultTabNotifier, AsyncValue<String>>((ref) {
-      return DefaultTabNotifier();
-    });
+    NotifierProvider<DefaultTabNotifier, AsyncValue<String>>(
+      DefaultTabNotifier.new,
+    );
 
 /// State notifier for managing default tab changes
-class DefaultTabNotifier extends StateNotifier<AsyncValue<String>> {
-  DefaultTabNotifier() : super(const AsyncValue.loading()) {
+class DefaultTabNotifier extends Notifier<AsyncValue<String>> {
+  @override
+  AsyncValue<String> build() {
     _loadCurrentTab();
+    return const AsyncValue.loading();
   }
 
   Future<void> _loadCurrentTab() async {
@@ -223,7 +225,7 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
               final updated = await prefsService.update(
                 hideBottomNavigation: !value,
               );
-              ref.read(preferencesStateProvider.notifier).state = updated;
+              ref.read(preferencesStateProvider.notifier).update(updated);
             },
           ),
         ),
