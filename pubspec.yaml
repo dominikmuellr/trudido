@@ -177,16 +177,6 @@ flutter:
       fonts:
         - asset: assets/fonts/OpenSans-Variable.ttf
 
-    # Inter - Modern UI font (292 KB)
-    - family: Inter
-      fonts:
-        - asset: assets/fonts/Inter-Variable.ttf
-
-    # Atkinson Hyperlegible - Optimized for dyslexia (292 KB)
-    - family: AtkinsonHyperlegible
-      fonts:
-        - asset: assets/fonts/AtkinsonHyperlegible-Variable.ttf
-
     # JetBrains Mono - Monospace for code/technical notes (183 KB)
     - family: JetBrainsMono
       fonts:

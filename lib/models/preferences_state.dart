@@ -43,7 +43,7 @@ class PreferencesState {
   final String defaultTaskView; // list | calendar - default view on app start
   final bool hapticsEnabled; // Enable haptic feedback for interactions
   final String
-  fontFamily; // Font family: roboto | opensans | inter | atkinson | jetbrains | lexend
+  fontFamily; // Font family: roboto | opensans | jetbrains | lexend
   final double? _lineHeightMultiplier; // Line height multiplier (e.g. 1.2)
   double get lineHeightMultiplier => _lineHeightMultiplier ?? 1.2;
   final double? _paragraphSpacing; // Paragraph spacing in points (e.g. 8.0)

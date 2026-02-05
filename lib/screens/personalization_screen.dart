@@ -1127,19 +1127,15 @@ class _AccentColorSheet extends StatelessWidget {
 String _getFontDisplayName(String fontFamily) {
   switch (fontFamily) {
     case 'roboto':
-      return 'Roboto (Default)';
+      return 'Roboto (System)';
     case 'opensans':
-      return 'Open Sans';
-    case 'inter':
-      return 'Inter';
-    case 'atkinson':
-      return 'Atkinson Hyperlegible';
+      return 'Open Sans (Default)';
     case 'jetbrains':
       return 'JetBrains Mono';
     case 'lexend':
       return 'Lexend';
     default:
-      return 'Roboto (Default)';
+      return 'Open Sans (Default)';
   }
 }
 
@@ -1187,15 +1183,6 @@ void _showFontPicker(BuildContext context, WidgetRef ref) {
           'Clean & neutral',
           Icons.font_download,
         ),
-        _buildFontOption(
-          context,
-          controller,
-          currentFont,
-          'inter',
-          'Inter',
-          'Modern UI',
-          Icons.design_services,
-        ),
         const Divider(),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -1203,15 +1190,6 @@ void _showFontPicker(BuildContext context, WidgetRef ref) {
             'Specialized fonts',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-        ),
-        _buildFontOption(
-          context,
-          controller,
-          currentFont,
-          'atkinson',
-          'Atkinson Hyperlegible',
-          'Dyslexia-friendly',
-          Icons.accessibility,
         ),
         _buildFontOption(
           context,

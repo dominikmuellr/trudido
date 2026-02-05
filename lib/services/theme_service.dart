@@ -159,9 +159,8 @@ class AppTheme {
       case 'opensans':
         return 'OpenSans';
       case 'inter':
-        return 'Inter';
       case 'atkinson':
-        return 'AtkinsonHyperlegible';
+        return 'OpenSans';
       case 'jetbrains':
         return 'JetBrainsMono';
       case 'lexend':
@@ -242,17 +241,17 @@ class AppTheme {
         letterSpacing: 0.5,
       ),
       bodyLarge: baseTextTheme.bodyLarge?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: actualFontFamily,
         fontWeight: FontWeight.w400,
         letterSpacing: 0.5,
       ),
       bodyMedium: baseTextTheme.bodyMedium?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: actualFontFamily,
         fontWeight: FontWeight.w400,
         letterSpacing: 0.25,
       ),
       bodySmall: baseTextTheme.bodySmall?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: actualFontFamily,
         fontWeight: FontWeight.w400,
         letterSpacing: 0.4,
       ),
@@ -337,6 +336,7 @@ class AppTheme {
     useMaterial3: true,
     brightness: Brightness.light,
     colorScheme: colorScheme,
+    fontFamily: _getFontFamily(fontFamily),
     textTheme: _buildTextTheme(Brightness.light, fontFamily),
     scaffoldBackgroundColor: colorScheme.surface, // Material 3 color-aware
     appBarTheme: AppBarTheme(
@@ -565,6 +565,7 @@ class AppTheme {
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: colorScheme,
+    fontFamily: _getFontFamily(fontFamily),
     textTheme: _buildTextTheme(Brightness.dark, fontFamily),
     scaffoldBackgroundColor: colorScheme.surface, // Material 3 color-aware
     appBarTheme: AppBarTheme(

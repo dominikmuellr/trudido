@@ -189,9 +189,7 @@ class PreferencesService {
       hapticsEnabled:
           p.getBool('haptics_enabled') ??
           PreferencesState.defaultState.hapticsEnabled,
-      fontFamily:
-          p.getString('font_family') ??
-          PreferencesState.defaultState.fontFamily,
+      fontFamily: _sanitizeFontFamily(p.getString('font_family')),
       lineHeightMultiplier:
           p.getDouble('line_height_multiplier') ??
           PreferencesState.defaultState.lineHeightMultiplier,
@@ -204,6 +202,18 @@ class PreferencesService {
   String _sanitizeFabPosition(String? v) {
     if (v == 'left' || v == 'center' || v == 'right') return v!;
     return PreferencesState.defaultState.fabPosition;
+  }
+
+  String _sanitizeFontFamily(String? v) {
+    switch (v) {
+      case 'roboto':
+      case 'opensans':
+      case 'jetbrains':
+      case 'lexend':
+        return v!;
+      default:
+        return PreferencesState.defaultState.fontFamily;
+    }
   }
 
   Future<PreferencesState> update({
