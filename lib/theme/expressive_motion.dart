@@ -16,7 +16,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
-import 'package:vibration/vibration.dart';
+import 'package:flutter/services.dart';
 
 /// Material 3 Expressive Motion Abstraction Layer (January 2026)
 ///
@@ -372,43 +372,43 @@ class ExpressiveHaptics {
   static void lightTap({bool enabled = true}) {
     if (!enabled) return;
     // Subtle vibration for button presses
-    Vibration.vibrate(duration: 10);
+    HapticFeedback.lightImpact();
   }
 
   /// Medium haptic feedback for important interactions
   static void mediumTap({bool enabled = true}) {
     if (!enabled) return;
-    Vibration.vibrate(duration: 100);
+    HapticFeedback.mediumImpact();
   }
 
   /// Heavy haptic feedback for significant actions
   static void heavyTap({bool enabled = true}) {
     if (!enabled) return;
-    Vibration.vibrate(duration: 200);
+    HapticFeedback.heavyImpact();
   }
 
   /// Selection changed feedback (e.g., picker, dropdown)
   static void selectionChanged({bool enabled = true}) {
     if (!enabled) return;
-    Vibration.vibrate(duration: 30);
+    HapticFeedback.selectionClick();
   }
 
   /// Success feedback after completing an action
   static void success({bool enabled = true}) {
     if (!enabled) return;
-    Vibration.vibrate(duration: 150);
+    HapticFeedback.mediumImpact();
   }
 
   /// Error feedback for failed actions
   static void error({bool enabled = true}) {
     if (!enabled) return;
-    Vibration.vibrate(duration: 300);
+    HapticFeedback.heavyImpact();
   }
 
   /// Vibrate for attention (e.g., long press activated)
   static void vibrate({bool enabled = true}) {
     if (!enabled) return;
-    Vibration.vibrate(duration: 100);
+    HapticFeedback.vibrate();
   }
 }
 

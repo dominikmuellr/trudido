@@ -3,6 +3,13 @@ allprojects {
         google()
         mavenCentral()
     }
+    
+    // Force all Android projects to use compileSdk 36
+    plugins.withType<com.android.build.gradle.BasePlugin> {
+        extensions.findByType<com.android.build.gradle.BaseExtension>()?.apply {
+            compileSdkVersion(36)
+        }
+    }
 }
 
 val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
@@ -14,18 +21,6 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
-}
-
-// Force all plugins to use the same compileSdk
-subprojects {
-    project.plugins.withId("com.android.library") {
-        val android = project.extensions.getByName("android") as com.android.build.gradle.BaseExtension
-        android.compileSdkVersion(36)
-    }
-    project.plugins.withId("com.android.application") {
-        val android = project.extensions.getByName("android") as com.android.build.gradle.BaseExtension
-        android.compileSdkVersion(36)
-    }
 }
 
 tasks.register<Delete>("clean") {

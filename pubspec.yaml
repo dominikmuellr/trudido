@@ -89,9 +89,6 @@ dependencies:
   # Permissions handler
   permission_handler: ^12.0.1
 
-  # Vibration for haptic feedback
-  vibration: ^2.0.0
-
   # Image/video picker with camera support
   image_picker: ^1.1.2
 
