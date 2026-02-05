@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trudido/utils/responsive_size.dart';
@@ -35,7 +36,7 @@ import '../widgets/common/common.dart';
 
 /// AppBar widget for the home screen
 /// Handles search mode, multi-select mode, and regular greeting display
-class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
+class HomeAppBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
   final TextEditingController searchController;
   final Animation<double>? searchBarScaleAnimation;
   final Animation<double>? greetingFadeAnimation;
@@ -55,7 +56,35 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeAppBar> createState() => _HomeAppBarState();
+}
+
+class _HomeAppBarState extends ConsumerState<HomeAppBar> {
+  Timer? _debounceTimer;
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    // Cancel previous timer
+    _debounceTimer?.cancel();
+
+    // Debounce: wait 300ms before updating search
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      // Universal search - update tasks, notes, folders, and settings
+      ref.read(searchQueryProvider.notifier).update(value);
+      ref.read(notesSearchQueryProvider.notifier).update(value);
+      ref.read(settingsSearchQueryProvider.notifier).update(value);
+      ref.read(folderSearchQueryProvider.notifier).update(value);
+      ref.read(noteFolderSearchQueryProvider.notifier).update(value);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isSearchMode = ref.watch(searchModeProvider);
     final currentTab = ref.watch(currentTabProvider);
     final preferences = ref.watch(preferencesStateProvider);
@@ -66,18 +95,14 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
         Theme.of(context).brightness == Brightness.dark;
 
     if (isSearchMode && (currentTab == 0 || currentTab == 1)) {
-      return _buildSearchAppBar(context, ref, isAmoledBlack);
+      return _buildSearchAppBar(context, isAmoledBlack);
     }
 
-    return _buildRegularAppBar(context, ref, isAmoledBlack, currentTab);
+    return _buildRegularAppBar(context, isAmoledBlack, currentTab);
   }
 
   /// Builds the search mode AppBar
-  AppBar _buildSearchAppBar(
-    BuildContext context,
-    WidgetRef ref,
-    bool isAmoledBlack,
-  ) {
+  AppBar _buildSearchAppBar(BuildContext context, bool isAmoledBlack) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -90,7 +115,7 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
         icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
         onPressed: () {
           ref.read(searchModeProvider.notifier).update(false);
-          searchController.clear();
+          widget.searchController.clear();
           // Clear all search queries for universal search
           ref.read(searchQueryProvider.notifier).update('');
           ref.read(notesSearchQueryProvider.notifier).update('');
@@ -100,7 +125,7 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
         },
       ),
       title: TextField(
-        controller: searchController,
+        controller: widget.searchController,
         autofocus: true,
         style: theme.textTheme.bodyLarge?.copyWith(
           color: colorScheme.onSurface,
@@ -114,22 +139,16 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
           filled: false,
           contentPadding: EdgeInsets.zero,
         ),
-        onChanged: (value) {
-          // Universal search - update tasks, notes, folders, and settings
-          ref.read(searchQueryProvider.notifier).update(value);
-          ref.read(notesSearchQueryProvider.notifier).update(value);
-          ref.read(settingsSearchQueryProvider.notifier).update(value);
-          ref.read(folderSearchQueryProvider.notifier).update(value);
-          ref.read(noteFolderSearchQueryProvider.notifier).update(value);
-        },
+        // Use debounced search for better performance
+        onChanged: _onSearchChanged,
       ),
       actions: [
-        if (searchController.text.isNotEmpty)
+        if (widget.searchController.text.isNotEmpty)
           ExpressiveIconButton(
             icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
             tooltip: 'Clear search',
             onPressed: () {
-              searchController.clear();
+              widget.searchController.clear();
               // Clear all search queries for universal search
               ref.read(searchQueryProvider.notifier).update('');
               ref.read(notesSearchQueryProvider.notifier).update('');
@@ -145,7 +164,6 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
   /// Builds the regular (non-search) AppBar
   AppBar _buildRegularAppBar(
     BuildContext context,
-    WidgetRef ref,
     bool isAmoledBlack,
     int currentTab,
   ) {
@@ -187,16 +205,16 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
                 color: colorScheme.onSurface,
               ),
             )
-          : preferences.showSearchBar && showSearchBar
-          ? _buildAnimatedSearchBar(context, ref, currentTab)
-          : !preferences.showSearchBar || greetingFadeAnimation == null
-          ? _buildGreeting(context, ref, currentTab)
+          : preferences.showSearchBar && widget.showSearchBar
+          ? _buildAnimatedSearchBar(context, currentTab)
+          : !preferences.showSearchBar || widget.greetingFadeAnimation == null
+          ? _buildGreeting(context, currentTab)
           : AnimatedBuilder(
-              animation: greetingFadeAnimation!,
+              animation: widget.greetingFadeAnimation!,
               builder: (context, child) {
                 return Opacity(
-                  opacity: greetingFadeAnimation!.value,
-                  child: _buildGreeting(context, ref, currentTab),
+                  opacity: widget.greetingFadeAnimation!.value,
+                  child: _buildGreeting(context, currentTab),
                 );
               },
             ),
@@ -225,7 +243,10 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
         if (!multiMode)
           Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: UserAvatarWidget(radius: 18, onTap: onOpenPersonalization),
+            child: UserAvatarWidget(
+              radius: 18,
+              onTap: widget.onOpenPersonalization,
+            ),
           ),
       ],
     );
@@ -269,23 +290,19 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
   }
 
   /// Builds the animated search bar for the AppBar title
-  Widget _buildAnimatedSearchBar(
-    BuildContext context,
-    WidgetRef ref,
-    int currentTab,
-  ) {
-    if (searchBarScaleAnimation == null) return const SizedBox.shrink();
+  Widget _buildAnimatedSearchBar(BuildContext context, int currentTab) {
+    if (widget.searchBarScaleAnimation == null) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     return AnimatedBuilder(
-      animation: searchBarScaleAnimation!,
+      animation: widget.searchBarScaleAnimation!,
       builder: (context, child) {
         return Transform.scale(
-          scale: searchBarScaleAnimation!.value,
+          scale: widget.searchBarScaleAnimation!.value,
           child: Opacity(
-            opacity: searchBarScaleAnimation!.value,
+            opacity: widget.searchBarScaleAnimation!.value,
             child: ExpressiveGestureDetector(
               onTap: () {
                 // Activate full search mode when tapped
@@ -354,7 +371,11 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
                               onPressed: () {
-                                ref.read(notesViewModeProvider.notifier).update(viewMode == 'grid' ? 'list' : 'grid');
+                                ref
+                                    .read(notesViewModeProvider.notifier)
+                                    .update(
+                                      viewMode == 'grid' ? 'list' : 'grid',
+                                    );
                               },
                             ),
                           );
@@ -371,16 +392,16 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
   }
 
   /// Builds greeting widget for AppBar based on current tab
-  Widget _buildGreeting(BuildContext context, WidgetRef ref, int currentTab) {
+  Widget _buildGreeting(BuildContext context, int currentTab) {
     if (currentTab == 0) {
-      return _buildTasksGreeting(context, ref);
+      return _buildTasksGreeting(context);
     } else {
-      return _buildNotesGreeting(context, ref);
+      return _buildNotesGreeting(context);
     }
   }
 
   /// Builds tasks greeting with time-based subtitle
-  Widget _buildTasksGreeting(BuildContext context, WidgetRef ref) {
+  Widget _buildTasksGreeting(BuildContext context) {
     final userName = StorageService.getUserName();
     final hour = ref.read(clockProvider).now().hour;
     final theme = Theme.of(context);
@@ -426,7 +447,7 @@ class HomeAppBar extends ConsumerWidget implements PreferredSizeWidget {
   }
 
   /// Builds notes greeting
-  Widget _buildNotesGreeting(BuildContext context, WidgetRef ref) {
+  Widget _buildNotesGreeting(BuildContext context) {
     final userName = StorageService.getUserName();
     final hour = ref.read(clockProvider).now().hour;
     final theme = Theme.of(context);

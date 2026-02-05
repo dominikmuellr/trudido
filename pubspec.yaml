@@ -169,18 +169,35 @@ flutter:
     - assets/imagefiles/trudiconRound.png
     # Screenshots & GitHub badge excluded - only for GitHub README, not bundled in APK
 
-  # Google Sans font for modern Material Design typography
+  # Variable fonts for customization and reduced APK size
+  # Users can switch between fonts in Personalization settings
   fonts:
-    - family: GoogleSans
+    # Open Sans - Clean, neutral (520 KB)
+    - family: OpenSans
       fonts:
-        - asset: assets/fonts/GoogleSans-400.ttf
-          weight: 400
-        - asset: assets/fonts/GoogleSans-500.ttf
-          weight: 500
-        - asset: assets/fonts/GoogleSans-600.ttf
-          weight: 600
-        - asset: assets/fonts/GoogleSans-700.ttf
-          weight: 700
+        - asset: assets/fonts/OpenSans-Variable.ttf
+
+    # Inter - Modern UI font (292 KB)
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Variable.ttf
+
+    # Atkinson Hyperlegible - Optimized for dyslexia (292 KB)
+    - family: AtkinsonHyperlegible
+      fonts:
+        - asset: assets/fonts/AtkinsonHyperlegible-Variable.ttf
+
+    # JetBrains Mono - Monospace for code/technical notes (183 KB)
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-Variable.ttf
+
+    # Lexend - Enhanced readability (172 KB)
+    - family: Lexend
+      fonts:
+        - asset: assets/fonts/Lexend-Variable.ttf
+
+  # Roboto (system font) - Default Material Design, no asset needed
 
 # Flutter launcher icons configuration
 flutter_launcher_icons:

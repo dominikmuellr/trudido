@@ -189,6 +189,9 @@ class PreferencesService {
       hapticsEnabled:
           p.getBool('haptics_enabled') ??
           PreferencesState.defaultState.hapticsEnabled,
+      fontFamily:
+          p.getString('font_family') ??
+          PreferencesState.defaultState.fontFamily,
       lineHeightMultiplier:
           p.getDouble('line_height_multiplier') ??
           PreferencesState.defaultState.lineHeightMultiplier,
@@ -223,6 +226,7 @@ class PreferencesService {
     int? firstDayOfWeek,
     String? defaultTaskView,
     bool? hapticsEnabled,
+    String? fontFamily,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
     String? contrastLevel,
@@ -267,6 +271,7 @@ class PreferencesService {
         await p.setString('default_task_view', defaultTaskView);
       if (hapticsEnabled != null)
         await p.setBool('haptics_enabled', hapticsEnabled);
+      if (fontFamily != null) await p.setString('font_family', fontFamily);
       if (lineHeightMultiplier != null)
         await p.setDouble('line_height_multiplier', lineHeightMultiplier);
       if (paragraphSpacing != null)

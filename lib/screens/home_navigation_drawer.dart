@@ -237,47 +237,88 @@ class _TaskFoldersList extends ConsumerWidget {
 
     return foldersAsync.when(
       data: (folders) {
-        return ListView(
+        // Use ListView.builder for better performance with many folders
+        return ListView.builder(
           padding: SpacingEdgeInsets.insetsV8,
-          children: [
+          itemCount:
+              folders.length + 2, // +1 for "All Tasks", +1 for "Create Folder"
+          itemBuilder: (context, index) {
             // "All Tasks" option
-            ListTile(
-              dense: true,
-              visualDensity: VisualDensity.compact,
-              leading: Icon(
-                Icons.folder_outlined,
-                size: 20,
-                color: selectedFolderId == null
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant,
-              ),
-              title: Text(
-                'All Tasks',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: selectedFolderId == null
-                      ? colorScheme.primary
-                      : colorScheme.onSurface,
-                  fontWeight: selectedFolderId == null
-                      ? FontWeight.w600
-                      : FontWeight.normal,
+            if (index == 0) {
+              return RepaintBoundary(
+                child: ListTile(
+                  dense: true,
+                  visualDensity: VisualDensity.compact,
+                  leading: Icon(
+                    Icons.folder_outlined,
+                    size: 20,
+                    color: selectedFolderId == null
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                  title: Text(
+                    'All Tasks',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: selectedFolderId == null
+                          ? colorScheme.primary
+                          : colorScheme.onSurface,
+                      fontWeight: selectedFolderId == null
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
+                  ),
+                  selected: selectedFolderId == null,
+                  selectedTileColor: colorScheme.secondaryContainer.withOpacity(
+                    0.3,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: SpacingBorderRadius.md,
+                  ),
+                  onTap: () {
+                    ref.read(selectedFolderProvider.notifier).update(null);
+                    Navigator.of(context).pop();
+                  },
                 ),
-              ),
-              selected: selectedFolderId == null,
-              selectedTileColor: colorScheme.secondaryContainer.withOpacity(
-                0.3,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: SpacingBorderRadius.md,
-              ),
-              onTap: () {
-                ref.read(selectedFolderProvider.notifier).update(null);
-                Navigator.of(context).pop();
-              },
-            ),
+              );
+            }
+
+            // "Create Folder" option
+            if (index == folders.length + 1) {
+              return Column(
+                children: [
+                  SpacingGap.gapV8,
+                  ListTile(
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    leading: Icon(
+                      Icons.add,
+                      size: 20,
+                      color: colorScheme.primary,
+                    ),
+                    title: Text(
+                      'Create Folder',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      showDialog(
+                        context: context,
+                        builder: (context) => const CreateFolderDialog(),
+                      );
+                    },
+                  ),
+                ],
+              );
+            }
+
             // Individual folders
-            ...folders.map((folder) {
-              final isSelected = selectedFolderId == folder.id;
-              return ListTile(
+            final folder = folders[index - 1];
+            final isSelected = selectedFolderId == folder.id;
+            return RepaintBoundary(
+              child: ListTile(
                 dense: true,
                 visualDensity: VisualDensity.compact,
                 leading: Icon(
@@ -307,30 +348,9 @@ class _TaskFoldersList extends ConsumerWidget {
                   ref.read(selectedFolderProvider.notifier).update(folder.id);
                   Navigator.of(context).pop();
                 },
-              );
-            }),
-            // Create new folder option
-            SpacingGap.gapV8,
-            ListTile(
-              dense: true,
-              visualDensity: VisualDensity.compact,
-              leading: Icon(Icons.add, size: 20, color: colorScheme.primary),
-              title: Text(
-                'Create Folder',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w500,
-                ),
               ),
-              onTap: () {
-                Navigator.of(context).pop();
-                showDialog(
-                  context: context,
-                  builder: (context) => const CreateFolderDialog(),
-                );
-              },
-            ),
-          ],
+            );
+          },
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),

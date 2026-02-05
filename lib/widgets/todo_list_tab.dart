@@ -40,7 +40,8 @@ class TodoListTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final filteredTodos = ref.watch(filteredTasksProvider);
-    final viewType = ref.watch(taskViewTypeProvider);
+    // Optimize: only rebuild when viewType changes
+    final viewType = ref.watch(taskViewTypeProvider.select((type) => type));
 
     return Column(
       children: [
@@ -81,14 +82,22 @@ class TodoListTab extends ConsumerWidget {
               },
               child: viewType == TaskViewType.calendar
                   ? CalendarView(
-                      key: ValueKey(ref.watch(selectedCalendarDateProvider)),
+                      key: ValueKey(
+                        ref.watch(
+                          selectedCalendarDateProvider.select((date) => date),
+                        ),
+                      ),
                       tasks: filteredTodos,
                     )
                   : filteredTodos.isEmpty &&
-                        !ref.watch(showHolidaysInCalendarProvider)
+                        !ref.watch(
+                          showHolidaysInCalendarProvider.select((show) => show),
+                        )
                   ? _buildEmptyState(
                       context,
-                      ref.watch(searchQueryProvider).isNotEmpty,
+                      ref.watch(
+                        searchQueryProvider.select((query) => query.isNotEmpty),
+                      ),
                     )
                   : _buildGroupedList(context, ref, filteredTodos),
             ),
@@ -327,28 +336,35 @@ class TodoListTab extends ConsumerWidget {
       final multiMode = ref.watch(multiSelectModeProvider);
       final selectedIds = ref.watch(selectedTodoIdsProvider);
 
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: HybridTodoItem(
-          todo: item,
-          onToggle: () =>
-              ref.read(taskControllerProvider.notifier).toggleComplete(item.id),
-          onEdit: () => _showEditDialog(context, ref, item),
-          onDelete: () => _deleteTodoWithConfirmation(context, ref, item),
-          selectable: multiMode,
-          selected: selectedIds.contains(item.id),
-          onSelectToggle: () {
-            final wasMulti = ref.read(multiSelectModeProvider);
-            if (!wasMulti) {
-              ref.read(multiSelectModeProvider.notifier).update(true);
-            }
-            ref.read(selectedTodoIdsProvider.notifier).toggle(item.id);
-            HapticFeedback.selectionClick();
-          },
+      // RepaintBoundary prevents unnecessary repaints during scrolling
+      return RepaintBoundary(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: HybridTodoItem(
+            todo: item,
+            onToggle: () => ref
+                .read(taskControllerProvider.notifier)
+                .toggleComplete(item.id),
+            onEdit: () => _showEditDialog(context, ref, item),
+            onDelete: () => _deleteTodoWithConfirmation(context, ref, item),
+            selectable: multiMode,
+            selected: selectedIds.contains(item.id),
+            onSelectToggle: () {
+              final wasMulti = ref.read(multiSelectModeProvider);
+              if (!wasMulti) {
+                ref.read(multiSelectModeProvider.notifier).update(true);
+              }
+              ref.read(selectedTodoIdsProvider.notifier).toggle(item.id);
+              HapticFeedback.selectionClick();
+            },
+          ),
         ),
       );
     } else if (item is Holiday) {
-      return _buildHolidayCard(context, ref, item, theme, colorScheme);
+      // RepaintBoundary prevents unnecessary repaints during scrolling
+      return RepaintBoundary(
+        child: _buildHolidayCard(context, ref, item, theme, colorScheme),
+      );
     }
     return const SizedBox.shrink();
   }

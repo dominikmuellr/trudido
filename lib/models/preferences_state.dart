@@ -42,6 +42,8 @@ class PreferencesState {
   final int firstDayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
   final String defaultTaskView; // list | calendar - default view on app start
   final bool hapticsEnabled; // Enable haptic feedback for interactions
+  final String
+  fontFamily; // Font family: roboto | opensans | inter | atkinson | jetbrains | lexend
   final double? _lineHeightMultiplier; // Line height multiplier (e.g. 1.2)
   double get lineHeightMultiplier => _lineHeightMultiplier ?? 1.2;
   final double? _paragraphSpacing; // Paragraph spacing in points (e.g. 8.0)
@@ -70,6 +72,7 @@ class PreferencesState {
     required this.firstDayOfWeek,
     required this.defaultTaskView,
     required this.hapticsEnabled,
+    required this.fontFamily,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
   }) : _lineHeightMultiplier = lineHeightMultiplier,
@@ -98,6 +101,7 @@ class PreferencesState {
     int? firstDayOfWeek,
     String? defaultTaskView,
     bool? hapticsEnabled,
+    String? fontFamily,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
   }) => PreferencesState(
@@ -124,6 +128,7 @@ class PreferencesState {
     firstDayOfWeek: firstDayOfWeek ?? this.firstDayOfWeek,
     defaultTaskView: defaultTaskView ?? this.defaultTaskView,
     hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
+    fontFamily: fontFamily ?? this.fontFamily,
     lineHeightMultiplier: lineHeightMultiplier ?? this.lineHeightMultiplier,
     paragraphSpacing: paragraphSpacing ?? this.paragraphSpacing,
   );
@@ -154,6 +159,7 @@ class PreferencesState {
     firstDayOfWeek: 1, // Default: Monday (0=Sunday, 1=Monday, etc.)
     defaultTaskView: 'list', // Default: list view
     hapticsEnabled: true, // Default: haptic feedback enabled
+    fontFamily: 'opensans', // Default: Open Sans font
     lineHeightMultiplier: 1.2,
     paragraphSpacing: 8.0,
   );

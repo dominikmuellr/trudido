@@ -146,6 +146,7 @@ class PreferencesController {
     double? paragraphSpacing,
     String? contrastLevel,
     bool? hapticsEnabled,
+    String? fontFamily,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -167,7 +168,12 @@ class PreferencesController {
       paragraphSpacing: paragraphSpacing,
       contrastLevel: contrastLevel,
       hapticsEnabled: hapticsEnabled,
+      fontFamily: fontFamily,
     );
     ref.read(preferencesStateProvider.notifier).update(updated);
+  }
+
+  Future<void> setFontFamily(String fontFamily) async {
+    await _update(fontFamily: fontFamily);
   }
 }

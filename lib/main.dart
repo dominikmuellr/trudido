@@ -351,12 +351,14 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
     final highContrast = prefs.highContrast;
     final contrastLevel = prefs.contrastLevel;
     final accentColor = Color(prefs.accentColorSeed);
+    final fontFamily = prefs.fontFamily;
     final schemesAsync = ref.watch(dynamicColorSchemesProvider);
     final schemes = schemesAsync.value;
     final themes = AppTheme.buildThemes(
       dynamicLight: schemes?.light,
       dynamicDark: schemes?.dark,
       accentColorSeed: accentColor,
+      fontFamily: fontFamily,
       compact: compact,
       highContrast: highContrast,
       contrastLevel: contrastLevel,

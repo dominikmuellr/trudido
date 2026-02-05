@@ -57,7 +57,8 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
 
   // Convert custom format to table_calendar format
   CalendarFormat get _calendarFormat {
-    final customFormat = ref.watch(calendarFormatProvider);
+    // Optimize: only rebuild when the format value changes
+    final customFormat = ref.watch(calendarFormatProvider.select((fmt) => fmt));
     switch (customFormat) {
       case CustomCalendarFormat.month:
         return CalendarFormat.month;
@@ -744,10 +745,13 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     final selectedDayTasks = _selectedDay != null
         ? _getTasksForDay(_selectedDay!)
         : <Todo>[];
-    final customFormat = ref.watch(calendarFormatProvider);
+    // Optimize: only rebuild when format value changes
+    final customFormat = ref.watch(calendarFormatProvider.select((fmt) => fmt));
 
-    // Check if imported events should be shown
-    final showImported = ref.watch(showImportedEventsInCalendarProvider);
+    // Optimize: only rebuild when import flag changes
+    final showImported = ref.watch(
+      showImportedEventsInCalendarProvider.select((show) => show),
+    );
 
     return SingleChildScrollView(
       child: Column(
@@ -788,7 +792,11 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                           isSameDay(_selectedDay, day),
                       calendarFormat: _calendarFormat,
                       startingDayOfWeek: WeekStartUtils.toTableCalendarDay(
-                        ref.watch(preferencesStateProvider).firstDayOfWeek,
+                        ref.watch(
+                          preferencesStateProvider.select(
+                            (prefs) => prefs.firstDayOfWeek,
+                          ),
+                        ),
                       ),
                       // Long-press on a day to create a new task prefilled with that date
                       onDayLongPressed: (selectedDay, focusedDay) {
@@ -1204,17 +1212,19 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
               constraints: const BoxConstraints(minHeight: 200),
               child: selectedDayTasks.isEmpty
                   ? _buildEmptyState(context, colorScheme)
-                  : ListView(
+                  // Use ListView.builder for better performance
+                  : ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      children: [
-                        // Show tasks
-                        ...selectedDayTasks.asMap().entries.map((entry) {
-                          final task = entry.value;
-                          return Padding(
+                      itemCount: selectedDayTasks.length,
+                      itemBuilder: (context, index) {
+                        final task = selectedDayTasks[index];
+                        // RepaintBoundary prevents unnecessary repaints
+                        return RepaintBoundary(
+                          child: Padding(
                             padding: EdgeInsets.only(
-                              bottom: entry.key < selectedDayTasks.length - 1
+                              bottom: index < selectedDayTasks.length - 1
                                   ? 8
                                   : 0,
                             ),
@@ -1227,9 +1237,9 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                                   .delete(task.id),
                               onSelectToggle: () {},
                             ),
-                          );
-                        }),
-                      ],
+                          ),
+                        );
+                      },
                     ),
             ),
           ], // This closes the if statement

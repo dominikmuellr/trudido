@@ -152,71 +152,92 @@ class AppTheme {
   static const Color mediumPriority = Color(0xFFFFB74D);
   static const Color lowPriority = Color(0xFF81C784);
 
-  /// Creates a comprehensive text theme using Google Sans font
-  static TextTheme _buildTextTheme(Brightness brightness) {
-    // Use Google Sans for modern Material Design typography
-    const String fontFamily = 'GoogleSans';
+  /// Maps user font preference to actual font family name
+  /// Returns null for system default (Roboto on Android)
+  static String? _getFontFamily(String? preference) {
+    switch (preference) {
+      case 'opensans':
+        return 'OpenSans';
+      case 'inter':
+        return 'Inter';
+      case 'atkinson':
+        return 'AtkinsonHyperlegible';
+      case 'jetbrains':
+        return 'JetBrainsMono';
+      case 'lexend':
+        return 'Lexend';
+      case 'roboto':
+      default:
+        return null; // null = use system default font (Roboto on Android)
+    }
+  }
+
+  /// Creates a comprehensive text theme with customizable font family
+  static TextTheme _buildTextTheme(Brightness brightness, String? fontFamily) {
+    // Map font preference to actual font family name
+    // null or 'roboto' = use system default (Roboto on Android)
+    final String? actualFontFamily = _getFontFamily(fontFamily);
 
     final baseTextTheme = brightness == Brightness.light
         ? ThemeData.light().textTheme
         : ThemeData.dark().textTheme;
 
-    // Customize weights and letter spacing with Google Sans
+    // Customize weights and letter spacing
     return baseTextTheme.copyWith(
       displayLarge: baseTextTheme.displayLarge?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: actualFontFamily,
         fontWeight: FontWeight.w400,
         letterSpacing: -1.5,
       ),
       displayMedium: baseTextTheme.displayMedium?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: actualFontFamily,
         fontWeight: FontWeight.w400,
         letterSpacing: -0.5,
       ),
       displaySmall: baseTextTheme.displaySmall?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: actualFontFamily,
         fontWeight: FontWeight.w400,
       ),
       headlineLarge: baseTextTheme.headlineLarge?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: actualFontFamily,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.25,
       ),
       headlineMedium: baseTextTheme.headlineMedium?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: actualFontFamily,
         fontWeight: FontWeight.w600,
       ),
       headlineSmall: baseTextTheme.headlineSmall?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: actualFontFamily,
         fontWeight: FontWeight.w600,
       ),
       titleLarge: baseTextTheme.titleLarge?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: actualFontFamily,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.15,
       ),
       titleMedium: baseTextTheme.titleMedium?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: actualFontFamily,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.15,
       ),
       titleSmall: baseTextTheme.titleSmall?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: actualFontFamily,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.1,
       ),
       labelLarge: baseTextTheme.labelLarge?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: actualFontFamily,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.1,
       ),
       labelMedium: baseTextTheme.labelMedium?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: actualFontFamily,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.5,
       ),
       labelSmall: baseTextTheme.labelSmall?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: actualFontFamily,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.5,
       ),
@@ -309,11 +330,14 @@ class AppTheme {
     );
   }
 
-  static ThemeData _baseLight(ColorScheme colorScheme) => ThemeData(
+  static ThemeData _baseLight(
+    ColorScheme colorScheme, [
+    String? fontFamily,
+  ]) => ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
     colorScheme: colorScheme,
-    textTheme: _buildTextTheme(Brightness.light),
+    textTheme: _buildTextTheme(Brightness.light, fontFamily),
     scaffoldBackgroundColor: colorScheme.surface, // Material 3 color-aware
     appBarTheme: AppBarTheme(
       elevation: 0,
@@ -534,11 +558,14 @@ class AppTheme {
     ),
   );
 
-  static ThemeData _baseDark(ColorScheme colorScheme) => ThemeData(
+  static ThemeData _baseDark(
+    ColorScheme colorScheme, [
+    String? fontFamily,
+  ]) => ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: colorScheme,
-    textTheme: _buildTextTheme(Brightness.dark),
+    textTheme: _buildTextTheme(Brightness.dark, fontFamily),
     scaffoldBackgroundColor: colorScheme.surface, // Material 3 color-aware
     appBarTheme: AppBarTheme(
       elevation: 0,
@@ -1028,6 +1055,7 @@ class AppTheme {
     ColorScheme? dynamicLight,
     ColorScheme? dynamicDark,
     Color? accentColorSeed,
+    String? fontFamily,
     bool compact = false,
     bool highContrast = false,
     String contrastLevel =
@@ -1043,18 +1071,20 @@ class AppTheme {
     if (seedColor.value == 0xFF9E9E9E) {
       final monoLight = _createMonochromaticLightScheme();
       final monoDark = _createMonochromaticDarkScheme();
-      light = _baseLight(dynamicLight ?? monoLight);
+      light = _baseLight(dynamicLight ?? monoLight, fontFamily);
       dark = _baseDark(
         dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : monoDark,
+        fontFamily,
       );
     }
     // Special handling for grey - create grey accent scheme
     else if (seedColor.value == 0xFF757575) {
       final greyLight = _createGreyLightScheme();
       final greyDark = _createGreyDarkScheme();
-      light = _baseLight(dynamicLight ?? greyLight);
+      light = _baseLight(dynamicLight ?? greyLight, fontFamily);
       dark = _baseDark(
         dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : greyDark,
+        fontFamily,
       );
     }
     // Special handling for hack - create Matrix green scheme (proper brightness handling)
@@ -1062,9 +1092,10 @@ class AppTheme {
       final hackLight = _createHackLightScheme();
       final hackDark = _createHackDarkScheme();
       // Use proper light/dark schemes with matching brightness
-      light = _baseLight(dynamicLight ?? hackLight);
+      light = _baseLight(dynamicLight ?? hackLight, fontFamily);
       dark = _baseDark(
         dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : hackDark,
+        fontFamily,
       );
     }
     // Special handling for Dracula - create Dracula color scheme (proper brightness handling)
@@ -1072,9 +1103,10 @@ class AppTheme {
       final draculaLight = _createDraculaLightScheme();
       final draculaDark = _createDraculaDarkScheme();
       // Use proper light/dark schemes with matching brightness
-      light = _baseLight(dynamicLight ?? draculaLight);
+      light = _baseLight(dynamicLight ?? draculaLight, fontFamily);
       dark = _baseDark(
         dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : draculaDark,
+        fontFamily,
       );
     }
     // Special handling for Solarized - create authentic Solarized color scheme
@@ -1082,9 +1114,10 @@ class AppTheme {
       final solarizedLight = _createSolarizedLightScheme();
       final solarizedDark = _createSolarizedDarkScheme();
       // Use proper light/dark schemes with matching brightness
-      light = _baseLight(dynamicLight ?? solarizedLight);
+      light = _baseLight(dynamicLight ?? solarizedLight, fontFamily);
       dark = _baseDark(
         dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : solarizedDark,
+        fontFamily,
       );
     } else {
       // Use normal Material 3 color generation for other colors
@@ -1098,9 +1131,10 @@ class AppTheme {
       );
       // Boost dark mode contrast by adjusting surface colors
       final enhancedDark = _enhanceDarkContrast(seedDark);
-      light = _baseLight(dynamicLight ?? seedLight);
+      light = _baseLight(dynamicLight ?? seedLight, fontFamily);
       dark = _baseDark(
         dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : enhancedDark,
+        fontFamily,
       );
     }
 

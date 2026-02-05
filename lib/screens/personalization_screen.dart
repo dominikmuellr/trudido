@@ -306,6 +306,18 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
           _buildFontSizeLink(),
           Consumer(
             builder: (context, ref, _) {
+              final fontFamily = ref.watch(preferencesStateProvider).fontFamily;
+              return ListTile(
+                leading: const Icon(Icons.font_download),
+                title: const Text('Font'),
+                subtitle: Text(_getFontDisplayName(fontFamily)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showFontPicker(context, ref),
+              );
+            },
+          ),
+          Consumer(
+            builder: (context, ref, _) {
               final enabled = ref
                   .watch(preferencesStateProvider)
                   .hapticsEnabled;
@@ -1106,6 +1118,147 @@ class _AccentColorSheet extends StatelessWidget {
         return 'Custom';
     }
   }
+}
+
+// ============================================================================
+// Font Picker
+// ============================================================================
+
+String _getFontDisplayName(String fontFamily) {
+  switch (fontFamily) {
+    case 'roboto':
+      return 'Roboto (Default)';
+    case 'opensans':
+      return 'Open Sans';
+    case 'inter':
+      return 'Inter';
+    case 'atkinson':
+      return 'Atkinson Hyperlegible';
+    case 'jetbrains':
+      return 'JetBrains Mono';
+    case 'lexend':
+      return 'Lexend';
+    default:
+      return 'Roboto (Default)';
+  }
+}
+
+void _showFontPicker(BuildContext context, WidgetRef ref) {
+  final controller = ref.read(preferencesControllerProvider);
+  final currentFont = ref.read(preferencesStateProvider).fontFamily;
+
+  showModalBottomSheet(
+    context: context,
+    builder: (context) => ListView(
+      shrinkWrap: true,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Choose Font',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Standard fonts',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        _buildFontOption(
+          context,
+          controller,
+          currentFont,
+          'roboto',
+          'Roboto',
+          'System default',
+          Icons.android,
+        ),
+        _buildFontOption(
+          context,
+          controller,
+          currentFont,
+          'opensans',
+          'Open Sans',
+          'Clean & neutral',
+          Icons.font_download,
+        ),
+        _buildFontOption(
+          context,
+          controller,
+          currentFont,
+          'inter',
+          'Inter',
+          'Modern UI',
+          Icons.design_services,
+        ),
+        const Divider(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: Text(
+            'Specialized fonts',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+        _buildFontOption(
+          context,
+          controller,
+          currentFont,
+          'atkinson',
+          'Atkinson Hyperlegible',
+          'Dyslexia-friendly',
+          Icons.accessibility,
+        ),
+        _buildFontOption(
+          context,
+          controller,
+          currentFont,
+          'jetbrains',
+          'JetBrains Mono',
+          'Code & technical',
+          Icons.code,
+        ),
+        _buildFontOption(
+          context,
+          controller,
+          currentFont,
+          'lexend',
+          'Lexend',
+          'Enhanced readability',
+          Icons.visibility,
+        ),
+        const SizedBox(height: 16),
+      ],
+    ),
+  );
+}
+
+Widget _buildFontOption(
+  BuildContext context,
+  dynamic controller,
+  String currentFont,
+  String value,
+  String title,
+  String subtitle,
+  IconData icon,
+) {
+  return RadioListTile<String>(
+    value: value,
+    groupValue: currentFont,
+    secondary: Icon(icon),
+    title: Text(title),
+    subtitle: Text(subtitle),
+    onChanged: (v) {
+      if (v != null) {
+        controller.setFontFamily(v);
+        Navigator.pop(context);
+      }
+    },
+  );
 }
 
 // ============================================================================

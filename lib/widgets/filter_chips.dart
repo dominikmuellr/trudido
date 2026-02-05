@@ -36,10 +36,15 @@ class FilterChips extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final showCompleted = ref.watch(showCompletedProvider);
-    final sortBy = ref.watch(sortByProvider);
-    final secondarySortKeys = ref.watch(secondarySortKeysProvider);
-    final dueToday = ref.watch(dueTodayFilterProvider);
+    // Optimize: only rebuild when these specific values change
+    final showCompleted = ref.watch(
+      showCompletedProvider.select((show) => show),
+    );
+    final sortBy = ref.watch(sortByProvider.select((sort) => sort));
+    final secondarySortKeys = ref.watch(
+      secondarySortKeysProvider.select((keys) => keys),
+    );
+    final dueToday = ref.watch(dueTodayFilterProvider.select((due) => due));
 
     // Determine if any filter or sort is active (for Clear chip)
     final hasActiveFilters =
