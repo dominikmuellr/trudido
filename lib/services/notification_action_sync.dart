@@ -16,10 +16,14 @@
 
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'notification_service.dart';
 import 'storage_service.dart';
+import 'navigation_service.dart';
 import '../providers/app_providers.dart';
 import '../providers/clock.dart';
+import '../models/todo.dart';
+import '../screens/task_editor_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// A singleton responsible for idempotent handling of notification actions
@@ -81,6 +85,40 @@ class NotificationActionSync {
 
     // Load current task state from storage directly to avoid stale UI state
     final todo = await StorageService.getTodoAsync(action.taskId);
+
+    if (action.type == 'notificationTapped') {
+      // Handle notification tap - open task detail
+      if (todo == null) {
+        if (kDebugMode)
+          debugPrint(
+            '[NotificationActionSync] Task not found for tap: ${action.taskId}',
+          );
+        _markApplied(key);
+        return;
+      }
+      // Navigate to task detail screen
+      try {
+        if (kDebugMode)
+          debugPrint('[NotificationActionSync] Opening task ${action.taskId}');
+        // Import here to avoid circular dependencies
+        final context = NavigationService.context;
+        if (context != null && context.mounted) {
+          // Dynamically import TaskEditorScreen
+          final taskEditorScreen = await _getTaskEditorScreen(todo);
+          if (context.mounted) {
+            await Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => taskEditorScreen));
+          }
+        }
+      } catch (e) {
+        if (kDebugMode)
+          debugPrint('[NotificationActionSync] navigation failed: $e');
+      }
+      _markApplied(key);
+      return;
+    }
+
     if (action.type == 'taskCompleted') {
       if (todo == null) {
         if (kDebugMode)
@@ -138,6 +176,11 @@ class NotificationActionSync {
       return '${a.type}:${a.taskId}:${a.newScheduledTime!.millisecondsSinceEpoch}';
     }
     return '${a.type}:${a.taskId}';
+  }
+
+  /// Helper to create TaskEditorScreen widget
+  Future<Widget> _getTaskEditorScreen(Todo todo) async {
+    return TaskEditorScreen(todo: todo, onSave: (updatedTask) {});
   }
 
   void _loadApplied() {

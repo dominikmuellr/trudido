@@ -30,6 +30,8 @@ class MainActivity : FlutterFragmentActivity() {
         fileHandler = TaskFileHandler(this)
         // Mark Java/Kotlin onCreate reached; additional timing done once first frame renders.
         Log.d("StartupTrace", "onCreate elapsedMs=" + (System.nanoTime() - processStartNano)/1_000_000)
+        // Handle notification intent if app was opened from notification
+        handleNotificationIntent(intent)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -509,6 +511,7 @@ class MainActivity : FlutterFragmentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleWidgetIntent(intent)
+        handleNotificationIntent(intent)
     }
 
     private fun handleWidgetIntent(intent: Intent?) {
@@ -517,6 +520,16 @@ class MainActivity : FlutterFragmentActivity() {
             val args = if (date > 0) mapOf("date" to date) else null
             // Notify Dart to open task creation screen
             widgetChannel?.invokeMethod("openTaskCreation", args)
+        }
+    }
+
+    private fun handleNotificationIntent(intent: Intent?) {
+        if (intent?.getStringExtra("action") == "open_task") {
+            val taskId = intent.getStringExtra("taskId")
+            if (taskId != null) {
+                Log.d("MainActivity", "Notification tapped, opening task: $taskId")
+                methodChannel?.invokeMethod("notificationTapped", mapOf("taskId" to taskId))
+            }
         }
     }
 }

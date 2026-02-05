@@ -115,6 +115,19 @@ object NotificationScheduler {
     }
 
     fun buildNotification(context: Context, taskId: String, title: String, body: String): Notification {
+        // Content intent for tapping notification body
+        val contentIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("action", "open_task")
+            putExtra("taskId", taskId)
+        }
+        val contentPi = PendingIntent.getActivity(
+            context,
+            ("content_" + taskId).hashCode(),
+            contentIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or flagImmutable()
+        )
+
         val completeIntent = Intent(context, NotificationActionReceiver::class.java).apply {
             action = ACTION_COMPLETE
             putExtra("taskId", taskId)
@@ -132,6 +145,7 @@ object NotificationScheduler {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setGroup(GROUP_TASKS)
+            .setContentIntent(contentPi)
             .addAction(0, "Done", completePi)
             .addAction(0, "Snooze", snoozePi)
             .build()

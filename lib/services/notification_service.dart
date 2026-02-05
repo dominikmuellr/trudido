@@ -54,6 +54,18 @@ class NotificationBridge {
           final data = Map<dynamic, dynamic>.from(call.arguments as Map);
           _handleIncomingAction(data);
           break;
+        case 'notificationTapped':
+          final data = Map<dynamic, dynamic>.from(call.arguments as Map);
+          final taskId = data['taskId'] as String?;
+          if (taskId != null) {
+            debugPrint(
+              '[NotificationBridge] Notification tapped for task: $taskId',
+            );
+            _actionController.add(
+              NotificationAction(type: 'notificationTapped', taskId: taskId),
+            );
+          }
+          break;
         default:
           if (kDebugMode) {
             print(
