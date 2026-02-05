@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../services/calendar_sync_service.dart';
 import '../providers/app_providers.dart';
+import '../providers/holiday_providers.dart';
 import '../controllers/task_controller.dart';
 import '../utils/responsive_size.dart';
 import '../theme/spacing_tokens.dart';
@@ -943,6 +944,11 @@ class _CalendarSyncSettingsScreenState
       }
 
       ref.invalidate(calendarSyncStatusProvider);
+
+      // Check for past imported tasks and offer to mark them complete
+      if (mounted) {
+        await _checkAndOfferMarkPastComplete(context);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -989,6 +995,11 @@ class _CalendarSyncSettingsScreenState
       }
 
       ref.invalidate(calendarSyncStatusProvider);
+
+      // Check for past imported tasks and offer to mark them complete
+      if (mounted) {
+        await _checkAndOfferMarkPastComplete(context);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -1143,6 +1154,55 @@ class _CalendarSyncSettingsScreenState
       }
     } finally {
       setState(() => _isSyncing = false);
+    }
+  }
+
+  Future<void> _checkAndOfferMarkPastComplete(BuildContext context) async {
+    // Wait a moment for providers to refresh
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    final pastTasks = ref.read(pastImportedUncompletedTasksProvider);
+    if (pastTasks.isEmpty) return;
+
+    if (!mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Mark Past Tasks Complete?'),
+        content: Text(
+          'You imported ${pastTasks.length} task${pastTasks.length == 1 ? '' : 's'} '
+          'with due dates in the past.\n\n'
+          'Would you like to mark them as complete?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Mark Complete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final taskController = ref.read(taskControllerProvider.notifier);
+      final ids = pastTasks.map((t) => t.id);
+      await taskController.bulkComplete(ids);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Marked ${pastTasks.length} past task${pastTasks.length == 1 ? '' : 's'} as complete',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     }
   }
 }

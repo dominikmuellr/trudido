@@ -23,6 +23,7 @@ import '../models/todo.dart';
 import '../repositories/holiday_repository.dart';
 import '../utils/ics_parser.dart';
 import 'app_providers.dart';
+import 'clock.dart';
 
 /// Holiday repository provider (singleton)
 final holidayRepositoryProvider = Provider<HolidayRepository>((ref) {
@@ -296,3 +297,20 @@ final importedTaskCountBySourceProvider = Provider<Map<String, int>>((ref) {
 
 /// Show/hide imported calendar events in calendar view
 final showImportedEventsInCalendarProvider = StateProvider<bool>((ref) => true);
+
+/// Get past imported uncompleted tasks (before today)
+final pastImportedUncompletedTasksProvider = Provider<List<Todo>>((ref) {
+  final imported = ref.watch(importedTasksProvider);
+  final now = ref.watch(clockProvider).now();
+  final today = DateTime(now.year, now.month, now.day);
+
+  return imported.where((task) {
+    if (task.isCompleted || task.dueDate == null) return false;
+    final taskDate = DateTime(
+      task.dueDate!.year,
+      task.dueDate!.month,
+      task.dueDate!.day,
+    );
+    return taskDate.isBefore(today);
+  }).toList();
+});

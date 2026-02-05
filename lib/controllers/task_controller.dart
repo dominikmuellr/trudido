@@ -253,6 +253,34 @@ class TaskController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  /// Mark multiple tasks as complete in bulk
+  Future<void> bulkComplete(Iterable<String> ids) async {
+    state = const AsyncLoading();
+    try {
+      final now = ref.read(clockProvider).now();
+      for (final id in ids) {
+        try {
+          final task = tasks.firstWhere((t) => t.id == id);
+          if (!task.isCompleted) {
+            final completed = task.copyWith(
+              isCompleted: true,
+              completedAt: now,
+            );
+            await _repo.update(completed);
+            await _cancelNotifications(task);
+          }
+        } catch (_) {
+          // ignore missing task
+        }
+      }
+      await ref.read(tasksProvider.notifier).refresh();
+      await _updateWidget();
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
   Future<void> reorder(
     int oldIndex,
     int newIndex,

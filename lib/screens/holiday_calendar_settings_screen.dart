@@ -26,11 +26,18 @@ import '../utils/imported_calendar_colors.dart';
 import '../widgets/common/common.dart';
 
 /// Screen for managing holiday calendar imports and settings
-class HolidayCalendarSettingsScreen extends ConsumerWidget {
+class HolidayCalendarSettingsScreen extends ConsumerStatefulWidget {
   const HolidayCalendarSettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HolidayCalendarSettingsScreen> createState() =>
+      _HolidayCalendarSettingsScreenState();
+}
+
+class _HolidayCalendarSettingsScreenState
+    extends ConsumerState<HolidayCalendarSettingsScreen> {
+  @override
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final importedTasks = ref.watch(importedTasksProvider);
     final sources = ref.watch(importedCalendarSourcesProvider);
@@ -83,7 +90,7 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
                   trailing: ExpressiveIconButton(
                     icon: Icon(Icons.delete_outline, color: colorScheme.error),
                     tooltip: 'Remove calendar',
-                    onPressed: () => _confirmDeleteSource(context, ref, source),
+                    onPressed: () => _confirmDeleteSource(context, source),
                   ),
                 );
               }),
@@ -125,7 +132,7 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: FilledButton.icon(
-              onPressed: () => _importCalendar(context, ref),
+              onPressed: () => _importCalendar(context),
               icon: const Icon(Icons.add),
               label: const Text('Import Calendar'),
               style: FilledButton.styleFrom(
@@ -138,7 +145,7 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _importCalendar(BuildContext context, WidgetRef ref) async {
+  Future<void> _importCalendar(BuildContext context) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     // Show loading indicator
@@ -225,6 +232,11 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
             backgroundColor: Colors.green,
           ),
         );
+
+        // Check for past imported tasks and offer to mark them complete
+        if (mounted) {
+          await _checkAndOfferMarkPastComplete(context);
+        }
       } else {
         scaffoldMessenger.hideCurrentSnackBar();
         scaffoldMessenger.showSnackBar(
@@ -245,11 +257,56 @@ class HolidayCalendarSettingsScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _confirmDeleteSource(
-    BuildContext context,
-    WidgetRef ref,
-    String source,
-  ) async {
+  Future<void> _checkAndOfferMarkPastComplete(BuildContext context) async {
+    // Wait a moment for providers to refresh
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    final pastTasks = ref.read(pastImportedUncompletedTasksProvider);
+    if (pastTasks.isEmpty) return;
+
+    if (!mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Mark Past Tasks Complete?'),
+        content: Text(
+          'You imported ${pastTasks.length} task${pastTasks.length == 1 ? '' : 's'} '
+          'with due dates in the past.\n\n'
+          'Would you like to mark them as complete?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Mark Complete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final taskController = ref.read(taskControllerProvider.notifier);
+      final ids = pastTasks.map((t) => t.id);
+      await taskController.bulkComplete(ids);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Marked ${pastTasks.length} past task${pastTasks.length == 1 ? '' : 's'} as complete',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteSource(BuildContext context, String source) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
