@@ -107,6 +107,7 @@ class FilterChips extends ConsumerWidget {
                           avatar: const Icon(Icons.sort, size: 18),
                           selected: sortBy != 'default',
                           showCheckmark: false,
+                          side: BorderSide.none,
                           onSelected: (_) {},
                         ),
                       ),
@@ -141,6 +142,7 @@ class FilterChips extends ConsumerWidget {
                         child: IgnorePointer(
                           child: ActionChip(
                             label: const Text('+'),
+                            side: BorderSide.none,
                             onPressed: () {},
                           ),
                         ),
@@ -156,6 +158,7 @@ class FilterChips extends ConsumerWidget {
                           label: Text(_sortOptions[key] ?? key),
                           selected: true,
                           showCheckmark: false,
+                          side: BorderSide.none,
                           deleteIcon: const Icon(Icons.close, size: 16),
                           onDeleted: () {
                             final current = ref.read(secondarySortKeysProvider);
@@ -178,6 +181,7 @@ class FilterChips extends ConsumerWidget {
                       avatar: const Icon(Icons.calendar_today, size: 18),
                       selected: dueToday,
                       showCheckmark: false,
+                      side: BorderSide.none,
                       onSelected: (selected) => ref
                           .read(dueTodayFilterProvider.notifier)
                           .update(selected),
@@ -199,6 +203,7 @@ class FilterChips extends ConsumerWidget {
                       selected:
                           !showCompleted, // selected when hiding (filter active)
                       showCheckmark: false,
+                      side: BorderSide.none,
                       onSelected: (selected) {
                         // Toggle: if selected (wants to hide), set false); else true
                         final newValue = !selected;
@@ -216,6 +221,7 @@ class FilterChips extends ConsumerWidget {
                     ActionChip(
                       label: const Text('Clear'),
                       avatar: const Icon(Icons.clear_all, size: 18),
+                      side: BorderSide.none,
                       onPressed: hasActiveFilters
                           ? () {
                               // Reset filters

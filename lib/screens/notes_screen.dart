@@ -217,7 +217,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                 ? 'No notes found'
                 : 'No notes yet',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           SpacingGap.gapV8,

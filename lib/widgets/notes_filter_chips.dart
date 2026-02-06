@@ -51,6 +51,7 @@ class NotesFilterChips extends ConsumerWidget {
                           avatar: const Icon(Icons.sort, size: 18),
                           selected: sortBy != 'date_modified',
                           showCheckmark: false,
+                          side: BorderSide.none,
                           onSelected: (_) {}, // Handled by PopupMenuButton
                         ),
                       ),

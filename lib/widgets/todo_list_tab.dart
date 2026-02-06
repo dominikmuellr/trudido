@@ -121,7 +121,7 @@ class TodoListTab extends ConsumerWidget {
           Text(
             isSearching ? 'No tasks found' : 'No tasks yet',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           SpacingGap.gapV8,

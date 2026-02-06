@@ -804,6 +804,7 @@ class NotePreviewCard extends ConsumerWidget {
         ? Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
             height: 1.2,
+            color: Theme.of(context).colorScheme.secondary,
           )
         : Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,

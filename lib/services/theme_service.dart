@@ -1176,6 +1176,22 @@ class AppTheme {
       );
     }
 
+    // Special handling for Dracula theme - use pink (secondary) color for chip labels
+    if (seedColor.value == 0xFFBD93F9) {
+      dark = dark.copyWith(
+        chipTheme: dark.chipTheme.copyWith(
+          labelStyle: TextStyle(
+            fontSize: 12,
+            color: dark.colorScheme.secondary, // Use Dracula Pink
+          ),
+          iconTheme: IconThemeData(
+            color: dark.colorScheme.secondary,
+            size: 18,
+          ),
+        ),
+      );
+    }
+
     // Apply contrast level adjustments (Material 3 January 2026)
     // This is separate from the legacy highContrast boolean for backwards compatibility
     if (contrastLevel == 'medium' || contrastLevel == 'high') {
