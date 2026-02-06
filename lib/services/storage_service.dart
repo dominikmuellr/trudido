@@ -785,6 +785,28 @@ Happy note-taking! ✨''',
     return _prefs?.getString('user_avatar_path');
   }
 
+  static Future<void> setAvatarBackgroundColor(int color) async {
+    await _ensurePrefs();
+    await _prefs!.setInt('avatar_bg_color', color);
+  }
+
+  static int? getAvatarBackgroundColor() {
+    if (_prefs == null) kickOffPrefsInit();
+    final value = _prefs?.getInt('avatar_bg_color');
+    return value != null && value != 0 ? value : null;
+  }
+
+  static Future<void> setAvatarTextColor(int color) async {
+    await _ensurePrefs();
+    await _prefs!.setInt('avatar_text_color', color);
+  }
+
+  static int? getAvatarTextColor() {
+    if (_prefs == null) kickOffPrefsInit();
+    final value = _prefs?.getInt('avatar_text_color');
+    return value != null && value != 0 ? value : null;
+  }
+
   static Future<void> setNotificationsEnabled(bool enabled) async {
     await _ensurePrefs();
     await _prefs!.setBool('notifications_enabled', enabled);

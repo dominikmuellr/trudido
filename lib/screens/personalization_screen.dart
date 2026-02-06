@@ -18,6 +18,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:async';
 import '../config/flavor_config.dart';
 import '../services/avatar_service.dart';
 import '../services/storage_service.dart';
@@ -39,7 +40,7 @@ class PersonalizationScreen extends ConsumerStatefulWidget {
 class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
   late TextEditingController _nameController;
   File? _avatarFile;
-  bool _hasNameChanges = false;
+  Timer? _nameDebounceTimer;
 
   @override
   void initState() {
@@ -57,13 +58,18 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
   @override
   void dispose() {
     _nameController.removeListener(_onNameChanged);
+    _nameDebounceTimer?.cancel();
     _nameController.dispose();
     super.dispose();
   }
 
   void _onNameChanged() {
-    setState(() {
-      _hasNameChanges = true;
+    // Cancel previous timer
+    _nameDebounceTimer?.cancel();
+
+    // Auto-save after 1 second of no typing
+    _nameDebounceTimer = Timer(const Duration(seconds: 1), () {
+      _saveName();
     });
   }
 
@@ -74,22 +80,16 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
     } else {
       await StorageService.setUserName(name);
     }
-    setState(() {
-      _hasNameChanges = false;
-    });
+    // Trigger rebuild to show updated avatar
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Name saved'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      setState(() {});
     }
   }
 
   Future<void> _showAvatarOptions() async {
     final colorScheme = Theme.of(context).colorScheme;
+    final customBgColor = StorageService.getAvatarBackgroundColor();
+    final customTextColor = StorageService.getAvatarTextColor();
 
     await showModalBottomSheet(
       context: context,
@@ -126,6 +126,75 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
                   await _removeAvatar();
                 },
               ),
+            const Divider(indent: 16, endIndent: 16),
+            ListTile(
+              leading: Icon(
+                Icons.palette,
+                color: _avatarFile != null
+                    ? colorScheme.onSurfaceVariant
+                    : colorScheme.primary,
+              ),
+              title: const Text('Background Color'),
+              enabled: _avatarFile == null,
+              trailing: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: customBgColor != null
+                      ? Color(customBgColor)
+                      : colorScheme.primary,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: colorScheme.outline),
+                ),
+              ),
+              onTap: _avatarFile == null
+                  ? () {
+                      Navigator.pop(context);
+                      _showColorPicker(
+                        context,
+                        'Background',
+                        customBgColor != null
+                            ? Color(customBgColor)
+                            : colorScheme.primary,
+                        _setAvatarBackgroundColor,
+                      );
+                    }
+                  : null,
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.text_fields,
+                color: _avatarFile != null
+                    ? colorScheme.onSurfaceVariant
+                    : colorScheme.primary,
+              ),
+              title: const Text('Text Color'),
+              enabled: _avatarFile == null,
+              trailing: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: customTextColor != null
+                      ? Color(customTextColor)
+                      : colorScheme.primary,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: colorScheme.outline),
+                ),
+              ),
+              onTap: _avatarFile == null
+                  ? () {
+                      Navigator.pop(context);
+                      _showColorPicker(
+                        context,
+                        'Text',
+                        customTextColor != null
+                            ? Color(customTextColor)
+                            : colorScheme.primary,
+                        _setAvatarTextColor,
+                      );
+                    }
+                  : null,
+            ),
             SpacingGap.gapV8,
           ],
         ),
@@ -186,96 +255,18 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
           _buildSectionHeader(context, 'Profile'),
           SpacingGap.gapV8,
 
-          // Avatar and Name Column (centered)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              children: [
-                // Avatar (centered)
-                ExpressiveGestureDetector(
-                  onTap: _showAvatarOptions,
-                  child: Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: _avatarFile != null
-                            ? null
-                            : backgroundColor,
-                        backgroundImage: _avatarFile != null
-                            ? FileImage(_avatarFile!)
-                            : null,
-                        child: _avatarFile != null
-                            ? null
-                            : initials != null
-                            ? Text(
-                                initials,
-                                style: TextStyle(
-                                  color: foregroundColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 32,
-                                ),
-                              )
-                            : Icon(
-                                Icons.person,
-                                size: 50,
-                                color: foregroundColor,
-                              ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: colorScheme.primary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.camera_alt,
-                            size: 16,
-                            color: colorScheme.onPrimary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SpacingGap.gapV32,
-
-                // Name Field
-                TextField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Your Name',
-                    hintText: 'Enter your name',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: _hasNameChanges
-                        ? ExpressiveIconButton(
-                            icon: Icon(Icons.check, color: colorScheme.primary),
-                            onPressed: _saveName,
-                          )
-                        : null,
-                  ),
-                  textCapitalization: TextCapitalization.words,
-                  textAlign: TextAlign.center,
-                  onSubmitted: (_) => _saveName(),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Text(
-              'Your name will appear in the greeting on the home screen.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
+          // Avatar and Name Section (Compact)
+          _buildCompactProfile(
+            context,
+            theme,
+            colorScheme,
+            backgroundColor,
+            foregroundColor,
+            initials,
           ),
 
-          // Layout Section
-          _buildSectionHeader(context, 'Layout'),
+          // Appearance Section
+          _buildSectionHeader(context, 'Appearance'),
           const _ThemeModeSelector(),
           Consumer(
             builder: (context, ref, _) {
@@ -301,9 +292,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
               return const _AccentColorSelector();
             },
           ),
-          // Contrast Level Selector (Material 3 January 2026)
-          const _ContrastLevelSelector(),
-          _buildFontSizeLink(),
+          // Font Picker
           Consumer(
             builder: (context, ref, _) {
               final fontFamily = ref.watch(preferencesStateProvider).fontFamily;
@@ -316,6 +305,10 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
               );
             },
           ),
+          _buildFontSizeLink(),
+
+          // Behavior Section
+          _buildSectionHeader(context, 'Behavior'),
           Consumer(
             builder: (context, ref, _) {
               final enabled = ref
@@ -377,6 +370,194 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildCompactProfile(
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+    Color backgroundColor,
+    Color foregroundColor,
+    String? initials,
+  ) {
+    // Check for custom avatar colors
+    final customBgColor = StorageService.getAvatarBackgroundColor();
+    final customTextColor = StorageService.getAvatarTextColor();
+
+    final displayBgColor = customBgColor != null
+        ? Color(customBgColor)
+        : backgroundColor;
+    final displayTextColor = customTextColor != null
+        ? Color(customTextColor)
+        : foregroundColor;
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              // Small Avatar
+              ExpressiveGestureDetector(
+                onTap: _showAvatarOptions,
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 32,
+                      backgroundColor: _avatarFile != null
+                          ? null
+                          : displayBgColor,
+                      backgroundImage: _avatarFile != null
+                          ? FileImage(_avatarFile!)
+                          : null,
+                      child: _avatarFile != null
+                          ? null
+                          : initials != null
+                          ? Text(
+                              initials,
+                              style: TextStyle(
+                                color: displayTextColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 20,
+                              ),
+                            )
+                          : Icon(
+                              Icons.person,
+                              size: 32,
+                              color: displayTextColor,
+                            ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.camera_alt,
+                          size: 14,
+                          color: colorScheme.onPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Name Field (Expanded)
+              Expanded(
+                child: TextField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Your Name',
+                    hintText: 'Enter your name',
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showColorPicker(
+    BuildContext context,
+    String title,
+    Color currentColor,
+    Function(Color) onColorChanged,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final colors = [
+      colorScheme.primary,
+      colorScheme.secondary,
+      colorScheme.tertiary,
+      colorScheme.primaryContainer,
+      colorScheme.secondaryContainer,
+      colorScheme.tertiaryContainer,
+      Colors.red,
+      Colors.pink,
+      Colors.purple,
+      Colors.blue,
+      Colors.cyan,
+      Colors.teal,
+      Colors.green,
+      Colors.lime,
+      Colors.yellow,
+      Colors.orange,
+      Colors.brown,
+      Colors.grey,
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Choose $title Color',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: colors
+                  .map(
+                    (color) => GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        onColorChanged(color);
+                      },
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: currentColor == color
+                                ? colorScheme.primary
+                                : Colors.transparent,
+                            width: 3,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _setAvatarBackgroundColor(Color color) async {
+    await StorageService.setAvatarBackgroundColor(color.value);
+    setState(() {});
+  }
+
+  Future<void> _setAvatarTextColor(Color color) async {
+    await StorageService.setAvatarTextColor(color.value);
+    setState(() {});
   }
 
   Widget _buildSectionHeader(BuildContext context, String title) {
@@ -1219,123 +1400,4 @@ Widget _buildFontOption(
       }
     },
   );
-}
-
-// ============================================================================
-// Contrast Level Selector (Material 3 January 2026)
-// ============================================================================
-
-class _ContrastLevelSelector extends ConsumerWidget {
-  const _ContrastLevelSelector();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final prefs = ref.watch(preferencesStateProvider);
-    final currentLevel = prefs.contrastLevel;
-
-    String getDisplayName(String level) {
-      switch (level) {
-        case 'medium':
-          return 'Medium';
-        case 'high':
-          return 'High';
-        case 'standard':
-        default:
-          return 'Standard';
-      }
-    }
-
-    return ListTile(
-      leading: const Icon(Icons.contrast),
-      title: const Text('Contrast Level'),
-      subtitle: Text(getDisplayName(currentLevel)),
-      trailing: const Icon(Icons.arrow_drop_down),
-      onTap: () async {
-        final choice = await showModalBottomSheet<String>(
-          context: context,
-          showDragHandle: true,
-          builder: (ctx) {
-            return _ContrastLevelSheet(current: currentLevel);
-          },
-        );
-        if (choice != null) {
-          final controller = ref.read(preferencesControllerProvider);
-          await controller.setContrastLevel(choice);
-        }
-      },
-    );
-  }
-}
-
-class _ContrastLevelSheet extends StatelessWidget {
-  final String current;
-  const _ContrastLevelSheet({required this.current});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    Widget buildOption(String level, String label, String desc, IconData icon) {
-      final selected = current == level;
-      return ListTile(
-        leading: Icon(icon, color: selected ? cs.primary : cs.onSurfaceVariant),
-        title: Text(
-          label,
-          style: TextStyle(fontWeight: selected ? FontWeight.w600 : null),
-        ),
-        subtitle: Text(desc),
-        trailing: selected ? Icon(Icons.check, color: cs.primary) : null,
-        onTap: () => Navigator.of(context).pop(level),
-      );
-    }
-
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Contrast Level',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Adjust color contrast for better visibility',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
-                ),
-              ],
-            ),
-          ),
-          buildOption(
-            'standard',
-            'Standard',
-            'Default contrast for most users',
-            Icons.contrast,
-          ),
-          buildOption(
-            'medium',
-            'Medium',
-            'Enhanced contrast for improved readability',
-            Icons.contrast_outlined,
-          ),
-          buildOption(
-            'high',
-            'High',
-            'Maximum contrast for accessibility needs',
-            Icons.accessibility_new,
-          ),
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
 }
