@@ -1129,13 +1129,13 @@ String _getFontDisplayName(String fontFamily) {
     case 'roboto':
       return 'Roboto (System)';
     case 'opensans':
-      return 'Open Sans (Default)';
+      return 'Open Sans';
     case 'jetbrains':
       return 'JetBrains Mono';
     case 'lexend':
-      return 'Lexend';
+      return 'Lexend (Default)';
     default:
-      return 'Open Sans (Default)';
+      return 'Lexend (Default)';
   }
 }
 
@@ -1150,19 +1150,9 @@ void _showFontPicker(BuildContext context, WidgetRef ref) {
       children: [
         Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Choose Font',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Standard fonts',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
+          child: Text(
+            'Choose Font',
+            style: Theme.of(context).textTheme.titleLarge,
           ),
         ),
         _buildFontOption(
@@ -1178,18 +1168,19 @@ void _showFontPicker(BuildContext context, WidgetRef ref) {
           context,
           controller,
           currentFont,
+          'lexend',
+          'Lexend',
+          'Enhanced readability',
+          Icons.visibility,
+        ),
+        _buildFontOption(
+          context,
+          controller,
+          currentFont,
           'opensans',
           'Open Sans',
           'Clean & neutral',
           Icons.font_download,
-        ),
-        const Divider(),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-          child: Text(
-            'Specialized fonts',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
         ),
         _buildFontOption(
           context,
@@ -1199,15 +1190,6 @@ void _showFontPicker(BuildContext context, WidgetRef ref) {
           'JetBrains Mono',
           'Code & technical',
           Icons.code,
-        ),
-        _buildFontOption(
-          context,
-          controller,
-          currentFont,
-          'lexend',
-          'Lexend',
-          'Enhanced readability',
-          Icons.visibility,
         ),
         const SizedBox(height: 16),
       ],

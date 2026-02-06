@@ -159,7 +159,7 @@ class PreferencesState {
     firstDayOfWeek: 1, // Default: Monday (0=Sunday, 1=Monday, etc.)
     defaultTaskView: 'list', // Default: list view
     hapticsEnabled: true, // Default: haptic feedback enabled
-    fontFamily: 'opensans', // Default: Open Sans font
+    fontFamily: 'lexend', // Default: Lexend font (optimized for readability)
     lineHeightMultiplier: 1.2,
     paragraphSpacing: 8.0,
   );
