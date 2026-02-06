@@ -2,6 +2,8 @@
   <img src="assets/icon/2.png" alt="App Icon" width="200" height="200">
 </p>
 
+<h1 align="center">Simple tasks. Secure notes. Made in Europe.</h1>
+
 <p align="center">
   <a href="https://github.com/dominikmuellr/trudido/commits/main">
     <img src="https://img.shields.io/github/last-commit/dominikmuellr/trudido?style=for-the-badge&color=green" alt="Last Commit"></a>
@@ -15,11 +17,6 @@
     <img src="https://img.shields.io/github/license/dominikmuellr/trudido?style=for-the-badge&color=blue" alt="License"></a>
 </p>
 
-<h1 align="center">Trudido - Private and Minimalist Material You To-Do App</h1>
-
-<p align="center">
-  A lightweight, privacy-first to-do app built with Flutter and Material You.
-</p>
 
 <p align="center">
   <table align="center" border="0">
