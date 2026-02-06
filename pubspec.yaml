@@ -123,7 +123,7 @@ dependencies:
   # Using device_calendar_plus - modern replacement with built-in ProGuard rules
   device_calendar_plus: ^0.3.3
   share_plus: ^12.0.1
-  flex_color_picker: ^3.8.0
+  flex_color_picker: ^3.7.2
 
 dev_dependencies:
   flutter_test:
