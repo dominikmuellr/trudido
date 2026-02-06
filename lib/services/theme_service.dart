@@ -1184,10 +1184,7 @@ class AppTheme {
             fontSize: 12,
             color: dark.colorScheme.secondary, // Use Dracula Pink
           ),
-          iconTheme: IconThemeData(
-            color: dark.colorScheme.secondary,
-            size: 18,
-          ),
+          iconTheme: IconThemeData(color: dark.colorScheme.secondary, size: 18),
         ),
       );
     }

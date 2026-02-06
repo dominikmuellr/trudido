@@ -83,6 +83,7 @@ class DefaultsSettingsScreen extends ConsumerWidget {
           SpacingGap.gapV8,
           const _DefaultTabSelector(),
           const _DefaultViewSelector(),
+          const _TimeFormatSelector(),
           const _WeekStartSelector(),
           const _GreetingLanguageSelector(),
           const _SwipeActionsSelector(),
@@ -651,6 +652,101 @@ class _SwipeActionSheet extends ConsumerWidget {
               controller.setSwipeRightAction('none');
             },
           ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// Time Format Selector
+// ============================================================================
+
+class _TimeFormatSelector extends ConsumerWidget {
+  const _TimeFormatSelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prefs = ref.watch(preferencesStateProvider);
+    final controller = ref.read(preferencesControllerProvider);
+    final currentFormat = prefs.timeFormat;
+    final formatName = _getFormatName(currentFormat, context);
+
+    return ListTile(
+      leading: const Icon(Icons.schedule_outlined),
+      title: const Text('Time Format'),
+      subtitle: Text(formatName),
+      trailing: const Icon(Icons.arrow_drop_down),
+      onTap: () async {
+        final choice = await showModalBottomSheet<String>(
+          context: context,
+          showDragHandle: true,
+          builder: (ctx) {
+            return _TimeFormatSheet(current: currentFormat);
+          },
+        );
+        if (choice != null) {
+          controller.setTimeFormat(choice);
+        }
+      },
+    );
+  }
+
+  String _getFormatName(String format, BuildContext context) {
+    switch (format) {
+      case '12h':
+        return '12-hour (3:30 PM)';
+      case '24h':
+        return '24-hour (15:30)';
+      default:
+        final system24 = MediaQuery.of(context).alwaysUse24HourFormat;
+        return 'System default (${system24 ? '24h' : '12h'})';
+    }
+  }
+}
+
+class _TimeFormatSheet extends StatelessWidget {
+  final String current;
+  const _TimeFormatSheet({required this.current});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    Widget buildOption(
+      String value,
+      String label,
+      String example,
+      IconData icon,
+    ) {
+      final selected = current == value;
+      return ListTile(
+        leading: Icon(icon, color: selected ? cs.primary : cs.onSurfaceVariant),
+        title: Text(
+          label,
+          style: TextStyle(fontWeight: selected ? FontWeight.w600 : null),
+        ),
+        subtitle: Text(example),
+        trailing: selected ? Icon(Icons.check, color: cs.primary) : null,
+        onTap: () => Navigator.pop(context, value),
+      );
+    }
+
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          buildOption(
+            'system',
+            'System default',
+            MediaQuery.of(context).alwaysUse24HourFormat
+                ? 'Currently: 24-hour'
+                : 'Currently: 12-hour',
+            Icons.settings_outlined,
+          ),
+          buildOption('12h', '12-hour', '3:30 PM', Icons.schedule_outlined),
+          buildOption('24h', '24-hour', '15:30', Icons.schedule_outlined),
           const SizedBox(height: 16),
         ],
       ),

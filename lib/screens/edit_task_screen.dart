@@ -199,6 +199,18 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
       initialTime: _selectedDueDate != null
           ? TimeOfDay.fromDateTime(_selectedDueDate!)
           : TimeOfDay.now(),
+      builder: (context, child) {
+        final prefs = ref.read(preferencesStateProvider);
+        final use24Hour = prefs.resolveUse24Hour(
+          MediaQuery.of(context).alwaysUse24HourFormat,
+        );
+        return MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(alwaysUse24HourFormat: use24Hour),
+          child: child!,
+        );
+      },
     );
     if (!mounted) return;
     debugPrint('EditTaskScreen: Time picker result: $pickedTime');
@@ -456,6 +468,15 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
                                                   now: ref
                                                       .read(clockProvider)
                                                       .now(),
+                                                  use24Hour: ref
+                                                      .read(
+                                                        preferencesStateProvider,
+                                                      )
+                                                      .resolveUse24Hour(
+                                                        MediaQuery.of(
+                                                          context,
+                                                        ).alwaysUse24HourFormat,
+                                                      ),
                                                 )),
                                     style: Theme.of(context).textTheme.bodyLarge
                                         ?.copyWith(fontWeight: FontWeight.w500),

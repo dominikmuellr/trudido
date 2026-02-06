@@ -147,11 +147,30 @@ class WidgetTasksFactory(private val context: Context) : RemoteViewsService.Remo
     }
 
     /**
-     * Format date/time in European format: "2 Jan, 14:00" or "Heute, 14:00" (Today)
+     * Read the user's time format preference from Flutter SharedPreferences.
+     * Returns true if 24-hour format should be used.
+     */
+    private fun shouldUse24Hour(): Boolean {
+        val prefs = context.getSharedPreferences(
+            "FlutterSharedPreferences", Context.MODE_PRIVATE
+        )
+        return when (prefs.getString("flutter.time_format", "system")) {
+            "12h" -> false
+            "24h" -> true
+            else -> {
+                // 'system' - detect from device locale
+                android.text.format.DateFormat.is24HourFormat(context)
+            }
+        }
+    }
+
+    /**
+     * Format date/time respecting the user's time format preference.
      */
     private fun formatDateTime(millis: Long?): String {
         if (millis == null) return ""
 
+        val use24Hour = shouldUse24Hour()
         val date = Date(millis)
         val now = Calendar.getInstance()
         val taskCal = Calendar.getInstance().apply { time = date }
@@ -167,7 +186,11 @@ class WidgetTasksFactory(private val context: Context) : RemoteViewsService.Remo
 
         val isOverdue = millis < System.currentTimeMillis()
 
-        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val timeFormat = if (use24Hour) {
+            SimpleDateFormat("HH:mm", Locale.getDefault())
+        } else {
+            SimpleDateFormat("h:mm a", Locale.getDefault())
+        }
         val dateFormat = SimpleDateFormat("d MMM", Locale.getDefault())
 
         val timeStr = timeFormat.format(date)

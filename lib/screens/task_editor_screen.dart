@@ -324,7 +324,15 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     if (_dueTime == null) {
       return 'All day';
     } else {
-      return _dueTime!.format(context);
+      final prefs = ref.read(preferencesStateProvider);
+      final use24Hour = prefs.resolveUse24Hour(
+        MediaQuery.of(context).alwaysUse24HourFormat,
+      );
+      return DateFormatters.formatTimeOfDay(
+        _dueTime!.hour,
+        _dueTime!.minute,
+        use24Hour: use24Hour,
+      );
     }
   }
 
@@ -1073,10 +1081,22 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
 
   Future<void> _selectTime() async {
     if (_dueDate != null) {
+      final prefs = ref.read(preferencesStateProvider);
+      final use24Hour = prefs.resolveUse24Hour(
+        MediaQuery.of(context).alwaysUse24HourFormat,
+      );
       final time = await showTimePicker(
         context: context,
         initialTime: _dueTime ?? TimeOfDay.now(),
         helpText: 'Select time',
+        builder: (context, child) {
+          return MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(alwaysUse24HourFormat: use24Hour),
+            child: child!,
+          );
+        },
       );
       if (time != null) {
         setState(() => _dueTime = time);

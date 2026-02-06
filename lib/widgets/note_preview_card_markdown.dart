@@ -25,6 +25,7 @@ import 'package:fc_native_video_thumbnail/fc_native_video_thumbnail.dart';
 import '../models/note.dart';
 import '../providers/app_providers.dart';
 import '../services/theme_service.dart';
+import '../utils/date_formatters.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import '../widgets/common/common.dart';
 
@@ -519,7 +520,12 @@ class NotePreviewCard extends ConsumerWidget {
                 ));
     debugPrint('Preview: bodySpan created successfully');
 
-    final formattedDate = _formatCompactDate(note.updatedAt);
+    final formattedDate = _formatCompactDate(
+      note.updatedAt,
+      preferences.resolveUse24Hour(
+        MediaQuery.of(context).alwaysUse24HourFormat,
+      ),
+    );
 
     return Dismissible(
       key: ValueKey(
@@ -1255,20 +1261,19 @@ class NotePreviewCard extends ConsumerWidget {
     }
   }
 
-  String _formatCompactDate(DateTime date) {
+  String _formatCompactDate(DateTime date, bool use24Hour) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
     final dateDay = DateTime(date.year, date.month, date.day);
-    final timeFormat = DateFormat('HH:mm');
 
     if (dateDay == today) {
-      return 'Today ${timeFormat.format(date)}';
+      return 'Today ${DateFormatters.formatTime(date, use24Hour: use24Hour)}';
     } else if (dateDay == yesterday) {
-      return 'Yesterday ${timeFormat.format(date)}';
+      return 'Yesterday ${DateFormatters.formatTime(date, use24Hour: use24Hour)}';
     } else if (now.difference(date).inDays < 7) {
       // Within the last week, show day name and time
-      return '${DateFormat('EEEE').format(date)} ${timeFormat.format(date)}';
+      return '${DateFormat('EEEE').format(date)} ${DateFormatters.formatTime(date, use24Hour: use24Hour)}';
     } else if (date.year == now.year) {
       // Same year, show day and month
       return DateFormat('d MMM').format(date);

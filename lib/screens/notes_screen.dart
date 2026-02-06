@@ -30,7 +30,6 @@ import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
 import '../utils/state_notifiers.dart';
 
-
 /// Provider for notes search mode
 final notesSearchModeProvider = stateProvider<bool>(false);
 

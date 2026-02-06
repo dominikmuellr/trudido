@@ -112,6 +112,8 @@ class PreferencesController {
   Future<void> setDefaultTaskView(String view) =>
       _update(defaultTaskView: view);
 
+  Future<void> setTimeFormat(String format) => _update(timeFormat: format);
+
   Future<void> setFirstDayOfWeek(int dayIndex) =>
       _update(firstDayOfWeek: dayIndex);
 
@@ -147,6 +149,7 @@ class PreferencesController {
     String? contrastLevel,
     bool? hapticsEnabled,
     String? fontFamily,
+    String? timeFormat,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -169,6 +172,7 @@ class PreferencesController {
       contrastLevel: contrastLevel,
       hapticsEnabled: hapticsEnabled,
       fontFamily: fontFamily,
+      timeFormat: timeFormat,
     );
     ref.read(preferencesStateProvider.notifier).update(updated);
   }

@@ -83,14 +83,26 @@ class NoteHistoryEntry extends HiveObject {
   }
 
   /// Formats the timestamp as DD.MM.YYYY HH:mm (European 24h format).
-  String get formattedTimestamp {
+  String get formattedTimestamp => formatTimestamp();
+
+  /// Formats the timestamp, respecting the user's 12h/24h preference.
+  String formatTimestamp({bool use24Hour = true}) {
     final d = timestamp;
     final day = d.day.toString().padLeft(2, '0');
     final month = d.month.toString().padLeft(2, '0');
     final year = d.year.toString();
-    final hour = d.hour.toString().padLeft(2, '0');
-    final minute = d.minute.toString().padLeft(2, '0');
-    return '$day.$month.$year $hour:$minute';
+    if (use24Hour) {
+      final hour = d.hour.toString().padLeft(2, '0');
+      final minute = d.minute.toString().padLeft(2, '0');
+      return '$day.$month.$year $hour:$minute';
+    } else {
+      final period = d.hour >= 12 ? 'PM' : 'AM';
+      final displayHour = d.hour == 0
+          ? 12
+          : (d.hour > 12 ? d.hour - 12 : d.hour);
+      final minute = d.minute.toString().padLeft(2, '0');
+      return '$day.$month.$year $displayHour:$minute $period';
+    }
   }
 
   /// Returns a brief human-readable summary of the change.

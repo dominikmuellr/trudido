@@ -18,10 +18,45 @@ import 'package:intl/intl.dart';
 
 /// Smart date formatting utilities following Material Design 3 guidelines
 class DateFormatters {
+  /// Formats a time according to the user's 12h/24h preference.
+  static String formatTime(DateTime date, {bool use24Hour = false}) {
+    return use24Hour
+        ? DateFormat('HH:mm').format(date)
+        : DateFormat('h:mm a').format(date);
+  }
+
+  /// Formats a TimeOfDay according to the user's 12h/24h preference.
+  static String formatTimeOfDay(
+    int hour,
+    int minute, {
+    bool use24Hour = false,
+  }) {
+    final minuteStr = minute.toString().padLeft(2, '0');
+    if (use24Hour) {
+      return '${hour.toString().padLeft(2, '0')}:$minuteStr';
+    } else {
+      final period = hour >= 12 ? 'PM' : 'AM';
+      final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+      return '$displayHour:$minuteStr $period';
+    }
+  }
+
+  /// Formats an hour (0-23) as a label for timetable display.
+  static String formatHourLabel(int hour, {bool use24Hour = false}) {
+    if (use24Hour) {
+      return '${hour.toString().padLeft(2, '0')}:00';
+    } else {
+      final period = hour >= 12 ? 'PM' : 'AM';
+      final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+      return '$displayHour $period';
+    }
+  }
+
   static String formatSmart(
     DateTime date, {
     DateTime? now,
     bool includeTime = true,
+    bool use24Hour = false,
   }) {
     now ??= DateTime.now();
 
@@ -30,7 +65,7 @@ class DateFormatters {
     final difference = dateOnly.difference(todayOnly).inDays;
 
     final timeStr = includeTime && (date.hour != 0 || date.minute != 0)
-        ? ' at ${DateFormat.jm().format(date)}' // 3:30 PM
+        ? ' at ${formatTime(date, use24Hour: use24Hour)}'
         : '';
 
     if (difference == 0) {

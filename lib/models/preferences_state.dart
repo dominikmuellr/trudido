@@ -44,6 +44,7 @@ class PreferencesState {
   final bool hapticsEnabled; // Enable haptic feedback for interactions
   final String
   fontFamily; // Font family: roboto | opensans | jetbrains | lexend
+  final String timeFormat; // system | 12h | 24h
   final double? _lineHeightMultiplier; // Line height multiplier (e.g. 1.2)
   double get lineHeightMultiplier => _lineHeightMultiplier ?? 1.2;
   final double? _paragraphSpacing; // Paragraph spacing in points (e.g. 8.0)
@@ -73,6 +74,7 @@ class PreferencesState {
     required this.defaultTaskView,
     required this.hapticsEnabled,
     required this.fontFamily,
+    required this.timeFormat,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
   }) : _lineHeightMultiplier = lineHeightMultiplier,
@@ -102,6 +104,7 @@ class PreferencesState {
     String? defaultTaskView,
     bool? hapticsEnabled,
     String? fontFamily,
+    String? timeFormat,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
   }) => PreferencesState(
@@ -129,6 +132,7 @@ class PreferencesState {
     defaultTaskView: defaultTaskView ?? this.defaultTaskView,
     hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
     fontFamily: fontFamily ?? this.fontFamily,
+    timeFormat: timeFormat ?? this.timeFormat,
     lineHeightMultiplier: lineHeightMultiplier ?? this.lineHeightMultiplier,
     paragraphSpacing: paragraphSpacing ?? this.paragraphSpacing,
   );
@@ -160,7 +164,21 @@ class PreferencesState {
     defaultTaskView: 'list', // Default: list view
     hapticsEnabled: true, // Default: haptic feedback enabled
     fontFamily: 'lexend', // Default: Lexend font (optimized for readability)
+    timeFormat: 'system', // Default: auto-detect from device locale
     lineHeightMultiplier: 1.2,
     paragraphSpacing: 8.0,
   );
+
+  /// Resolves whether to use 24-hour format based on the user preference.
+  /// Pass [MediaQuery.of(context).alwaysUse24HourFormat] for system detection.
+  bool resolveUse24Hour(bool systemUse24Hour) {
+    switch (timeFormat) {
+      case '12h':
+        return false;
+      case '24h':
+        return true;
+      default:
+        return systemUse24Hour; // 'system'
+    }
+  }
 }

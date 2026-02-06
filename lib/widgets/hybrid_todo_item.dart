@@ -22,6 +22,7 @@ import '../models/preferences_state.dart';
 import '../models/todo.dart';
 import '../providers/app_providers.dart';
 import '../utils/responsive_size.dart';
+import '../utils/date_formatters.dart';
 import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
 
@@ -166,7 +167,12 @@ class HybridTodoItem extends ConsumerWidget {
                               _buildPriorityChip(context),
                             // Due date and time
                             if (todo.dueDate != null)
-                              _buildDueDateChip(context),
+                              _buildDueDateChip(
+                                context,
+                                preferences.resolveUse24Hour(
+                                  MediaQuery.of(context).alwaysUse24HourFormat,
+                                ),
+                              ),
                             // Repeat indicator
                             if (todo.isRecurring) _buildRepeatChip(context),
                           ],
@@ -256,13 +262,12 @@ class HybridTodoItem extends ConsumerWidget {
     );
   }
 
-  Widget _buildDueDateChip(BuildContext context) {
+  Widget _buildDueDateChip(BuildContext context, bool use24Hour) {
     final colorScheme = Theme.of(context).colorScheme;
     final dueDate = todo.dueDate!;
 
     // Format the date
     final dateFormat = DateFormat('MMM d, yyyy');
-    final timeFormat = DateFormat('h:mm a');
 
     // Check if time is set (not midnight)
     final hasTime = dueDate.hour != 0 || dueDate.minute != 0;
@@ -270,7 +275,7 @@ class HybridTodoItem extends ConsumerWidget {
     String dateTimeText;
     if (hasTime) {
       dateTimeText =
-          '${dateFormat.format(dueDate)} at ${timeFormat.format(dueDate)}';
+          '${dateFormat.format(dueDate)} at ${DateFormatters.formatTime(dueDate, use24Hour: use24Hour)}';
     } else {
       dateTimeText = dateFormat.format(dueDate);
     }

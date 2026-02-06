@@ -190,6 +190,7 @@ class PreferencesService {
           p.getBool('haptics_enabled') ??
           PreferencesState.defaultState.hapticsEnabled,
       fontFamily: _sanitizeFontFamily(p.getString('font_family')),
+      timeFormat: _sanitizeTimeFormat(p.getString('time_format')),
       lineHeightMultiplier:
           p.getDouble('line_height_multiplier') ??
           PreferencesState.defaultState.lineHeightMultiplier,
@@ -216,6 +217,11 @@ class PreferencesService {
     }
   }
 
+  String _sanitizeTimeFormat(String? v) {
+    if (v == 'system' || v == '12h' || v == '24h') return v!;
+    return PreferencesState.defaultState.timeFormat;
+  }
+
   Future<PreferencesState> update({
     String? themeMode,
     bool? useDynamicColor,
@@ -237,6 +243,7 @@ class PreferencesService {
     String? defaultTaskView,
     bool? hapticsEnabled,
     String? fontFamily,
+    String? timeFormat,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
     String? contrastLevel,
@@ -282,6 +289,7 @@ class PreferencesService {
       if (hapticsEnabled != null)
         await p.setBool('haptics_enabled', hapticsEnabled);
       if (fontFamily != null) await p.setString('font_family', fontFamily);
+      if (timeFormat != null) await p.setString('time_format', timeFormat);
       if (lineHeightMultiplier != null)
         await p.setDouble('line_height_multiplier', lineHeightMultiplier);
       if (paragraphSpacing != null)

@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/note_history.dart';
 import '../models/note_history_tree.dart';
+import '../providers/app_providers.dart';
 import '../providers/note_history_provider.dart';
 import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
@@ -56,6 +57,11 @@ class NoteHistoryBottomSheet extends ConsumerStatefulWidget {
 class _NoteHistoryBottomSheetState
     extends ConsumerState<NoteHistoryBottomSheet> {
   bool _showTreeView = true;
+
+  bool get _use24Hour {
+    final prefs = ref.watch(preferencesStateProvider);
+    return prefs.resolveUse24Hour(MediaQuery.of(context).alwaysUse24HourFormat);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -279,6 +285,7 @@ class _NoteHistoryBottomSheetState
           isLatest: index == 0,
           isCurrentPosition: isCurrentPosition,
           branchColor: _branchColors[0],
+          use24Hour: _use24Hour,
           onTap: () => _showEntryOptions(entry),
         );
       },
@@ -533,7 +540,9 @@ class _NoteHistoryBottomSheetState
                         ),
                       ),
                       Text(
-                        branchData.divergesFrom!.formattedTimestamp,
+                        branchData.divergesFrom!.formatTimestamp(
+                          use24Hour: _use24Hour,
+                        ),
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: colorScheme.onSurfaceVariant.withOpacity(0.7),
                           fontSize: 10,
@@ -582,6 +591,7 @@ class _NoteHistoryBottomSheetState
                 isLatest: isLatest,
                 isCurrentPosition: isCurrentPosition,
                 branchColor: branchColor,
+                use24Hour: _use24Hour,
                 onTap: () => _showEntryOptions(entry),
               );
             },
@@ -611,7 +621,7 @@ class _NoteHistoryBottomSheetState
           children: [
             // Header
             Text(
-              'Version from ${entry.formattedTimestamp}',
+              'Version from ${entry.formatTimestamp(use24Hour: _use24Hour)}',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -737,6 +747,7 @@ class _CompactEntryTile extends StatelessWidget {
   final bool isLatest;
   final bool isCurrentPosition;
   final Color branchColor;
+  final bool use24Hour;
   final VoidCallback onTap;
 
   const _CompactEntryTile({
@@ -744,6 +755,7 @@ class _CompactEntryTile extends StatelessWidget {
     required this.isLatest,
     required this.isCurrentPosition,
     required this.branchColor,
+    required this.use24Hour,
     required this.onTap,
   });
 
@@ -823,7 +835,7 @@ class _CompactEntryTile extends StatelessWidget {
                               ),
                             Expanded(
                               child: Text(
-                                entry.formattedTimestamp,
+                                entry.formatTimestamp(use24Hour: use24Hour),
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: isCurrentPosition
@@ -961,6 +973,7 @@ class _HistoryEntryTile extends StatelessWidget {
   final bool isLatest;
   final bool isCurrentPosition;
   final Color? branchColor;
+  final bool use24Hour;
   final VoidCallback onTap;
 
   const _HistoryEntryTile({
@@ -968,6 +981,7 @@ class _HistoryEntryTile extends StatelessWidget {
     required this.isLatest,
     required this.isCurrentPosition,
     required this.branchColor,
+    required this.use24Hour,
     required this.onTap,
   });
 
@@ -1014,7 +1028,7 @@ class _HistoryEntryTile extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          entry.formattedTimestamp,
+                          entry.formatTimestamp(use24Hour: use24Hour),
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),

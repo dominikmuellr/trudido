@@ -26,6 +26,7 @@ import '../providers/app_providers.dart';
 import '../providers/clock.dart';
 import '../providers/holiday_providers.dart';
 import '../utils/week_start_utils.dart';
+import '../utils/date_formatters.dart';
 import 'hybrid_todo_item.dart';
 import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
@@ -126,6 +127,10 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
   }
 
   Widget _buildDayTimetable(BuildContext context, ColorScheme colorScheme) {
+    final prefs = ref.watch(preferencesStateProvider);
+    final use24Hour = prefs.resolveUse24Hour(
+      MediaQuery.of(context).alwaysUse24HourFormat,
+    );
     final dayTasks = _selectedDay != null
         ? _getTasksForDay(_selectedDay!)
         : _getTasksForDay(_focusedDay);
@@ -352,7 +357,10 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Text(
-                          '${hour.toString().padLeft(2, '0')}:00',
+                          DateFormatters.formatHourLabel(
+                            hour,
+                            use24Hour: use24Hour,
+                          ),
                           style: TextStyle(
                             fontSize: 12,
                             color: colorScheme.onSurfaceVariant,
@@ -463,8 +471,9 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                                                   ),
                                                   if (task.dueDate != null)
                                                     Text(
-                                                      DateFormat.jm().format(
+                                                      DateFormatters.formatTime(
                                                         task.dueDate!,
+                                                        use24Hour: use24Hour,
                                                       ),
                                                       style: TextStyle(
                                                         fontSize: 11,
