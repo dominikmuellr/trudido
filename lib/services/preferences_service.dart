@@ -197,6 +197,7 @@ class PreferencesService {
       paragraphSpacing:
           p.getDouble('paragraph_spacing') ??
           PreferencesState.defaultState.paragraphSpacing,
+      activeCustomThemeId: p.getString('active_custom_theme_id'),
     );
   }
 
@@ -247,6 +248,8 @@ class PreferencesService {
     double? lineHeightMultiplier,
     double? paragraphSpacing,
     String? contrastLevel,
+    String? activeCustomThemeId,
+    bool clearActiveCustomTheme = false,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -296,6 +299,9 @@ class PreferencesService {
         await p.setDouble('paragraph_spacing', paragraphSpacing);
       if (contrastLevel != null)
         await p.setString('contrast_level', contrastLevel);
+      if (activeCustomThemeId != null)
+        await p.setString('active_custom_theme_id', activeCustomThemeId);
+      if (clearActiveCustomTheme) await p.remove('active_custom_theme_id');
       _hydrate();
       return _cache;
     } catch (e, st) {

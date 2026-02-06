@@ -26,6 +26,7 @@ import 'package:flutter_quill/flutter_quill.dart'
     show FlutterQuillLocalizations;
 
 import 'services/storage_service.dart';
+import 'models/custom_theme.dart';
 import 'services/auto_backup_service.dart';
 import 'services/permissions_channel.dart';
 import 'services/theme_service.dart';
@@ -354,6 +355,24 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
     final fontFamily = prefs.fontFamily;
     final schemesAsync = ref.watch(dynamicColorSchemesProvider);
     final schemes = schemesAsync.value;
+
+    // Load active custom theme if set
+    ColorScheme? customLightScheme;
+    ColorScheme? customDarkScheme;
+    final activeCustomId = prefs.activeCustomThemeId;
+    // Watch revision counter to rebuild when custom theme content changes
+    ref.watch(customThemeRevisionProvider);
+    if (activeCustomId != null && !prefs.useDynamicColor) {
+      final themeJson = StorageService.getCustomTheme(activeCustomId);
+      if (themeJson != null) {
+        try {
+          final customTheme = CustomTheme.fromJsonString(themeJson);
+          customLightScheme = customTheme.buildColorScheme(Brightness.light);
+          customDarkScheme = customTheme.buildColorScheme(Brightness.dark);
+        } catch (_) {}
+      }
+    }
+
     final themes = AppTheme.buildThemes(
       dynamicLight: schemes?.light,
       dynamicDark: schemes?.dark,
@@ -362,6 +381,8 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
       compact: compact,
       highContrast: highContrast,
       contrastLevel: contrastLevel,
+      customLightScheme: customLightScheme,
+      customDarkScheme: customDarkScheme,
     );
     final useBlack = ref.watch(blackThemeEnabledProvider);
     // Don't apply black theme to Solarized (or other incompatible themes)

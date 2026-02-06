@@ -1271,4 +1271,73 @@ Happy note-taking! ✨''',
   static Future<void> dispose() async {
     await _todosLazyBox?.close();
   }
+
+  // ============================================================================
+  // Custom Themes
+  // ============================================================================
+
+  static const String _customThemesKey = 'custom_themes';
+  static const String _activeCustomThemeKey = 'active_custom_theme_id';
+
+  /// Save a custom theme (creates or updates)
+  static Future<void> saveCustomTheme(String id, String jsonString) async {
+    await _ensurePrefs();
+    final themes = _getCustomThemesMap();
+    themes[id] = jsonString;
+    await _prefs!.setString(_customThemesKey, jsonEncode(themes));
+  }
+
+  /// Delete a custom theme by id
+  static Future<void> deleteCustomTheme(String id) async {
+    await _ensurePrefs();
+    final themes = _getCustomThemesMap();
+    themes.remove(id);
+    await _prefs!.setString(_customThemesKey, jsonEncode(themes));
+    // Clear active theme if it was the deleted one
+    if (getActiveCustomThemeId() == id) {
+      await clearActiveCustomTheme();
+    }
+  }
+
+  /// Get all saved custom themes as map of id -> JSON string
+  static Map<String, String> _getCustomThemesMap() {
+    if (_prefs == null) kickOffPrefsInit();
+    final raw = _prefs?.getString(_customThemesKey);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      return decoded.map((k, v) => MapEntry(k, v as String));
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Get all saved custom theme JSON strings
+  static List<String> getAllCustomThemes() {
+    return _getCustomThemesMap().values.toList();
+  }
+
+  /// Get a specific custom theme JSON by id
+  static String? getCustomTheme(String id) {
+    return _getCustomThemesMap()[id];
+  }
+
+  /// Set the active custom theme id (null or empty to deactivate)
+  static Future<void> setActiveCustomThemeId(String id) async {
+    await _ensurePrefs();
+    await _prefs!.setString(_activeCustomThemeKey, id);
+  }
+
+  /// Clear active custom theme (use normal theme system)
+  static Future<void> clearActiveCustomTheme() async {
+    await _ensurePrefs();
+    await _prefs!.remove(_activeCustomThemeKey);
+  }
+
+  /// Get the currently active custom theme id, or null
+  static String? getActiveCustomThemeId() {
+    if (_prefs == null) kickOffPrefsInit();
+    final id = _prefs?.getString(_activeCustomThemeKey);
+    return (id != null && id.isNotEmpty) ? id : null;
+  }
 }

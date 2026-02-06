@@ -20,6 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // Removed google_fonts package to reduce APK size - using system default fonts
 import '../providers/app_providers.dart';
+import '../utils/state_notifiers.dart';
 // (preferences state accessed via preferencesStateProvider import from app_providers)
 
 // Theme provider
@@ -50,6 +51,10 @@ final highContrastProvider = Provider<bool>(
 final contrastLevelProvider = Provider<String>(
   (ref) => ref.watch(preferencesStateProvider).contrastLevel,
 );
+
+/// Bump this to force the app to reload custom theme colors from storage.
+/// Used when a custom theme is edited and saved (content changed, same ID).
+final customThemeRevisionProvider = stateProvider<int>(0);
 
 // Removed individual StateNotifiers (logic centralized in PreferencesController).
 
@@ -1061,6 +1066,8 @@ class AppTheme {
     bool highContrast = false,
     String contrastLevel =
         'standard', // Material 3 January 2026: standard | medium | high
+    ColorScheme? customLightScheme,
+    ColorScheme? customDarkScheme,
   }) {
     final seedColor = accentColorSeed ?? legacyPrimarySeed;
 
@@ -1068,8 +1075,18 @@ class AppTheme {
     late ThemeData light;
     late ThemeData dark;
 
+    // If a custom theme provides color schemes, use those directly
+    if (customLightScheme != null && customDarkScheme != null) {
+      light = _baseLight(dynamicLight ?? customLightScheme, fontFamily);
+      dark = _baseDark(
+        dynamicDark != null
+            ? _enhanceDarkContrast(dynamicDark)
+            : customDarkScheme,
+        fontFamily,
+      );
+    }
     // Special handling for monochrome - create black/white scheme
-    if (seedColor.value == 0xFF9E9E9E) {
+    else if (seedColor.value == 0xFF9E9E9E) {
       final monoLight = _createMonochromaticLightScheme();
       final monoDark = _createMonochromaticDarkScheme();
       light = _baseLight(dynamicLight ?? monoLight, fontFamily);

@@ -49,6 +49,7 @@ class PreferencesState {
   double get lineHeightMultiplier => _lineHeightMultiplier ?? 1.2;
   final double? _paragraphSpacing; // Paragraph spacing in points (e.g. 8.0)
   double get paragraphSpacing => _paragraphSpacing ?? 8.0;
+  final String? activeCustomThemeId; // Active custom theme ID (null = none)
 
   const PreferencesState({
     required this.themeMode,
@@ -75,6 +76,7 @@ class PreferencesState {
     required this.hapticsEnabled,
     required this.fontFamily,
     required this.timeFormat,
+    this.activeCustomThemeId,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
   }) : _lineHeightMultiplier = lineHeightMultiplier,
@@ -105,6 +107,7 @@ class PreferencesState {
     bool? hapticsEnabled,
     String? fontFamily,
     String? timeFormat,
+    String? activeCustomThemeId,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
   }) => PreferencesState(
@@ -133,6 +136,7 @@ class PreferencesState {
     hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
     fontFamily: fontFamily ?? this.fontFamily,
     timeFormat: timeFormat ?? this.timeFormat,
+    activeCustomThemeId: activeCustomThemeId ?? this.activeCustomThemeId,
     lineHeightMultiplier: lineHeightMultiplier ?? this.lineHeightMultiplier,
     paragraphSpacing: paragraphSpacing ?? this.paragraphSpacing,
   );

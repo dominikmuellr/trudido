@@ -26,6 +26,7 @@ import '../providers/app_providers.dart';
 import '../controllers/preferences_controller.dart';
 import 'font_size_settings_screen.dart';
 import 'defaults_settings_screen.dart';
+import 'custom_theme_list_screen.dart';
 import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
 
@@ -292,6 +293,32 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
               return const _AccentColorSelector();
             },
           ),
+          // Custom Theme Builder
+          Consumer(
+            builder: (context, ref, _) {
+              final prefs = ref.watch(preferencesStateProvider);
+              if (prefs.useDynamicColor) return const SizedBox.shrink();
+              final hasActiveTheme = prefs.activeCustomThemeId != null;
+              return ListTile(
+                leading: const Icon(Icons.palette_outlined),
+                title: const Text('Custom Themes'),
+                subtitle: Text(
+                  hasActiveTheme
+                      ? 'Custom theme active'
+                      : 'Build your own theme',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () async {
+                  await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CustomThemeListScreen(),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
           // Font Picker
           Consumer(
             builder: (context, ref, _) {
@@ -452,8 +479,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
                 child: TextField(
                   controller: _nameController,
                   decoration: InputDecoration(
-                    labelText: 'Your Name',
-                    hintText: 'Enter your name',
+                    hintText: 'Your Name',
                     border: const OutlineInputBorder(),
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(

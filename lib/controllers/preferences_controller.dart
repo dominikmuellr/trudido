@@ -150,6 +150,7 @@ class PreferencesController {
     bool? hapticsEnabled,
     String? fontFamily,
     String? timeFormat,
+    String? activeCustomThemeId,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -173,11 +174,25 @@ class PreferencesController {
       hapticsEnabled: hapticsEnabled,
       fontFamily: fontFamily,
       timeFormat: timeFormat,
+      activeCustomThemeId: activeCustomThemeId,
     );
+    ref.read(preferencesStateProvider.notifier).update(updated);
+  }
+
+  Future<void> _clearActiveCustomTheme() async {
+    final updated = await service.update(clearActiveCustomTheme: true);
     ref.read(preferencesStateProvider.notifier).update(updated);
   }
 
   Future<void> setFontFamily(String fontFamily) async {
     await _update(fontFamily: fontFamily);
+  }
+
+  Future<void> setActiveCustomTheme(String themeId) async {
+    await _update(activeCustomThemeId: themeId);
+  }
+
+  Future<void> clearActiveCustomTheme() async {
+    await _clearActiveCustomTheme();
   }
 }
