@@ -139,17 +139,17 @@ class AvatarService {
   }
 
   /// Generate a consistent color from user name.
-  /// Uses subtle elevated surface color for better integration with theme.
+  /// Uses primary container for subtle theme-aware color.
   static Color getColorFromName(String name, ColorScheme colorScheme) {
-    return colorScheme.surfaceContainerHighest;
+    return colorScheme.primaryContainer;
   }
 
   /// Get the foreground color (text) based on background color.
-  /// Uses standard text color for optimal readability.
+  /// Uses on-primary-container for optimal readability with theme colors.
   static Color getForegroundColor(
     Color backgroundColor,
     ColorScheme colorScheme,
   ) {
-    return colorScheme.onSurface;
+    return colorScheme.onPrimaryContainer;
   }
 }

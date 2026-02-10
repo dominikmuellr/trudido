@@ -352,7 +352,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             onClearVaultSelection: clearVaultSelectionIfNeeded,
           ),
           drawerEdgeDragWidth:
-              40.0, // Allow swipe from left edge to open drawer
+              80.0, // Allow swipe from left edge to open drawer (increased for easier triggering)
           appBar: HomeAppBar(
             searchController: _searchController,
             searchBarScaleAnimation: _searchBarScaleAnimation,
