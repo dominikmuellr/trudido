@@ -54,6 +54,17 @@
                 android:textColor="@color/widget_text_secondary"
                 android:maxLines="1" />
 
+            <!-- Duration -->
+            <TextView
+                android:id="@+id/task_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="11sp"
+                android:textColor="@color/widget_text_secondary"
+                android:maxLines="1"
+                android:layout_marginStart="8dp"
+                android:visibility="gone" />
+
             <!-- Recurring indicator -->
             <TextView
                 android:id="@+id/task_recurring"

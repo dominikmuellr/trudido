@@ -241,24 +241,32 @@ class TodoListTab extends ConsumerWidget {
       }
     }
 
-    // Sort each group by date/time
-    todayItems.sort((a, b) {
-      final aTime = a is Todo ? a.dueDate! : (a as Holiday).date;
-      final bTime = b is Todo ? b.dueDate! : (b as Holiday).date;
-      return aTime.compareTo(bTime);
-    });
+    // Only re-sort by time if using default or date-based sort
+    // Otherwise preserve the user's selected sort order from filteredTasksProvider
+    final sortBy = ref.watch(sortByProvider);
+    final shouldSortByTime = sortBy == 'default' || sortBy == 'date_due';
 
-    tomorrowItems.sort((a, b) {
-      final aTime = a is Todo ? a.dueDate! : (a as Holiday).date;
-      final bTime = b is Todo ? b.dueDate! : (b as Holiday).date;
-      return aTime.compareTo(bTime);
-    });
+    if (shouldSortByTime) {
+      // Sort each group by date/time
+      todayItems.sort((a, b) {
+        final aTime = a is Todo ? a.dueDate! : (a as Holiday).date;
+        final bTime = b is Todo ? b.dueDate! : (b as Holiday).date;
+        return aTime.compareTo(bTime);
+      });
 
-    upcomingItems.sort((a, b) {
-      final aTime = a is Todo ? a.dueDate! : (a as Holiday).date;
-      final bTime = b is Todo ? b.dueDate! : (b as Holiday).date;
-      return aTime.compareTo(bTime);
-    });
+      tomorrowItems.sort((a, b) {
+        final aTime = a is Todo ? a.dueDate! : (a as Holiday).date;
+        final bTime = b is Todo ? b.dueDate! : (b as Holiday).date;
+        return aTime.compareTo(bTime);
+      });
+
+      upcomingItems.sort((a, b) {
+        final aTime = a is Todo ? a.dueDate! : (a as Holiday).date;
+        final bTime = b is Todo ? b.dueDate! : (b as Holiday).date;
+        return aTime.compareTo(bTime);
+      });
+    }
+    // else: keep the order from filteredTasksProvider which already applied the user's sort
 
     // Check if all groups are empty
     final isEmpty =

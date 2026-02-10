@@ -93,6 +93,8 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
   // Folder filter still comes from legacy folder provider (not yet migrated)
   final selectedFolder = ref.watch(selectedFolderProvider);
 
+  print('[filteredTasksProvider] Rebuilding with sortBy: $sortBy');
+
   var filtered = tasks.where((todo) {
     if (selectedFolder != null && todo.folderId != selectedFolder) return false;
     if (selectedPriority != 'all' && todo.priority != selectedPriority)
@@ -130,6 +132,9 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
       ? <String>[]
       : [sortBy, ...secondarySortKeys];
 
+  print('[filteredTasksProvider] allSortKeys: $allSortKeys');
+  print('[filteredTasksProvider] Number of tasks to sort: ${filtered.length}');
+
   if (sortBy == 'manual') {
     // Keep repository-provided order for manual sort
   } else {
@@ -146,30 +151,46 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
       // Final stable tie-breaker: createdAt descending
       return b.createdAt.compareTo(a.createdAt);
     });
+    
+    print('[filteredTasksProvider] After sorting, first 3 tasks: ${filtered.take(3).map((t) => t.text).join(", ")}');
   }
   return filtered;
 });
 
 /// Compare two todos by a single sort key
 int _compareBySortKey(Todo a, Todo b, String key) {
+  int result;
   switch (key) {
     case 'date_created':
-      return b.createdAt.compareTo(a.createdAt);
+      result = b.createdAt.compareTo(a.createdAt);
+      break;
     case 'date_due':
-      if (a.dueDate == null && b.dueDate == null) return 0;
-      if (a.dueDate == null) return 1;
-      if (b.dueDate == null) return -1;
-      return a.dueDate!.compareTo(b.dueDate!);
+      if (a.dueDate == null && b.dueDate == null) {
+        result = 0;
+      } else if (a.dueDate == null) {
+        result = 1;
+      } else if (b.dueDate == null) {
+        result = -1;
+      } else {
+        result = a.dueDate!.compareTo(b.dueDate!);
+      }
+      break;
     case 'priority':
       const order = {'high': 0, 'medium': 1, 'low': 2, 'none': 3};
       final ao = order[a.priority] ?? 2;
       final bo = order[b.priority] ?? 2;
-      return ao.compareTo(bo);
+      result = ao.compareTo(bo);
+      break;
     case 'alphabetical':
-      return a.text.toLowerCase().compareTo(b.text.toLowerCase());
+      result = a.text.toLowerCase().compareTo(b.text.toLowerCase());
+      break;
     default:
-      return 0; // 'default' key has no specific order beyond completion grouping
+      result = 0; // 'default' key has no specific order beyond completion grouping
   }
+  if (key == 'alphabetical' && result != 0) {
+    print('[_compareBySortKey] Comparing "${a.text}" vs "${b.text}": $result');
+  }
+  return result;
 }
 
 /// Provider that checks if the search query is a valid date

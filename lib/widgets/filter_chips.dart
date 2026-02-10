@@ -78,7 +78,9 @@ class FilterChips extends ConsumerWidget {
                     PopupMenuButton<String>(
                       initialValue: sortBy,
                       onSelected: (value) {
+                        print('[FilterChips] Sort selected: $value');
                         ref.read(sortByProvider.notifier).update(value);
+                        print('[FilterChips] After update, sortBy is now: ${ref.read(sortByProvider)}');
                         // Remove from secondary if user selects it as primary
                         final current = ref.read(secondarySortKeysProvider);
                         if (current.contains(value)) {
@@ -210,9 +212,13 @@ class FilterChips extends ConsumerWidget {
                       iconTheme: IconThemeData(
                         color: colorScheme.onTertiaryContainer,
                       ),
-                      onSelected: (selected) => ref
-                          .read(dueTodayFilterProvider.notifier)
-                          .update(selected),
+                      onSelected: (selected) {
+                        print('[FilterChips] Due Today selected: $selected');
+                        ref
+                            .read(dueTodayFilterProvider.notifier)
+                            .update(selected);
+                        print('[FilterChips] After update, dueTodayFilter is now: ${ref.read(dueTodayFilterProvider)}');
+                      },
                     ),
 
                     SpacingGap.gapH8,
@@ -243,9 +249,11 @@ class FilterChips extends ConsumerWidget {
                       onSelected: (selected) {
                         // Toggle: if selected (wants to hide), set false); else true
                         final newValue = !selected;
+                        print('[FilterChips] Show Completed toggled to: $newValue');
                         ref
                             .read(showCompletedProvider.notifier)
                             .update(newValue);
+                        print('[FilterChips] After update, showCompleted is now: ${ref.read(showCompletedProvider)}');
                         // Persist choice
                         StorageService.setShowCompletedTasks(newValue);
                       },

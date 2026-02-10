@@ -50,12 +50,15 @@ class WidgetTasksFactory(private val context: Context) : RemoteViewsService.Remo
     override fun getCount(): Int = tasks.size
 
     override fun getViewAt(position: Int): RemoteViews {
+        Log.d(TAG, "getViewAt called for position $position")
         if (position < 0 || position >= tasks.size) {
             return RemoteViews(context.packageName, R.layout.widget_task_item)
         }
 
         val task = tasks[position]
         val views = RemoteViews(context.packageName, R.layout.widget_task_item)
+
+        Log.d(TAG, "Creating view for task: ${task.title}, duration: ${task.durationMinutes}, display: '${task.durationDisplay}'")
 
         // Set task title
         views.setTextViewText(R.id.task_title, task.title)
@@ -69,6 +72,17 @@ class WidgetTasksFactory(private val context: Context) : RemoteViewsService.Remo
             views.setViewVisibility(R.id.task_meta_row, android.view.View.VISIBLE)
         } else {
             views.setViewVisibility(R.id.task_meta_row, android.view.View.GONE)
+        }
+
+        // Set duration
+        if (task.durationDisplay.isNotEmpty()) {
+            views.setTextViewText(R.id.task_duration, "⏱ ${task.durationDisplay}")
+            views.setViewVisibility(R.id.task_duration, android.view.View.VISIBLE)
+            views.setViewVisibility(R.id.task_meta_row, android.view.View.VISIBLE)
+            Log.d(TAG, "Setting duration for ${task.title}: ${task.durationDisplay}")
+        } else {
+            views.setViewVisibility(R.id.task_duration, android.view.View.GONE)
+            Log.d(TAG, "No duration for ${task.title}")
         }
 
         // Set recurring indicator
@@ -134,15 +148,23 @@ class WidgetTasksFactory(private val context: Context) : RemoteViewsService.Remo
         } else null
         val repeatType = json.optString("repeatType", "none")
         val isRecurring = repeatType != "none" && repeatType.isNotEmpty()
+        val durationMinutes = if (json.has("durationMinutes") && !json.isNull("durationMinutes")) {
+            json.getInt("durationMinutes")
+        } else null
 
         val dateTimeDisplay = formatDateTime(dueDateMillis)
+        val durationDisplay = formatDuration(durationMinutes)
+
+        Log.d(TAG, "Task: $title, duration: $durationMinutes min, display: $durationDisplay")
 
         return WidgetTask(
             id = id,
             title = title,
             dueDateMillis = dueDateMillis,
             dateTimeDisplay = dateTimeDisplay,
-            isRecurring = isRecurring
+            isRecurring = isRecurring,
+            durationMinutes = durationMinutes,
+            durationDisplay = durationDisplay
         )
     }
 
@@ -215,6 +237,22 @@ class WidgetTasksFactory(private val context: Context) : RemoteViewsService.Remo
             else -> dateFormat.format(date)
         }
     }
+
+    /**
+     * Format duration in minutes to human-readable string.
+     */
+    private fun formatDuration(minutes: Int?): String {
+        if (minutes == null) return ""
+
+        val hours = minutes / 60
+        val mins = minutes % 60
+
+        return when {
+            hours == 0 -> "${mins}m"
+            mins == 0 -> "${hours}h"
+            else -> "${hours}h ${mins}m"
+        }
+    }
 }
 
 /**
@@ -225,5 +263,7 @@ data class WidgetTask(
     val title: String,
     val dueDateMillis: Long?,
     val dateTimeDisplay: String,
-    val isRecurring: Boolean
+    val isRecurring: Boolean,
+    val durationMinutes: Int?,
+    val durationDisplay: String
 )

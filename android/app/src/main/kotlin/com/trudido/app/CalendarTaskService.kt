@@ -69,17 +69,23 @@ class CalendarTaskFactory(
                 val dueDate = task.optLong("dueDate", 0)
                 val startDate = task.optLong("startDate", 0)
                 val repeatType = task.optString("repeatType", "")
+                val durationMinutes = if (task.has("durationMinutes") && !task.isNull("durationMinutes")) {
+                    task.getInt("durationMinutes")
+                } else null
 
                 // Check if task is active on selected date
                 if (isTaskActiveOnDate(dueDate, startDate, selectedCal)) {
                     val dateTimeDisplay = formatTime(dueDate)
+                    val durationDisplay = formatDuration(durationMinutes)
                     result.add(
                         WidgetTask(
                             id = taskId,
                             title = title,
                             dueDateMillis = if (dueDate > 0) dueDate else null,
                             dateTimeDisplay = dateTimeDisplay,
-                            isRecurring = repeatType.isNotEmpty()
+                            isRecurring = repeatType.isNotEmpty(),
+                            durationMinutes = durationMinutes,
+                            durationDisplay = durationDisplay
                         )
                     )
                 }
@@ -152,6 +158,19 @@ class CalendarTaskFactory(
         }
     }
 
+    private fun formatDuration(minutes: Int?): String {
+        if (minutes == null) return ""
+
+        val hours = minutes / 60
+        val mins = minutes % 60
+
+        return when {
+            hours == 0 -> "${mins}m"
+            mins == 0 -> "${hours}h"
+            else -> "${hours}h ${mins}m"
+        }
+    }
+
     override fun getViewAt(position: Int): RemoteViews {
         if (position < 0 || position >= tasks.size) {
             return RemoteViews(context.packageName, R.layout.widget_task_item)
@@ -168,6 +187,14 @@ class CalendarTaskFactory(
             views.setViewVisibility(R.id.task_meta_row, android.view.View.VISIBLE)
         } else {
             views.setViewVisibility(R.id.task_meta_row, android.view.View.GONE)
+        }
+
+        if (task.durationDisplay.isNotEmpty()) {
+            views.setTextViewText(R.id.task_duration, "⏱ ${task.durationDisplay}")
+            views.setViewVisibility(R.id.task_duration, android.view.View.VISIBLE)
+            views.setViewVisibility(R.id.task_meta_row, android.view.View.VISIBLE)
+        } else {
+            views.setViewVisibility(R.id.task_duration, android.view.View.GONE)
         }
 
         if (task.isRecurring) {

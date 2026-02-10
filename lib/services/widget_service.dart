@@ -77,6 +77,7 @@ class WidgetService {
               'dueDate': task.dueDate?.millisecondsSinceEpoch,
               'startDate': task.startDate?.millisecondsSinceEpoch,
               'repeatType': task.repeatType,
+              'durationMinutes': task.durationMinutes,
             },
           )
           .toList();

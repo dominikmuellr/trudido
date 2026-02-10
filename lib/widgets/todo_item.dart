@@ -220,7 +220,9 @@ class TodoItem extends StatelessWidget {
   }
 
   bool _hasSubtitleContent() =>
-      todo.dueDate != null || (todo.notes != null && todo.notes!.isNotEmpty);
+      todo.dueDate != null ||
+      todo.durationMinutes != null ||
+      (todo.notes != null && todo.notes!.isNotEmpty);
 
   Widget _buildSubtitleRow(BuildContext context, {Color? overrideColor}) {
     final parts = <Widget>[];
@@ -247,6 +249,34 @@ class TodoItem extends StatelessWidget {
                 fontSize: 12,
                 fontWeight: isOverdue || isDueToday ? FontWeight.w600 : null,
               ),
+            ),
+          ],
+        ),
+      );
+    }
+    if (todo.durationMinutes != null) {
+      final durationMinutes = todo.durationMinutes!;
+      final hours = durationMinutes ~/ 60;
+      final mins = durationMinutes % 60;
+      String durationText;
+      if (hours == 0) {
+        durationText = '${mins}m';
+      } else if (mins == 0) {
+        durationText = '${hours}h';
+      } else {
+        durationText = '${hours}h ${mins}m';
+      }
+      final durationColor =
+          overrideColor ?? Theme.of(context).colorScheme.outline;
+      parts.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.timer_outlined, size: 14, color: durationColor),
+            const SizedBox(width: 4),
+            Text(
+              durationText,
+              style: TextStyle(color: durationColor, fontSize: 12),
             ),
           ],
         ),

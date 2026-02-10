@@ -26,7 +26,11 @@ class StateHolder<T> extends Notifier<T> {
   @override
   T build() => initialValue;
 
-  void update(T value) => state = value;
+  void update(T value) {
+    print('[StateHolder] Updating from $state to $value');
+    state = value;
+    print('[StateHolder] New state: $state');
+  }
 }
 
 /// Helper function to create a simple state provider (replacement for StateProvider)

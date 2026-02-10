@@ -43,6 +43,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
   DateTime? _startDate;
   DateTime? _dueDate;
   TimeOfDay? _dueTime;
+  int? _durationMinutes;
   bool _isMultiDay = false;
   String _priority = 'none';
   String _selectedFolderId = '';
@@ -64,6 +65,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
       if (_dueDate != null) {
         _dueTime = TimeOfDay.fromDateTime(_dueDate!);
       }
+      _durationMinutes = widget.todo!.durationMinutes;
       _priority = widget.todo!.priority;
       _reminderOffsetsMinutes = List<int>.from(
         widget.todo!.reminderOffsetsMinutes,
@@ -254,6 +256,19 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           const SizedBox(height: 12),
         ],
 
+        // Duration selection (only show if time is set)
+        if (_dueDate != null && _dueTime != null) ...[
+          _buildQuickActionChip(
+            icon: Icons.timelapse_outlined,
+            label: _getDurationLabel(),
+            isSelected: _durationMinutes != null,
+            onTap: _selectDuration,
+            theme: theme,
+            colorScheme: colorScheme,
+          ),
+          const SizedBox(height: 12),
+        ],
+
         _buildQuickActionChip(
           icon: _getPriorityIcon(_priority),
           label: 'Priority: ${_priority.toUpperCase()}',
@@ -289,6 +304,22 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
         _dueTime!.minute,
         use24Hour: use24Hour,
       );
+    }
+  }
+
+  String _getDurationLabel() {
+    if (_durationMinutes == null) {
+      return 'Set duration';
+    } else {
+      final hours = _durationMinutes! ~/ 60;
+      final minutes = _durationMinutes! % 60;
+      if (hours == 0) {
+        return '$minutes min';
+      } else if (minutes == 0) {
+        return '$hours ${hours == 1 ? 'hour' : 'hours'}';
+      } else {
+        return '$hours h $minutes min';
+      }
     }
   }
 
@@ -592,6 +623,98 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
     }
   }
 
+  Future<void> _selectDuration() async {
+    final durations = <int, String>{
+      15: '15 min',
+      30: '30 min',
+      45: '45 min',
+      60: '1 hour',
+      90: '1.5 hours',
+      120: '2 hours',
+      180: '3 hours',
+      240: '4 hours',
+    };
+
+    // Calculate end times if we have a start time
+    DateTime? startTime;
+    if (_dueDate != null && _dueTime != null) {
+      startTime = DateTime(
+        _dueDate!.year,
+        _dueDate!.month,
+        _dueDate!.day,
+        _dueTime!.hour,
+        _dueTime!.minute,
+      );
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        final prefs = ref.read(preferencesStateProvider);
+        final use24Hour = prefs.resolveUse24Hour(
+          MediaQuery.of(context).alwaysUse24HourFormat,
+        );
+
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Duration',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              ...durations.entries.map((entry) {
+                // Calculate end time for this duration
+                String? endTimeText;
+                if (startTime != null) {
+                  final endTime = startTime.add(Duration(minutes: entry.key));
+                  endTimeText = DateFormatters.formatTime(
+                    endTime,
+                    use24Hour: use24Hour,
+                  );
+                }
+
+                return ListTile(
+                  leading: _durationMinutes == entry.key
+                      ? Icon(
+                          Icons.check,
+                          color: Theme.of(context).colorScheme.primary,
+                        )
+                      : const SizedBox(width: 24),
+                  title: Text(
+                    endTimeText != null
+                        ? '${entry.value} (ends $endTimeText)'
+                        : entry.value,
+                  ),
+                  selected: _durationMinutes == entry.key,
+                  onTap: () {
+                    setState(() => _durationMinutes = entry.key);
+                    Navigator.pop(context);
+                  },
+                );
+              }).toList(),
+              ListTile(
+                leading: const Icon(Icons.clear),
+                title: const Text('No duration'),
+                onTap: () {
+                  setState(() => _durationMinutes = null);
+                  Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _saveTodo() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -626,6 +749,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
         priority: _priority,
         folderId: _selectedFolderId.isEmpty ? null : _selectedFolderId,
         reminderOffsetsMinutes: _reminderOffsetsMinutes,
+        durationMinutes: _durationMinutes,
         isCompleted: widget.todo?.isCompleted ?? false,
         createdAt: widget.todo?.createdAt ?? ref.read(clockProvider).now(),
         completedAt: widget.todo?.completedAt,

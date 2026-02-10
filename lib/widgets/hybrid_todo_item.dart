@@ -173,6 +173,9 @@ class HybridTodoItem extends ConsumerWidget {
                                   MediaQuery.of(context).alwaysUse24HourFormat,
                                 ),
                               ),
+                            // Duration indicator
+                            if (todo.durationMinutes != null)
+                              _buildDurationChip(context),
                             // Repeat indicator
                             if (todo.isRecurring) _buildRepeatChip(context),
                           ],
@@ -311,6 +314,50 @@ class HybridTodoItem extends ConsumerWidget {
               color: isOverdue
                   ? colorScheme.onErrorContainer
                   : colorScheme.onTertiaryContainer,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDurationChip(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final durationMinutes = todo.durationMinutes!;
+
+    // Format duration
+    final hours = durationMinutes ~/ 60;
+    final mins = durationMinutes % 60;
+    String durationText;
+    if (hours == 0) {
+      durationText = '${mins}m';
+    } else if (mins == 0) {
+      durationText = '${hours}h';
+    } else {
+      durationText = '${hours}h ${mins}m';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer,
+        borderRadius: SpacingBorderRadius.md,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.timer_outlined,
+            size: 14,
+            color: colorScheme.onPrimaryContainer,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            durationText,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: colorScheme.onPrimaryContainer,
             ),
           ),
         ],

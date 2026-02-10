@@ -59,6 +59,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   DateTime? _startDate;
   DateTime? _dueDate;
   TimeOfDay? _dueTime;
+  int? _durationMinutes; // Duration in minutes
   bool _isMultiDay = false;
   String _priority = 'none';
   String _selectedFolderId = '';
@@ -89,6 +90,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       if (_dueDate != null) {
         _dueTime = TimeOfDay.fromDateTime(_dueDate!);
       }
+      _durationMinutes = widget.todo!.durationMinutes;
       _priority = widget.todo!.priority;
       _reminderOffsetsMinutes = List<int>.from(
         widget.todo!.reminderOffsetsMinutes,
@@ -267,6 +269,19 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           SpacingGap.gapV12,
         ],
 
+        // Duration selection (only show if time is selected)
+        if (_dueDate != null && _dueTime != null) ...[
+          _buildQuickActionChip(
+            icon: Icons.timelapse_outlined,
+            label: _getDurationLabel(),
+            isSelected: _durationMinutes != null,
+            onTap: _selectDuration,
+            theme: theme,
+            colorScheme: colorScheme,
+          ),
+          SpacingGap.gapV12,
+        ],
+
         // Priority selection
         _buildQuickActionChip(
           icon: _getPriorityIcon(_priority),
@@ -333,6 +348,22 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         _dueTime!.minute,
         use24Hour: use24Hour,
       );
+    }
+  }
+
+  String _getDurationLabel() {
+    if (_durationMinutes == null) {
+      return 'Set duration';
+    } else {
+      final hours = _durationMinutes! ~/ 60;
+      final minutes = _durationMinutes! % 60;
+      if (hours == 0) {
+        return '$minutes min';
+      } else if (minutes == 0) {
+        return '$hours ${hours == 1 ? 'hour' : 'hours'}';
+      } else {
+        return '$hours h $minutes min';
+      }
     }
   }
 
@@ -1104,6 +1135,127 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     }
   }
 
+  Future<void> _selectDuration() async {
+    // Common duration presets in minutes
+    final durations = <int, String>{
+      15: '15 min',
+      30: '30 min',
+      45: '45 min',
+      60: '1 hour',
+      90: '1.5 hours',
+      120: '2 hours',
+      180: '3 hours',
+      240: '4 hours',
+      480: '8 hours',
+      0: 'Custom...', // Placeholder for custom selection
+    };
+
+    // Calculate end times if we have a start time
+    DateTime? startTime;
+    if (_dueDate != null && _dueTime != null) {
+      startTime = DateTime(
+        _dueDate!.year,
+        _dueDate!.month,
+        _dueDate!.day,
+        _dueTime!.hour,
+        _dueTime!.minute,
+      );
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        final prefs = ref.read(preferencesStateProvider);
+        final use24Hour = prefs.resolveUse24Hour(
+          MediaQuery.of(context).alwaysUse24HourFormat,
+        );
+
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Duration',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              ...durations.entries.map((entry) {
+                if (entry.key == 0) {
+                  // Custom duration option
+                  return ListTile(
+                    leading: const Icon(Icons.edit_outlined),
+                    title: Text(entry.value),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showCustomDurationDialog();
+                    },
+                  );
+                } else {
+                  // Calculate end time for this duration
+                  String? endTimeText;
+                  if (startTime != null) {
+                    final endTime = startTime.add(Duration(minutes: entry.key));
+                    endTimeText = DateFormatters.formatTime(
+                      endTime,
+                      use24Hour: use24Hour,
+                    );
+                  }
+
+                  return ListTile(
+                    leading: _durationMinutes == entry.key
+                        ? Icon(
+                            Icons.check,
+                            color: Theme.of(context).colorScheme.primary,
+                          )
+                        : const SizedBox(width: 24),
+                    title: Text(
+                      endTimeText != null
+                          ? '${entry.value} (ends $endTimeText)'
+                          : entry.value,
+                    ),
+                    selected: _durationMinutes == entry.key,
+                    onTap: () {
+                      setState(() => _durationMinutes = entry.key);
+                      Navigator.pop(context);
+                    },
+                  );
+                }
+              }).toList(),
+              // Clear duration option
+              ListTile(
+                leading: const Icon(Icons.clear),
+                title: const Text('No duration'),
+                onTap: () {
+                  setState(() => _durationMinutes = null);
+                  Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showCustomDurationDialog() async {
+    final result = await showDialog<int?>(
+      context: context,
+      builder: (context) =>
+          _CustomDurationDialog(initialMinutes: _durationMinutes),
+    );
+
+    if (result != null) {
+      setState(() => _durationMinutes = result);
+    }
+  }
+
   // Remove the old _askForTime method since we now have separate time selection
 
   Future<void> _saveTodo() async {
@@ -1173,6 +1325,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         repeatInterval: _repeatType != 'none' ? _repeatInterval : null,
         repeatDays: _repeatDays.isNotEmpty ? _repeatDays : null,
         repeatEndDate: _repeatEndDate,
+        durationMinutes: _durationMinutes,
         isCompleted: widget.todo?.isCompleted ?? false,
         createdAt: widget.todo?.createdAt ?? ref.read(clockProvider).now(),
         completedAt: widget.todo?.completedAt,
@@ -1194,5 +1347,88 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+}
+
+class _CustomDurationDialog extends StatefulWidget {
+  final int? initialMinutes;
+
+  const _CustomDurationDialog({this.initialMinutes});
+
+  @override
+  State<_CustomDurationDialog> createState() => _CustomDurationDialogState();
+}
+
+class _CustomDurationDialogState extends State<_CustomDurationDialog> {
+  late TextEditingController _hoursController;
+  late TextEditingController _minutesController;
+
+  @override
+  void initState() {
+    super.initState();
+    _hoursController = TextEditingController(
+      text: widget.initialMinutes != null
+          ? (widget.initialMinutes! ~/ 60).toString()
+          : '0',
+    );
+    _minutesController = TextEditingController(
+      text: widget.initialMinutes != null
+          ? (widget.initialMinutes! % 60).toString()
+          : '0',
+    );
+  }
+
+  @override
+  void dispose() {
+    _hoursController.dispose();
+    _minutesController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Custom Duration'),
+      content: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _hoursController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Hours',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: TextField(
+              controller: _minutesController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Minutes',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        ExpressiveTextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ExpressiveTextButton(
+          onPressed: () {
+            final hours = int.tryParse(_hoursController.text) ?? 0;
+            final minutes = int.tryParse(_minutesController.text) ?? 0;
+            final totalMinutes = hours * 60 + minutes;
+            Navigator.pop(context, totalMinutes > 0 ? totalMinutes : null);
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
   }
 }

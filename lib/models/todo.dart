@@ -81,6 +81,9 @@ class Todo extends HiveObject {
   @HiveField(19, defaultValue: false)
   bool isDeleted;
 
+  @HiveField(21)
+  int? durationMinutes; // Duration of the task in minutes
+
   Todo({
     String? id,
     required this.text,
@@ -102,6 +105,7 @@ class Todo extends HiveObject {
     this.sourceCalendarColor,
     this.sourceCalendarName,
     this.isDeleted = false,
+    this.durationMinutes,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
        tags = tags ?? [],
@@ -129,6 +133,7 @@ class Todo extends HiveObject {
     int? sourceCalendarColor,
     String? sourceCalendarName,
     bool? isDeleted,
+    int? durationMinutes,
   }) {
     return Todo(
       id: id ?? this.id,
@@ -153,6 +158,7 @@ class Todo extends HiveObject {
       sourceCalendarColor: sourceCalendarColor ?? this.sourceCalendarColor,
       sourceCalendarName: sourceCalendarName ?? this.sourceCalendarName,
       isDeleted: isDeleted ?? this.isDeleted,
+      durationMinutes: durationMinutes ?? this.durationMinutes,
     );
   }
 
@@ -179,6 +185,7 @@ class Todo extends HiveObject {
       'sourceCalendarColor': sourceCalendarColor,
       'sourceCalendarName': sourceCalendarName,
       'isDeleted': isDeleted,
+      'durationMinutes': durationMinutes,
     };
   }
 
@@ -214,6 +221,7 @@ class Todo extends HiveObject {
       sourceCalendarColor: json['sourceCalendarColor'],
       sourceCalendarName: json['sourceCalendarName'],
       isDeleted: json['isDeleted'] ?? false,
+      durationMinutes: json['durationMinutes'],
     );
   }
 

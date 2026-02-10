@@ -312,34 +312,41 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
           ), // Container
         // Timetable
         Expanded(
-          child: ListView.builder(
-            itemCount: 24, // 24 hours
-            itemBuilder: (context, hour) {
-              // Get all tasks for this hour
-              final hourTasks = timedTasks.where((task) {
-                if (task.dueDate == null) return false;
-                return task.dueDate!.hour == hour;
-              }).toList();
+          child: SingleChildScrollView(
+            child: _buildTimedTasksGrid(
+              context,
+              colorScheme,
+              timedTasks,
+              use24Hour,
+            ),
+          ),
+        ),
+      ], // Column children
+    ); // Column - end of day timetable
+  }
 
-              // Sort by minute
-              hourTasks.sort((a, b) {
-                final aMinute = a.dueDate?.minute ?? 0;
-                final bMinute = b.dueDate?.minute ?? 0;
-                return aMinute.compareTo(bMinute);
-              });
+  Widget _buildTimedTasksGrid(
+    BuildContext context,
+    ColorScheme colorScheme,
+    List<Todo> timedTasks,
+    bool use24Hour,
+  ) {
+    const hourHeight = 60.0; // Height per hour
+    const totalHeight = 24 * hourHeight; // Total height for 24 hours
+    const leftMargin = 70.0; // Space for time labels
 
-              // Group tasks by exact time (hour:minute)
-              final Map<String, List<Todo>> tasksByTime = {};
-              for (var task in hourTasks) {
-                if (task.dueDate != null) {
-                  final timeKey =
-                      '${task.dueDate!.hour}:${task.dueDate!.minute.toString().padLeft(2, '0')}';
-                  tasksByTime[timeKey] = tasksByTime[timeKey] ?? [];
-                  tasksByTime[timeKey]!.add(task);
-                }
-              }
+    // Calculate layout for tasks considering overlaps
+    final taskLayouts = _calculateTaskLayouts(timedTasks, hourHeight);
 
+    return SizedBox(
+      height: totalHeight,
+      child: Stack(
+        children: [
+          // Hour grid lines and labels
+          Column(
+            children: List.generate(24, (hour) {
               return Container(
+                height: hourHeight,
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
@@ -353,7 +360,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                   children: [
                     // Time label
                     SizedBox(
-                      width: 60,
+                      width: leftMargin - 10,
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Text(
@@ -368,139 +375,212 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                         ),
                       ),
                     ),
-                    // Tasks for this hour - grouped by exact time
-                    Expanded(
-                      child: hourTasks.isEmpty
-                          ? const SizedBox(height: 50)
-                          : Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: tasksByTime.entries.map((entry) {
-                                  final tasksAtSameTime = entry.value;
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 8),
-                                    child: Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: tasksAtSameTime.map((task) {
-                                        return IntrinsicWidth(
-                                          child: ExpressiveInkWell(
-                                            onTap: () =>
-                                                _editTask(context, task),
-                                            onLongPress: () {
-                                              // Show confirmation dialog before deleting
-                                              showDialog(
-                                                context: context,
-                                                builder: (context) => AlertDialog(
-                                                  title: const Text(
-                                                    'Delete Task',
-                                                  ),
-                                                  content: Text(
-                                                    'Delete "${task.text}"?',
-                                                  ),
-                                                  actions: [
-                                                    ExpressiveTextButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                            context,
-                                                          ),
-                                                      child: const Text(
-                                                        'Cancel',
-                                                      ),
-                                                    ),
-                                                    ExpressiveTextButton(
-                                                      onPressed: () {
-                                                        ref
-                                                            .read(
-                                                              taskControllerProvider
-                                                                  .notifier,
-                                                            )
-                                                            .delete(task.id);
-                                                        Navigator.pop(context);
-                                                      },
-                                                      child: const Text(
-                                                        'Delete',
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
-                                            },
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                            child: Container(
-                                              constraints: const BoxConstraints(
-                                                minWidth: 100,
-                                              ),
-                                              margin:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 4,
-                                                  ),
-                                              padding: const EdgeInsets.all(8),
-                                              decoration: BoxDecoration(
-                                                color: _getColorForPriority(
-                                                  task.priority,
-                                                  colorScheme,
-                                                ).withOpacity(0.2),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                                border: Border.all(
-                                                  color: _getColorForPriority(
-                                                    task.priority,
-                                                    colorScheme,
-                                                  ),
-                                                  width: 1,
-                                                ),
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Text(
-                                                    task.text,
-                                                    style: TextStyle(
-                                                      fontSize: 13,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color:
-                                                          colorScheme.onSurface,
-                                                    ),
-                                                  ),
-                                                  if (task.dueDate != null)
-                                                    Text(
-                                                      DateFormatters.formatTime(
-                                                        task.dueDate!,
-                                                        use24Hour: use24Hour,
-                                                      ),
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        color: colorScheme
-                                                            .onSurfaceVariant,
-                                                      ),
-                                                    ),
-                                                ],
-                                              ),
-                                            ), // Container
-                                          ), // InkWell
-                                        ); // IntrinsicWidth
-                                      }).toList(),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                    ),
+                    Expanded(child: Container()),
                   ],
                 ),
               );
-            },
-          ), // ListView.builder
-        ), // Expanded
-      ], // Column children
-    ); // Column - end of day timetable
+            }),
+          ),
+          // Tasks positioned based on their start time, duration, and overlaps
+          ...taskLayouts.map((layout) {
+            final task = layout.task;
+            return Positioned(
+              left: leftMargin + layout.leftOffset,
+              top: layout.topPosition,
+              width: layout.width,
+              child: GestureDetector(
+                onTap: () => _editTask(context, task),
+                onLongPress: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Delete Task'),
+                      content: Text('Delete "${task.text}"?'),
+                      actions: [
+                        ExpressiveTextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                        ExpressiveTextButton(
+                          onPressed: () {
+                            ref
+                                .read(taskControllerProvider.notifier)
+                                .delete(task.id);
+                            Navigator.pop(context);
+                          },
+                          child: const Text('Delete'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                child: Container(
+                  height: layout.height,
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 2,
+                    vertical: 2,
+                  ),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _getColorForPriority(
+                      task.priority,
+                      colorScheme,
+                    ).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _getColorForPriority(task.priority, colorScheme),
+                      width: 2,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        task.text,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (task.dueDate != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          DateFormatters.formatTime(
+                            task.dueDate!,
+                            use24Hour: use24Hour,
+                          ),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (task.durationMinutes != null) ...[
+                          const SizedBox(height: 1),
+                          Text(
+                            _formatDuration(task.durationMinutes!),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  List<_TaskLayout> _calculateTaskLayouts(List<Todo> tasks, double hourHeight) {
+    if (tasks.isEmpty) return [];
+
+    // Create task info with time ranges
+    final taskInfos = tasks.where((task) => task.dueDate != null).map((task) {
+      final startMinutes = task.dueDate!.hour * 60 + task.dueDate!.minute;
+      final durationMinutes = task.durationMinutes ?? 30;
+      final endMinutes = startMinutes + durationMinutes;
+      return _TaskInfo(
+        task: task,
+        startMinutes: startMinutes,
+        endMinutes: endMinutes,
+      );
+    }).toList()..sort((a, b) => a.startMinutes.compareTo(b.startMinutes));
+
+    // Calculate available width
+    final screenWidth = MediaQuery.of(context).size.width;
+    final availableWidth = screenWidth - 70 - 16;
+
+    final layouts = <_TaskLayout>[];
+
+    // Process each task
+    for (int i = 0; i < taskInfos.length; i++) {
+      final currentTask = taskInfos[i];
+
+      // Find all tasks that overlap with current task
+      final overlappingTasks = <_TaskInfo>[];
+      for (int j = 0; j < taskInfos.length; j++) {
+        final otherTask = taskInfos[j];
+        // Tasks overlap if one starts before the other ends
+        if (currentTask.startMinutes < otherTask.endMinutes &&
+            otherTask.startMinutes < currentTask.endMinutes) {
+          overlappingTasks.add(otherTask);
+        }
+      }
+
+      // Find which column this task should be in
+      int column = 0;
+      final usedColumns = <int>{};
+      for (final other in overlappingTasks) {
+        if (other.task.id == currentTask.task.id) continue;
+
+        // Check if this overlapping task is before current task
+        if (other.startMinutes < currentTask.startMinutes ||
+            (other.startMinutes == currentTask.startMinutes &&
+                taskInfos.indexOf(other) < i)) {
+          // Find which column it was assigned to
+          final otherLayout = layouts.firstWhere(
+            (l) => l.task.id == other.task.id,
+            orElse: () => _TaskLayout(
+              task: other.task,
+              topPosition: 0,
+              height: 0,
+              leftOffset: 0,
+              width: 0,
+              column: 0,
+            ),
+          );
+          usedColumns.add(otherLayout.column);
+        }
+      }
+
+      // Find first available column
+      while (usedColumns.contains(column)) {
+        column++;
+      }
+
+      // Calculate max columns needed for this group
+      final maxColumns = overlappingTasks.length;
+      // Make tasks half width so more fit side-by-side
+      final columnWidth = availableWidth / (maxColumns * 2);
+
+      layouts.add(
+        _TaskLayout(
+          task: currentTask.task,
+          topPosition: (currentTask.startMinutes / 60) * hourHeight,
+          height:
+              ((currentTask.endMinutes - currentTask.startMinutes) / 60) *
+              hourHeight,
+          leftOffset: column * columnWidth,
+          width: columnWidth,
+          column: column,
+        ),
+      );
+    }
+
+    return layouts;
+  }
+
+  String _formatDuration(int minutes) {
+    final hours = minutes ~/ 60;
+    final mins = minutes % 60;
+    if (hours == 0) {
+      return '${mins}m';
+    } else if (mins == 0) {
+      return '${hours}h';
+    } else {
+      return '${hours}h ${mins}m';
+    }
   }
 
   void _cycleCalendarFormat() {
@@ -1295,4 +1375,35 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
       ),
     );
   }
+}
+
+// Helper classes for task layout calculation
+class _TaskInfo {
+  final Todo task;
+  final int startMinutes;
+  final int endMinutes;
+
+  _TaskInfo({
+    required this.task,
+    required this.startMinutes,
+    required this.endMinutes,
+  });
+}
+
+class _TaskLayout {
+  final Todo task;
+  final double topPosition;
+  final double height;
+  final double leftOffset;
+  final double width;
+  final int column;
+
+  _TaskLayout({
+    required this.task,
+    required this.topPosition,
+    required this.height,
+    required this.leftOffset,
+    required this.width,
+    required this.column,
+  });
 }
