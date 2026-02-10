@@ -89,8 +89,6 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
 
   Future<void> _showAvatarOptions() async {
     final colorScheme = Theme.of(context).colorScheme;
-    final customBgColor = StorageService.getAvatarBackgroundColor();
-    final customTextColor = StorageService.getAvatarTextColor();
 
     await showModalBottomSheet(
       context: context,
@@ -127,75 +125,6 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
                   await _removeAvatar();
                 },
               ),
-            const Divider(indent: 16, endIndent: 16),
-            ListTile(
-              leading: Icon(
-                Icons.palette,
-                color: _avatarFile != null
-                    ? colorScheme.onSurfaceVariant
-                    : colorScheme.primary,
-              ),
-              title: const Text('Background Color'),
-              enabled: _avatarFile == null,
-              trailing: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: customBgColor != null
-                      ? Color(customBgColor)
-                      : colorScheme.primary,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: colorScheme.outline),
-                ),
-              ),
-              onTap: _avatarFile == null
-                  ? () {
-                      Navigator.pop(context);
-                      _showColorPicker(
-                        context,
-                        'Background',
-                        customBgColor != null
-                            ? Color(customBgColor)
-                            : colorScheme.primary,
-                        _setAvatarBackgroundColor,
-                      );
-                    }
-                  : null,
-            ),
-            ListTile(
-              leading: Icon(
-                Icons.text_fields,
-                color: _avatarFile != null
-                    ? colorScheme.onSurfaceVariant
-                    : colorScheme.primary,
-              ),
-              title: const Text('Text Color'),
-              enabled: _avatarFile == null,
-              trailing: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: customTextColor != null
-                      ? Color(customTextColor)
-                      : colorScheme.primary,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: colorScheme.outline),
-                ),
-              ),
-              onTap: _avatarFile == null
-                  ? () {
-                      Navigator.pop(context);
-                      _showColorPicker(
-                        context,
-                        'Text',
-                        customTextColor != null
-                            ? Color(customTextColor)
-                            : colorScheme.primary,
-                        _setAvatarTextColor,
-                      );
-                    }
-                  : null,
-            ),
             SpacingGap.gapV8,
           ],
         ),
@@ -407,17 +336,6 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
     Color foregroundColor,
     String? initials,
   ) {
-    // Check for custom avatar colors
-    final customBgColor = StorageService.getAvatarBackgroundColor();
-    final customTextColor = StorageService.getAvatarTextColor();
-
-    final displayBgColor = customBgColor != null
-        ? Color(customBgColor)
-        : backgroundColor;
-    final displayTextColor = customTextColor != null
-        ? Color(customTextColor)
-        : foregroundColor;
-
     return Column(
       children: [
         Padding(
@@ -433,7 +351,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
                       radius: 32,
                       backgroundColor: _avatarFile != null
                           ? null
-                          : displayBgColor,
+                          : backgroundColor,
                       backgroundImage: _avatarFile != null
                           ? FileImage(_avatarFile!)
                           : null,
@@ -443,7 +361,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
                           ? Text(
                               initials,
                               style: TextStyle(
-                                color: displayTextColor,
+                                color: foregroundColor,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 20,
                               ),
@@ -451,7 +369,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
                           : Icon(
                               Icons.person,
                               size: 32,
-                              color: displayTextColor,
+                              color: foregroundColor,
                             ),
                     ),
                     Positioned(
@@ -495,95 +413,6 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
         ),
       ],
     );
-  }
-
-  void _showColorPicker(
-    BuildContext context,
-    String title,
-    Color currentColor,
-    Function(Color) onColorChanged,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final colors = [
-      colorScheme.primary,
-      colorScheme.secondary,
-      colorScheme.tertiary,
-      colorScheme.primaryContainer,
-      colorScheme.secondaryContainer,
-      colorScheme.tertiaryContainer,
-      Colors.red,
-      Colors.pink,
-      Colors.purple,
-      Colors.blue,
-      Colors.cyan,
-      Colors.teal,
-      Colors.green,
-      Colors.lime,
-      Colors.yellow,
-      Colors.orange,
-      Colors.brown,
-      Colors.grey,
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Choose $title Color',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: colors
-                  .map(
-                    (color) => GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                        onColorChanged(color);
-                      },
-                      child: Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: currentColor == color
-                                ? colorScheme.primary
-                                : Colors.transparent,
-                            width: 3,
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _setAvatarBackgroundColor(Color color) async {
-    await StorageService.setAvatarBackgroundColor(color.value);
-    setState(() {});
-  }
-
-  Future<void> _setAvatarTextColor(Color color) async {
-    await StorageService.setAvatarTextColor(color.value);
-    setState(() {});
   }
 
   Widget _buildSectionHeader(BuildContext context, String title) {

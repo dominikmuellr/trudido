@@ -288,8 +288,8 @@ class HybridTodoItem extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: isOverdue
-            ? colorScheme.errorContainer.withOpacity(0.5)
-            : colorScheme.primaryContainer.withOpacity(0.5),
+            ? colorScheme.errorContainer
+            : colorScheme.tertiaryContainer,
         borderRadius: SpacingBorderRadius.md,
       ),
       child: Row(
@@ -298,7 +298,9 @@ class HybridTodoItem extends ConsumerWidget {
           Icon(
             hasTime ? Icons.schedule : Icons.calendar_today,
             size: 14,
-            color: isOverdue ? colorScheme.error : colorScheme.primary,
+            color: isOverdue
+                ? colorScheme.onErrorContainer
+                : colorScheme.onTertiaryContainer,
           ),
           const SizedBox(width: 4),
           Text(
@@ -307,8 +309,8 @@ class HybridTodoItem extends ConsumerWidget {
               fontSize: 11,
               fontWeight: FontWeight.w500,
               color: isOverdue
-                  ? colorScheme.error
-                  : colorScheme.onPrimaryContainer,
+                  ? colorScheme.onErrorContainer
+                  : colorScheme.onTertiaryContainer,
             ),
           ),
         ],
@@ -340,20 +342,20 @@ class HybridTodoItem extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: colorScheme.secondaryContainer.withOpacity(0.7),
+        color: colorScheme.tertiaryContainer,
         borderRadius: SpacingBorderRadius.md,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.repeat, size: 14, color: colorScheme.onSecondaryContainer),
+          Icon(Icons.repeat, size: 14, color: colorScheme.onTertiaryContainer),
           const SizedBox(width: 4),
           Text(
             repeatText,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: colorScheme.onSecondaryContainer,
+              color: colorScheme.onTertiaryContainer,
             ),
           ),
         ],

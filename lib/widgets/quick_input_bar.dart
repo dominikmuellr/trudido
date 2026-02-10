@@ -178,15 +178,15 @@ class _QuickInputBarState extends ConsumerState<QuickInputBar> {
               // Enter key always quick saves (for both notes and tasks)
               onSubmitted: (_) => _handleQuickSave(),
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: colorScheme.onSurface,
+                color: colorScheme.onTertiaryContainer,
               ),
               decoration: InputDecoration(
                 hintText: _getPlaceholder(inputContext),
                 hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                  color: colorScheme.onSurface.withOpacity(0.5),
+                  color: colorScheme.onTertiaryContainer.withOpacity(0.7),
                 ),
                 filled: true,
-                fillColor: colorScheme.surfaceContainerHighest,
+                fillColor: colorScheme.tertiaryContainer,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,

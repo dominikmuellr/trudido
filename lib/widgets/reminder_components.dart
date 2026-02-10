@@ -48,10 +48,20 @@ class AddReminderChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Center(
       child: ActionChip(
-        avatar: const Icon(Icons.add),
-        label: const Text('Add Reminder'),
+        avatar: Icon(
+          Icons.add,
+          color: colorScheme.onTertiaryContainer,
+          size: 18,
+        ),
+        label: Text(
+          'Add Reminder',
+          style: TextStyle(color: colorScheme.onTertiaryContainer),
+        ),
+        backgroundColor: colorScheme.tertiaryContainer,
         onPressed: onPressed,
       ),
     );

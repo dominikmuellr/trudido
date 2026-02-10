@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/custom_theme.dart';
@@ -27,7 +25,7 @@ import '../theme/spacing_tokens.dart';
 import 'custom_theme_editor_screen.dart';
 
 /// Screen that lists all saved custom themes, allowing users to create,
-/// activate, edit, duplicate, delete, and import themes.
+/// activate, edit, duplicate, and delete themes.
 class CustomThemeListScreen extends ConsumerStatefulWidget {
   const CustomThemeListScreen({super.key});
 
@@ -144,82 +142,17 @@ class _CustomThemeListScreenState extends ConsumerState<CustomThemeListScreen> {
     }
   }
 
-  Future<void> _importFromFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-      withData: true,
-    );
-
-    if (result == null || result.files.isEmpty) return;
-
-    String jsonString;
-    final picked = result.files.single;
-    if (picked.bytes != null) {
-      jsonString = String.fromCharCodes(picked.bytes!);
-    } else if (picked.path != null) {
-      jsonString = await File(picked.path!).readAsString();
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not read the selected file')),
-        );
-      }
-      return;
-    }
-
-    final error = CustomTheme.validateJson(jsonString);
-    if (error != null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('The selected file is not a valid Trudido theme'),
-          ),
-        );
-      }
-      return;
-    }
-
-    final imported = CustomTheme.fromJsonString(jsonString);
-    // Give it a new id to avoid conflicts
-    final newTheme = CustomTheme(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: imported.name,
-      lightColors: Map<String, int>.from(imported.lightColors),
-      darkColors: Map<String, int>.from(imported.darkColors),
-      fontFamily: imported.fontFamily,
-    );
-
-    await StorageService.saveCustomTheme(newTheme.id, newTheme.toJsonString());
-    setState(_loadThemes);
-
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Imported "${newTheme.name}"')));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Custom Themes'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.file_download_outlined),
-            tooltip: 'Import from File',
-            onPressed: _importFromFile,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Custom Themes')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createNewTheme,
         icon: const Icon(Icons.add),
-        label: const Text('New Theme'),
+        label: const Text('Create Theme'),
       ),
       body: _themes.isEmpty
           ? _buildEmptyState(theme, colorScheme)
@@ -279,9 +212,8 @@ class _CustomThemeListScreenState extends ConsumerState<CustomThemeListScreen> {
     ThemeData theme,
     ColorScheme colorScheme,
   ) {
-    // Build preview color schemes
+    // Build preview color scheme
     final lightScheme = customTheme.buildColorScheme(Brightness.light);
-    final darkScheme = customTheme.buildColorScheme(Brightness.dark);
 
     return Card(
       elevation: 0,
@@ -304,44 +236,46 @@ class _CustomThemeListScreenState extends ConsumerState<CustomThemeListScreen> {
               // Header row
               Row(
                 children: [
-                  if (isActive)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'Active',
-                        style: TextStyle(
-                          color: colorScheme.onPrimary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
                   Expanded(
-                    child: Text(
-                      customTheme.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          customTheme.name.isEmpty ||
+                                  customTheme.name == 'Untitled Theme'
+                              ? customTheme.generateAutoName()
+                              : customTheme.name,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (customTheme.name.isEmpty ||
+                            customTheme.name == 'Untitled Theme')
+                          Text(
+                            'Auto-named from colors',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                      ],
                     ),
+                  ),
+                  // Activation toggle switch
+                  Switch(
+                    value: isActive,
+                    onChanged: (value) async {
+                      if (value) {
+                        await _activateTheme(customTheme.id);
+                      } else {
+                        await _deactivateTheme();
+                      }
+                    },
                   ),
                   PopupMenuButton<String>(
                     onSelected: (action) {
                       switch (action) {
-                        case 'activate':
-                          _activateTheme(customTheme.id);
-                          break;
-                        case 'deactivate':
-                          _deactivateTheme();
-                          break;
                         case 'edit':
                           _editTheme(customTheme);
                           break;
@@ -354,24 +288,6 @@ class _CustomThemeListScreenState extends ConsumerState<CustomThemeListScreen> {
                       }
                     },
                     itemBuilder: (context) => [
-                      if (!isActive)
-                        const PopupMenuItem(
-                          value: 'activate',
-                          child: ListTile(
-                            leading: Icon(Icons.check_circle),
-                            title: Text('Activate'),
-                            dense: true,
-                          ),
-                        )
-                      else
-                        const PopupMenuItem(
-                          value: 'deactivate',
-                          child: ListTile(
-                            leading: Icon(Icons.cancel_outlined),
-                            title: Text('Deactivate'),
-                            dense: true,
-                          ),
-                        ),
                       const PopupMenuItem(
                         value: 'edit',
                         child: ListTile(
@@ -406,54 +322,18 @@ class _CustomThemeListScreenState extends ConsumerState<CustomThemeListScreen> {
 
               SpacingGap.gapV8,
 
-              // Color preview swatches (light)
+              // Color preview - show user's 3 chosen colors
               Row(
                 children: [
-                  Icon(
-                    Icons.light_mode,
-                    size: 14,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 8),
-                  _colorSwatch(lightScheme.primary),
-                  _colorSwatch(lightScheme.secondary),
-                  _colorSwatch(lightScheme.tertiary),
-                  _colorSwatch(lightScheme.surface),
-                  _colorSwatch(lightScheme.primaryContainer),
-                  _colorSwatch(lightScheme.error),
-                  const Spacer(),
                   Text(
-                    '${customTheme.lightColors.length}',
+                    'Colors:',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                ],
-              ),
-              SpacingGap.gapV4,
-
-              // Color preview swatches (dark)
-              Row(
-                children: [
-                  Icon(
-                    Icons.dark_mode,
-                    size: 14,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
                   const SizedBox(width: 8),
-                  _colorSwatch(darkScheme.primary),
-                  _colorSwatch(darkScheme.secondary),
-                  _colorSwatch(darkScheme.tertiary),
-                  _colorSwatch(darkScheme.surface),
-                  _colorSwatch(darkScheme.primaryContainer),
-                  _colorSwatch(darkScheme.error),
-                  const Spacer(),
-                  Text(
-                    '${customTheme.darkColors.length}',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+                  _colorSwatchLarge(lightScheme.primary, 'Essential'),
+                  _colorSwatchLarge(lightScheme.secondary, 'Enhanced'),
                 ],
               ),
             ],
@@ -463,18 +343,32 @@ class _CustomThemeListScreenState extends ConsumerState<CustomThemeListScreen> {
     );
   }
 
-  Widget _colorSwatch(Color color) {
+  Widget _colorSwatchLarge(Color color, String label) {
     return Container(
-      width: 24,
-      height: 24,
-      margin: const EdgeInsets.only(right: 4),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
-          width: 0.5,
-        ),
+      margin: const EdgeInsets.only(right: 8),
+      child: Column(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                width: 1,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 10,
+            ),
+          ),
+        ],
       ),
     );
   }

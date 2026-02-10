@@ -74,354 +74,35 @@ class CustomTheme {
   }
 
   // ============================================================================
-  // Color Role Definitions
+  // Color Role Definitions - Simplified
   // ============================================================================
 
-  /// Essential color roles shown in Normal mode (10 roles per brightness)
-  static const List<ColorRoleInfo> essentialRoles = [
-    ColorRoleInfo(
-      'primary',
-      'Primary',
-      'Main accent color used for key UI elements',
-      Icons.palette,
-    ),
-    ColorRoleInfo(
-      'secondary',
-      'Secondary',
-      'Supporting accent for less prominent elements',
-      Icons.color_lens,
-    ),
-    ColorRoleInfo(
-      'tertiary',
-      'Tertiary',
-      'Complementary accent for balance',
-      Icons.brush,
-    ),
-    ColorRoleInfo(
-      'error',
-      'Error',
-      'Color for error states and destructive actions',
-      Icons.error_outline,
-    ),
-    ColorRoleInfo(
-      'surface',
-      'Surface',
-      'Background for cards, sheets, and menus',
-      Icons.layers,
-    ),
-    ColorRoleInfo(
-      'onPrimary',
-      'On Primary',
-      'Text/icons on primary-colored backgrounds',
-      Icons.text_fields,
-    ),
-    ColorRoleInfo(
-      'onSecondary',
-      'On Secondary',
-      'Text/icons on secondary-colored backgrounds',
-      Icons.text_fields,
-    ),
-    ColorRoleInfo(
-      'onSurface',
-      'On Surface',
-      'Primary text and icon color',
-      Icons.format_color_text,
-    ),
-    ColorRoleInfo(
-      'onSurfaceVariant',
-      'On Surface Variant',
-      'Secondary text color',
-      Icons.format_color_text,
-    ),
-    ColorRoleInfo(
-      'outline',
-      'Outline',
-      'Borders and dividers',
-      Icons.border_style,
+  /// Simple color roles - just the essentials
+  static const List<ColorRoleSection> colorSections = [
+    ColorRoleSection(
+      'Theme Colors',
+      'Each color creates its own palette throughout the app',
+      [
+        ColorRoleInfo(
+          'primary',
+          'Essential',
+          'Main buttons, app bars, FABs, and active elements',
+          Icons.palette,
+        ),
+        ColorRoleInfo(
+          'secondary',
+          'Enhanced',
+          'Secondary buttons, switches, sliders, and selections',
+          Icons.brush,
+        ),
+      ],
     ),
   ];
 
-  /// Advanced color role sections
-  static const List<ColorRoleSection> advancedSections = [
-    ColorRoleSection('Primary Colors', [
-      ColorRoleInfo('primary', 'Primary', 'Main accent', Icons.palette),
-      ColorRoleInfo(
-        'onPrimary',
-        'On Primary',
-        'Content on primary',
-        Icons.text_fields,
-      ),
-      ColorRoleInfo(
-        'primaryContainer',
-        'Primary Container',
-        'Less prominent primary areas',
-        Icons.crop_square,
-      ),
-      ColorRoleInfo(
-        'onPrimaryContainer',
-        'On Primary Container',
-        'Content on primary container',
-        Icons.text_fields,
-      ),
-      ColorRoleInfo(
-        'primaryFixed',
-        'Primary Fixed',
-        'Fixed primary tone',
-        Icons.lock,
-      ),
-      ColorRoleInfo(
-        'primaryFixedDim',
-        'Primary Fixed Dim',
-        'Dimmed fixed primary',
-        Icons.lock_outline,
-      ),
-      ColorRoleInfo(
-        'onPrimaryFixed',
-        'On Primary Fixed',
-        'Content on fixed primary',
-        Icons.text_fields,
-      ),
-      ColorRoleInfo(
-        'onPrimaryFixedVariant',
-        'On Primary Fixed Variant',
-        'Variant content on fixed primary',
-        Icons.text_fields,
-      ),
-    ]),
-    ColorRoleSection('Secondary Colors', [
-      ColorRoleInfo(
-        'secondary',
-        'Secondary',
-        'Supporting accent',
-        Icons.color_lens,
-      ),
-      ColorRoleInfo(
-        'onSecondary',
-        'On Secondary',
-        'Content on secondary',
-        Icons.text_fields,
-      ),
-      ColorRoleInfo(
-        'secondaryContainer',
-        'Secondary Container',
-        'Less prominent secondary areas',
-        Icons.crop_square,
-      ),
-      ColorRoleInfo(
-        'onSecondaryContainer',
-        'On Secondary Container',
-        'Content on secondary container',
-        Icons.text_fields,
-      ),
-      ColorRoleInfo(
-        'secondaryFixed',
-        'Secondary Fixed',
-        'Fixed secondary tone',
-        Icons.lock,
-      ),
-      ColorRoleInfo(
-        'secondaryFixedDim',
-        'Secondary Fixed Dim',
-        'Dimmed fixed secondary',
-        Icons.lock_outline,
-      ),
-      ColorRoleInfo(
-        'onSecondaryFixed',
-        'On Secondary Fixed',
-        'Content on fixed secondary',
-        Icons.text_fields,
-      ),
-      ColorRoleInfo(
-        'onSecondaryFixedVariant',
-        'On Secondary Fixed Variant',
-        'Variant content on fixed secondary',
-        Icons.text_fields,
-      ),
-    ]),
-    ColorRoleSection('Tertiary Colors', [
-      ColorRoleInfo(
-        'tertiary',
-        'Tertiary',
-        'Complementary accent',
-        Icons.brush,
-      ),
-      ColorRoleInfo(
-        'onTertiary',
-        'On Tertiary',
-        'Content on tertiary',
-        Icons.text_fields,
-      ),
-      ColorRoleInfo(
-        'tertiaryContainer',
-        'Tertiary Container',
-        'Less prominent tertiary areas',
-        Icons.crop_square,
-      ),
-      ColorRoleInfo(
-        'onTertiaryContainer',
-        'On Tertiary Container',
-        'Content on tertiary container',
-        Icons.text_fields,
-      ),
-      ColorRoleInfo(
-        'tertiaryFixed',
-        'Tertiary Fixed',
-        'Fixed tertiary tone',
-        Icons.lock,
-      ),
-      ColorRoleInfo(
-        'tertiaryFixedDim',
-        'Tertiary Fixed Dim',
-        'Dimmed fixed tertiary',
-        Icons.lock_outline,
-      ),
-      ColorRoleInfo(
-        'onTertiaryFixed',
-        'On Tertiary Fixed',
-        'Content on fixed tertiary',
-        Icons.text_fields,
-      ),
-      ColorRoleInfo(
-        'onTertiaryFixedVariant',
-        'On Tertiary Fixed Variant',
-        'Variant content on fixed tertiary',
-        Icons.text_fields,
-      ),
-    ]),
-    ColorRoleSection('Error Colors', [
-      ColorRoleInfo('error', 'Error', 'Error states', Icons.error_outline),
-      ColorRoleInfo(
-        'onError',
-        'On Error',
-        'Content on error',
-        Icons.text_fields,
-      ),
-      ColorRoleInfo(
-        'errorContainer',
-        'Error Container',
-        'Less prominent error areas',
-        Icons.crop_square,
-      ),
-      ColorRoleInfo(
-        'onErrorContainer',
-        'On Error Container',
-        'Content on error container',
-        Icons.text_fields,
-      ),
-    ]),
-    ColorRoleSection('Surface Colors', [
-      ColorRoleInfo('surface', 'Surface', 'Main background', Icons.layers),
-      ColorRoleInfo(
-        'onSurface',
-        'On Surface',
-        'Primary text color',
-        Icons.format_color_text,
-      ),
-      ColorRoleInfo(
-        'onSurfaceVariant',
-        'On Surface Variant',
-        'Secondary text',
-        Icons.format_color_text,
-      ),
-      ColorRoleInfo(
-        'surfaceDim',
-        'Surface Dim',
-        'Dimmed surface',
-        Icons.brightness_low,
-      ),
-      ColorRoleInfo(
-        'surfaceBright',
-        'Surface Bright',
-        'Bright surface',
-        Icons.brightness_high,
-      ),
-      ColorRoleInfo(
-        'surfaceContainerLowest',
-        'Container Lowest',
-        'Lowest elevation surface',
-        Icons.layers_outlined,
-      ),
-      ColorRoleInfo(
-        'surfaceContainerLow',
-        'Container Low',
-        'Low elevation surface',
-        Icons.layers_outlined,
-      ),
-      ColorRoleInfo(
-        'surfaceContainer',
-        'Container',
-        'Medium elevation surface',
-        Icons.layers,
-      ),
-      ColorRoleInfo(
-        'surfaceContainerHigh',
-        'Container High',
-        'High elevation surface',
-        Icons.layers,
-      ),
-      ColorRoleInfo(
-        'surfaceContainerHighest',
-        'Container Highest',
-        'Highest elevation surface',
-        Icons.layers,
-      ),
-      ColorRoleInfo(
-        'surfaceTint',
-        'Surface Tint',
-        'Tint overlay on surfaces',
-        Icons.opacity,
-      ),
-    ]),
-    ColorRoleSection('Utility Colors', [
-      ColorRoleInfo(
-        'outline',
-        'Outline',
-        'Borders and dividers',
-        Icons.border_style,
-      ),
-      ColorRoleInfo(
-        'outlineVariant',
-        'Outline Variant',
-        'Subtle borders',
-        Icons.border_style,
-      ),
-      ColorRoleInfo(
-        'shadow',
-        'Shadow',
-        'Drop shadow color',
-        Icons.filter_drama,
-      ),
-      ColorRoleInfo(
-        'scrim',
-        'Scrim',
-        'Overlay behind sheets/dialogs',
-        Icons.gradient,
-      ),
-      ColorRoleInfo(
-        'inverseSurface',
-        'Inverse Surface',
-        'Snackbar/tooltip background',
-        Icons.invert_colors,
-      ),
-      ColorRoleInfo(
-        'onInverseSurface',
-        'On Inverse Surface',
-        'Content on inverse surface',
-        Icons.text_fields,
-      ),
-      ColorRoleInfo(
-        'inversePrimary',
-        'Inverse Primary',
-        'Primary on inverse surfaces',
-        Icons.invert_colors,
-      ),
-    ]),
-  ];
-
-  /// All unique role keys across essential + advanced
+  /// All unique role keys across all sections
   static List<String> get allRoleKeys {
     final keys = <String>{};
-    for (final section in advancedSections) {
+    for (final section in colorSections) {
       for (final role in section.roles) {
         keys.add(role.key);
       }
@@ -433,87 +114,70 @@ class CustomTheme {
   // ColorScheme Building
   // ============================================================================
 
-  /// Build a ColorScheme for the given brightness, using user-set colors
-  /// and auto-generating missing ones from the primary seed.
+  /// Build a ColorScheme using Material You's expressive color system.
+  /// Takes up to 2 seed colors and generates a professional palette.
   ColorScheme buildColorScheme(Brightness brightness) {
     final colors = brightness == Brightness.light ? lightColors : darkColors;
 
-    // Get seed color (primary or default blue)
-    final seedColor = Color(colors['primary'] ?? 0xFF2196F3);
+    // Get user's colors or Material 3 baseline defaults
+    final primaryColor = Color(colors['primary'] ?? 0xFF6750A4);
+    final secondaryColor = Color(colors['secondary'] ?? 0xFF625B71);
 
-    // Generate base scheme from seed
+    // Generate base scheme from primary
     final baseScheme = ColorScheme.fromSeed(
-      seedColor: seedColor,
+      seedColor: primaryColor,
       brightness: brightness,
     );
 
-    // Apply user overrides on top of auto-generated scheme
+    // Generate scheme from secondary for all non-primary colors
+    final secondaryScheme = ColorScheme.fromSeed(
+      seedColor: secondaryColor,
+      brightness: brightness,
+    );
+
+    // Combine: use primary scheme as base, but take secondary colors from its
+    // scheme to get proper containers and "on" colors
     return baseScheme.copyWith(
-      primary: _getColor(colors, 'primary'),
-      onPrimary: _getColor(colors, 'onPrimary'),
-      primaryContainer: _getColor(colors, 'primaryContainer'),
-      onPrimaryContainer: _getColor(colors, 'onPrimaryContainer'),
-      primaryFixed: _getColor(colors, 'primaryFixed'),
-      primaryFixedDim: _getColor(colors, 'primaryFixedDim'),
-      onPrimaryFixed: _getColor(colors, 'onPrimaryFixed'),
-      onPrimaryFixedVariant: _getColor(colors, 'onPrimaryFixedVariant'),
-      secondary: _getColor(colors, 'secondary'),
-      onSecondary: _getColor(colors, 'onSecondary'),
-      secondaryContainer: _getColor(colors, 'secondaryContainer'),
-      onSecondaryContainer: _getColor(colors, 'onSecondaryContainer'),
-      secondaryFixed: _getColor(colors, 'secondaryFixed'),
-      secondaryFixedDim: _getColor(colors, 'secondaryFixedDim'),
-      onSecondaryFixed: _getColor(colors, 'onSecondaryFixed'),
-      onSecondaryFixedVariant: _getColor(colors, 'onSecondaryFixedVariant'),
-      tertiary: _getColor(colors, 'tertiary'),
-      onTertiary: _getColor(colors, 'onTertiary'),
-      tertiaryContainer: _getColor(colors, 'tertiaryContainer'),
-      onTertiaryContainer: _getColor(colors, 'onTertiaryContainer'),
-      tertiaryFixed: _getColor(colors, 'tertiaryFixed'),
-      tertiaryFixedDim: _getColor(colors, 'tertiaryFixedDim'),
-      onTertiaryFixed: _getColor(colors, 'onTertiaryFixed'),
-      onTertiaryFixedVariant: _getColor(colors, 'onTertiaryFixedVariant'),
-      error: _getColor(colors, 'error'),
-      onError: _getColor(colors, 'onError'),
-      errorContainer: _getColor(colors, 'errorContainer'),
-      onErrorContainer: _getColor(colors, 'onErrorContainer'),
-      surface: _getColor(colors, 'surface'),
-      onSurface: _getColor(colors, 'onSurface'),
-      onSurfaceVariant: _getColor(colors, 'onSurfaceVariant'),
-      surfaceDim: _getColor(colors, 'surfaceDim'),
-      surfaceBright: _getColor(colors, 'surfaceBright'),
-      surfaceContainerLowest: _getColor(colors, 'surfaceContainerLowest'),
-      surfaceContainerLow: _getColor(colors, 'surfaceContainerLow'),
-      surfaceContainer: _getColor(colors, 'surfaceContainer'),
-      surfaceContainerHigh: _getColor(colors, 'surfaceContainerHigh'),
-      surfaceContainerHighest: _getColor(colors, 'surfaceContainerHighest'),
-      surfaceTint: _getColor(colors, 'surfaceTint'),
-      outline: _getColor(colors, 'outline'),
-      outlineVariant: _getColor(colors, 'outlineVariant'),
-      shadow: _getColor(colors, 'shadow'),
-      scrim: _getColor(colors, 'scrim'),
-      inverseSurface: _getColor(colors, 'inverseSurface'),
-      onInverseSurface: _getColor(colors, 'onInverseSurface'),
-      inversePrimary: _getColor(colors, 'inversePrimary'),
+      // Secondary colors from secondary scheme
+      secondary: secondaryScheme.primary,
+      onSecondary: secondaryScheme.onPrimary,
+      secondaryContainer: secondaryScheme.primaryContainer,
+      onSecondaryContainer: secondaryScheme.onPrimaryContainer,
+
+      // Tertiary colors mirror secondary to keep all accents aligned
+      tertiary: secondaryScheme.primary,
+      onTertiary: secondaryScheme.onPrimary,
+      tertiaryContainer: secondaryScheme.primaryContainer,
+      onTertiaryContainer: secondaryScheme.onPrimaryContainer,
     );
   }
 
-  /// Helper: returns Color if key exists in map, null otherwise
-  Color? _getColor(Map<String, int> colors, String key) {
-    final value = colors[key];
-    return value != null ? Color(value) : null;
+  /// Get color for a specific role, always resolved through the Material You
+  /// color scheme so the displayed color matches the actual app UI.
+  Color getResolvedColor(String roleKey, Brightness brightness) {
+    final scheme = buildColorScheme(brightness);
+    return _getSchemeColor(scheme, roleKey);
   }
 
-  /// Get color for a specific role in a specific brightness, resolving
-  /// to the auto-generated value if not explicitly set.
-  Color getResolvedColor(String roleKey, Brightness brightness) {
+  /// Get the raw seed color stored for a role (before Material You processing).
+  /// Use this for color picker selection matching, not for display.
+  Color getSeedColor(String roleKey, Brightness brightness) {
     final colors = brightness == Brightness.light ? lightColors : darkColors;
     if (colors.containsKey(roleKey)) {
       return Color(colors[roleKey]!);
     }
-    // Generate from seed and return the corresponding role value
-    final scheme = buildColorScheme(brightness);
-    return _getSchemeColor(scheme, roleKey);
+    // Default Material 3 baseline seeds
+    switch (roleKey) {
+      case 'primary':
+        return const Color(0xFF6750A4);
+      case 'secondary':
+        return const Color(0xFF625B71);
+      case 'tertiary':
+        return Color(colors['secondary'] ?? 0xFF625B71);
+      default:
+        final scheme = buildColorScheme(brightness);
+        return _getSchemeColor(scheme, roleKey);
+    }
   }
 
   /// Whether a color role has been explicitly set by the user
@@ -731,6 +395,93 @@ class CustomTheme {
   static bool meetsContrastAA(Color foreground, Color background) {
     return contrastRatio(foreground, background) >= 4.5;
   }
+
+  /// Check if a color is problematic (too close to pure white or black)
+  static bool isProblematicColor(Color color, Brightness brightness) {
+    final luminance = color.computeLuminance();
+    if (brightness == Brightness.light) {
+      // In light mode, colors too close to white are problematic
+      return luminance > 0.95;
+    } else {
+      // In dark mode, colors too close to black are problematic
+      return luminance < 0.05;
+    }
+  }
+
+  /// Get a warning message for problematic colors
+  static String? getColorWarning(Color color, Brightness brightness) {
+    if (isProblematicColor(color, brightness)) {
+      if (brightness == Brightness.light) {
+        return 'This color is too close to white and may cause poor contrast in light mode';
+      } else {
+        return 'This color is too close to black and may cause poor contrast in dark mode';
+      }
+    }
+    return null;
+  }
+
+  /// Generate an auto-name from the theme's colors
+  String generateAutoName() {
+    final colors = lightColors.isNotEmpty ? lightColors : darkColors;
+
+    if (colors.isEmpty) {
+      return 'Untitled Theme';
+    }
+
+    final names = <String>[];
+
+    // Get color names for the 3 main colors
+    if (colors.containsKey('primary')) {
+      names.add(_getColorName(Color(colors['primary']!)));
+    }
+    if (colors.containsKey('secondary')) {
+      names.add(_getColorName(Color(colors['secondary']!)));
+    }
+    if (colors.containsKey('tertiary')) {
+      names.add(_getColorName(Color(colors['tertiary']!)));
+    }
+
+    if (names.isEmpty) {
+      return 'Custom Theme';
+    }
+
+    // Create name from up to 3 colors
+    if (names.length == 1) {
+      return names[0];
+    } else if (names.length == 2) {
+      return '${names[0]} & ${names[1]}';
+    } else {
+      return '${names[0]}, ${names[1]} & ${names[2]}';
+    }
+  }
+
+  /// Get a simple color name from a Color
+  static String _getColorName(Color color) {
+    final hue = HSLColor.fromColor(color).hue;
+    final saturation = HSLColor.fromColor(color).saturation;
+    final lightness = HSLColor.fromColor(color).lightness;
+
+    // Low saturation = grayscale
+    if (saturation < 0.15) {
+      if (lightness > 0.85) return 'White';
+      if (lightness > 0.6) return 'Silver';
+      if (lightness > 0.4) return 'Gray';
+      if (lightness > 0.2) return 'Charcoal';
+      return 'Black';
+    }
+
+    // Determine hue name
+    if (hue >= 0 && hue < 15) return 'Red';
+    if (hue >= 15 && hue < 45) return 'Orange';
+    if (hue >= 45 && hue < 70) return 'Yellow';
+    if (hue >= 70 && hue < 150) return 'Green';
+    if (hue >= 150 && hue < 200) return 'Cyan';
+    if (hue >= 200 && hue < 260) return 'Blue';
+    if (hue >= 260 && hue < 300) return 'Purple';
+    if (hue >= 300 && hue < 330) return 'Magenta';
+    if (hue >= 330) return 'Red';
+    return 'Color';
+  }
 }
 
 /// Describes a single color role with metadata for UI display
@@ -746,7 +497,8 @@ class ColorRoleInfo {
 /// Groups color roles into expandable sections for advanced mode
 class ColorRoleSection {
   final String title;
+  final String description;
   final List<ColorRoleInfo> roles;
 
-  const ColorRoleSection(this.title, this.roles);
+  const ColorRoleSection(this.title, this.description, this.roles);
 }

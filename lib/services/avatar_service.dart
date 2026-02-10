@@ -138,29 +138,18 @@ class AvatarService {
     }
   }
 
-  /// Generate a consistent color from user name using hash
+  /// Generate a consistent color from user name.
+  /// Uses subtle elevated surface color for better integration with theme.
   static Color getColorFromName(String name, ColorScheme colorScheme) {
-    if (name.isEmpty) return colorScheme.primary;
-
-    final colors = [
-      colorScheme.primary,
-      colorScheme.secondary,
-      colorScheme.tertiary,
-      colorScheme.primaryContainer,
-      colorScheme.secondaryContainer,
-      colorScheme.tertiaryContainer,
-    ];
-
-    final hash = name.hashCode.abs();
-    return colors[hash % colors.length];
+    return colorScheme.surfaceContainerHighest;
   }
 
-  /// Get the foreground color (text) based on background color
+  /// Get the foreground color (text) based on background color.
+  /// Uses standard text color for optimal readability.
   static Color getForegroundColor(
     Color backgroundColor,
     ColorScheme colorScheme,
   ) {
-    final luminance = backgroundColor.computeLuminance();
-    return luminance > 0.5 ? colorScheme.onSurface : colorScheme.surface;
+    return colorScheme.onSurface;
   }
 }

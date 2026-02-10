@@ -39,18 +39,14 @@ class UserAvatarWidget extends StatelessWidget {
 
     final initials = hasName ? AvatarService.getInitials(userName) : null;
 
-    // Check for custom colors first, fall back to auto-generated
-    final customBgColor = StorageService.getAvatarBackgroundColor();
-    final customTextColor = StorageService.getAvatarTextColor();
-
-    final backgroundColor = customBgColor != null
-        ? Color(customBgColor)
-        : hasName
+    final backgroundColor = hasName
         ? AvatarService.getColorFromName(userName, colorScheme)
         : colorScheme.primaryContainer;
-    final foregroundColor = customTextColor != null
-        ? Color(customTextColor)
-        : AvatarService.getForegroundColor(backgroundColor, colorScheme);
+
+    final foregroundColor = AvatarService.getForegroundColor(
+      backgroundColor,
+      colorScheme,
+    );
 
     return ExpressiveGestureDetector(
       onTap: onTap,

@@ -36,6 +36,8 @@ class FilterChips extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     // Optimize: only rebuild when these specific values change
     final showCompleted = ref.watch(
       showCompletedProvider.select((show) => show),
@@ -108,6 +110,14 @@ class FilterChips extends ConsumerWidget {
                           selected: sortBy != 'default',
                           showCheckmark: false,
                           side: BorderSide.none,
+                          backgroundColor: colorScheme.tertiaryContainer,
+                          selectedColor: colorScheme.tertiaryContainer,
+                          labelStyle: TextStyle(
+                            color: colorScheme.onTertiaryContainer,
+                          ),
+                          iconTheme: IconThemeData(
+                            color: colorScheme.onTertiaryContainer,
+                          ),
                           onSelected: (_) {},
                         ),
                       ),
@@ -143,6 +153,10 @@ class FilterChips extends ConsumerWidget {
                           child: ActionChip(
                             label: const Text('+'),
                             side: BorderSide.none,
+                            backgroundColor: colorScheme.tertiaryContainer,
+                            labelStyle: TextStyle(
+                              color: colorScheme.onTertiaryContainer,
+                            ),
                             onPressed: () {},
                           ),
                         ),
@@ -159,6 +173,12 @@ class FilterChips extends ConsumerWidget {
                           selected: true,
                           showCheckmark: false,
                           side: BorderSide.none,
+                          backgroundColor: colorScheme.tertiaryContainer,
+                          selectedColor: colorScheme.tertiaryContainer,
+                          labelStyle: TextStyle(
+                            color: colorScheme.onTertiaryContainer,
+                          ),
+                          deleteIconColor: colorScheme.onTertiaryContainer,
                           deleteIcon: const Icon(Icons.close, size: 16),
                           onDeleted: () {
                             final current = ref.read(secondarySortKeysProvider);
@@ -182,6 +202,14 @@ class FilterChips extends ConsumerWidget {
                       selected: dueToday,
                       showCheckmark: false,
                       side: BorderSide.none,
+                      backgroundColor: colorScheme.tertiaryContainer,
+                      selectedColor: colorScheme.tertiaryContainer,
+                      labelStyle: TextStyle(
+                        color: colorScheme.onTertiaryContainer,
+                      ),
+                      iconTheme: IconThemeData(
+                        color: colorScheme.onTertiaryContainer,
+                      ),
                       onSelected: (selected) => ref
                           .read(dueTodayFilterProvider.notifier)
                           .update(selected),
@@ -204,6 +232,14 @@ class FilterChips extends ConsumerWidget {
                           !showCompleted, // selected when hiding (filter active)
                       showCheckmark: false,
                       side: BorderSide.none,
+                      backgroundColor: colorScheme.tertiaryContainer,
+                      selectedColor: colorScheme.tertiaryContainer,
+                      labelStyle: TextStyle(
+                        color: colorScheme.onTertiaryContainer,
+                      ),
+                      iconTheme: IconThemeData(
+                        color: colorScheme.onTertiaryContainer,
+                      ),
                       onSelected: (selected) {
                         // Toggle: if selected (wants to hide), set false); else true
                         final newValue = !selected;
@@ -222,6 +258,13 @@ class FilterChips extends ConsumerWidget {
                       label: const Text('Clear'),
                       avatar: const Icon(Icons.clear_all, size: 18),
                       side: BorderSide.none,
+                      backgroundColor: colorScheme.tertiaryContainer,
+                      labelStyle: TextStyle(
+                        color: colorScheme.onTertiaryContainer,
+                      ),
+                      iconTheme: IconThemeData(
+                        color: colorScheme.onTertiaryContainer,
+                      ),
                       onPressed: hasActiveFilters
                           ? () {
                               // Reset filters

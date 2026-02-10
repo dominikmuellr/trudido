@@ -14,13 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
-import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import '../models/custom_theme.dart';
 import '../providers/app_providers.dart';
 import '../services/storage_service.dart';
@@ -28,8 +23,7 @@ import '../services/theme_service.dart';
 import '../theme/spacing_tokens.dart';
 
 /// Screen for creating and editing custom themes with full Material 3
-/// color role customization. Supports Normal mode (10 essential colors)
-/// and Advanced mode (all 48 color roles).
+
 class CustomThemeEditorScreen extends ConsumerStatefulWidget {
   /// The theme to edit. If null, creates a new theme.
   final CustomTheme? existingTheme;
@@ -45,7 +39,6 @@ class _CustomThemeEditorScreenState
     extends ConsumerState<CustomThemeEditorScreen> {
   late CustomTheme _theme;
   late TextEditingController _nameController;
-  bool _advancedMode = false;
   Brightness _editingBrightness = Brightness.light;
   bool _hasChanges = false;
 
@@ -150,72 +143,124 @@ class _CustomThemeEditorScreenState
   }
 
   Future<void> _showColorPicker(String roleKey) async {
-    final currentColor = _theme.getResolvedColor(roleKey, _editingBrightness);
+    final currentColor = _theme.getSeedColor(roleKey, _editingBrightness);
     final isCustomized = _theme.isColorCustomized(roleKey, _editingBrightness);
-    Color pickedColor = currentColor;
+    Color? pickedColor;
 
-    final result = await showDialog<Color>(
+    // Use Flutter's native color picker - much simpler!
+    pickedColor = await showDialog<Color>(
       context: context,
       builder: (context) {
+        Color tempColor = currentColor;
         return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final colorScheme = Theme.of(context).colorScheme;
+          builder: (context, setState) {
             return AlertDialog(
               title: Text(_getRoleLabel(roleKey)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Color picker wheel + controls
-                    ColorPicker(
-                      color: pickedColor,
-                      onColorChanged: (color) {
-                        setDialogState(() => pickedColor = color);
-                      },
-                      pickersEnabled: const <ColorPickerType, bool>{
-                        ColorPickerType.both: false,
-                        ColorPickerType.primary: false,
-                        ColorPickerType.accent: false,
-                        ColorPickerType.bw: false,
-                        ColorPickerType.custom: false,
-                        ColorPickerType.customSecondary: false,
-                        ColorPickerType.wheel: true,
-                      },
-                      enableShadesSelection: true,
-                      enableTonalPalette: true,
-                      enableOpacity: false,
-                      width: 44,
-                      height: 44,
-                      borderRadius: 22,
-                      wheelDiameter: 230,
-                      wheelWidth: 20,
-                      wheelHasBorder: true,
-                      showColorCode: true,
-                      colorCodeHasColor: true,
-                      copyPasteBehavior: const ColorPickerCopyPasteBehavior(
-                        copyFormat: ColorPickerCopyFormat.hexRRGGBB,
-                        pasteButton: true,
-                        copyButton: true,
+                    // Simple color picker with common colors
+                    _buildSimpleColorPicker(
+                      tempColor,
+                      (color) => setState(() => tempColor = color),
+                    ),
+                    const SizedBox(height: 16),
+                    // Current color preview
+                    Container(
+                      width: double.infinity,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: tempColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
                       ),
-                      heading: Text(
-                        'Select color',
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      subheading: Text(
-                        'Shades',
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      tonalSubheading: Text(
-                        'Tonal palette',
-                        style: Theme.of(context).textTheme.labelLarge,
+                      child: Center(
+                        child: Text(
+                          '#${tempColor.value.toRadixString(16).substring(2).toUpperCase()}',
+                          style: TextStyle(
+                            color: tempColor.computeLuminance() > 0.5
+                                ? Colors.black
+                                : Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
                       ),
                     ),
-
-                    // Contrast info
-                    if (_isContentRole(roleKey)) ...[
-                      const Divider(),
-                      _buildContrastInfo(pickedColor, roleKey),
-                    ],
+                    const SizedBox(height: 12),
+                    // Material You result preview
+                    Builder(
+                      builder: (context) {
+                        final previewScheme = ColorScheme.fromSeed(
+                          seedColor: tempColor,
+                          brightness: _editingBrightness,
+                        );
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Material You result',
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: previewScheme.primary,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        'Button',
+                                        style: TextStyle(
+                                          color: previewScheme.onPrimary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Container(
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: previewScheme.primaryContainer,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        'Chip',
+                                        style: TextStyle(
+                                          color:
+                                              previewScheme.onPrimaryContainer,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildColorWarning(tempColor, roleKey),
                   ],
                 ),
               ),
@@ -223,14 +268,15 @@ class _CustomThemeEditorScreenState
                 if (isCustomized)
                   TextButton(
                     onPressed: () {
-                      // Reset to auto
                       _theme.resetColor(roleKey, _editingBrightness);
                       _markChanged();
                       Navigator.pop(context, null);
                     },
                     child: Text(
                       'Reset to Auto',
-                      style: TextStyle(color: colorScheme.error),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                     ),
                   ),
                 TextButton(
@@ -238,7 +284,7 @@ class _CustomThemeEditorScreenState
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
-                  onPressed: () => Navigator.pop(context, pickedColor),
+                  onPressed: () => Navigator.pop(context, tempColor),
                   child: const Text('Apply'),
                 ),
               ],
@@ -248,154 +294,113 @@ class _CustomThemeEditorScreenState
       },
     );
 
-    if (result != null) {
+    if (pickedColor != null) {
       setState(() {
-        _theme.setColor(roleKey, result, _editingBrightness);
+        _theme.setColor(roleKey, pickedColor!, _editingBrightness);
         _markChanged();
       });
-    } else {
-      // May have been reset - refresh UI
+    } else if (pickedColor == null && !isCustomized) {
+      // Was reset - refresh UI
       setState(() {});
     }
   }
 
-  /// Build a contrast ratio indicator for "on" colors against their background
-  Widget _buildContrastInfo(Color foreground, String roleKey) {
-    final bgKey = _getBackgroundKeyForContent(roleKey);
-    if (bgKey == null) return const SizedBox.shrink();
+  /// Build a simple grid of common colors
+  Widget _buildSimpleColorPicker(
+    Color currentColor,
+    Function(Color) onColorChanged,
+  ) {
+    // Material You seed colors — muted tone-40 values that produce
+    // soft, elegant palettes per Google's Material You guidelines
+    final commonColors = [
+      const Color(0xFFB4464C), // Red
+      const Color(0xFFAD4670), // Rose
+      const Color(0xFF9C4589), // Pink
+      const Color(0xFF8450A0), // Purple
+      const Color(0xFF6058B0), // Deep Purple
+      const Color(0xFF4A64B8), // Indigo
+      const Color(0xFF3D78B8), // Blue
+      const Color(0xFF358CA8), // Steel Blue
+      const Color(0xFF2E8E8E), // Teal
+      const Color(0xFF38826A), // Seafoam
+      const Color(0xFF488258), // Green
+      const Color(0xFF618345), // Sage
+      const Color(0xFF7B7E35), // Olive
+      const Color(0xFF96793A), // Gold
+      const Color(0xFFA06D38), // Amber
+      const Color(0xFFA66040), // Terracotta
+      const Color(0xFF8B6558), // Earth
+      const Color(0xFF6B6F7E), // Blue Grey
+    ];
 
-    final bgColor = _theme.getResolvedColor(bgKey, _editingBrightness);
-    final ratio = CustomTheme.contrastRatio(foreground, bgColor);
-    final meetsAA = ratio >= 4.5;
-    final meetsAAA = ratio >= 7.0;
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: commonColors.map((color) {
+        final isSelected = color.value == currentColor.value;
+        return InkWell(
+          onTap: () => onColorChanged(color),
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.outline,
+                width: isSelected ? 3 : 1,
+              ),
+            ),
+            child: isSelected
+                ? Icon(
+                    Icons.check,
+                    color: color.computeLuminance() > 0.5
+                        ? Colors.black
+                        : Colors.white,
+                  )
+                : null,
+          ),
+        );
+      }).toList(),
+    );
+  }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+  /// Build warning for problematic colors (pure white/black)
+  Widget _buildColorWarning(Color color, String roleKey) {
+    // Only show warnings for primary/secondary colors
+    if (roleKey != 'primary' && roleKey != 'secondary') {
+      return const SizedBox.shrink();
+    }
+
+    final warning = CustomTheme.getColorWarning(color, _editingBrightness);
+    if (warning == null) return const SizedBox.shrink();
+
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.error),
+      ),
       child: Row(
         children: [
-          Icon(
-            meetsAA ? Icons.check_circle : Icons.warning,
-            color: meetsAA ? Colors.green : Colors.orange,
-            size: 20,
-          ),
-          const SizedBox(width: 8),
+          Icon(Icons.warning_rounded, color: colorScheme.error, size: 20),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Contrast: ${ratio.toStringAsFixed(1)}:1 '
-              '${meetsAAA
-                  ? "(AAA ✓)"
-                  : meetsAA
-                  ? "(AA ✓)"
-                  : "(Low contrast)"}',
-              style: Theme.of(context).textTheme.bodySmall,
+              warning,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colorScheme.onErrorContainer,
+              ),
             ),
           ),
         ],
       ),
     );
-  }
-
-  // ============================================================================
-  // Import / Export (file-based)
-  // ============================================================================
-
-  Future<void> _exportTheme() async {
-    _theme.name = _nameController.text.trim();
-    if (_theme.name.isEmpty) _theme.name = 'Untitled Theme';
-    final json = _theme.toJsonString();
-
-    // Write to a temp file and share it
-    final dir = await getTemporaryDirectory();
-    final safeName = _theme.name
-        .replaceAll(RegExp(r'[^\w\s-]'), '')
-        .replaceAll(RegExp(r'\s+'), '_')
-        .toLowerCase();
-    final file = File('${dir.path}/${safeName}_theme.json');
-    await file.writeAsString(json);
-
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(file.path, mimeType: 'application/json')],
-        subject: 'Trudido Theme: ${_theme.name}',
-      ),
-    );
-  }
-
-  Future<void> _importTheme() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-      withData: true,
-    );
-
-    if (result == null || result.files.isEmpty) return;
-
-    String jsonString;
-    final picked = result.files.single;
-    if (picked.bytes != null) {
-      jsonString = String.fromCharCodes(picked.bytes!);
-    } else if (picked.path != null) {
-      jsonString = await File(picked.path!).readAsString();
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not read the selected file')),
-        );
-      }
-      return;
-    }
-
-    final error = CustomTheme.validateJson(jsonString);
-    if (error != null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('The selected file is not a valid Trudido theme'),
-          ),
-        );
-      }
-      return;
-    }
-
-    final imported = CustomTheme.fromJsonString(jsonString);
-
-    // Confirm import
-    if (!mounted) return;
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Import "${imported.name}"?'),
-        content: Text(
-          'This will replace all colors in the current editor with '
-          'the imported theme colors. ${imported.lightColors.length} light '
-          'and ${imported.darkColors.length} dark colors will be loaded.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Import'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      setState(() {
-        _theme.lightColors
-          ..clear()
-          ..addAll(imported.lightColors);
-        _theme.darkColors
-          ..clear()
-          ..addAll(imported.darkColors);
-        _theme.fontFamily = imported.fontFamily;
-        _nameController.text = imported.name;
-        _markChanged();
-      });
-    }
   }
 
   // ============================================================================
@@ -424,16 +429,6 @@ class _CustomThemeEditorScreenState
           title: Text(isNew ? 'New Custom Theme' : 'Edit Theme'),
           actions: [
             IconButton(
-              icon: const Icon(Icons.file_download_outlined),
-              tooltip: 'Import from File',
-              onPressed: _importTheme,
-            ),
-            IconButton(
-              icon: const Icon(Icons.file_upload_outlined),
-              tooltip: 'Export as File',
-              onPressed: _exportTheme,
-            ),
-            IconButton(
               icon: const Icon(Icons.save),
               tooltip: 'Save',
               onPressed: _hasChanges ? () => _save() : null,
@@ -456,6 +451,61 @@ class _CustomThemeEditorScreenState
             ),
             SpacingGap.gapV16,
 
+            // Info card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: colorScheme.primary.withOpacity(0.2)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.auto_awesome,
+                        color: colorScheme.primary,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Pick 2 colors. Essential sets the app. Enhanced '
+                          'colors everything else.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.lightbulb_outline,
+                        color: colorScheme.primary.withOpacity(0.7),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Material You generates subtle, professional variations from your colors. '
+                          'Hot restart after saving to see changes.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurface.withOpacity(0.8),
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            SpacingGap.gapV16,
+
             // Light/Dark toggle
             _buildBrightnessToggle(colorScheme),
             SpacingGap.gapV12,
@@ -464,15 +514,8 @@ class _CustomThemeEditorScreenState
             _buildPreviewCard(),
             SpacingGap.gapV16,
 
-            // Normal/Advanced toggle
-            _buildModeToggle(colorScheme),
-            SpacingGap.gapV12,
-
-            // Color role list
-            if (_advancedMode)
-              _buildAdvancedColorList()
-            else
-              _buildNormalColorList(),
+            // Color role list organized by category
+            _buildColorList(),
 
             SpacingGap.gapV16,
 
@@ -506,22 +549,16 @@ class _CustomThemeEditorScreenState
     );
   }
 
-  Widget _buildModeToggle(ColorScheme colorScheme) {
-    return Row(
+  // ============================================================================
+  // Color List - All Roles Organized by Category
+  // ============================================================================
+
+  Widget _buildColorList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Text(
-            _advancedMode ? 'Advanced Mode' : 'Normal Mode',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-        TextButton.icon(
-          onPressed: () => setState(() => _advancedMode = !_advancedMode),
-          icon: Icon(_advancedMode ? Icons.tune : Icons.settings, size: 18),
-          label: Text(_advancedMode ? 'Simple Mode' : 'Advanced'),
-        ),
+        for (int i = 0; i < CustomTheme.colorSections.length; i++)
+          _buildColorSection(CustomTheme.colorSections[i], i),
       ],
     );
   }
@@ -531,101 +568,198 @@ class _CustomThemeEditorScreenState
     final isDark = _editingBrightness == Brightness.dark;
 
     return Card(
-      elevation: 0,
+      elevation: 2,
       color: scheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: scheme.outlineVariant),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Preview',
-              style: TextStyle(
-                color: scheme.onSurface,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
+            // Header
+            Row(
+              children: [
+                Icon(Icons.preview, color: scheme.primary, size: 28),
+                const SizedBox(width: 12),
+                Text(
+                  'Preview',
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(
-              'This is how your theme looks in ${isDark ? "dark" : "light"} mode.',
+              'See how your colors work together in ${isDark ? "dark" : "light"} mode',
               style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
             ),
-            const SizedBox(height: 12),
-            Row(
+            const SizedBox(height: 20),
+
+            // Warning banner if colors are problematic
+            ..._buildPreviewWarnings(scheme),
+
+            // Main color chips
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
               children: [
-                _previewChip('Primary', scheme.primary, scheme.onPrimary),
-                const SizedBox(width: 8),
-                _previewChip('Secondary', scheme.secondary, scheme.onSecondary),
-                const SizedBox(width: 8),
-                _previewChip('Tertiary', scheme.tertiary, scheme.onTertiary),
+                _previewChip(
+                  'Essential',
+                  scheme.primary,
+                  scheme.onPrimary,
+                  Icons.palette,
+                ),
+                _previewChip(
+                  'Enhanced',
+                  scheme.secondary,
+                  scheme.onSecondary,
+                  Icons.bolt,
+                ),
               ],
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Container',
-                      style: TextStyle(
-                        color: scheme.onPrimaryContainer,
-                        fontSize: 12,
+            const SizedBox(height: 16),
+
+            // Example UI elements
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: scheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.task_alt,
+                          color: scheme.onPrimaryContainer,
+                          size: 20,
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: scheme.outline),
-                    ),
-                    child: Text(
-                      'Surface',
-                      style: TextStyle(color: scheme.onSurface, fontSize: 12),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: scheme.errorContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Error',
-                      style: TextStyle(
-                        color: scheme.onErrorContainer,
-                        fontSize: 12,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Task example',
+                              style: TextStyle(
+                                color: scheme.onSurface,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              'Background and text auto-generated',
+                              style: TextStyle(
+                                color: scheme.onSurfaceVariant,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: scheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Enhanced',
+                          style: TextStyle(
+                            color: scheme.onSecondaryContainer,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Search bar preview
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: scheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.search,
+                          size: 18,
+                          color: scheme.onSecondaryContainer,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Search example...',
+                          style: TextStyle(
+                            color: scheme.onSecondaryContainer.withOpacity(0.7),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () {},
+                          style: FilledButton.styleFrom(
+                            backgroundColor: scheme.primary,
+                            foregroundColor: scheme.onPrimary,
+                          ),
+                          child: const Text('Essential'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FilledButton.tonal(
+                          onPressed: () {},
+                          style: FilledButton.styleFrom(
+                            backgroundColor: scheme.secondaryContainer,
+                            foregroundColor: scheme.onSecondaryContainer,
+                          ),
+                          child: const Text('Enhanced'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {},
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: scheme.primary,
+                          ),
+                          child: const Text('Outline'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -633,64 +767,206 @@ class _CustomThemeEditorScreenState
     );
   }
 
-  Widget _previewChip(String label, Color bg, Color fg) {
+  /// Build warning banners for problematic colors in preview
+  List<Widget> _buildPreviewWarnings(ColorScheme scheme) {
+    final warnings = <Widget>[];
+    final colors = _editingBrightness == Brightness.light
+        ? _theme.lightColors
+        : _theme.darkColors;
+
+    // Check primary color
+    if (colors.containsKey('primary')) {
+      final primaryColor = Color(colors['primary']!);
+      final warning = CustomTheme.getColorWarning(
+        primaryColor,
+        _editingBrightness,
+      );
+      if (warning != null) {
+        warnings.add(
+          _buildWarningBanner('Your Essential color', warning, scheme),
+        );
+      }
+    }
+
+    // Check secondary color
+    if (colors.containsKey('secondary')) {
+      final secondaryColor = Color(colors['secondary']!);
+      final warning = CustomTheme.getColorWarning(
+        secondaryColor,
+        _editingBrightness,
+      );
+      if (warning != null) {
+        warnings.add(
+          _buildWarningBanner('Your Enhanced color', warning, scheme),
+        );
+      }
+    }
+
+    if (warnings.isNotEmpty) {
+      return [...warnings, const SizedBox(height: 12)];
+    }
+    return [];
+  }
+
+  Widget _buildWarningBanner(
+    String colorName,
+    String message,
+    ColorScheme scheme,
+  ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(16),
+        color: scheme.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: scheme.error.withOpacity(0.5)),
       ),
-      child: Text(
-        label,
-        style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w500),
-      ),
-    );
-  }
-
-  // ============================================================================
-  // Normal Mode - 10 Essential Colors
-  // ============================================================================
-
-  Widget _buildNormalColorList() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final role in CustomTheme.essentialRoles) _buildColorTile(role),
-      ],
-    );
-  }
-
-  // ============================================================================
-  // Advanced Mode - All 48 Roles in Sections
-  // ============================================================================
-
-  Widget _buildAdvancedColorList() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final section in CustomTheme.advancedSections)
-          _buildAdvancedSection(section),
-      ],
-    );
-  }
-
-  Widget _buildAdvancedSection(ColorRoleSection section) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(0, 12, 0, 4),
-          child: Text(
-            section.title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.w600,
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: scheme.error, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  colorName,
+                  style: TextStyle(
+                    color: scheme.onErrorContainer,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  message,
+                  style: TextStyle(
+                    color: scheme.onErrorContainer,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _previewChip(String label, Color bg, Color fg, IconData icon) {
+    // Check contrast
+    final contrast = CustomTheme.contrastRatio(fg, bg);
+    final hasGoodContrast = contrast >= 4.5;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: bg.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: fg, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: fg,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
-        for (final role in section.roles) _buildColorTile(role),
-        const Divider(),
+        // Contrast warning badge
+        if (!hasGoodContrast)
+          Positioned(
+            top: -6,
+            right: -6,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: const Icon(
+                Icons.warning_rounded,
+                color: Colors.white,
+                size: 12,
+              ),
+            ),
+          ),
       ],
+    );
+  }
+
+  Widget _buildColorSection(ColorRoleSection section, int index) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    section.roles.first.icon,
+                    color: colorScheme.onPrimaryContainer,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        section.title,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        section.description,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            for (final role in section.roles) _buildColorTile(role),
+          ],
+        ),
+      ),
     );
   }
 
@@ -702,57 +978,117 @@ class _CustomThemeEditorScreenState
     final resolvedColor = _theme.getResolvedColor(role.key, _editingBrightness);
     final isCustomized = _theme.isColorCustomized(role.key, _editingBrightness);
 
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: resolvedColor,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isCustomized
+              ? Theme.of(context).colorScheme.primary.withOpacity(0.3)
+              : Theme.of(context).colorScheme.outlineVariant,
+          width: isCustomized ? 2 : 1,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _showColorPicker(role.key),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Color preview circle
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: resolvedColor,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: resolvedColor.withOpacity(0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: isCustomized
+                    ? null
+                    : Icon(
+                        Icons.auto_awesome,
+                        size: 24,
+                        color: _contrastIcon(resolvedColor),
+                      ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          role.icon,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          role.label,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      role.description,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    if (isCustomized) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        '#${resolvedColor.value.toRadixString(16).substring(2).toUpperCase()}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Action button
+              if (isCustomized)
+                IconButton(
+                  icon: Icon(
+                    Icons.refresh,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  tooltip: 'Reset to auto',
+                  onPressed: () {
+                    setState(() {
+                      _theme.resetColor(role.key, _editingBrightness);
+                      _markChanged();
+                    });
+                  },
+                )
+              else
+                Icon(
+                  Icons.edit_outlined,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  size: 20,
+                ),
+            ],
           ),
         ),
-        child: isCustomized
-            ? null
-            : Icon(
-                Icons.auto_awesome,
-                size: 16,
-                color: _contrastIcon(resolvedColor),
-              ),
       ),
-      title: Text(
-        role.label,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          fontWeight: isCustomized ? FontWeight.w600 : FontWeight.w400,
-        ),
-      ),
-      subtitle: Text(
-        isCustomized
-            ? '#${resolvedColor.value.toRadixString(16).substring(2).toUpperCase()}'
-            : 'Auto-generated',
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-      ),
-      trailing: isCustomized
-          ? IconButton(
-              icon: Icon(
-                Icons.refresh,
-                size: 20,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              tooltip: 'Reset to auto',
-              onPressed: () {
-                setState(() {
-                  _theme.resetColor(role.key, _editingBrightness);
-                  _markChanged();
-                });
-              },
-            )
-          : const Icon(Icons.chevron_right, size: 20),
-      onTap: () => _showColorPicker(role.key),
     );
   }
 
@@ -832,65 +1168,12 @@ class _CustomThemeEditorScreenState
   // ============================================================================
 
   String _getRoleLabel(String key) {
-    // Check essential roles first
-    for (final role in CustomTheme.essentialRoles) {
-      if (role.key == key) return role.label;
-    }
-    // Then check advanced sections
-    for (final section in CustomTheme.advancedSections) {
+    // Check all color sections
+    for (final section in CustomTheme.colorSections) {
       for (final role in section.roles) {
         if (role.key == key) return role.label;
       }
     }
     return key;
-  }
-
-  /// Whether this role is a "content" color (text on a background)
-  bool _isContentRole(String key) {
-    return key.startsWith('on') || key == 'inversePrimary';
-  }
-
-  /// Get the background key for a content/foreground role
-  String? _getBackgroundKeyForContent(String key) {
-    switch (key) {
-      case 'onPrimary':
-        return 'primary';
-      case 'onPrimaryContainer':
-        return 'primaryContainer';
-      case 'onPrimaryFixed':
-        return 'primaryFixed';
-      case 'onPrimaryFixedVariant':
-        return 'primaryFixedDim';
-      case 'onSecondary':
-        return 'secondary';
-      case 'onSecondaryContainer':
-        return 'secondaryContainer';
-      case 'onSecondaryFixed':
-        return 'secondaryFixed';
-      case 'onSecondaryFixedVariant':
-        return 'secondaryFixedDim';
-      case 'onTertiary':
-        return 'tertiary';
-      case 'onTertiaryContainer':
-        return 'tertiaryContainer';
-      case 'onTertiaryFixed':
-        return 'tertiaryFixed';
-      case 'onTertiaryFixedVariant':
-        return 'tertiaryFixedDim';
-      case 'onError':
-        return 'error';
-      case 'onErrorContainer':
-        return 'errorContainer';
-      case 'onSurface':
-        return 'surface';
-      case 'onSurfaceVariant':
-        return 'surface';
-      case 'onInverseSurface':
-        return 'inverseSurface';
-      case 'inversePrimary':
-        return 'inverseSurface';
-      default:
-        return null;
-    }
   }
 }

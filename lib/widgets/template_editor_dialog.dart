@@ -206,6 +206,15 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
             ..._keywords.map(
               (keyword) => Chip(
                 label: Text(keyword),
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.tertiaryContainer,
+                labelStyle: TextStyle(
+                  color: Theme.of(context).colorScheme.onTertiaryContainer,
+                ),
+                deleteIconColor: Theme.of(
+                  context,
+                ).colorScheme.onTertiaryContainer,
                 onDeleted: () {
                   setState(() {
                     _keywords.remove(keyword);
@@ -215,6 +224,10 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
             ),
             ActionChip(
               label: const Text('+ Add Keyword'),
+              backgroundColor: Theme.of(context).colorScheme.tertiaryContainer,
+              labelStyle: TextStyle(
+                color: Theme.of(context).colorScheme.onTertiary,
+              ),
               onPressed: () => _addKeywordDialog(),
             ),
           ],

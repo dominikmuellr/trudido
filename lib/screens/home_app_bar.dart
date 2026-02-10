@@ -318,10 +318,10 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
                 ),
                 padding: const EdgeInsets.only(left: 12, right: 12),
                 decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest,
+                  color: colorScheme.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: colorScheme.outline.withValues(alpha: 0.2),
+                    color: colorScheme.outline.withValues(alpha: 0.1),
                     width: 1,
                   ),
                   boxShadow: [

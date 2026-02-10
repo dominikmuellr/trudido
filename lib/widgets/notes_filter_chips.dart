@@ -13,6 +13,7 @@ class NotesFilterChips extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     final sortBy = ref.watch(notesSortByProvider);
 
     return Semantics(
@@ -52,6 +53,14 @@ class NotesFilterChips extends ConsumerWidget {
                           selected: sortBy != 'date_modified',
                           showCheckmark: false,
                           side: BorderSide.none,
+                          backgroundColor: colorScheme.tertiaryContainer,
+                          selectedColor: colorScheme.tertiaryContainer,
+                          labelStyle: TextStyle(
+                            color: colorScheme.onTertiaryContainer,
+                          ),
+                          iconTheme: IconThemeData(
+                            color: colorScheme.onTertiaryContainer,
+                          ),
                           onSelected: (_) {}, // Handled by PopupMenuButton
                         ),
                       ),

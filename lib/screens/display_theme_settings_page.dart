@@ -243,14 +243,20 @@ class _ThemeModeSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
-    final useBlackTheme = ref.watch(preferencesStateProvider).useBlackTheme;
-    final accentColorSeed = ref.watch(preferencesStateProvider).accentColorSeed;
-    final useDynamicColor = ref.watch(preferencesStateProvider).useDynamicColor;
+    final prefs = ref.watch(preferencesStateProvider);
+    final useBlackTheme = prefs.useBlackTheme;
+    final accentColorSeed = prefs.accentColorSeed;
+    final useDynamicColor = prefs.useDynamicColor;
+    final activeCustomThemeId = prefs.activeCustomThemeId;
     final controller = ref.read(preferencesControllerProvider);
 
-    final isHackTheme = accentColorSeed == 0xFF00FF00 && !useDynamicColor;
-    final isDraculaTheme = accentColorSeed == 0xFFBD93F9 && !useDynamicColor;
-    final isSolarizedTheme = accentColorSeed == 0xFF268BD2 && !useDynamicColor;
+    final isCustomTheme = activeCustomThemeId != null;
+    final isHackTheme =
+        !isCustomTheme && accentColorSeed == 0xFF00FF00 && !useDynamicColor;
+    final isDraculaTheme =
+        !isCustomTheme && accentColorSeed == 0xFFBD93F9 && !useDynamicColor;
+    final isSolarizedTheme =
+        !isCustomTheme && accentColorSeed == 0xFF268BD2 && !useDynamicColor;
     final isDarkOnlyTheme = isHackTheme || isDraculaTheme;
     final isBlackIncompatibleTheme = isDarkOnlyTheme || isSolarizedTheme;
 

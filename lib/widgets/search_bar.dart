@@ -48,21 +48,26 @@ class _TodoSearchBarState extends State<TodoSearchBar> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return TextField(
       controller: _controller,
       decoration: InputDecoration(
         hintText: 'Search todos...',
-        prefixIcon: Icon(Icons.search),
+        prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
         suffixIcon: widget.searchQuery.isNotEmpty
             ? ExpressiveIconButton(
-                icon: Icon(Icons.close),
+                icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
                 onPressed: () {
                   _controller.clear();
                   widget.onSearchChanged('');
                 },
               )
             : null,
+        filled: true,
+        fillColor: colorScheme.surfaceContainerHigh,
       ),
+      style: TextStyle(color: colorScheme.onSurface),
       onChanged: widget.onSearchChanged,
     );
   }
