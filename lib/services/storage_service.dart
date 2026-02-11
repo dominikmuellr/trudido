@@ -1036,7 +1036,7 @@ Happy note-taking! ✨''',
           'show_completed_tasks': getShowCompletedTasks(),
         },
         'exported_at': DateTime.now().toIso8601String(),
-        'version': '1.3.0', // Version bump for vault backup support
+        'version': '1.3.1', // Version bump for vault backup support
       };
 
       debugPrint('[StorageService] Export data prepared successfully');

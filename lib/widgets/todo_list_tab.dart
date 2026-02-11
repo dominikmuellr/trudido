@@ -199,23 +199,28 @@ class TodoListTab extends ConsumerWidget {
         ? ref.watch(visibleHolidaysProvider)
         : <Holiday>[];
 
-    // Get all tasks with due dates
-    final allTasks = tasks.where((t) => t.dueDate != null).toList();
-
     // Group items by time period
+    final overdueItems = <dynamic>[];
     final todayItems = <dynamic>[];
     final tomorrowItems = <dynamic>[];
     final upcomingItems = <dynamic>[];
+    final noDateItems = <dynamic>[];
 
     // Add tasks to groups
-    for (final task in allTasks) {
+    for (final task in tasks) {
+      if (task.dueDate == null) {
+        noDateItems.add(task);
+        continue;
+      }
       final taskDate = DateTime(
         task.dueDate!.year,
         task.dueDate!.month,
         task.dueDate!.day,
       );
 
-      if (taskDate.isAtSameMomentAs(today)) {
+      if (taskDate.isBefore(today)) {
+        overdueItems.add(task);
+      } else if (taskDate.isAtSameMomentAs(today)) {
         todayItems.add(task);
       } else if (taskDate.isAtSameMomentAs(tomorrow)) {
         tomorrowItems.add(task);
@@ -248,6 +253,12 @@ class TodoListTab extends ConsumerWidget {
 
     if (shouldSortByTime) {
       // Sort each group by date/time
+      overdueItems.sort((a, b) {
+        final aTime = a is Todo ? a.dueDate! : (a as Holiday).date;
+        final bTime = b is Todo ? b.dueDate! : (b as Holiday).date;
+        return aTime.compareTo(bTime);
+      });
+
       todayItems.sort((a, b) {
         final aTime = a is Todo ? a.dueDate! : (a as Holiday).date;
         final bTime = b is Todo ? b.dueDate! : (b as Holiday).date;
@@ -270,7 +281,11 @@ class TodoListTab extends ConsumerWidget {
 
     // Check if all groups are empty
     final isEmpty =
-        todayItems.isEmpty && tomorrowItems.isEmpty && upcomingItems.isEmpty;
+        overdueItems.isEmpty &&
+        todayItems.isEmpty &&
+        tomorrowItems.isEmpty &&
+        upcomingItems.isEmpty &&
+        noDateItems.isEmpty;
 
     if (isEmpty) {
       return _buildEmptyState(
@@ -283,6 +298,15 @@ class TodoListTab extends ConsumerWidget {
       physics: const BouncingScrollPhysics(),
       padding: SpacingEdgeInsets.insets16,
       children: [
+        // OVERDUE section
+        if (overdueItems.isNotEmpty) ...[
+          _buildSectionHeader(context, 'OVERDUE', colorScheme),
+          ...overdueItems.map(
+            (item) => _buildListItem(context, ref, item, theme, colorScheme),
+          ),
+          const SizedBox(height: 16),
+        ],
+
         // TODAY section
         if (todayItems.isNotEmpty) ...[
           _buildSectionHeader(context, 'TODAY', colorScheme),
@@ -305,6 +329,15 @@ class TodoListTab extends ConsumerWidget {
         if (upcomingItems.isNotEmpty) ...[
           _buildSectionHeader(context, 'UPCOMING', colorScheme),
           ...upcomingItems.map(
+            (item) => _buildListItem(context, ref, item, theme, colorScheme),
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        // NO DATE section
+        if (noDateItems.isNotEmpty) ...[
+          _buildSectionHeader(context, 'NO DATE', colorScheme),
+          ...noDateItems.map(
             (item) => _buildListItem(context, ref, item, theme, colorScheme),
           ),
           const SizedBox(height: 16),
