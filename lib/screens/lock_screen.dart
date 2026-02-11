@@ -52,9 +52,10 @@ class _LockScreenState extends State<LockScreen> {
     final alreadyAttempted =
         AppLockService.instance.biometricAttemptedThisSession;
     final inProgress = AppLockService.instance.isBiometricAuthInProgress;
+    final shouldDisable = AppLockService.instance.shouldDisableBiometric;
 
     debugPrint(
-      '[LockScreen] available=$available, enabled=$enabled, alreadyAttempted=$alreadyAttempted, inProgress=$inProgress',
+      '[LockScreen] available=$available, enabled=$enabled, alreadyAttempted=$alreadyAttempted, inProgress=$inProgress, shouldDisable=$shouldDisable',
     );
 
     setState(() {
@@ -62,8 +63,8 @@ class _LockScreenState extends State<LockScreen> {
       _biometricEnabled = enabled;
     });
 
-    // Auto-trigger biometric only once per lock session (tracked in service)
-    if (available && enabled && !alreadyAttempted) {
+    // Auto-trigger biometric only once per lock session AND if not disabled due to failed attempts
+    if (available && enabled && !alreadyAttempted && !shouldDisable) {
       debugPrint('[LockScreen] Auto-triggering biometric...');
       AppLockService.instance.markBiometricAttempted();
       _tryBiometricUnlock();
@@ -78,6 +79,14 @@ class _LockScreenState extends State<LockScreen> {
       debugPrint(
         '[LockScreen] _tryBiometricUnlock: already in progress, skipping',
       );
+      return;
+    }
+
+    // Check if biometric is disabled due to too many failed attempts
+    if (AppLockService.instance.shouldDisableBiometric) {
+      setState(() {
+        _errorMessage = 'Too many failed attempts. Please use PIN.';
+      });
       return;
     }
 
@@ -97,6 +106,18 @@ class _LockScreenState extends State<LockScreen> {
         return;
       } else {
         debugPrint('[LockScreen] Biometric failed or cancelled');
+        final attempts = AppLockService.instance.failedBiometricAttempts;
+        if (AppLockService.instance.shouldDisableBiometric) {
+          setState(() {
+            _errorMessage = 'Too many failed attempts. Please use PIN.';
+            _biometricEnabled = false; // Disable biometric UI
+          });
+        } else if (attempts > 0) {
+          setState(() {
+            _errorMessage =
+                'Biometric failed. ${3 - attempts} attempts remaining.';
+          });
+        }
       }
     } finally {
       if (mounted) {
@@ -226,7 +247,20 @@ class _LockScreenState extends State<LockScreen> {
                     )
                   : null,
             ),
-
+            // "Use PIN Instead" button (when biometric is available)
+            if (_biometricAvailable && _biometricEnabled && _enteredPin.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: ExpressiveTextButton(
+                  onPressed: () {
+                    // Just a visual hint - user can start typing PIN anytime
+                    setState(() {
+                      _errorMessage = null;
+                    });
+                  },
+                  child: const Text('Use PIN Instead'),
+                ),
+              ),
             const Spacer(),
 
             // Keypad

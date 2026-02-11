@@ -151,8 +151,10 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
       // Final stable tie-breaker: createdAt descending
       return b.createdAt.compareTo(a.createdAt);
     });
-    
-    print('[filteredTasksProvider] After sorting, first 3 tasks: ${filtered.take(3).map((t) => t.text).join(", ")}');
+
+    print(
+      '[filteredTasksProvider] After sorting, first 3 tasks: ${filtered.take(3).map((t) => t.text).join(", ")}',
+    );
   }
   return filtered;
 });
@@ -185,7 +187,8 @@ int _compareBySortKey(Todo a, Todo b, String key) {
       result = a.text.toLowerCase().compareTo(b.text.toLowerCase());
       break;
     default:
-      result = 0; // 'default' key has no specific order beyond completion grouping
+      result =
+          0; // 'default' key has no specific order beyond completion grouping
   }
   if (key == 'alphabetical' && result != 0) {
     print('[_compareBySortKey] Comparing "${a.text}" vs "${b.text}": $result');

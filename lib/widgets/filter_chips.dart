@@ -80,7 +80,9 @@ class FilterChips extends ConsumerWidget {
                       onSelected: (value) {
                         print('[FilterChips] Sort selected: $value');
                         ref.read(sortByProvider.notifier).update(value);
-                        print('[FilterChips] After update, sortBy is now: ${ref.read(sortByProvider)}');
+                        print(
+                          '[FilterChips] After update, sortBy is now: ${ref.read(sortByProvider)}',
+                        );
                         // Remove from secondary if user selects it as primary
                         final current = ref.read(secondarySortKeysProvider);
                         if (current.contains(value)) {
@@ -217,7 +219,9 @@ class FilterChips extends ConsumerWidget {
                         ref
                             .read(dueTodayFilterProvider.notifier)
                             .update(selected);
-                        print('[FilterChips] After update, dueTodayFilter is now: ${ref.read(dueTodayFilterProvider)}');
+                        print(
+                          '[FilterChips] After update, dueTodayFilter is now: ${ref.read(dueTodayFilterProvider)}',
+                        );
                       },
                     ),
 
@@ -249,11 +253,15 @@ class FilterChips extends ConsumerWidget {
                       onSelected: (selected) {
                         // Toggle: if selected (wants to hide), set false); else true
                         final newValue = !selected;
-                        print('[FilterChips] Show Completed toggled to: $newValue');
+                        print(
+                          '[FilterChips] Show Completed toggled to: $newValue',
+                        );
                         ref
                             .read(showCompletedProvider.notifier)
                             .update(newValue);
-                        print('[FilterChips] After update, showCompleted is now: ${ref.read(showCompletedProvider)}');
+                        print(
+                          '[FilterChips] After update, showCompleted is now: ${ref.read(showCompletedProvider)}',
+                        );
                         // Persist choice
                         StorageService.setShowCompletedTasks(newValue);
                       },

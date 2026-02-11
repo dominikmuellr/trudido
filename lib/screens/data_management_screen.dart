@@ -185,12 +185,21 @@ class _DangerZoneSheet extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () {
-              ref.read(taskControllerProvider.notifier).clearCompleted();
+            onPressed: () async {
               Navigator.of(context).pop();
+              // Show loading indicator
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Completed tasks cleared')),
+                const SnackBar(
+                  content: Text('Clearing completed tasks...'),
+                  duration: Duration(seconds: 1),
+                ),
               );
+              await ref.read(taskControllerProvider.notifier).clearCompleted();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Completed tasks cleared')),
+                );
+              }
             },
             child: const Text('Clear'),
           ),
@@ -216,12 +225,21 @@ class _DangerZoneSheet extends ConsumerWidget {
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
-            onPressed: () {
-              ref.read(taskControllerProvider.notifier).clearAll();
+            onPressed: () async {
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('All data cleared')));
+              // Show loading indicator
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Clearing all data...'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+              await ref.read(taskControllerProvider.notifier).clearAll();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('All data cleared')),
+                );
+              }
             },
             child: const Text('Clear All'),
           ),

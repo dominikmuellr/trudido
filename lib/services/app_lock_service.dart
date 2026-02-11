@@ -42,9 +42,18 @@ class AppLockService {
   bool _biometricAttemptedThisSession = false;
   bool _isBiometricAuthInProgress = false;
 
+  // Track failed biometric attempts (similar to vault)
+  int _failedBiometricAttempts = 0;
+  static const int maxBiometricAttempts = 3;
+
   bool get biometricAttemptedThisSession => _biometricAttemptedThisSession;
 
   bool get isBiometricAuthInProgress => _isBiometricAuthInProgress;
+
+  int get failedBiometricAttempts => _failedBiometricAttempts;
+
+  bool get shouldDisableBiometric =>
+      _failedBiometricAttempts >= maxBiometricAttempts;
 
   void markBiometricAttempted() {
     _biometricAttemptedThisSession = true;
@@ -53,6 +62,11 @@ class AppLockService {
   void resetBiometricAttempt() {
     _biometricAttemptedThisSession = false;
     _isBiometricAuthInProgress = false;
+    _failedBiometricAttempts = 0; // Reset failed attempts
+  }
+
+  void incrementFailedBiometricAttempts() {
+    _failedBiometricAttempts++;
   }
 
   Future<bool> isEnabled() async {
@@ -105,6 +119,8 @@ class AppLockService {
         key: _lastUnlockKey,
         value: _lastUnlockTime!.toIso8601String(),
       );
+      // Reset failed biometric attempts on successful PIN entry
+      _failedBiometricAttempts = 0;
     }
 
     return isValid;
@@ -116,6 +132,9 @@ class AppLockService {
 
     final biometricEnabled = await isBiometricEnabled();
     if (!biometricEnabled) return false;
+
+    // Check if too many failed attempts
+    if (shouldDisableBiometric) return false;
 
     _isBiometricAuthInProgress = true;
 
@@ -132,6 +151,11 @@ class AppLockService {
           key: _lastUnlockKey,
           value: _lastUnlockTime!.toIso8601String(),
         );
+        // Reset failed attempts on success
+        _failedBiometricAttempts = 0;
+      } else {
+        // Increment failed attempts on failure
+        _failedBiometricAttempts++;
       }
 
       return success;
