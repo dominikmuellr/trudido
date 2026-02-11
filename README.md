@@ -31,11 +31,11 @@
           <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="55">
         </a>
       </td>
-      <td align="center" style="vertical-align: middle;">
-        <a href="https://github.com/dominikmuellr/trudido/releases">
-          <img src="https://raw.githubusercontent.com/dominikmuellr/trudido/main/assets/getitongithub.png" alt="Get it on GitHub" height="55">
-        </a>
-      </td>
+<td align="center" style="vertical-align: middle;">
+      <a href="https://play.google.com/store/apps/details?id=com.trudido.app">
+        <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80">
+      </a>
+    </td>
     </tr>
   </table>
 </p>
