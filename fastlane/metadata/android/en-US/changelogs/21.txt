@@ -1,0 +1,18 @@
+Version 1.3.0
+
+• Added biometric unlock for app lock screen
+• Added task duration time support (#77)
+• Added swipe gesture to open navigation drawer (#76)
+• Added simple theme creator with Material You colors
+• Added 12h/24h time format toggle
+• Added font customization with 4 variable fonts (Open Sans, Lexend, JetBrains Mono, and more)
+• Added bulk mark-complete for past imported calendar tasks
+• Added notification tap-to-open functionality (#71)
+• Improved personalization menu with auto-saving profile name and dynamic profile icon colors
+• Improved auto-backup with optional password encryption
+• Fixed locked folder notes not decrypting properly after import (#72)
+• Fixed tasks not showing due to filter state initialization race conditions
+• Fixed Dracula theme issues
+• Migrated to Riverpod 3.x and updated all dependencies
+• Replaced vibration plugin with Flutter built-in HapticFeedback
+• Various Android build and compatibility improvements

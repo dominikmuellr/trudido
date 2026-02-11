@@ -30,7 +30,7 @@ Repo: https://github.com/dominikmuellr/trudido.git
 Builds:
   - versionName: 1.2.6
     versionCode: 2019
-    commit: v1.2.6
+    commit: 0469eae6b002481e622a2e172ba62923a627dbcc
     output: build/app/outputs/flutter-apk/app-fdroid-arm64-v8a-release.apk
     srclibs:
       - flutter@stable
@@ -52,7 +52,29 @@ Builds:
 
   - versionName: 1.2.7
     versionCode: 2020
-    commit: v1.2.7
+    commit: 20af36c1e3b87ffbae91311ff2c9307c8d6586fa
+    output: build/app/outputs/flutter-apk/app-fdroid-arm64-v8a-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+      - web
+    prebuild:
+      - export flutterVersion=$(sed -n -E 's/^\s*flutter:\s*"?([0-9.]+)"?/\1/p' pubspec.yaml)
+      - "[[ $flutterVersion ]] || exit 1"
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --flavor fdroid --dart-define=IS_FDROID=true --split-per-abi --target-platform android-arm64
+
+  - versionName: 1.3.0
+    versionCode: 2021
+    commit: v1.3.0
     output: build/app/outputs/flutter-apk/app-fdroid-arm64-v8a-release.apk
     srclibs:
       - flutter@stable
@@ -75,5 +97,5 @@ Builds:
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
-CurrentVersion: 1.2.7
-CurrentVersionCode: 2020
+CurrentVersion: 1.3.0
+CurrentVersionCode: 2021
