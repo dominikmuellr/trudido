@@ -4,9 +4,9 @@
 
 Full commit: TBD
 Short commit: TBD
-Commit summary: Update to v1.2.5
+Commit summary: Update to v1.3.1
 Commit date: TBD
-Tag(s) pointing at commit: v1.2.5
+Tag(s) pointing at commit: v1.3.1
 
 ## Flutter environment
 
@@ -20,7 +20,7 @@ Tools • Dart 3.9.2 • DevTools 2.48.0
 ## Build command & artifacts
 
 Working directory: D:/projects/todoflutter
-Suggested build command used: flutter build apk --release --build-name=1.2.5 --build-number=16
+Suggested build command used: flutter build apk --release --build-name=1.3.1 --build-number=22
 APK artifacts found:
 
 - build/app/outputs/flutter-apk/app-release.apk (26150396 bytes)

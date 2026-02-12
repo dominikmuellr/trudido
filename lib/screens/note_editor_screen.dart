@@ -25,6 +25,7 @@ import '../repositories/note_folder_repository.dart';
 import '../services/note_export_service.dart';
 import '../providers/app_providers.dart';
 import '../providers/note_history_provider.dart';
+import '../utils/markdown_inline_patterns.dart';
 import '../widgets/note_history_bottom_sheet.dart';
 import '../widgets/common/common.dart';
 
@@ -233,8 +234,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
               Consumer(
                 builder: (context, ref, _) {
                   final preferences = ref.watch(preferencesStateProvider);
-                  if (!preferences.enableNoteHistory)
+                  if (!preferences.enableNoteHistory) {
                     return const SizedBox.shrink();
+                  }
                   final canUndo = ref.watch(canUndoProvider(widget.noteId!));
                   return ExpressiveIconButton(
                     icon: const Icon(Icons.undo),
@@ -248,8 +250,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
               Consumer(
                 builder: (context, ref, _) {
                   final preferences = ref.watch(preferencesStateProvider);
-                  if (!preferences.enableNoteHistory)
+                  if (!preferences.enableNoteHistory) {
                     return const SizedBox.shrink();
+                  }
                   final canRedo = ref.watch(canRedoProvider(widget.noteId!));
                   return ExpressiveIconButton(
                     icon: const Icon(Icons.redo),
@@ -263,8 +266,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
               Consumer(
                 builder: (context, ref, _) {
                   final preferences = ref.watch(preferencesStateProvider);
-                  if (!preferences.enableNoteHistory)
+                  if (!preferences.enableNoteHistory) {
                     return const SizedBox.shrink();
+                  }
                   return ExpressiveIconButton(
                     icon: const Icon(Icons.history),
                     tooltip: 'View history',
@@ -584,39 +588,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     List<TextSpan> spans = [];
     int currentIndex = 0;
 
-    // Define all markdown patterns
-    final patterns = <RegExp, String>{
-      RegExp(r'\*\*([^*]+)\*\*'): 'bold',
-      RegExp(r'(?<!\*)\*(?!\*)([^*]+)\*(?!\*)'): 'italic',
-      RegExp(r'~~([^~]+)~~'): 'strikethrough',
-      RegExp(r'==([^=]+)=='): 'highlight',
-      RegExp(r'`([^`]+)`'): 'code',
-      RegExp(r'<u>([^<]+)</u>'): 'underline',
-    };
-
-    // Collect all matches
-    List<MapEntry<Match, String>> allMatches = [];
-    patterns.forEach((pattern, type) {
-      for (var match in pattern.allMatches(text)) {
-        allMatches.add(MapEntry(match, type));
-      }
-    });
-
-    // Sort by position
-    allMatches.sort((a, b) => a.key.start.compareTo(b.key.start));
-
-    // Filter overlapping matches
-    List<MapEntry<Match, String>> filteredMatches = [];
-    for (var matchEntry in allMatches) {
-      final match = matchEntry.key;
-      bool overlaps = filteredMatches.any(
-        (existing) =>
-            match.start < existing.key.end && match.end > existing.key.start,
-      );
-      if (!overlaps) {
-        filteredMatches.add(matchEntry);
-      }
-    }
+    final filteredMatches = MarkdownInlinePatterns.findNonOverlappingMatches(
+      text,
+      MarkdownInlinePatterns.textStyles,
+    );
 
     for (var matchEntry in filteredMatches) {
       final match = matchEntry.key;

@@ -26,6 +26,7 @@ import '../models/note.dart';
 import '../providers/app_providers.dart';
 import '../services/theme_service.dart';
 import '../utils/date_formatters.dart';
+import '../utils/markdown_inline_patterns.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import '../widgets/common/common.dart';
 
@@ -687,7 +688,7 @@ class NotePreviewCard extends ConsumerWidget {
               : Theme.of(context).colorScheme.primary.withOpacity(
                   0.08,
                 ), // Subtle tint of theme color in light mode
-          child: Container(
+          child: SizedBox(
             width: double.infinity,
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -850,69 +851,10 @@ class NotePreviewCard extends ConsumerWidget {
     List<TextSpan> spans = [];
     int currentIndex = 0;
 
-    // Find all markdown formatting patterns
-    // Use negative lookbehind/lookahead to avoid matching conflicts
-    final patterns = <RegExp>[
-      RegExp(r'\*\*([^*]+)\*\*'), // **bold**
-      RegExp(r'(?<!\*)\*(?!\*)([^*]+)\*(?!\*)'), // *italic* but not part of **
-      RegExp(r'__([^_]+)__'), // __bold__
-      RegExp(r'(?<!_)_(?!_)([^_]+)_(?!_)'), // _italic_ but not part of __
-      RegExp(r'~~([^~]+)~~'), // ~~strikethrough~~
-      RegExp(r'==([^=]+)=='), // ==highlight==
-      RegExp(r'`([^`]+)`'), // `code`
-      RegExp(r'<u>([^<]+)</u>'), // <u>underline</u>
-    ];
-
-    // Create a list of all matches with their positions
-    List<MapEntry<Match, String>> allMatches = [];
-
-    for (RegExp pattern in patterns) {
-      final matches = pattern.allMatches(text).toList();
-      for (Match match in matches) {
-        String type = '';
-        if (pattern.pattern.contains(r'\*\*') ||
-            pattern.pattern.contains(r'__')) {
-          type = 'bold';
-        } else if (pattern.pattern.contains(r'~~')) {
-          type = 'strikethrough';
-        } else if (pattern.pattern.contains(r'==')) {
-          type = 'highlight';
-        } else if (pattern.pattern.contains(r'<u>')) {
-          type = 'underline';
-        } else if (pattern.pattern.contains(r'\*') ||
-            pattern.pattern.contains(r'_')) {
-          type = 'italic';
-        } else if (pattern.pattern.contains(r'`')) {
-          type = 'code';
-        }
-        allMatches.add(MapEntry(match, type));
-      }
-    }
-
-    // Sort matches by start position
-    allMatches.sort((a, b) => a.key.start.compareTo(b.key.start));
-
-    // Filter out overlapping matches - keep longer/earlier matches
-    List<MapEntry<Match, String>> filteredMatches = [];
-    for (var matchEntry in allMatches) {
-      final match = matchEntry.key;
-      bool overlaps = false;
-
-      for (var existing in filteredMatches) {
-        // Check if this match overlaps with an already-added match
-        if (match.start < existing.key.end && match.end > existing.key.start) {
-          overlaps = true;
-          print(
-            'DEBUG Card Parse - Skipping overlapping match "${match.group(0)}" at ${match.start}-${match.end} (overlaps with "${existing.key.group(0)}" at ${existing.key.start}-${existing.key.end})',
-          );
-          break;
-        }
-      }
-
-      if (!overlaps) {
-        filteredMatches.add(matchEntry);
-      }
-    }
+    final filteredMatches = MarkdownInlinePatterns.findNonOverlappingMatches(
+      text,
+      MarkdownInlinePatterns.textStyles,
+    );
 
     // Build TextSpan with formatted sections
     for (var matchEntry in filteredMatches) {

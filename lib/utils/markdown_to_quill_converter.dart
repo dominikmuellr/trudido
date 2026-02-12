@@ -16,6 +16,7 @@
 
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/quill_delta.dart';
+import 'markdown_inline_patterns.dart';
 
 /// Converts markdown text to Quill Delta format
 /// This allows seamless migration from markdown notes to Quill WYSIWYG editor
@@ -106,45 +107,10 @@ class MarkdownToQuillConverter {
     }
 
     int currentIndex = 0;
-    final patterns = <RegExp, Map<String, dynamic>>{
-      // Bold patterns
-      RegExp(r'\*\*([^*]+)\*\*'): {'bold': true},
-      RegExp(r'__([^_]+)__'): {'bold': true},
-
-      // Italic patterns (with lookbehind/lookahead to avoid matching ** or __)
-      RegExp(r'(?<!\*)\*(?!\*)([^*]+)\*(?!\*)'): {'italic': true},
-      RegExp(r'(?<!_)_(?!_)([^_]+)_(?!_)'): {'italic': true},
-
-      // Other formatting
-      RegExp(r'~~([^~]+)~~'): {'strike': true},
-      RegExp(r'`([^`]+)`'): {'code': true},
-      RegExp(r'<u>([^<]+)</u>'): {'underline': true},
-      RegExp(r'==([^=]+)=='): {'background': '#ffff00'}, // Highlight
-    };
-
-    // Find all matches
-    List<MapEntry<Match, Map<String, dynamic>>> allMatches = [];
-    patterns.forEach((pattern, attributes) {
-      for (var match in pattern.allMatches(text)) {
-        allMatches.add(MapEntry(match, attributes));
-      }
-    });
-
-    // Sort by position
-    allMatches.sort((a, b) => a.key.start.compareTo(b.key.start));
-
-    // Filter overlapping matches
-    List<MapEntry<Match, Map<String, dynamic>>> filteredMatches = [];
-    for (var matchEntry in allMatches) {
-      final match = matchEntry.key;
-      bool overlaps = filteredMatches.any(
-        (existing) =>
-            match.start < existing.key.end && match.end > existing.key.start,
-      );
-      if (!overlaps) {
-        filteredMatches.add(matchEntry);
-      }
-    }
+    final filteredMatches = MarkdownInlinePatterns.findNonOverlappingMatches(
+      text,
+      MarkdownInlinePatterns.quillAttributes,
+    );
 
     // Insert text with formatting
     for (var matchEntry in filteredMatches) {

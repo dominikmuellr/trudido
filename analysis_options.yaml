@@ -1,5 +1,5 @@
+include: package:flutter_lints/flutter.yaml
+
 analyzer:
   exclude:
     - submodules/**
-  errors:
-    deprecated_member_use: ignore

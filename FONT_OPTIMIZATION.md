@@ -2,7 +2,7 @@
 
 ## Overview
 
-Replaced 4 static GoogleSans font files with 6 variable fonts, reducing font assets from **7.6 MB to 1.46 MB** (81% size reduction, ~6 MB saved).
+Replaced 4 static GoogleSans font files with 3 variable fonts, reducing font assets from **7.6 MB to 876 KB** (88% size reduction, ~6.7 MB saved).
 
 ## Font Assets
 
@@ -17,11 +17,9 @@ Replaced 4 static GoogleSans font files with 6 variable fonts, reducing font ass
 ### After
 
 - `OpenSans-Variable.ttf`: 521 KB (Clean & neutral)
-- `Inter-Variable.ttf`: 292 KB (Modern UI)
-- `AtkinsonHyperlegible-Variable.ttf`: 292 KB (Dyslexia-friendly ♿)
 - `JetBrainsMono-Variable.ttf`: 183 KB (Code & technical 💻)
 - `Lexend-Variable.ttf`: 172 KB (Enhanced readability 👁️)
-- **Total: 1.46 MB**
+- **Total: 876 KB**
 - System Roboto: 0 KB (built-in default)
 
 ## User-Facing Features
@@ -36,21 +34,19 @@ Replaced 4 static GoogleSans font files with 6 variable fonts, reducing font ass
 
 - **Roboto** (Default) - System font, 0 KB
 - **Open Sans** - Clean & neutral
-- **Inter** - Modern UI design
 
 **Specialized Fonts:**
 
-- **Atkinson Hyperlegible** - Dyslexia-friendly, improved accessibility
 - **JetBrains Mono** - Code & technical content
 - **Lexend** - Enhanced readability for reading disabilities
 
 ### User Benefits
 
 1. **Personalization**: Choose font that best suits reading preferences
-2. **Accessibility**: Dyslexia-friendly and high-legibility options
+2. **Accessibility**: High-legibility options for different reading preferences
 3. **Size Efficiency**: Variable fonts provide all weights in single file
 4. **Full Unicode**: No character limitations (unlike font subsetting)
-5. **Smaller APK**: 6 MB reduction improves download size and storage
+5. **Smaller APK**: ~6.7 MB reduction improves download size and storage
 
 ## Technical Implementation
 
@@ -76,7 +72,7 @@ TextTheme(fontFamily: ...)
 
 ### Files Modified
 
-1. **assets/fonts/** - Added 5 variable fonts, removed 4 static fonts
+1. **assets/fonts/** - Added 3 variable fonts, removed 4 static fonts
 2. **pubspec.yaml** - Updated font declarations
 3. **lib/models/preferences_state.dart** - Added `fontFamily` field (default: 'roboto')
 4. **lib/services/preferences_service.dart** - Added persistence for fontFamily
@@ -89,8 +85,6 @@ TextTheme(fontFamily: ...)
 
 - `roboto` → null (system font)
 - `opensans` → 'OpenSans'
-- `inter` → 'Inter'
-- `atkinson` → 'AtkinsonHyperlegible'
 - `jetbrains` → 'JetBrainsMono'
 - `lexend` → 'Lexend'
 
@@ -106,7 +100,7 @@ TextTheme(fontFamily: ...)
 - ✅ `flutter analyze` passes with no issues
 - ✅ Font switching functional via personalization UI
 - ✅ Font preference persists across app restarts
-- ✅ All 6 fonts load correctly
+- ✅ All configured fonts load correctly
 - ✅ Theme rebuilds when font changes
 
 ## Future Considerations
