@@ -285,7 +285,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                           color: _getColorForPriority(
                             task.priority,
                             colorScheme,
-                          ).withOpacity(0.2),
+                          ).withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: _getColorForPriority(
@@ -350,7 +350,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: colorScheme.outlineVariant.withOpacity(0.3),
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                       width: 0.5,
                     ),
                   ),
@@ -425,7 +425,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                     color: _getColorForPriority(
                       task.priority,
                       colorScheme,
-                    ).withOpacity(0.2),
+                    ).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: _getColorForPriority(task.priority, colorScheme),
@@ -476,7 +476,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                 ),
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -859,7 +859,9 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: MediaQuery(
-                data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(1.0)),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     // Use consistent small font size for all months to prevent overflow
@@ -1101,8 +1103,9 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                                     .where((e) => e.sourceCalendarColor == null)
                                     .toList();
 
-                          if (visibleEvents.isEmpty)
+                          if (visibleEvents.isEmpty) {
                             return const SizedBox.shrink();
+                          }
 
                           // Sort events: tasks with calendar colors first, then by priority
                           final sortedEvents = visibleEvents.toList()

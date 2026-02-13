@@ -78,7 +78,7 @@ class LinkEmbedBuilder extends quill.EmbedBuilder {
         );
       }
     } catch (e) {
-      print('Error opening link: $e');
+      debugPrint('Error opening link: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,

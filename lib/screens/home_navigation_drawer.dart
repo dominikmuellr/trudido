@@ -268,7 +268,7 @@ class _TaskFoldersList extends ConsumerWidget {
                     ),
                   ),
                   selected: selectedFolderId == null,
-                  selectedTileColor: colorScheme.secondaryContainer.withOpacity(
+                  selectedTileColor: colorScheme.secondaryContainer.withValues(alpha: 
                     0.3,
                   ),
                   shape: RoundedRectangleBorder(
@@ -338,7 +338,7 @@ class _TaskFoldersList extends ConsumerWidget {
                   ),
                 ),
                 selected: isSelected,
-                selectedTileColor: colorScheme.secondaryContainer.withOpacity(
+                selectedTileColor: colorScheme.secondaryContainer.withValues(alpha: 
                   0.3,
                 ),
                 shape: RoundedRectangleBorder(
@@ -412,7 +412,7 @@ class _NoteFoldersList extends ConsumerWidget {
                 ),
               ),
               selected: selectedFolderId == null,
-              selectedTileColor: colorScheme.secondaryContainer.withOpacity(
+              selectedTileColor: colorScheme.secondaryContainer.withValues(alpha: 
                 0.3,
               ),
               shape: RoundedRectangleBorder(
@@ -451,7 +451,7 @@ class _NoteFoldersList extends ConsumerWidget {
                   ),
                 ),
                 selected: isSelected,
-                selectedTileColor: colorScheme.secondaryContainer.withOpacity(
+                selectedTileColor: colorScheme.secondaryContainer.withValues(alpha: 
                   0.3,
                 ),
                 shape: RoundedRectangleBorder(
@@ -710,7 +710,7 @@ class _CompactCalendar extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
             child: Container(
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                 borderRadius: SpacingBorderRadius.md,
               ),
               child: TableCalendar<Todo>(
@@ -760,7 +760,7 @@ class _CompactCalendar extends ConsumerWidget {
                   ),
                   weekendStyle: TextStyle(
                     fontSize: 11,
-                    color: colorScheme.error.withOpacity(0.7),
+                    color: colorScheme.error.withValues(alpha: 0.7),
                   ),
                 ),
                 calendarStyle: CalendarStyle(
@@ -787,7 +787,7 @@ class _CompactCalendar extends ConsumerWidget {
                   ),
                   outsideTextStyle: TextStyle(
                     fontSize: 12,
-                    color: colorScheme.onSurface.withOpacity(0.3),
+                    color: colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                 ),
                 calendarBuilders: CalendarBuilders<Todo>(
@@ -898,7 +898,7 @@ class _CompactCalendar extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(1.5),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.06),
+                                    color: Colors.black.withValues(alpha: 0.06),
                                     blurRadius: 1,
                                   ),
                                 ],

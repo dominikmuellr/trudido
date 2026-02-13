@@ -124,7 +124,9 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
       ),
     );
 
+    if (!mounted) return;
     if (verified == true) {
+      if (!mounted) return;
       final result = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -370,7 +372,9 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
                   Padding(
                     padding: SpacingEdgeInsets.insets16,
                     child: Card(
-                      color: colorScheme.primaryContainer.withOpacity(0.3),
+                      color: colorScheme.primaryContainer.withValues(
+                        alpha: 0.3,
+                      ),
                       child: Padding(
                         padding: SpacingEdgeInsets.insets16,
                         child: Column(

@@ -246,14 +246,7 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
       return;
     }
     // Wait for localizations / navigator to be ready.
-    for (var i = 0; i < 10; i++) {
-      final ctx = NavigationService.navigatorKey.currentContext;
-      final loc = ctx == null
-          ? null
-          : Localizations.of<MaterialLocalizations>(ctx, MaterialLocalizations);
-      if (loc != null) break;
-      await Future.delayed(Duration(milliseconds: 50 * (i + 1)));
-    }
+    await _waitForLocalizations();
     if (!mounted) return;
     final proceed = await _showNotificationPrompt();
     if (proceed == true) {
@@ -279,6 +272,16 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
         }
       }
       StorageService.setMeta(flagKey, '1');
+    }
+  }
+
+  /// Waits until MaterialLocalizations are available via the navigator.
+  static Future<void> _waitForLocalizations() async {
+    for (var i = 0; i < 10; i++) {
+      if (NavigationService.navigatorKey.currentContext != null) {
+        return;
+      }
+      await Future.delayed(Duration(milliseconds: 50 * (i + 1)));
     }
   }
 
@@ -397,7 +400,7 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
       builder: (context, scale, _) {
         return ValueListenableBuilder<bool>(
           valueListenable: ignoreSystemNotifier,
-          builder: (context, ignoreSystem, __) {
+          builder: (context, ignoreSystem, _) {
             return MaterialApp(
               title: 'Trudido',
               debugShowCheckedModeBanner: false,
@@ -427,10 +430,10 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
                 final mq = MediaQuery.of(context);
                 final effective = ignoreSystem
                     ? scale
-                    : mq.textScaleFactor * scale;
+                    : mq.textScaler.scale(1.0) * scale;
 
                 return MediaQuery(
-                  data: mq.copyWith(textScaleFactor: effective),
+                  data: mq.copyWith(textScaler: TextScaler.linear(effective)),
                   child: child ?? const SizedBox.shrink(),
                 );
               },
@@ -473,6 +476,7 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap>
         debugPrint('[Bootstrap] ✓ NotificationBridge initialized');
 
         // Initialize notification action sync (pulls pending actions from native)
+        if (!mounted) return;
         await NotificationActionSync.instance.initialize(
           ProviderScope.containerOf(context),
         );

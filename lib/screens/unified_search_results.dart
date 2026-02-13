@@ -105,9 +105,7 @@ class UnifiedSearchResults extends ConsumerWidget {
               filteredTasks.isEmpty &&
               filteredSettings.isEmpty &&
               (filteredNotesAsync.value?.isEmpty ?? true) &&
-              (filteredFoldersAsync.value
-                      ?.where((f) => !f.isVault)
-                      .isEmpty ??
+              (filteredFoldersAsync.value?.where((f) => !f.isVault).isEmpty ??
                   true) &&
               (filteredNoteFoldersAsync.value
                       ?.where((f) => !f.isVault)
@@ -351,7 +349,7 @@ class UnifiedSearchResults extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, stackTrace) => const SizedBox.shrink(),
     );
   }
 
@@ -397,7 +395,7 @@ class UnifiedSearchResults extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, stackTrace) => const SizedBox.shrink(),
     );
   }
 
@@ -443,7 +441,7 @@ class UnifiedSearchResults extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, stackTrace) => const SizedBox.shrink(),
     );
   }
 

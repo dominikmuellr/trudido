@@ -390,10 +390,7 @@ Happy note-taking! ✨''',
   static Future<void> saveTodo(Todo todo) async {
     await waitTodosReady();
     try {
-      if (_todosLazyBox == null) {
-        // Attempt to open the lazy box now as a last resort
-        _todosLazyBox = await Hive.openLazyBox<Todo>(_todosBoxName);
-      }
+      _todosLazyBox ??= await Hive.openLazyBox<Todo>(_todosBoxName);
       if (_todosLazyBox != null) {
         await _todosLazyBox!.put(todo.id, todo);
         return;
@@ -408,9 +405,7 @@ Happy note-taking! ✨''',
   static Future<void> deleteTodo(String id) async {
     await waitTodosReady();
     try {
-      if (_todosLazyBox == null) {
-        _todosLazyBox = await Hive.openLazyBox<Todo>(_todosBoxName);
-      }
+      _todosLazyBox ??= await Hive.openLazyBox<Todo>(_todosBoxName);
       if (_todosLazyBox != null) {
         final todo = await _todosLazyBox!.get(id);
         if (todo != null) {
@@ -447,9 +442,7 @@ Happy note-taking! ✨''',
   static Future<void> updateTodo(Todo todo) async {
     await waitTodosReady();
     try {
-      if (_todosLazyBox == null) {
-        _todosLazyBox = await Hive.openLazyBox<Todo>(_todosBoxName);
-      }
+      _todosLazyBox ??= await Hive.openLazyBox<Todo>(_todosBoxName);
       if (_todosLazyBox != null) {
         await _todosLazyBox!.put(todo.id, todo);
         return;
@@ -1050,8 +1043,9 @@ Happy note-taking! ✨''',
 
   // FAB position (left | center | right) preference
   static Future<void> setFabPosition(String position) async {
-    if (position != 'left' && position != 'center' && position != 'right')
+    if (position != 'left' && position != 'center' && position != 'right') {
       return;
+    }
     await _ensurePrefs();
     await _prefs!.setString('fab_position', position);
   }

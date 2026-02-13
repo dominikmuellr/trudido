@@ -257,50 +257,70 @@ class PreferencesService {
     }
     try {
       if (themeMode != null) await p.setString('theme_mode', themeMode);
-      if (useDynamicColor != null)
+      if (useDynamicColor != null) {
         await p.setBool('use_dynamic_color', useDynamicColor);
-      if (useBlackTheme != null)
+      }
+      if (useBlackTheme != null) {
         await p.setBool('use_black_theme', useBlackTheme);
-      if (accentColorSeed != null)
+      }
+      if (accentColorSeed != null) {
         await p.setInt('accent_color_seed', accentColorSeed);
+      }
       if (hideGreeting != null) await p.setBool('hide_greeting', hideGreeting);
-      if (greetingLanguage != null)
+      if (greetingLanguage != null) {
         await p.setInt('greeting_language', greetingLanguage);
-      if (showSearchBar != null)
+      }
+      if (showSearchBar != null) {
         await p.setBool('show_search_bar', showSearchBar);
+      }
       if (fabPosition != null) await p.setString('fab_position', fabPosition);
-      if (swipeLeftAction != null)
+      if (swipeLeftAction != null) {
         await p.setString('swipe_left_action', swipeLeftAction);
-      if (swipeRightAction != null)
+      }
+      if (swipeRightAction != null) {
         await p.setString('swipe_right_action', swipeRightAction);
-      if (hideNoteToolbar != null)
+      }
+      if (hideNoteToolbar != null) {
         await p.setBool('hide_note_toolbar', hideNoteToolbar);
-      if (showMoreNoteToolbar != null)
+      }
+      if (showMoreNoteToolbar != null) {
         await p.setBool('show_more_note_toolbar', showMoreNoteToolbar);
-      if (useFloatingNoteToolbar != null)
+      }
+      if (useFloatingNoteToolbar != null) {
         await p.setBool('use_floating_note_toolbar', useFloatingNoteToolbar);
-      if (useQuickInputBar != null)
+      }
+      if (useQuickInputBar != null) {
         await p.setBool('use_quick_input_bar', useQuickInputBar);
-      if (enableNoteHistory != null)
+      }
+      if (enableNoteHistory != null) {
         await p.setBool('enable_note_history', enableNoteHistory);
-      if (hideBottomNavigation != null)
+      }
+      if (hideBottomNavigation != null) {
         await p.setBool('hide_bottom_navigation', hideBottomNavigation);
-      if (firstDayOfWeek != null)
+      }
+      if (firstDayOfWeek != null) {
         await p.setInt('first_day_of_week', firstDayOfWeek);
-      if (defaultTaskView != null)
+      }
+      if (defaultTaskView != null) {
         await p.setString('default_task_view', defaultTaskView);
-      if (hapticsEnabled != null)
+      }
+      if (hapticsEnabled != null) {
         await p.setBool('haptics_enabled', hapticsEnabled);
+      }
       if (fontFamily != null) await p.setString('font_family', fontFamily);
       if (timeFormat != null) await p.setString('time_format', timeFormat);
-      if (lineHeightMultiplier != null)
+      if (lineHeightMultiplier != null) {
         await p.setDouble('line_height_multiplier', lineHeightMultiplier);
-      if (paragraphSpacing != null)
+      }
+      if (paragraphSpacing != null) {
         await p.setDouble('paragraph_spacing', paragraphSpacing);
-      if (contrastLevel != null)
+      }
+      if (contrastLevel != null) {
         await p.setString('contrast_level', contrastLevel);
-      if (activeCustomThemeId != null)
+      }
+      if (activeCustomThemeId != null) {
         await p.setString('active_custom_theme_id', activeCustomThemeId);
+      }
       if (clearActiveCustomTheme) await p.remove('active_custom_theme_id');
       _hydrate();
       return _cache;

@@ -595,7 +595,7 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: cs.shadow.withOpacity(0.15),
+                      color: cs.shadow.withValues(alpha: 0.15),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -699,7 +699,7 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
             _toggleMoreOptions();
           },
           borderRadius: BorderRadius.circular(12),
-          child: Container(
+          child: SizedBox(
             width: 40,
             height: 40,
             child: Icon(
@@ -731,7 +731,7 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
             height: 40,
             decoration: BoxDecoration(
               color: item.isActive
-                  ? cs.primaryContainer.withOpacity(0.5)
+                  ? cs.primaryContainer.withValues(alpha: 0.5)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
             ),
@@ -751,7 +751,7 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
       width: 24,
       height: 1,
       margin: const EdgeInsets.symmetric(vertical: 4),
-      color: cs.outlineVariant.withOpacity(0.5),
+      color: cs.outlineVariant.withValues(alpha: 0.5),
     );
   }
 }

@@ -123,11 +123,10 @@ class ExpressiveTextButton extends ConsumerWidget {
   const ExpressiveTextButton.icon({
     super.key,
     required this.onPressed,
-    required Widget icon,
+    required this.icon,
     required Widget label,
     this.style,
-  }) : child = label,
-       icon = icon;
+  }) : child = label;
 
   // Forward static methods from TextButton
   static ButtonStyle styleFrom({
@@ -217,11 +216,10 @@ class ExpressiveElevatedButton extends ConsumerWidget {
   const ExpressiveElevatedButton.icon({
     super.key,
     required this.onPressed,
-    required Widget icon,
+    required this.icon,
     required Widget label,
     this.style,
-  }) : child = label,
-       icon = icon;
+  }) : child = label;
 
   // Forward static methods from ElevatedButton
   static ButtonStyle styleFrom({
@@ -311,11 +309,10 @@ class ExpressiveOutlinedButton extends ConsumerWidget {
   const ExpressiveOutlinedButton.icon({
     super.key,
     required this.onPressed,
-    required Widget icon,
+    required this.icon,
     required Widget label,
     this.style,
-  }) : child = label,
-       icon = icon;
+  }) : child = label;
 
   // Forward static methods from OutlinedButton
   static ButtonStyle styleFrom({
@@ -423,8 +420,8 @@ class ExpressiveFloatingActionButton extends ConsumerWidget {
   const ExpressiveFloatingActionButton.extended({
     super.key,
     required this.onPressed,
-    required Widget label,
-    Widget? icon,
+    required this.label,
+    this.icon,
     this.tooltip,
     this.backgroundColor,
     this.foregroundColor,
@@ -433,8 +430,6 @@ class ExpressiveFloatingActionButton extends ConsumerWidget {
     this.highlightElevation,
     this.shape,
   }) : child = null,
-       label = label,
-       icon = icon,
        isExtended = true,
        isSmall = false;
 

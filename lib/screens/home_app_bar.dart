@@ -436,7 +436,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
           subtitle,
           style: theme.textTheme.bodySmall?.copyWith(
             fontWeight: FontWeight.w500,
-            color: theme.colorScheme.secondary.withOpacity(0.8),
+            color: theme.colorScheme.secondary.withValues(alpha: 0.8),
             fontSize: 13,
           ),
           overflow: TextOverflow.ellipsis,
@@ -482,7 +482,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
           subtitle,
           style: theme.textTheme.bodySmall?.copyWith(
             fontWeight: FontWeight.w500,
-            color: theme.colorScheme.secondary.withOpacity(0.8),
+            color: theme.colorScheme.secondary.withValues(alpha: 0.8),
             fontSize: 13,
           ),
           overflow: TextOverflow.ellipsis,

@@ -209,6 +209,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
     bool isEnabled = isCurrentlyEnabled;
     bool obscurePassword = true;
 
+    if (!mounted) return;
     final result = await showDialog<Map<String, dynamic>?>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -272,7 +273,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
 
                         // Backup Frequency
                         DropdownButtonFormField<int>(
-                          value: selectedInterval,
+                          initialValue: selectedInterval,
                           decoration: const InputDecoration(
                             labelText: 'Backup Frequency',
                             border: OutlineInputBorder(),
@@ -497,7 +498,9 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                         final backup = backups[index];
                         return RadioListTile<AutoBackupFile>(
                           value: backup,
+                          // ignore: deprecated_member_use
                           groupValue: selectedBackup,
+                          // ignore: deprecated_member_use
                           onChanged: (value) {
                             setState(() => selectedBackup = value);
                           },
@@ -901,12 +904,13 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                         icon: const Icon(Icons.restore),
                         tooltip: 'Reset to default',
                         onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
                           final success = await AutoBackupService.instance
                               .clearCustomBackupFolder();
                           if (!mounted) return;
                           if (success) {
                             setState(() {});
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            messenger.showSnackBar(
                               const SnackBar(
                                 content: Text('Reverted to default folder'),
                               ),
@@ -923,6 +927,7 @@ class _BackupSettingsPageState extends ConsumerState<BackupSettingsPage> {
                   if (!mounted) return;
                   if (success) {
                     setState(() {});
+                    // ignore: use_build_context_synchronously
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Backup folder updated successfully'),

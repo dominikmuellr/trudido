@@ -246,7 +246,7 @@ final historyTreeProvider = Provider.family<HistoryTree?, String>((
   return historyAsync.when(
     data: (entries) => entries.isEmpty ? null : HistoryTree(entries),
     loading: () => null,
-    error: (_, __) => null,
+    error: (_, stackTrace) => null,
   );
 });
 

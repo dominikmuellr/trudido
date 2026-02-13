@@ -17,7 +17,7 @@
 import 'package:flutter/material.dart';
 
 double scaledSize(BuildContext context, double baseSize) {
-  final textScale = MediaQuery.textScaleFactorOf(context);
+  final textScale = MediaQuery.textScalerOf(context).scale(1.0);
   return baseSize * textScale;
 }
 

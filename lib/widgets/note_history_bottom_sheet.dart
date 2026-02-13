@@ -94,7 +94,7 @@ class _NoteHistoryBottomSheetState
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: colorScheme.onSurfaceVariant.withOpacity(0.4),
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -192,7 +192,7 @@ class _NoteHistoryBottomSheetState
                     Text(
                       'Tap an entry to navigate to that version',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -246,7 +246,7 @@ class _NoteHistoryBottomSheetState
           Icon(
             Icons.history,
             size: 64,
-            color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
           ),
           SpacingGap.gapV16,
           Text(
@@ -259,7 +259,7 @@ class _NoteHistoryBottomSheetState
           Text(
             'Changes to notes will appear here',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -471,7 +471,7 @@ class _NoteHistoryBottomSheetState
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           margin: const EdgeInsets.only(bottom: 4),
           decoration: BoxDecoration(
-            color: branchColor.withOpacity(0.2),
+            color: branchColor.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: branchColor, width: 1),
           ),
@@ -489,7 +489,7 @@ class _NoteHistoryBottomSheetState
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  branchIndex == 0 ? 'Main' : 'Branch ${branchIndex}',
+                  branchIndex == 0 ? 'Main' : 'Branch $branchIndex',
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: branchColor,
                     fontWeight: FontWeight.w600,
@@ -513,7 +513,7 @@ class _NoteHistoryBottomSheetState
                 color:
                     _branchColors[branchData.parentBranchIndex %
                             _branchColors.length]
-                        .withOpacity(0.5),
+                        .withValues(alpha: 0.5),
                 width: 1,
               ),
             ),
@@ -544,7 +544,7 @@ class _NoteHistoryBottomSheetState
                           use24Hour: _use24Hour,
                         ),
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+                          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                           fontSize: 10,
                         ),
                       ),
@@ -571,7 +571,7 @@ class _NoteHistoryBottomSheetState
             height: 8,
             width: 1,
             margin: const EdgeInsets.only(left: 10, bottom: 2),
-            color: branchColor.withOpacity(0.3),
+            color: branchColor.withValues(alpha: 0.3),
           ),
         ],
 
@@ -790,7 +790,7 @@ class _CompactEntryTile extends StatelessWidget {
                 boxShadow: isCurrentPosition
                     ? [
                         BoxShadow(
-                          color: colorScheme.primary.withOpacity(0.4),
+                          color: colorScheme.primary.withValues(alpha: 0.4),
                           blurRadius: 8,
                           spreadRadius: 1,
                         ),
@@ -808,7 +808,7 @@ class _CompactEntryTile extends StatelessWidget {
                   side: isCurrentPosition
                       ? BorderSide(color: colorScheme.primary, width: 2)
                       : BorderSide(
-                          color: branchColor.withOpacity(0.3),
+                          color: branchColor.withValues(alpha: 0.3),
                           width: 1,
                         ),
                 ),
@@ -890,7 +890,7 @@ class _CompactEntryTile extends StatelessWidget {
                         Text(
                           entry.contentBeforePreview,
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant.withOpacity(
+                            color: colorScheme.onSurfaceVariant.withValues(alpha: 
                               0.8,
                             ),
                             fontSize: 11,
@@ -953,7 +953,7 @@ class _VerticalLinePainter extends CustomPainter {
     // Add outer ring for current position
     if (isCurrentPosition) {
       final ringPaint = Paint()
-        ..color = highlightColor.withOpacity(0.3)
+        ..color = highlightColor.withValues(alpha: 0.3)
         ..strokeWidth = 2
         ..style = PaintingStyle.stroke;
       canvas.drawCircle(Offset(centerX, size.height / 2), 10, ringPaint);
@@ -994,7 +994,7 @@ class _HistoryEntryTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       elevation: 0,
       color: isCurrentPosition
-          ? colorScheme.primaryContainer.withOpacity(0.5)
+          ? colorScheme.primaryContainer.withValues(alpha: 0.5)
           : colorScheme.surfaceContainerLow,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -1080,7 +1080,7 @@ class _HistoryEntryTile extends StatelessWidget {
                     Text(
                       entry.contentBeforePreview,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -1093,7 +1093,7 @@ class _HistoryEntryTile extends StatelessWidget {
               Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
-                color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               ),
             ],
           ),

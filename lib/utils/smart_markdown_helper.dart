@@ -47,7 +47,7 @@ class SmartMarkdownHelper {
         // Subtle shadow for depth
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withOpacity(0.08),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             offset: const Offset(0, 2),
             blurRadius: 4,
           ),
@@ -97,13 +97,13 @@ class SmartMarkdownHelper {
         color: _getCodeBlockBackgroundColor(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: colorScheme.outline.withOpacity(0.15),
+          color: colorScheme.outline.withValues(alpha: 0.15),
           width: 1,
         ),
         // VS Code-style shadow
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withOpacity(0.08),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             offset: const Offset(0, 2),
             blurRadius: 8,
           ),
@@ -288,9 +288,9 @@ class SmartMarkdownHelper {
   /// - Red: 29.9% weight (medium brightness)
   /// - Blue: 11.4% weight (appears darkest)
   static double _calculateLuminosity(Color color) {
-    final r = color.red / 255.0;
-    final g = color.green / 255.0;
-    final b = color.blue / 255.0;
+    final r = color.r;
+    final g = color.g;
+    final b = color.b;
 
     return (0.299 * r) + (0.587 * g) + (0.114 * b);
   }
@@ -385,7 +385,9 @@ class SmartMarkdownHelper {
           color: _getCodeBlockBackgroundColor(context),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.15),
+            color: Theme.of(
+              context,
+            ).colorScheme.outline.withValues(alpha: 0.15),
             width: 1,
           ),
         ),
@@ -397,7 +399,10 @@ class SmartMarkdownHelper {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getSyntaxColor(context, 'comment').withOpacity(0.1),
+                  color: _getSyntaxColor(
+                    context,
+                    'comment',
+                  ).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(

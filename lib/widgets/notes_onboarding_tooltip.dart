@@ -154,7 +154,7 @@ class _NotesOnboardingTooltipState extends State<NotesOnboardingTooltip>
                   child: Container(
                     width: double.infinity,
                     height: double.infinity,
-                    color: Colors.black.withOpacity(0.75),
+                    color: Colors.black.withValues(alpha: 0.75),
                     child: Center(
                       child: Transform.scale(
                         scale: _scaleAnimation.value,
@@ -166,7 +166,7 @@ class _NotesOnboardingTooltipState extends State<NotesOnboardingTooltip>
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.3),
+                                color: Colors.black.withValues(alpha: 0.3),
                                 blurRadius: 20,
                                 offset: const Offset(0, 8),
                               ),
@@ -238,7 +238,7 @@ class _NotesOnboardingTooltipState extends State<NotesOnboardingTooltip>
                                   color: Theme.of(context)
                                       .colorScheme
                                       .surfaceContainerHighest
-                                      .withOpacity(0.5),
+                                      .withValues(alpha: 0.5),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
@@ -294,7 +294,7 @@ class _NotesOnboardingTooltipState extends State<NotesOnboardingTooltip>
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
@@ -321,7 +321,7 @@ class _NotesOnboardingTooltipState extends State<NotesOnboardingTooltip>
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.8),
+                  ).colorScheme.onSurface.withValues(alpha: 0.8),
                   height: 1.3,
                 ),
               ),

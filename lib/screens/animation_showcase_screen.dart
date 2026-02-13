@@ -145,8 +145,8 @@ class _AnimationShowcaseScreenState extends State<AnimationShowcaseScreen>
                           height: 4,
                           margin: const EdgeInsets.only(bottom: 20),
                           decoration: BoxDecoration(
-                            color: colorScheme.onSurfaceVariant.withOpacity(
-                              0.4,
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.4,
                             ),
                             borderRadius: BorderRadius.circular(2),
                           ),
@@ -585,7 +585,7 @@ class _AnimationShowcaseScreenState extends State<AnimationShowcaseScreen>
 class _DemoScreen extends StatelessWidget {
   final String title;
 
-  const _DemoScreen({Key? key, required this.title}) : super(key: key);
+  const _DemoScreen({required this.title});
 
   @override
   Widget build(BuildContext context) {

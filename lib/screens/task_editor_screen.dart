@@ -226,7 +226,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           'Quick Options',
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface.withOpacity(0.9),
+            color: colorScheme.onSurface.withValues(alpha: 0.9),
           ),
         ),
         SpacingGap.gapV12,
@@ -475,7 +475,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           'Additional Options',
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface.withOpacity(0.9),
+            color: colorScheme.onSurface.withValues(alpha: 0.9),
           ),
         ),
         SpacingGap.gapV16,
@@ -558,7 +558,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                           }
                         },
                       );
-                    }).toList(),
+                    }),
                     // Add folder chip
                     ActionChip(
                       label: const Text('ADD FOLDER'),
@@ -1226,7 +1226,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                     },
                   );
                 }
-              }).toList(),
+              }),
               // Clear duration option
               ListTile(
                 leading: const Icon(Icons.clear),

@@ -149,7 +149,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       });
     }
 
-    print('QuillNoteEditor initialized: noteId=${widget.noteId}');
+    debugPrint('QuillNoteEditor initialized: noteId=${widget.noteId}');
   }
 
   /// Load toolbar visibility preferences
@@ -328,7 +328,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       // This will format the entire paragraph/block at the cursor position
       _quillController.formatSelection(attribute);
     } catch (e) {
-      print('Error applying markdown format: $e');
+      debugPrint('Error applying markdown format: $e');
     }
   }
 
@@ -624,7 +624,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
             quill.LinkAttribute(url),
           );
 
-          print('Inserted inline link: text="$displayText", url="$url"');
+          debugPrint('Inserted inline link: text="$displayText", url="$url"');
         },
       ),
     );
@@ -1085,7 +1085,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
               ),
               ExpressiveTextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                style: ExpressiveTextButton.styleFrom(foregroundColor: Colors.red),
+                style: ExpressiveTextButton.styleFrom(
+                  foregroundColor: Colors.red,
+                ),
                 child: const Text('Discard'),
               ),
             ],
@@ -1341,6 +1343,8 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
 
   Future<void> _exportAsPdf(Note note) async {
     if (!mounted) return;
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     // Show only an indeterminate spinner (no textual message)
     showDialog<void>(
       context: context,
@@ -1368,20 +1372,14 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       );
       final filename =
           '$safeTitle-${DateTime.now().toIso8601String().split('T').first}.pdf';
-      await NoteExportService.sharePdf(bytes, filename, context);
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Exported "$filename"')));
-      }
+      await NoteExportService.sharePdf(bytes, filename);
+      if (!mounted) return;
+      navigator.pop();
+      messenger.showSnackBar(SnackBar(content: Text('Exported "$filename"')));
     } catch (e) {
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
-      }
+      if (!mounted) return;
+      navigator.pop();
+      messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
     }
   }
 
@@ -1407,7 +1405,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error opening link: $e');
+        debugPrint('Error opening link: $e');
       }
       if (mounted) {
         ScaffoldMessenger.of(
@@ -1526,7 +1524,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             decoration: BoxDecoration(
               border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outline.withValues(alpha: 0.3),
                 width: 1,
               ),
               borderRadius: BorderRadius.circular(12),
@@ -1651,7 +1651,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                       bottom: BorderSide(
                         color: Theme.of(
                           context,
-                        ).colorScheme.outlineVariant.withOpacity(0.5),
+                        ).colorScheme.outlineVariant.withValues(alpha: 0.5),
                         width: 0.5,
                       ),
                     ),

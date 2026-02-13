@@ -235,8 +235,9 @@ class HiveFolderRepository implements FolderRepository {
   Folder _pickFolderToKeep(Folder a, Folder b) {
     // Prefer default, then earlier createdAt, then lower id lexicographically
     if (a.isDefault != b.isDefault) return a.isDefault ? a : b;
-    if (a.createdAt != b.createdAt)
+    if (a.createdAt != b.createdAt) {
       return a.createdAt.isBefore(b.createdAt) ? a : b;
+    }
     return a.id.compareTo(b.id) <= 0 ? a : b;
   }
 

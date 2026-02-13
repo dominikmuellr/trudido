@@ -56,7 +56,9 @@ class _HolidayCalendarSettingsScreenState
               subtitle: Text('${importedTasks.length} events imported'),
               value: showImported,
               onChanged: (value) {
-                ref.read(showImportedEventsInCalendarProvider.notifier).update(value);
+                ref
+                    .read(showImportedEventsInCalendarProvider.notifier)
+                    .update(value);
               },
             ),
 
@@ -233,7 +235,7 @@ class _HolidayCalendarSettingsScreenState
         );
 
         // Check for past imported tasks and offer to mark them complete
-        if (mounted) {
+        if (context.mounted) {
           await _checkAndOfferMarkPastComplete(context);
         }
       } else {
@@ -265,6 +267,7 @@ class _HolidayCalendarSettingsScreenState
 
     if (!mounted) return;
 
+    if (!context.mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -292,6 +295,7 @@ class _HolidayCalendarSettingsScreenState
       final ids = pastTasks.map((t) => t.id);
       await taskController.bulkComplete(ids);
 
+      if (!context.mounted) return;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

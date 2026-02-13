@@ -196,3 +196,7 @@ macos/Pods/
 # Keystore
 *.jks
 trudido-clean/
+
+# Local backup/tooling artifacts
+android_icon_backups/
+replace_buttons.py

@@ -123,12 +123,13 @@ class _CalendarSyncSettingsScreenState
           onChanged: _isLoading
               ? null
               : (value) async {
+                  final messenger = ScaffoldMessenger.of(context);
                   setState(() => _isLoading = true);
                   if (value && !status.hasPermissions) {
                     final granted = await service.requestPermissions();
                     if (!granted) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           const SnackBar(
                             content: Text('Calendar permission required'),
                           ),
@@ -155,10 +156,11 @@ class _CalendarSyncSettingsScreenState
               subtitle: const Text('Tap to grant permission'),
               trailing: FilledButton(
                 onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
                   final granted = await service.requestPermissions();
                   ref.invalidate(calendarSyncStatusProvider);
                   if (!granted && mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       const SnackBar(
                         content: Text(
                           'Please enable calendar permission in settings',
@@ -439,11 +441,11 @@ class _CalendarSyncSettingsScreenState
     final service = ref.read(calendarSyncServiceProvider);
     final diagnostics = await service.getDiagnosticInfo();
 
-    if (!mounted) return;
+    if (!context.mounted) return;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Calendar Diagnostics'),
         content: SingleChildScrollView(
           child: SelectableText(
@@ -453,7 +455,7 @@ class _CalendarSyncSettingsScreenState
         ),
         actions: [
           ExpressiveTextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Close'),
           ),
         ],
@@ -739,6 +741,7 @@ class _CalendarSyncSettingsScreenState
   }
 
   Future<void> _syncAllTasks(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _isSyncing = true);
 
     try {
@@ -767,15 +770,11 @@ class _CalendarSyncSettingsScreenState
         if (result.imported.isNotEmpty) {
           message += ', imported ${result.imported.length} events';
         }
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+        messenger.showSnackBar(SnackBar(content: Text(message)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Sync failed: $e')));
+        messenger.showSnackBar(SnackBar(content: Text('Sync failed: $e')));
       }
     } finally {
       setState(() => _isSyncing = false);
@@ -894,6 +893,7 @@ class _CalendarSyncSettingsScreenState
     DateTime endDate, [
     bool skipAlreadyImported = true,
   ]) async {
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _isImporting = true);
 
     try {
@@ -904,7 +904,7 @@ class _CalendarSyncSettingsScreenState
 
       if (calendarsToImport.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             const SnackBar(content: Text('No calendars selected for import')),
           );
         }
@@ -930,7 +930,7 @@ class _CalendarSyncSettingsScreenState
 
       if (totalAdded == 0) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             const SnackBar(content: Text('No new events to import')),
           );
         }
@@ -938,7 +938,7 @@ class _CalendarSyncSettingsScreenState
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('Imported $totalAdded events as tasks')),
         );
       }
@@ -951,9 +951,7 @@ class _CalendarSyncSettingsScreenState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+        messenger.showSnackBar(SnackBar(content: Text('Import failed: $e')));
       }
     } finally {
       setState(() => _isImporting = false);
@@ -961,6 +959,7 @@ class _CalendarSyncSettingsScreenState
   }
 
   Future<void> _performTwoWaySync(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
     setState(() {
       _isSyncing = true;
       _isImporting = true;
@@ -985,7 +984,7 @@ class _CalendarSyncSettingsScreenState
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
               'Exported ${result.exported} tasks, imported ${result.imported.length} events',
@@ -997,14 +996,12 @@ class _CalendarSyncSettingsScreenState
       ref.invalidate(calendarSyncStatusProvider);
 
       // Check for past imported tasks and offer to mark them complete
-      if (mounted) {
+      if (context.mounted) {
         await _checkAndOfferMarkPastComplete(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Sync failed: $e')));
+        messenger.showSnackBar(SnackBar(content: Text('Sync failed: $e')));
       }
     } finally {
       setState(() {
@@ -1053,6 +1050,7 @@ class _CalendarSyncSettingsScreenState
   }
 
   Future<void> _cleanupDuplicates(String calendarId) async {
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _isSyncing = true);
 
     try {
@@ -1066,7 +1064,7 @@ class _CalendarSyncSettingsScreenState
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
               deleted > 0
@@ -1078,9 +1076,7 @@ class _CalendarSyncSettingsScreenState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Cleanup failed: $e')));
+        messenger.showSnackBar(SnackBar(content: Text('Cleanup failed: $e')));
       }
     } finally {
       setState(() => _isSyncing = false);
@@ -1164,11 +1160,11 @@ class _CalendarSyncSettingsScreenState
     final pastTasks = ref.read(pastImportedUncompletedTasksProvider);
     if (pastTasks.isEmpty) return;
 
-    if (!mounted) return;
+    if (!context.mounted) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Mark Past Tasks Complete?'),
         content: Text(
           'You imported ${pastTasks.length} task${pastTasks.length == 1 ? '' : 's'} '
@@ -1177,24 +1173,25 @@ class _CalendarSyncSettingsScreenState
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('No'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Mark Complete'),
           ),
         ],
       ),
     );
 
-    if (confirmed == true && mounted) {
+    if (confirmed == true && context.mounted) {
+      final messenger = ScaffoldMessenger.of(context);
       final taskController = ref.read(taskControllerProvider.notifier);
       final ids = pastTasks.map((t) => t.id);
       await taskController.bulkComplete(ids);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
               'Marked ${pastTasks.length} past task${pastTasks.length == 1 ? '' : 's'} as complete',

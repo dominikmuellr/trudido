@@ -520,7 +520,7 @@ class _NotePreviewScreenState extends ConsumerState<NotePreviewScreen> {
       color: isCompleted
           ? Theme.of(
               context,
-            ).colorScheme.surfaceContainerHighest.withOpacity(0.5)
+            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
           : Theme.of(context).colorScheme.surfaceContainerLow,
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -608,7 +608,7 @@ class _NotePreviewScreenState extends ConsumerState<NotePreviewScreen> {
 
   /// Extracts content without title and subtitle lines but preserves other formatting
   String _getCleanContentWithoutTitleAndSubtitle(String content) {
-    print('DEBUG Preview - Full content: "$content"');
+    debugPrint('DEBUG Preview - Full content: "$content"');
 
     final lines = content.split('\n');
     if (lines.isEmpty) return '';
@@ -635,7 +635,7 @@ class _NotePreviewScreenState extends ConsumerState<NotePreviewScreen> {
     }
 
     final result = contentLines.join('\n').trim();
-    print('DEBUG Preview - Cleaned content for markdown: "$result"');
+    debugPrint('DEBUG Preview - Cleaned content for markdown: "$result"');
     return result;
   }
 }

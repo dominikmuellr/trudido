@@ -22,7 +22,6 @@ import '../repositories/note_folder_repository.dart';
 import '../widgets/common/common.dart';
 import '../utils/state_notifiers.dart';
 
-
 // Provider to track FAB menu expanded state
 final fabMenuExpandedProvider = stateProvider<bool>(false);
 
@@ -56,11 +55,6 @@ class FabMenu extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<FabMenu> createState() => _FabMenuState();
-
-  // Static method to get the current state
-  static _FabMenuState? of(BuildContext context) {
-    return context.findAncestorStateOfType<_FabMenuState>();
-  }
 }
 
 class _FabMenuState extends ConsumerState<FabMenu>
@@ -329,7 +323,9 @@ class FabMenuBackdrop extends ConsumerWidget {
                 ref.read(fabMenuExpandedProvider.notifier).update(false);
               },
               child: Container(
-                color: Colors.black.withOpacity(0.5), // Semi-transparent black
+                color: Colors.black.withValues(
+                  alpha: 0.5,
+                ), // Semi-transparent black
               ),
             ),
           ),
@@ -355,7 +351,7 @@ class FabMenuScreenBackdrop extends ConsumerWidget {
         onTap: () {
           ref.read(fabMenuExpandedProvider.notifier).update(false);
         },
-        child: Container(color: Colors.black.withOpacity(0.5)),
+        child: Container(color: Colors.black.withValues(alpha: 0.5)),
       ),
     );
   }

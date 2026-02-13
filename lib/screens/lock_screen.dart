@@ -456,7 +456,7 @@ class _PinKeypad extends StatelessWidget {
                 icon,
                 size: 28,
                 color: onTap == null
-                    ? colorScheme.onSurfaceVariant.withOpacity(0.5)
+                    ? colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
                     : colorScheme.onSurfaceVariant,
               ),
             ),

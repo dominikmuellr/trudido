@@ -410,7 +410,9 @@ class AppTheme {
         ),
         labelStyle: TextStyle(color: scheme.onSurfaceVariant),
         floatingLabelStyle: TextStyle(color: scheme.primary),
-        hintStyle: TextStyle(color: scheme.onSurfaceVariant.withOpacity(0.7)),
+        hintStyle: TextStyle(
+          color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+        ),
         prefixIconColor: scheme.onSurfaceVariant,
         suffixIconColor: scheme.onSurfaceVariant,
         contentPadding: const EdgeInsets.symmetric(
@@ -429,25 +431,25 @@ class AppTheme {
           ),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.disabled)) {
-              return scheme.onSurface.withOpacity(0.12);
+              return scheme.onSurface.withValues(alpha: 0.12);
             }
             return scheme.surfaceContainerLow;
           }),
           foregroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.disabled)) {
-              return scheme.onSurface.withOpacity(0.38);
+              return scheme.onSurface.withValues(alpha: 0.38);
             }
             return scheme.primary;
           }),
           overlayColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) {
-              return scheme.primary.withOpacity(0.12);
+              return scheme.primary.withValues(alpha: 0.12);
             }
             if (states.contains(WidgetState.hovered)) {
-              return scheme.primary.withOpacity(0.08);
+              return scheme.primary.withValues(alpha: 0.08);
             }
             if (states.contains(WidgetState.focused)) {
-              return scheme.primary.withOpacity(0.10);
+              return scheme.primary.withValues(alpha: 0.10);
             }
             return null;
           }),
@@ -465,13 +467,13 @@ class AppTheme {
           ),
           overlayColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) {
-              return scheme.onPrimary.withOpacity(0.12);
+              return scheme.onPrimary.withValues(alpha: 0.12);
             }
             if (states.contains(WidgetState.hovered)) {
-              return scheme.onPrimary.withOpacity(0.08);
+              return scheme.onPrimary.withValues(alpha: 0.08);
             }
             if (states.contains(WidgetState.focused)) {
-              return scheme.onPrimary.withOpacity(0.10);
+              return scheme.onPrimary.withValues(alpha: 0.10);
             }
             return null;
           }),
@@ -488,7 +490,9 @@ class AppTheme {
           ),
           side: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.disabled)) {
-              return BorderSide(color: scheme.onSurface.withOpacity(0.12));
+              return BorderSide(
+                color: scheme.onSurface.withValues(alpha: 0.12),
+              );
             }
             if (states.contains(WidgetState.focused)) {
               return BorderSide(color: scheme.primary, width: 2);
@@ -497,13 +501,13 @@ class AppTheme {
           }),
           overlayColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) {
-              return scheme.primary.withOpacity(0.12);
+              return scheme.primary.withValues(alpha: 0.12);
             }
             if (states.contains(WidgetState.hovered)) {
-              return scheme.primary.withOpacity(0.08);
+              return scheme.primary.withValues(alpha: 0.08);
             }
             if (states.contains(WidgetState.focused)) {
-              return scheme.primary.withOpacity(0.10);
+              return scheme.primary.withValues(alpha: 0.10);
             }
             return null;
           }),
@@ -520,13 +524,13 @@ class AppTheme {
           ),
           overlayColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) {
-              return scheme.primary.withOpacity(0.12);
+              return scheme.primary.withValues(alpha: 0.12);
             }
             if (states.contains(WidgetState.hovered)) {
-              return scheme.primary.withOpacity(0.08);
+              return scheme.primary.withValues(alpha: 0.08);
             }
             if (states.contains(WidgetState.focused)) {
-              return scheme.primary.withOpacity(0.10);
+              return scheme.primary.withValues(alpha: 0.10);
             }
             return null;
           }),
@@ -637,7 +641,9 @@ class AppTheme {
         ),
         labelStyle: TextStyle(color: scheme.onSurfaceVariant),
         floatingLabelStyle: TextStyle(color: scheme.primary),
-        hintStyle: TextStyle(color: scheme.onSurfaceVariant.withOpacity(0.7)),
+        hintStyle: TextStyle(
+          color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+        ),
         prefixIconColor: scheme.onSurfaceVariant,
         suffixIconColor: scheme.onSurfaceVariant,
         contentPadding: const EdgeInsets.symmetric(
@@ -656,25 +662,25 @@ class AppTheme {
           ),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.disabled)) {
-              return scheme.onSurface.withOpacity(0.12);
+              return scheme.onSurface.withValues(alpha: 0.12);
             }
             return scheme.surfaceContainerLow;
           }),
           foregroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.disabled)) {
-              return scheme.onSurface.withOpacity(0.38);
+              return scheme.onSurface.withValues(alpha: 0.38);
             }
             return scheme.primary;
           }),
           overlayColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) {
-              return scheme.primary.withOpacity(0.12);
+              return scheme.primary.withValues(alpha: 0.12);
             }
             if (states.contains(WidgetState.hovered)) {
-              return scheme.primary.withOpacity(0.08);
+              return scheme.primary.withValues(alpha: 0.08);
             }
             if (states.contains(WidgetState.focused)) {
-              return scheme.primary.withOpacity(0.10);
+              return scheme.primary.withValues(alpha: 0.10);
             }
             return null;
           }),
@@ -692,13 +698,13 @@ class AppTheme {
           ),
           overlayColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) {
-              return scheme.onPrimary.withOpacity(0.12);
+              return scheme.onPrimary.withValues(alpha: 0.12);
             }
             if (states.contains(WidgetState.hovered)) {
-              return scheme.onPrimary.withOpacity(0.08);
+              return scheme.onPrimary.withValues(alpha: 0.08);
             }
             if (states.contains(WidgetState.focused)) {
-              return scheme.onPrimary.withOpacity(0.10);
+              return scheme.onPrimary.withValues(alpha: 0.10);
             }
             return null;
           }),
@@ -715,7 +721,9 @@ class AppTheme {
           ),
           side: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.disabled)) {
-              return BorderSide(color: scheme.onSurface.withOpacity(0.12));
+              return BorderSide(
+                color: scheme.onSurface.withValues(alpha: 0.12),
+              );
             }
             if (states.contains(WidgetState.focused)) {
               return BorderSide(color: scheme.primary, width: 2);
@@ -724,13 +732,13 @@ class AppTheme {
           }),
           overlayColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) {
-              return scheme.primary.withOpacity(0.12);
+              return scheme.primary.withValues(alpha: 0.12);
             }
             if (states.contains(WidgetState.hovered)) {
-              return scheme.primary.withOpacity(0.08);
+              return scheme.primary.withValues(alpha: 0.08);
             }
             if (states.contains(WidgetState.focused)) {
-              return scheme.primary.withOpacity(0.10);
+              return scheme.primary.withValues(alpha: 0.10);
             }
             return null;
           }),
@@ -747,13 +755,13 @@ class AppTheme {
           ),
           overlayColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) {
-              return scheme.primary.withOpacity(0.12);
+              return scheme.primary.withValues(alpha: 0.12);
             }
             if (states.contains(WidgetState.hovered)) {
-              return scheme.primary.withOpacity(0.08);
+              return scheme.primary.withValues(alpha: 0.08);
             }
             if (states.contains(WidgetState.focused)) {
-              return scheme.primary.withOpacity(0.10);
+              return scheme.primary.withValues(alpha: 0.10);
             }
             return null;
           }),
@@ -1088,7 +1096,7 @@ class AppTheme {
       dark = _baseDark(customDarkScheme, fontFamily);
     }
     // Special handling for Monochrome - black/white accents
-    else if (seedColor.value == 0xFF9E9E9E) {
+    else if (seedColor.toARGB32() == 0xFF9E9E9E) {
       final monoLight = _createMonochromaticLightScheme();
       final monoDark = _createMonochromaticDarkScheme();
       light = _baseLight(dynamicLight ?? monoLight, fontFamily);
@@ -1098,7 +1106,7 @@ class AppTheme {
       );
     }
     // Special handling for Grey - grey accents
-    else if (seedColor.value == 0xFF757575) {
+    else if (seedColor.toARGB32() == 0xFF757575) {
       final greyLight = _createGreyLightScheme();
       final greyDark = _createGreyDarkScheme();
       light = _baseLight(dynamicLight ?? greyLight, fontFamily);
@@ -1108,7 +1116,7 @@ class AppTheme {
       );
     }
     // Special handling for Hack - Matrix green terminal theme
-    else if (seedColor.value == 0xFF00FF00) {
+    else if (seedColor.toARGB32() == 0xFF00FF00) {
       final hackLight = _createHackLightScheme();
       final hackDark = _createHackDarkScheme();
       light = _baseLight(dynamicLight ?? hackLight, fontFamily);
@@ -1118,7 +1126,7 @@ class AppTheme {
       );
     }
     // Special handling for Dracula - authentic Dracula colors
-    else if (seedColor.value == 0xFFBD93F9) {
+    else if (seedColor.toARGB32() == 0xFFBD93F9) {
       final draculaLight = _createDraculaLightScheme();
       final draculaDark = _createDraculaDarkScheme();
       // Use proper light/dark schemes with matching brightness
@@ -1129,7 +1137,7 @@ class AppTheme {
       );
     }
     // Special handling for Solarized - create authentic Solarized color scheme
-    else if (seedColor.value == 0xFF268BD2) {
+    else if (seedColor.toARGB32() == 0xFF268BD2) {
       final solarizedLight = _createSolarizedLightScheme();
       final solarizedDark = _createSolarizedDarkScheme();
       // Use proper light/dark schemes with matching brightness
@@ -1195,7 +1203,7 @@ class AppTheme {
     }
 
     // Special handling for Dracula theme - use pink (secondary) color for chip labels
-    if (seedColor.value == 0xFFBD93F9) {
+    if (seedColor.toARGB32() == 0xFFBD93F9) {
       dark = dark.copyWith(
         chipTheme: dark.chipTheme.copyWith(
           labelStyle: TextStyle(

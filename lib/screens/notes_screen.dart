@@ -241,24 +241,25 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       final folder = folderRepo.getNoteFolderById(note.folderId!);
 
       if (folder != null && folder.isVault) {
+        final ctx = context;
+        if (!ctx.mounted) return;
         // Require authentication (biometric + password fallback) for vault notes
         final authenticated = await VaultAuthService.authenticate(
-          context: context,
+          context: ctx,
           folderId: folder.id,
           folderName: folder.name,
           useBiometric: folder.useBiometric,
           hasPassword: folder.hasPassword,
         );
 
+        if (!ctx.mounted) return;
         if (!authenticated) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Authentication required to access vault notes'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+          ScaffoldMessenger.of(ctx).showSnackBar(
+            const SnackBar(
+              content: Text('Authentication required to access vault notes'),
+              backgroundColor: Colors.red,
+            ),
+          );
           return;
         }
       }
@@ -285,6 +286,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       final folder = folderRepo.getNoteFolderById(note.folderId!);
 
       if (folder != null && folder.isVault) {
+        if (!mounted) return;
         // Require authentication for vault note deletion (extra security for destructive action)
         final authenticated = await VaultAuthService.authenticate(
           context: context,
@@ -294,6 +296,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           hasPassword: folder.hasPassword,
         );
 
+        if (!mounted) return;
         if (!authenticated) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -330,6 +333,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       final folder = folderRepo.getNoteFolderById(note.folderId!);
 
       if (folder != null && folder.isVault) {
+        if (!mounted) return;
         // Require authentication for vault note deletion (extra security for destructive action)
         final authenticated = await VaultAuthService.authenticate(
           context: context,
@@ -339,6 +343,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           hasPassword: folder.hasPassword,
         );
 
+        if (!mounted) return;
         if (!authenticated) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -353,6 +358,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       }
     }
 
+    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -403,6 +409,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     final folderRepo = NoteFolderRepository();
     final allFolders = await folderRepo.getAllNoteFolders();
 
+    if (!mounted) return;
     // Show folder selection dialog
     final selectedFolderId = await showDialog<String?>(
       context: context,
@@ -455,6 +462,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       final targetFolder = folderRepo.getNoteFolderById(selectedFolderId);
 
       if (targetFolder != null && targetFolder.isVault) {
+        if (!mounted) return;
         // Require authentication for vault access
         final authenticated = await VaultAuthService.authenticate(
           context: context,
@@ -464,6 +472,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           hasPassword: targetFolder.hasPassword,
         );
 
+        if (!mounted) return;
         if (!authenticated) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

@@ -104,7 +104,7 @@ class MediaEmbedBuilder extends quill.EmbedBuilder {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -225,7 +225,9 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
         final dateFormat = DateFormat('MMM d, y · h:mm a');
         return dateFormat.format(lastModified);
       }
-    } catch (e) {}
+    } catch (e) {
+      // Ignore errors getting recording metadata
+    }
     return 'Voice Recording';
   }
 
@@ -242,9 +244,9 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: primaryColor.withOpacity(0.1),
+        color: primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: primaryColor.withOpacity(0.3)),
+        border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,7 +301,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                       value: _duration.inMilliseconds > 0
                           ? _position.inMilliseconds / _duration.inMilliseconds
                           : 0,
-                      backgroundColor: primaryColor.withOpacity(0.2),
+                      backgroundColor: primaryColor.withValues(alpha: 0.2),
                       color: primaryColor,
                     ),
                     const SizedBox(height: 4),
@@ -327,7 +329,9 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
       setState(() {
         _isPlaying = !_isPlaying;
       });
-    } catch (e) {}
+    } catch (e) {
+      // Ignore audio playback errors
+    }
   }
 
   String _formatDuration(Duration duration) {
@@ -410,7 +414,9 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer> {
               child: ExpressiveIconButton(
                 icon: const Icon(Icons.close, color: Colors.white),
                 onPressed: () => Navigator.of(context).pop(),
-                style: ExpressiveIconButton.styleFrom(backgroundColor: Colors.black54),
+                style: ExpressiveIconButton.styleFrom(
+                  backgroundColor: Colors.black54,
+                ),
               ),
             ),
           ],
@@ -527,7 +533,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -590,8 +596,8 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                     playedColor: Theme.of(context).colorScheme.primary,
                     bufferedColor: Theme.of(
                       context,
-                    ).colorScheme.primary.withOpacity(0.3),
-                    backgroundColor: Colors.white.withOpacity(0.3),
+                    ).colorScheme.primary.withValues(alpha: 0.3),
+                    backgroundColor: Colors.white.withValues(alpha: 0.3),
                   ),
                   padding: const EdgeInsets.symmetric(
                     vertical: 4,

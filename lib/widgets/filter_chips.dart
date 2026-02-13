@@ -78,9 +78,9 @@ class FilterChips extends ConsumerWidget {
                     PopupMenuButton<String>(
                       initialValue: sortBy,
                       onSelected: (value) {
-                        print('[FilterChips] Sort selected: $value');
+                        debugPrint('[FilterChips] Sort selected: $value');
                         ref.read(sortByProvider.notifier).update(value);
-                        print(
+                        debugPrint(
                           '[FilterChips] After update, sortBy is now: ${ref.read(sortByProvider)}',
                         );
                         // Remove from secondary if user selects it as primary
@@ -215,11 +215,11 @@ class FilterChips extends ConsumerWidget {
                         color: colorScheme.onTertiaryContainer,
                       ),
                       onSelected: (selected) {
-                        print('[FilterChips] Due Today selected: $selected');
+                        debugPrint('[FilterChips] Due Today selected: $selected');
                         ref
                             .read(dueTodayFilterProvider.notifier)
                             .update(selected);
-                        print(
+                        debugPrint(
                           '[FilterChips] After update, dueTodayFilter is now: ${ref.read(dueTodayFilterProvider)}',
                         );
                       },
@@ -253,13 +253,13 @@ class FilterChips extends ConsumerWidget {
                       onSelected: (selected) {
                         // Toggle: if selected (wants to hide), set false); else true
                         final newValue = !selected;
-                        print(
+                        debugPrint(
                           '[FilterChips] Show Completed toggled to: $newValue',
                         );
                         ref
                             .read(showCompletedProvider.notifier)
                             .update(newValue);
-                        print(
+                        debugPrint(
                           '[FilterChips] After update, showCompleted is now: ${ref.read(showCompletedProvider)}',
                         );
                         // Persist choice

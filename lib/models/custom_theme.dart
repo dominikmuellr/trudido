@@ -189,7 +189,7 @@ class CustomTheme {
   /// Set a color for a specific role
   void setColor(String roleKey, Color color, Brightness brightness) {
     final colors = brightness == Brightness.light ? lightColors : darkColors;
-    colors[roleKey] = color.value;
+    colors[roleKey] = color.toARGB32();
     modifiedAt = DateTime.now().toIso8601String();
   }
 
@@ -261,8 +261,9 @@ class CustomTheme {
   static String? validateJson(String jsonString) {
     try {
       final json = jsonDecode(jsonString);
-      if (json is! Map<String, dynamic>)
+      if (json is! Map<String, dynamic>) {
         return 'Invalid format: expected JSON object';
+      }
       if (json['id'] is! String) return 'Missing or invalid "id" field';
       if (json['name'] is! String) return 'Missing or invalid "name" field';
       // lightColors and darkColors are optional maps

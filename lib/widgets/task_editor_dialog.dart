@@ -180,7 +180,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
                 Text(
                   'Add to your task list',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant.withOpacity(0.9),
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.9),
                   ),
                 ),
               ],
@@ -229,7 +229,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           'Quick Options',
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface.withOpacity(0.9),
+            color: colorScheme.onSurface.withValues(alpha: 0.9),
           ),
         ),
         const SizedBox(height: 12),
@@ -389,7 +389,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           'Additional Options',
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface.withOpacity(0.9),
+            color: colorScheme.onSurface.withValues(alpha: 0.9),
           ),
         ),
         const SizedBox(height: 16),
@@ -698,7 +698,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
                     Navigator.pop(context);
                   },
                 );
-              }).toList(),
+              }),
               ListTile(
                 leading: const Icon(Icons.clear),
                 title: const Text('No duration'),

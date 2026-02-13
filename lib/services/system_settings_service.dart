@@ -65,8 +65,9 @@ class SystemSettingsService {
       try {
         await _primaryChannel.invokeMethod('canScheduleExactAlarms');
         _ready = true;
-        if (i > 0)
+        if (i > 0) {
           debugPrint('[SystemSettingsService] channel ready after retry #$i');
+        }
         return;
       } on MissingPluginException {
         if (i == attemptDelays.length - 1) {

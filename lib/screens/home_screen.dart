@@ -443,7 +443,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         backgroundColor: Theme.of(context)
                             .colorScheme
                             .secondaryContainer
-                            .withOpacity(
+                            .withValues(alpha: 
                               0.7,
                             ), // Semi-transparent for subtle effect
                         foregroundColor: Theme.of(

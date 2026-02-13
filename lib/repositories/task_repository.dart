@@ -61,8 +61,9 @@ class TaskRepository {
 
   Future<Todo> update(Todo todo) async {
     final index = _cache.indexWhere((t) => t.id == todo.id);
-    if (index == -1)
+    if (index == -1) {
       throw const AppError(AppErrorType.notFound, 'Task not found');
+    }
     await StorageService.updateTodo(todo);
     final list = [..._cache];
     list[index] = todo;

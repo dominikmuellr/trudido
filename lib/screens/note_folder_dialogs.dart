@@ -40,6 +40,7 @@ Future<Map<String, dynamic>?> showPasswordSetupDialogForFolder(
   // Check if biometric is available
   final biometricAvailable = await BiometricAuthService.isBiometricsAvailable();
 
+  if (!context.mounted) return null;
   return showDialog<Map<String, dynamic>>(
     context: context,
     barrierDismissible: false,
@@ -240,6 +241,8 @@ Future<bool> showCreateNoteFolderDialog(
               if (formKey.currentState!.validate()) {
                 final name = nameController.text.trim();
                 final description = descriptionController.text.trim();
+                final messenger = ScaffoldMessenger.of(context);
+                final navigator = Navigator.of(dialogContext);
 
                 // If vault, setup password and biometric preferences
                 String? vaultPassword;
@@ -272,7 +275,7 @@ Future<bool> showCreateNoteFolderDialog(
                       noteFormat: noteFormat,
                     );
 
-                if (dialogContext.mounted) {
+                if (context.mounted) {
                   if (result != null) {
                     // Store the password if vault
                     if (isVault && vaultPassword != null) {
@@ -282,17 +285,17 @@ Future<bool> showCreateNoteFolderDialog(
                       );
                     }
 
-                    Navigator.pop(dialogContext);
+                    navigator.pop();
                     created = true;
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text('Folder "$name" created successfully'),
                         backgroundColor: Colors.green,
                       ),
                     );
                   } else {
-                    Navigator.pop(dialogContext);
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    navigator.pop();
+                    messenger.showSnackBar(
                       const SnackBar(
                         content: Text(
                           'Failed to create folder. Name may already exist.',
@@ -324,6 +327,7 @@ Future<bool> showVaultSetupDialogWithPassword(
   // Check if biometric is available
   final biometricAvailable = await BiometricAuthService.isBiometricsAvailable();
 
+  if (!context.mounted) return false;
   // Show the setup screen using the extracted helper
   final result = await showVaultSetup(
     context,

@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/note.dart';
 import '../models/note_history.dart';
@@ -34,7 +35,7 @@ class NotesRepository {
     await StorageService.waitNoteFoldersReady();
     final folder = _folderRepository.getNoteFolderById(folderId);
     final isVault = folder?.isVault ?? false;
-    print(
+    debugPrint(
       'Checking folder $folderId: folder=${folder?.name}, isVault=$isVault',
     );
     return isVault;
@@ -44,14 +45,16 @@ class NotesRepository {
   Future<Note> _encryptNoteIfNeeded(Note note) async {
     if (note.folderId != null && await _isVaultFolder(note.folderId)) {
       try {
-        print('Encrypting note ${note.id} for vault folder ${note.folderId}');
+        debugPrint(
+          'Encrypting note ${note.id} for vault folder ${note.folderId}',
+        );
         // Encrypt title and content
         final encryptedTitle = await EncryptionHelper.encryptText(note.title);
         final encryptedContent = await EncryptionHelper.encryptText(
           note.content,
         );
 
-        print('Successfully encrypted note ${note.id}');
+        debugPrint('Successfully encrypted note ${note.id}');
         // Store encrypted values in the note fields (temporarily hijacking them)
         // Note: This relies on the fact that we're saving to Hive which stores dynamic types or strings
         // But since our model defines them as double, we can't store strings in double fields.
@@ -66,7 +69,7 @@ class NotesRepository {
 
         return note.copyWith(title: encryptedTitle, content: encryptedContent);
       } catch (e) {
-        print('Failed to encrypt note ${note.id}: $e');
+        debugPrint('Failed to encrypt note ${note.id}: $e');
         rethrow; // Propagate error so caller knows encryption failed
       }
     }
@@ -77,7 +80,7 @@ class NotesRepository {
   Future<Note> _decryptNoteIfNeeded(Note note) async {
     if (note.folderId != null && await _isVaultFolder(note.folderId)) {
       try {
-        print(
+        debugPrint(
           'Attempting to decrypt note ${note.id} in vault folder ${note.folderId}',
         );
         // Decrypt both title and content
@@ -85,11 +88,11 @@ class NotesRepository {
         final decryptedContent = await EncryptionHelper.decryptText(
           note.content,
         );
-        print('Successfully decrypted note ${note.id}');
+        debugPrint('Successfully decrypted note ${note.id}');
         return note.copyWith(title: decryptedTitle, content: decryptedContent);
       } catch (e) {
         // If decryption fails, return original (may show as encrypted)
-        print('Failed to decrypt note ${note.id}: $e');
+        debugPrint('Failed to decrypt note ${note.id}: $e');
         return note;
       }
     }
@@ -100,14 +103,14 @@ class NotesRepository {
   Future<List<Note>> getAllNotes() async {
     await StorageService.waitNotesReady();
     final notes = StorageService.getAllNotes();
-    print('getAllNotes: Loading ${notes.length} notes from storage');
+    debugPrint('getAllNotes: Loading ${notes.length} notes from storage');
 
     // Decrypt vault notes
     final decryptedNotes = <Note>[];
     for (final note in notes) {
       decryptedNotes.add(await _decryptNoteIfNeeded(note));
     }
-    print('getAllNotes: Decrypted ${decryptedNotes.length} notes');
+    debugPrint('getAllNotes: Decrypted ${decryptedNotes.length} notes');
 
     final sortedNotes = List<Note>.from(decryptedNotes); // Create mutable copy
     sortedNotes.sort((a, b) {

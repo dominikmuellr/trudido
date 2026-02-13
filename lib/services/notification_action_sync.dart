@@ -49,8 +49,9 @@ class NotificationActionSync {
         try {
           await NotificationBridge.instance.pullPendingNativeActions();
         } catch (e) {
-          if (kDebugMode)
+          if (kDebugMode) {
             debugPrint('[NotificationActionSync] secondary pull failed: $e');
+          }
         }
       });
     }
@@ -74,12 +75,14 @@ class NotificationActionSync {
     NotificationAction action,
     ProviderContainer? container,
   ) async {
-    if (kDebugMode)
+    if (kDebugMode) {
       debugPrint('[NotificationActionSync] processing action $action');
+    }
     final key = _actionKey(action);
     if (_applied.contains(key)) {
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint('[NotificationActionSync] Skipping duplicate action $key');
+      }
       return; // idempotent skip
     }
 
@@ -89,17 +92,19 @@ class NotificationActionSync {
     if (action.type == 'notificationTapped') {
       // Handle notification tap - open task detail
       if (todo == null) {
-        if (kDebugMode)
+        if (kDebugMode) {
           debugPrint(
             '[NotificationActionSync] Task not found for tap: ${action.taskId}',
           );
+        }
         _markApplied(key);
         return;
       }
       // Navigate to task detail screen
       try {
-        if (kDebugMode)
+        if (kDebugMode) {
           debugPrint('[NotificationActionSync] Opening task ${action.taskId}');
+        }
         // Import here to avoid circular dependencies
         final context = NavigationService.context;
         if (context != null && context.mounted) {
@@ -112,8 +117,9 @@ class NotificationActionSync {
           }
         }
       } catch (e) {
-        if (kDebugMode)
+        if (kDebugMode) {
           debugPrint('[NotificationActionSync] navigation failed: $e');
+        }
       }
       _markApplied(key);
       return;
@@ -121,10 +127,11 @@ class NotificationActionSync {
 
     if (action.type == 'taskCompleted') {
       if (todo == null) {
-        if (kDebugMode)
+        if (kDebugMode) {
           debugPrint(
             '[NotificationActionSync] Task not found ${action.taskId}',
           );
+        }
         _markApplied(key); // Avoid reprocessing
         return;
       }
@@ -135,18 +142,20 @@ class NotificationActionSync {
       // Update task as completed
       final now = container?.read(clockProvider).now() ?? DateTime.now();
       final updated = todo.copyWith(isCompleted: true, completedAt: now);
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint(
           '[NotificationActionSync] marking task ${action.taskId} complete',
         );
+      }
       await StorageService.updateTodo(updated);
       // Update provider state if available
       try {
         // Force tasks list refresh (tasksProvider loads from repository/storage)
         await container?.read(tasksProvider.notifier).refresh();
       } catch (e) {
-        if (kDebugMode)
+        if (kDebugMode) {
           debugPrint('[NotificationActionSync] refresh failed: $e');
+        }
       }
       _markApplied(key);
     } else if (action.type == 'taskSnoozed') {
@@ -162,10 +171,11 @@ class NotificationActionSync {
           return; // duplicate snooze event
         }
         StorageService.setMeta(metaKey, newMillis);
-        if (kDebugMode)
+        if (kDebugMode) {
           debugPrint(
             '[NotificationActionSync] recorded snooze for ${action.taskId} newTime=${action.newScheduledTime}',
           );
+        }
       }
       _markApplied(key);
     }

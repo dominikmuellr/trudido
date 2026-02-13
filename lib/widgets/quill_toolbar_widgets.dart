@@ -59,7 +59,7 @@ class ToolbarDivider extends StatelessWidget {
       height: 24,
       width: 1,
       margin: const EdgeInsets.symmetric(horizontal: 6),
-      color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
     );
   }
 }
@@ -385,6 +385,21 @@ class LineHeightDropdown extends StatelessWidget {
     return PopupMenuButton<double>(
       tooltip: 'Line height',
       offset: const Offset(0, 40),
+      itemBuilder: (context) => lineHeights.map((height) {
+        return PopupMenuItem<double>(
+          value: height,
+          child: Text(
+            '${height.toStringAsFixed(1)}x',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: (height - currentHeight).abs() < 0.01
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+            ),
+          ),
+        );
+      }).toList(),
+      onSelected: onChanged,
       child: Container(
         height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -410,21 +425,6 @@ class LineHeightDropdown extends StatelessWidget {
           ],
         ),
       ),
-      itemBuilder: (context) => lineHeights.map((height) {
-        return PopupMenuItem<double>(
-          value: height,
-          child: Text(
-            '${height.toStringAsFixed(1)}x',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: (height - currentHeight).abs() < 0.01
-                  ? FontWeight.bold
-                  : FontWeight.normal,
-            ),
-          ),
-        );
-      }).toList(),
-      onSelected: onChanged,
     );
   }
 }
@@ -447,6 +447,21 @@ class ParagraphSpacingDropdown extends StatelessWidget {
     return PopupMenuButton<double>(
       tooltip: 'Paragraph spacing',
       offset: const Offset(0, 40),
+      itemBuilder: (context) => spacings.map((spacing) {
+        return PopupMenuItem<double>(
+          value: spacing,
+          child: Text(
+            '${spacing.toStringAsFixed(0)}pt',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: (spacing - currentSpacing).abs() < 0.01
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+            ),
+          ),
+        );
+      }).toList(),
+      onSelected: onChanged,
       child: Container(
         height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -472,21 +487,6 @@ class ParagraphSpacingDropdown extends StatelessWidget {
           ],
         ),
       ),
-      itemBuilder: (context) => spacings.map((spacing) {
-        return PopupMenuItem<double>(
-          value: spacing,
-          child: Text(
-            '${spacing.toStringAsFixed(0)}pt',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: (spacing - currentSpacing).abs() < 0.01
-                  ? FontWeight.bold
-                  : FontWeight.normal,
-            ),
-          ),
-        );
-      }).toList(),
-      onSelected: onChanged,
     );
   }
 }

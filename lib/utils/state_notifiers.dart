@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Generic state holder notifier for simple state management
@@ -27,9 +28,9 @@ class StateHolder<T> extends Notifier<T> {
   T build() => initialValue;
 
   void update(T value) {
-    print('[StateHolder] Updating from $state to $value');
+    debugPrint('[StateHolder] Updating from $state to $value');
     state = value;
-    print('[StateHolder] New state: $state');
+    debugPrint('[StateHolder] New state: $state');
   }
 }
 

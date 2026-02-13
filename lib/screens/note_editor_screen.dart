@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 import 'package:trudido/utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import '../models/note.dart';
 import '../controllers/notes_controller.dart';
@@ -69,7 +70,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     _loadNote();
     _contentController.addListener(_onContentChanged);
 
-    print('NoteEditor initialized: noteId=${widget.noteId}');
+    if (kDebugMode) {
+      debugPrint('NoteEditor initialized: noteId=${widget.noteId}');
+    }
   }
 
   Future<void> _loadNote() async {
@@ -146,7 +149,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
 
   Future<void> _performAutoSave() async {
     final content = _contentController.text.trim();
-    print('DEBUG AutoSave - content length: ${content.length}');
+    if (kDebugMode) {
+      debugPrint('DEBUG AutoSave - content length: ${content.length}');
+    }
     if (content.isEmpty) {
       setState(() {
         _saveStatus = 'Content required for save';
@@ -391,9 +396,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                             width: 40,
                             height: 4,
                             decoration: BoxDecoration(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant.withOpacity(0.4),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.4),
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
@@ -422,7 +428,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
           hintStyle: TextStyle(
             color: Theme.of(
               context,
-            ).colorScheme.onSurfaceVariant.withOpacity(0.5),
+            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
             fontStyle: FontStyle.italic,
           ),
           border: InputBorder.none,
@@ -492,7 +498,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Theme.of(
               context,
-            ).colorScheme.onSurfaceVariant.withOpacity(0.5),
+            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
             fontStyle: FontStyle.italic,
           ),
         ),
@@ -632,7 +638,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
           style = baseStyle?.copyWith(
             backgroundColor: Theme.of(
               context,
-            ).colorScheme.primaryContainer.withOpacity(0.7),
+            ).colorScheme.primaryContainer.withValues(alpha: 0.7),
             color: Theme.of(context).colorScheme.onPrimaryContainer,
           );
           break;
@@ -1004,18 +1010,24 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
 
   Future<void> _saveNoteInternal({bool showFeedback = true}) async {
     String rawContent = _contentController.text;
-    print('DEBUG Save - Raw content from controller: "$rawContent"');
+    if (kDebugMode) {
+      debugPrint('DEBUG Save - Raw content from controller: "$rawContent"');
+    }
 
     // Auto-format content with markdown headers
     final formattedContent = _autoFormatWithHeaders(rawContent);
-    print('DEBUG Save - After autoformat: "$formattedContent"');
+    if (kDebugMode) {
+      debugPrint('DEBUG Save - After autoformat: "$formattedContent"');
+    }
 
     // Extract title from first line of formatted content
     final lines = formattedContent.split('\n');
     final firstLine = lines.isNotEmpty ? lines.first.trim() : '';
     final title = firstLine.replaceFirst(RegExp(r'^#+\s*'), '');
     rawContent = formattedContent;
-    print('DEBUG Save - Final content to save: "$rawContent"');
+    if (kDebugMode) {
+      debugPrint('DEBUG Save - Final content to save: "$rawContent"');
+    }
 
     if (rawContent.trim().isEmpty) {
       if (showFeedback) {
@@ -1044,17 +1056,21 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       // Mark as editing from now on so subsequent saves will update.
       _isEditing = true;
     } else {
-      print(
-        'DEBUG Save - Creating note with folderId: ${widget.initialFolderId}',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'DEBUG Save - Creating note with folderId: ${widget.initialFolderId}',
+        );
+      }
       savedNote = await controller.createNote(
         title: title,
         content: rawContent,
         folderId: widget.initialFolderId, // Save to selected folder
       );
-      print(
-        'DEBUG Save - Note created with id: ${savedNote?.id}, folderId: ${savedNote?.folderId}',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'DEBUG Save - Note created with id: ${savedNote?.id}, folderId: ${savedNote?.folderId}',
+        );
+      }
       // After creating, mark as editing so future autosaves update this note
       _isEditing = true;
     }
@@ -1214,6 +1230,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   Future<void> _exportAsPdf(Note note) async {
     // Show progress
     if (!mounted) return;
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -1244,20 +1262,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       );
       final filename =
           '$safeTitle-${DateTime.now().toIso8601String().split('T').first}.pdf';
-      await NoteExportService.sharePdf(bytes, filename, context);
-      if (mounted) {
-        Navigator.of(context).pop(); // dismiss progress
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Exported "$filename"')));
-      }
+      await NoteExportService.sharePdf(bytes, filename);
+      if (!mounted) return;
+      navigator.pop(); // dismiss progress
+      messenger.showSnackBar(SnackBar(content: Text('Exported "$filename"')));
     } catch (e) {
-      if (mounted) {
-        Navigator.of(context).pop(); // dismiss progress
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
-      }
+      if (!mounted) return;
+      navigator.pop(); // dismiss progress
+      messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
     }
   }
 

@@ -68,7 +68,7 @@ class NotificationBridge {
           break;
         default:
           if (kDebugMode) {
-            print(
+            debugPrint(
               '[NotificationBridge] Unknown method from native: ${call.method}',
             );
           }
@@ -129,15 +129,17 @@ class NotificationBridge {
     }
     try {
       final list = await _channel.invokeMethod('getPendingActions');
-      if (kDebugMode)
-        print(
+      if (kDebugMode) {
+        debugPrint(
           '[NotificationBridge] pulled pending list=${list is List ? list.length : 'non-list'}',
         );
+      }
       if (list is List) {
         for (final raw in list) {
           if (raw is Map) {
-            if (kDebugMode)
-              print('[NotificationBridge] applying pending raw=$raw');
+            if (kDebugMode) {
+              debugPrint('[NotificationBridge] applying pending raw=$raw');
+            }
             _handleIncomingAction(Map<String, dynamic>.from(raw));
           }
         }
@@ -152,10 +154,11 @@ class NotificationBridge {
     try {
       final list = await _channel.invokeMethod('getPendingActions');
       _channelProven = true;
-      if (kDebugMode)
-        print(
+      if (kDebugMode) {
+        debugPrint(
           '[NotificationBridge] probe success; list type=${list.runtimeType}',
         );
+      }
       if (list is List) {
         for (final raw in list) {
           if (raw is Map) _handleIncomingAction(Map<String, dynamic>.from(raw));
@@ -163,18 +166,20 @@ class NotificationBridge {
       }
       await _channel.invokeMethod('clearPendingActions');
     } catch (e) {
-      if (kDebugMode)
-        print(
+      if (kDebugMode) {
+        debugPrint(
           '[NotificationBridge] probe failed (will retry later, suppressed): $e',
         );
+      }
     }
   }
 
   void _scheduleProbeRetry() {
     if (_channelProven) return;
     if (_probeScheduled) return;
-    if (_probeAttempts >= 6)
+    if (_probeAttempts >= 6) {
       return; // stop after max attempts (~backoff total < ~5s)
+    }
     _probeScheduled = true;
     final attempt = ++_probeAttempts;
     // Exponential backoff: 100ms * 2^(attempt-1), capped at 1600ms

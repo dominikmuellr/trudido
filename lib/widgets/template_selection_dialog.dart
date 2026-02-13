@@ -129,7 +129,7 @@ class TemplateSelectionDialog extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurfaceVariant.withOpacity(0.9),
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.9),
                   ),
                 ),
               ],
@@ -139,7 +139,7 @@ class TemplateSelectionDialog extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurfaceVariant.withOpacity(0.85),
+                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.85),
                   fontStyle: FontStyle.italic,
                 ),
                 maxLines: 2,

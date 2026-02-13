@@ -107,7 +107,7 @@ class HybridTodoItem extends ConsumerWidget {
                     : Theme.of(context)
                           .colorScheme
                           .surfaceContainer), // Balanced elevation in light mode
-          child: Container(
+          child: SizedBox(
             width: double.infinity,
             child: Padding(
               padding: SpacingEdgeInsets.insets16,
@@ -198,7 +198,7 @@ class HybridTodoItem extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: SpacingBorderRadius.md,
         border: Border.all(color: color, width: 1),
       ),

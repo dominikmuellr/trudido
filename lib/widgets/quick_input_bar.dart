@@ -183,7 +183,7 @@ class _QuickInputBarState extends ConsumerState<QuickInputBar> {
               decoration: InputDecoration(
                 hintText: _getPlaceholder(inputContext),
                 hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                  color: colorScheme.onTertiaryContainer.withOpacity(0.7),
+                  color: colorScheme.onTertiaryContainer.withValues(alpha: 0.7),
                 ),
                 filled: true,
                 fillColor: colorScheme.tertiaryContainer,

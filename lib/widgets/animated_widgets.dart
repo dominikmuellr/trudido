@@ -488,7 +488,7 @@ class AnimatedSwitch extends StatelessWidget {
             HapticFeedbackService.lightImpact();
             onChanged(newValue);
           },
-          activeColor: activeColor,
+          activeThumbColor: activeColor,
         );
       },
     );

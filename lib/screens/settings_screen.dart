@@ -36,7 +36,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
+  final String _searchQuery = '';
 
   @override
   void dispose() {

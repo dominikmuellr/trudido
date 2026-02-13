@@ -243,6 +243,8 @@ class _NotesFolderManagementScreenState
                 if (formKey.currentState!.validate()) {
                   final name = nameController.text.trim();
                   final description = descriptionController.text.trim();
+                  final navigator = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
 
                   // If vault, setup password and biometric preferences
                   String? vaultPassword;
@@ -284,16 +286,16 @@ class _NotesFolderManagementScreenState
                         );
                       }
 
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      navigator.pop();
+                      messenger.showSnackBar(
                         SnackBar(
                           content: Text('Folder "$name" created successfully'),
                           backgroundColor: Colors.green,
                         ),
                       );
                     } else {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      navigator.pop();
+                      messenger.showSnackBar(
                         const SnackBar(
                           content: Text(
                             'Failed to create folder. Name may already exist.',
@@ -361,7 +363,7 @@ class _NotesFolderManagementScreenState
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.1),
+                        color: Colors.amber.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.amber),
                       ),
@@ -395,6 +397,8 @@ class _NotesFolderManagementScreenState
                 if (formKey.currentState!.validate()) {
                   final name = nameController.text.trim();
                   final description = descriptionController.text.trim();
+                  final navigator = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
 
                   final updated = folder.copyWith(
                     name: name,
@@ -407,16 +411,16 @@ class _NotesFolderManagementScreenState
                       .updateFolder(updated);
 
                   if (mounted) {
-                    Navigator.pop(context);
+                    navigator.pop();
                     if (result != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(
                           content: Text('Folder "$name" updated successfully'),
                           backgroundColor: Colors.green,
                         ),
                       );
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                           content: Text(
                             'Failed to update folder. Name may already exist.',
@@ -460,23 +464,25 @@ class _NotesFolderManagementScreenState
       }
     }
 
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Folder'),
         content: Text(
           'Delete "${folder.name}"?\n\nNotes in this folder will not be deleted, but they will no longer be associated with this folder.',
         ),
         actions: [
           ExpressiveTextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Cancel'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
             ),
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: const Text('Delete'),
           ),
         ],
@@ -495,7 +501,7 @@ class _NotesFolderManagementScreenState
             await VaultPasswordService.removeVaultPassword(folder.id);
           }
 
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(
               content: Text('Folder "${folder.name}" deleted successfully'),
               backgroundColor: Colors.green,
@@ -522,6 +528,7 @@ class _NotesFolderManagementScreenState
     final biometricAvailable =
         await BiometricAuthService.isBiometricsAvailable();
 
+    if (!context.mounted) return null;
     return showDialog<Map<String, dynamic>>(
       context: context,
       barrierDismissible: false,

@@ -298,7 +298,7 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: task.priority,
+                        initialValue: task.priority,
                         decoration: const InputDecoration(
                           labelText: 'Priority',
                           border: OutlineInputBorder(),

@@ -208,7 +208,9 @@ class NotePreviewCard extends ConsumerWidget {
                 if (parsed.containsKey('media')) {
                   mediaJson = parsed['media'] as String;
                 }
-              } catch (e) {}
+              } catch (e) {
+                // Ignore JSON parse errors for malformed custom data
+              }
             } else if (insertValue.containsKey('media')) {
               // Old format: direct media key (fallback)
               mediaJson = insertValue['media'] as String;
@@ -477,7 +479,7 @@ class NotePreviewCard extends ConsumerWidget {
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Theme.of(
                 context,
-              ).colorScheme.onSurfaceVariant.withOpacity(0.5),
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               fontStyle: FontStyle.italic,
             ),
           )
@@ -650,7 +652,9 @@ class NotePreviewCard extends ConsumerWidget {
               } else {
                 onDelete?.call();
               }
-            } catch (e) {}
+            } catch (e) {
+              // Ignore errors during note deletion
+            }
           }
 
           return confirmed; // Allow dismissal only if confirmed and deleted
@@ -685,8 +689,8 @@ class NotePreviewCard extends ConsumerWidget {
               ? Theme.of(context)
                     .colorScheme
                     .surfaceContainerHighest // Highest surface for best visibility
-              : Theme.of(context).colorScheme.primary.withOpacity(
-                  0.08,
+              : Theme.of(context).colorScheme.primary.withValues(
+                  alpha: 0.08,
                 ), // Subtle tint of theme color in light mode
           child: SizedBox(
             width: double.infinity,
@@ -898,7 +902,7 @@ class NotePreviewCard extends ConsumerWidget {
           style = baseStyle?.copyWith(
             backgroundColor: Theme.of(
               context,
-            ).colorScheme.primaryContainer.withOpacity(0.5),
+            ).colorScheme.primaryContainer.withValues(alpha: 0.5),
             color: Theme.of(context).colorScheme.onPrimaryContainer,
           );
           break;
@@ -1382,11 +1386,13 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
           ),
           Positioned.fill(
             child: Container(
-              decoration: BoxDecoration(color: Colors.black.withOpacity(0.2)),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.2),
+              ),
               child: Icon(
                 Icons.play_circle_outline,
                 size: 20,
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
               ),
             ),
           ),

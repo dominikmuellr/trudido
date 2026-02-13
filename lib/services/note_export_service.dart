@@ -201,7 +201,9 @@ class NoteExportService {
                   if (parsed.containsKey('media')) {
                     mediaJson = parsed['media'] as String;
                   }
-                } catch (e) {}
+                } catch (e) {
+                  // Ignore JSON parse errors for malformed media data
+                }
               } else if (insert.containsKey('media')) {
                 mediaJson = insert['media'] as String;
               }
@@ -521,7 +523,6 @@ class NoteExportService {
   static Future<void> sharePdf(
     Uint8List bytes,
     String filename,
-    BuildContext context,
   ) async {
     try {
       await Printing.sharePdf(bytes: bytes, filename: filename);

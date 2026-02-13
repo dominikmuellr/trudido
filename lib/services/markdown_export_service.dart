@@ -295,8 +295,9 @@ class MarkdownExportService {
     try {
       // Let user choose directory
       String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
-      if (selectedDirectory == null)
+      if (selectedDirectory == null) {
         return ImportResult(success: false, message: 'No directory selected');
+      }
 
       // Find all .md files in the directory (including subdirectories)
       final markdownFiles = await _findMarkdownFiles(selectedDirectory);

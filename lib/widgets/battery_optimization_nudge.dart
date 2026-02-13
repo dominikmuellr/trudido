@@ -38,8 +38,9 @@ class _BatteryOptimizationNudgeState extends State<BatteryOptimizationNudge> {
   Future<void> _check() async {
     final needed = await LateAlarmNudgeService.instance.consumePromptIfNeeded();
     if (!needed || !mounted) return;
-    if (await SystemSettingsService.instance.isIgnoringBatteryOptimizations())
+    if (await SystemSettingsService.instance.isIgnoringBatteryOptimizations()) {
       return; // Already optimized
+    }
     if (!mounted) return;
     // Show lightweight SnackBar with action.
     final messenger = ScaffoldMessenger.maybeOf(context);

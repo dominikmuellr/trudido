@@ -35,14 +35,18 @@ class OnboardingManager {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_tooltipSeenKey, true);
-    } catch (e) {}
+    } catch (e) {
+      // Ignore errors when marking tooltip as seen
+    }
   }
 
   static Future<void> resetTooltip() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_tooltipSeenKey);
-    } catch (e) {}
+    } catch (e) {
+      // Ignore errors when resetting tooltip
+    }
   }
 
   static Future<void> clearAllOnboardingData() async {
@@ -54,7 +58,9 @@ class OnboardingManager {
           await prefs.remove(key);
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // Ignore errors when clearing onboarding data
+    }
   }
 }
 

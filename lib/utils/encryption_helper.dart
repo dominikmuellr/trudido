@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:encrypt/encrypt.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Helper class for AES-256 encryption/decryption of vault notes
@@ -59,7 +60,7 @@ class EncryptionHelper {
       return encrypted.base64;
     } catch (e) {
       // If encryption fails, log error but don't crash
-      print('Encryption error: $e');
+      debugPrint('Encryption error: $e');
       rethrow;
     }
   }
@@ -76,7 +77,7 @@ class EncryptionHelper {
       return decrypted;
     } catch (e) {
       // If decryption fails, log error but don't crash
-      print('Decryption error: $e');
+      debugPrint('Decryption error: $e');
       rethrow;
     }
   }
@@ -147,7 +148,7 @@ class EncryptionHelper {
       // Return header + salt + iv + encrypted data
       return '$encryptedBackupHeader$salt:${iv.base64}:${encrypted.base64}';
     } catch (e) {
-      print('Backup encryption error: $e');
+      debugPrint('Backup encryption error: $e');
       rethrow;
     }
   }
@@ -186,7 +187,7 @@ class EncryptionHelper {
 
       return decrypted;
     } catch (e) {
-      print('Backup decryption error: $e');
+      debugPrint('Backup decryption error: $e');
       return null; // Wrong password or corrupted data
     }
   }

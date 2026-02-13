@@ -155,10 +155,9 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage>
                 // Always show explicit popup when not granted.
                 final enabledNow = await perms.areNotificationsEnabled();
                 if (enabledNow) return; // should be disabled tile already
-                final localCtx = context;
-                // ignore: use_build_context_synchronously (localCtx captured for immediate dialog display only)
+                if (!context.mounted) return;
                 final proceed = await _showRationale(
-                  localCtx,
+                  context,
                   title: 'Enable Notifications',
                   body:
                       'We use notifications to remind you of upcoming tasks and snoozed reminders.'
@@ -166,6 +165,7 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage>
                   action: 'Request',
                 );
                 if (!proceed) return;
+                if (!context.mounted) return;
                 await perms.requestPostNotifications();
                 await Future.delayed(const Duration(milliseconds: 300));
                 // Double-check and if still disabled offer to open settings
@@ -211,10 +211,9 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage>
                   return;
                 }
                 if (!watcher.canExact) {
-                  final localCtx = context;
-                  // ignore: use_build_context_synchronously (localCtx captured for immediate dialog display only)
+                  if (!context.mounted) return;
                   final proceed = await _showRationale(
-                    localCtx,
+                    context,
                     title: 'Allow Exact Alarms',
                     body:
                         'Exact alarms let reminders fire exactly on time even in Doze or standby.'
@@ -252,10 +251,9 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage>
                   return;
                 }
                 if (!watcher.ignoringBattery) {
-                  final localCtx = context;
-                  // ignore: use_build_context_synchronously (localCtx captured for immediate dialog display only)
+                  if (!context.mounted) return;
                   final proceed = await _showRationale(
-                    localCtx,
+                    context,
                     title: 'Disable Battery Optimization',
                     body:
                         'Exclude the app from battery optimization so reminders aren\'t delayed or cancelled.'

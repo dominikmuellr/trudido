@@ -89,7 +89,9 @@ Future<void> showFiltersSheet(BuildContext context) {
                           RadioListTile<String>(
                             title: const Text('All Priorities'),
                             value: 'all',
+                            // ignore: deprecated_member_use
                             groupValue: p,
+                            // ignore: deprecated_member_use
                             onChanged: (v) => innerRef
                                 .read(selectedPriorityProvider.notifier)
                                 .update(v ?? 'all'),
@@ -97,7 +99,9 @@ Future<void> showFiltersSheet(BuildContext context) {
                           RadioListTile<String>(
                             title: const Text('High Priority'),
                             value: 'high',
+                            // ignore: deprecated_member_use
                             groupValue: p,
+                            // ignore: deprecated_member_use
                             onChanged: (v) => innerRef
                                 .read(selectedPriorityProvider.notifier)
                                 .update(v ?? 'high'),
@@ -105,7 +109,9 @@ Future<void> showFiltersSheet(BuildContext context) {
                           RadioListTile<String>(
                             title: const Text('Medium Priority'),
                             value: 'medium',
+                            // ignore: deprecated_member_use
                             groupValue: p,
+                            // ignore: deprecated_member_use
                             onChanged: (v) => innerRef
                                 .read(selectedPriorityProvider.notifier)
                                 .update(v ?? 'medium'),
@@ -113,7 +119,9 @@ Future<void> showFiltersSheet(BuildContext context) {
                           RadioListTile<String>(
                             title: const Text('Low Priority'),
                             value: 'low',
+                            // ignore: deprecated_member_use
                             groupValue: p,
+                            // ignore: deprecated_member_use
                             onChanged: (v) => innerRef
                                 .read(selectedPriorityProvider.notifier)
                                 .update(v ?? 'low'),
@@ -141,7 +149,9 @@ Future<void> showFiltersSheet(BuildContext context) {
                           RadioListTile<String>(
                             title: const Text('Default'),
                             value: 'default',
+                            // ignore: deprecated_member_use
                             groupValue: sort,
+                            // ignore: deprecated_member_use
                             onChanged: (v) => innerRef
                                 .read(sortByProvider.notifier)
                                 .update(v ?? 'default'),
@@ -149,7 +159,9 @@ Future<void> showFiltersSheet(BuildContext context) {
                           RadioListTile<String>(
                             title: const Text('Date Created'),
                             value: 'date_created',
+                            // ignore: deprecated_member_use
                             groupValue: sort,
+                            // ignore: deprecated_member_use
                             onChanged: (v) => innerRef
                                 .read(sortByProvider.notifier)
                                 .update(v ?? 'date_created'),
@@ -157,7 +169,9 @@ Future<void> showFiltersSheet(BuildContext context) {
                           RadioListTile<String>(
                             title: const Text('Due Date'),
                             value: 'date_due',
+                            // ignore: deprecated_member_use
                             groupValue: sort,
+                            // ignore: deprecated_member_use
                             onChanged: (v) => innerRef
                                 .read(sortByProvider.notifier)
                                 .update(v ?? 'date_due'),
@@ -165,7 +179,9 @@ Future<void> showFiltersSheet(BuildContext context) {
                           RadioListTile<String>(
                             title: const Text('Priority'),
                             value: 'priority',
+                            // ignore: deprecated_member_use
                             groupValue: sort,
+                            // ignore: deprecated_member_use
                             onChanged: (v) => innerRef
                                 .read(sortByProvider.notifier)
                                 .update(v ?? 'priority'),
@@ -173,7 +189,9 @@ Future<void> showFiltersSheet(BuildContext context) {
                           RadioListTile<String>(
                             title: const Text('Alphabetical'),
                             value: 'alphabetical',
+                            // ignore: deprecated_member_use
                             groupValue: sort,
+                            // ignore: deprecated_member_use
                             onChanged: (v) => innerRef
                                 .read(sortByProvider.notifier)
                                 .update(v ?? 'alphabetical'),

@@ -16,7 +16,10 @@
 
 /// Manages UI filtering state for tasks and notes (search, sort, view mode).
 /// These providers control what the user sees in task/note lists.
+library;
 
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/todo.dart';
@@ -93,12 +96,15 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
   // Folder filter still comes from legacy folder provider (not yet migrated)
   final selectedFolder = ref.watch(selectedFolderProvider);
 
-  print('[filteredTasksProvider] Rebuilding with sortBy: $sortBy');
+  if (kDebugMode) {
+    debugPrint('[filteredTasksProvider] Rebuilding with sortBy: $sortBy');
+  }
 
   var filtered = tasks.where((todo) {
     if (selectedFolder != null && todo.folderId != selectedFolder) return false;
-    if (selectedPriority != 'all' && todo.priority != selectedPriority)
+    if (selectedPriority != 'all' && todo.priority != selectedPriority) {
       return false;
+    }
     if (!showCompleted && todo.isCompleted) return false;
 
     // Due today filter - includes both tasks due today AND overdue tasks
@@ -132,8 +138,12 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
       ? <String>[]
       : [sortBy, ...secondarySortKeys];
 
-  print('[filteredTasksProvider] allSortKeys: $allSortKeys');
-  print('[filteredTasksProvider] Number of tasks to sort: ${filtered.length}');
+  if (kDebugMode) {
+    debugPrint('[filteredTasksProvider] allSortKeys: $allSortKeys');
+    debugPrint(
+      '[filteredTasksProvider] Number of tasks to sort: ${filtered.length}',
+    );
+  }
 
   if (sortBy == 'manual') {
     // Keep repository-provided order for manual sort
@@ -152,9 +162,11 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
       return b.createdAt.compareTo(a.createdAt);
     });
 
-    print(
-      '[filteredTasksProvider] After sorting, first 3 tasks: ${filtered.take(3).map((t) => t.text).join(", ")}',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        '[filteredTasksProvider] After sorting, first 3 tasks: ${filtered.take(3).map((t) => t.text).join(", ")}',
+      );
+    }
   }
   return filtered;
 });
@@ -191,7 +203,9 @@ int _compareBySortKey(Todo a, Todo b, String key) {
           0; // 'default' key has no specific order beyond completion grouping
   }
   if (key == 'alphabetical' && result != 0) {
-    print('[_compareBySortKey] Comparing "${a.text}" vs "${b.text}": $result');
+    if (kDebugMode) {
+      debugPrint('[_compareBySortKey] Comparing "${a.text}" vs "${b.text}": $result');
+    }
   }
   return result;
 }

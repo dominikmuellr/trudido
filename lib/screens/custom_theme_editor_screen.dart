@@ -179,7 +179,7 @@ class _CustomThemeEditorScreenState
                       ),
                       child: Center(
                         child: Text(
-                          '#${tempColor.value.toRadixString(16).substring(2).toUpperCase()}',
+                          '#${tempColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
                           style: TextStyle(
                             color: tempColor.computeLuminance() > 0.5
                                 ? Colors.black
@@ -337,7 +337,7 @@ class _CustomThemeEditorScreenState
       spacing: 12,
       runSpacing: 12,
       children: commonColors.map((color) {
-        final isSelected = color.value == currentColor.value;
+        final isSelected = color.toARGB32() == currentColor.toARGB32();
         return InkWell(
           onTap: () => onColorChanged(color),
           borderRadius: BorderRadius.circular(8),
@@ -421,8 +421,9 @@ class _CustomThemeEditorScreenState
           if (mounted) Navigator.pop(context, _didSave);
           return;
         }
+        final navigator = Navigator.of(context);
         final shouldPop = await _onWillPop();
-        if (shouldPop && mounted) Navigator.pop(context, _didSave);
+        if (shouldPop && mounted) navigator.pop(_didSave);
       },
       child: Scaffold(
         appBar: AppBar(
@@ -455,9 +456,11 @@ class _CustomThemeEditorScreenState
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: colorScheme.primaryContainer.withOpacity(0.3),
+                color: colorScheme.primaryContainer.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: colorScheme.primary.withOpacity(0.2)),
+                border: Border.all(
+                  color: colorScheme.primary.withValues(alpha: 0.2),
+                ),
               ),
               child: Column(
                 children: [
@@ -485,7 +488,7 @@ class _CustomThemeEditorScreenState
                     children: [
                       Icon(
                         Icons.lightbulb_outline,
-                        color: colorScheme.primary.withOpacity(0.7),
+                        color: colorScheme.primary.withValues(alpha: 0.7),
                         size: 20,
                       ),
                       const SizedBox(width: 12),
@@ -494,7 +497,7 @@ class _CustomThemeEditorScreenState
                           'Material You generates subtle, professional variations from your colors. '
                           'Hot restart after saving to see changes.',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurface.withOpacity(0.8),
+                            color: colorScheme.onSurface.withValues(alpha: 0.8),
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -711,7 +714,9 @@ class _CustomThemeEditorScreenState
                         Text(
                           'Search example...',
                           style: TextStyle(
-                            color: scheme.onSecondaryContainer.withOpacity(0.7),
+                            color: scheme.onSecondaryContainer.withValues(
+                              alpha: 0.7,
+                            ),
                             fontSize: 14,
                           ),
                         ),
@@ -819,7 +824,7 @@ class _CustomThemeEditorScreenState
       decoration: BoxDecoration(
         color: scheme.errorContainer,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: scheme.error.withOpacity(0.5)),
+        border: Border.all(color: scheme.error.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
@@ -867,7 +872,7 @@ class _CustomThemeEditorScreenState
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: bg.withOpacity(0.3),
+                color: bg.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -985,7 +990,7 @@ class _CustomThemeEditorScreenState
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isCustomized
-              ? Theme.of(context).colorScheme.primary.withOpacity(0.3)
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)
               : Theme.of(context).colorScheme.outlineVariant,
           width: isCustomized ? 2 : 1,
         ),
@@ -1006,7 +1011,7 @@ class _CustomThemeEditorScreenState
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: resolvedColor.withOpacity(0.4),
+                      color: resolvedColor.withValues(alpha: 0.4),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -1050,11 +1055,11 @@ class _CustomThemeEditorScreenState
                     if (isCustomized) ...[
                       const SizedBox(height: 4),
                       Text(
-                        '#${resolvedColor.value.toRadixString(16).substring(2).toUpperCase()}',
+                        '#${resolvedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(
                             context,
-                          ).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                           fontFamily: 'monospace',
                           fontWeight: FontWeight.w500,
                         ),
@@ -1094,8 +1099,8 @@ class _CustomThemeEditorScreenState
 
   Color _contrastIcon(Color bg) {
     return bg.computeLuminance() > 0.5
-        ? Colors.black.withOpacity(0.4)
-        : Colors.white.withOpacity(0.4);
+        ? Colors.black.withValues(alpha: 0.4)
+        : Colors.white.withValues(alpha: 0.4);
   }
 
   // ============================================================================
@@ -1156,7 +1161,7 @@ class _CustomThemeEditorScreenState
           label: Text('Reset All $brightnessLabel Colors'),
           style: OutlinedButton.styleFrom(
             foregroundColor: colorScheme.error,
-            side: BorderSide(color: colorScheme.error.withOpacity(0.5)),
+            side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
           ),
         ),
       ],

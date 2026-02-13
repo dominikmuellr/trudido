@@ -41,7 +41,7 @@ class SlashCommandMenu extends StatelessWidget {
     return Material(
       elevation: 3,
       borderRadius: BorderRadius.circular(12),
-      shadowColor: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
+      shadowColor: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.1),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -157,7 +157,7 @@ class FloatingHistoryControls extends ConsumerWidget {
     return Material(
       elevation: 4,
       borderRadius: BorderRadius.circular(28),
-      shadowColor: Theme.of(context).colorScheme.shadow.withOpacity(0.2),
+      shadowColor: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.2),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
@@ -172,7 +172,7 @@ class FloatingHistoryControls extends ConsumerWidget {
                 ? Theme.of(context).colorScheme.primary
                 : isViewingPast
                 ? Theme.of(context).colorScheme.tertiary
-                : Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+                : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
             width: (isViewingPast || isBranchingMode) ? 2 : 1,
           ),
         ),
@@ -189,7 +189,7 @@ class FloatingHistoryControls extends ConsumerWidget {
               ),
               _buildVerticalDivider(
                 context,
-                Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
               ),
             ]
             // "Viewing past" indicator (only if not branching)
@@ -202,7 +202,7 @@ class FloatingHistoryControls extends ConsumerWidget {
               ),
               _buildVerticalDivider(
                 context,
-                Theme.of(context).colorScheme.tertiary.withOpacity(0.5),
+                Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.5),
               ),
             ],
             // Undo button
@@ -214,7 +214,7 @@ class FloatingHistoryControls extends ConsumerWidget {
                     ? Theme.of(context).colorScheme.primary
                     : Theme.of(
                         context,
-                      ).colorScheme.onSurfaceVariant.withOpacity(0.4),
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
               ),
               tooltip: 'Undo',
               onPressed: canUndo ? onUndo : null,
@@ -230,7 +230,7 @@ class FloatingHistoryControls extends ConsumerWidget {
                     ? Theme.of(context).colorScheme.primary
                     : Theme.of(
                         context,
-                      ).colorScheme.onSurfaceVariant.withOpacity(0.4),
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
               ),
               tooltip: 'Redo',
               onPressed: canRedo ? onRedo : null,
@@ -240,7 +240,7 @@ class FloatingHistoryControls extends ConsumerWidget {
             // Divider
             _buildVerticalDivider(
               context,
-              Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+              Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
             ),
             // History button
             ExpressiveIconButton(

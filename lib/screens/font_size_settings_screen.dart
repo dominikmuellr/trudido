@@ -184,7 +184,7 @@ class _FontSizeSettingsScreenState extends State<FontSizeSettingsScreen> {
 
           // Info card
           Card(
-            color: colorScheme.primaryContainer.withOpacity(0.5),
+            color: colorScheme.primaryContainer.withValues(alpha: 0.5),
             child: Padding(
               padding: SpacingEdgeInsets.insets16,
               child: Row(

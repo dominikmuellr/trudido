@@ -590,7 +590,7 @@ class _ThemeModeSheet extends ConsumerWidget {
           !(isDarkOnlyTheme &&
               (mode == ThemeMode.light || mode == ThemeMode.system));
       final effectiveColor = !isEnabled
-          ? cs.onSurfaceVariant.withOpacity(0.4)
+          ? cs.onSurfaceVariant.withValues(alpha: 0.4)
           : selected
           ? cs.primary
           : cs.onSurfaceVariant;
@@ -609,7 +609,9 @@ class _ThemeModeSheet extends ConsumerWidget {
           label,
           style: TextStyle(
             fontWeight: selected ? FontWeight.w600 : null,
-            color: !isEnabled ? cs.onSurfaceVariant.withOpacity(0.4) : null,
+            color: !isEnabled
+                ? cs.onSurfaceVariant.withValues(alpha: 0.4)
+                : null,
           ),
         ),
         subtitle: Text(
@@ -618,7 +620,9 @@ class _ThemeModeSheet extends ConsumerWidget {
               ? getUnavailableMessage()
               : desc,
           style: TextStyle(
-            color: !isEnabled ? cs.onSurfaceVariant.withOpacity(0.4) : null,
+            color: !isEnabled
+                ? cs.onSurfaceVariant.withValues(alpha: 0.4)
+                : null,
           ),
         ),
         trailing: selected ? Icon(Icons.check, color: cs.primary) : null,
@@ -654,14 +658,14 @@ class _ThemeModeSheet extends ConsumerWidget {
             leading: Icon(
               Icons.contrast,
               color: (isBlackIncompatibleTheme || current == ThemeMode.light)
-                  ? cs.onSurfaceVariant.withOpacity(0.4)
+                  ? cs.onSurfaceVariant.withValues(alpha: 0.4)
                   : cs.onSurfaceVariant,
             ),
             title: Text(
               'Black (AMOLED)',
               style: TextStyle(
                 color: (isBlackIncompatibleTheme || current == ThemeMode.light)
-                    ? cs.onSurfaceVariant.withOpacity(0.4)
+                    ? cs.onSurfaceVariant.withValues(alpha: 0.4)
                     : null,
               ),
             ),
@@ -671,7 +675,7 @@ class _ThemeModeSheet extends ConsumerWidget {
                         ? 'Not compatible with Solarized theme'
                         : 'Not compatible with this theme',
                     style: TextStyle(
-                      color: cs.onSurfaceVariant.withOpacity(0.4),
+                      color: cs.onSurfaceVariant.withValues(alpha: 0.4),
                     ),
                   )
                 : null,
@@ -758,7 +762,7 @@ class _AccentColorSelector extends ConsumerWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -807,7 +811,7 @@ class _AccentColorSelector extends ConsumerWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -833,7 +837,7 @@ class _AccentColorSelector extends ConsumerWidget {
           color: Color(colorValue),
           shape: BoxShape.circle,
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -952,7 +956,7 @@ class _AccentColorSheet extends StatelessWidget {
             decoration: BoxDecoration(
               color: Theme.of(
                 context,
-              ).colorScheme.onSurfaceVariant.withOpacity(0.4),
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
               borderRadius: SpacingBorderRadius.full,
             ),
           ),
@@ -1021,7 +1025,7 @@ class _AccentColorSheet extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: selected ? cs.primary : cs.outline.withOpacity(0.3),
+            color: selected ? cs.primary : cs.outline.withValues(alpha: 0.3),
             width: selected ? 2 : 1,
           ),
         ),
@@ -1076,7 +1080,7 @@ class _AccentColorSheet extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: selected ? cs.primary : cs.outline.withOpacity(0.3),
+            color: selected ? cs.primary : cs.outline.withValues(alpha: 0.3),
             width: selected ? 2 : 1,
           ),
         ),
@@ -1102,7 +1106,7 @@ class _AccentColorSheet extends StatelessWidget {
           color: Color(colorValue),
           shape: BoxShape.circle,
           border: Border.all(
-            color: selected ? cs.primary : cs.outline.withOpacity(0.3),
+            color: selected ? cs.primary : cs.outline.withValues(alpha: 0.3),
             width: selected ? 2 : 1,
           ),
         ),
@@ -1244,10 +1248,12 @@ Widget _buildFontOption(
 ) {
   return RadioListTile<String>(
     value: value,
+    // ignore: deprecated_member_use
     groupValue: currentFont,
     secondary: Icon(icon),
     title: Text(title),
     subtitle: Text(subtitle),
+    // ignore: deprecated_member_use
     onChanged: (v) {
       if (v != null) {
         controller.setFontFamily(v);

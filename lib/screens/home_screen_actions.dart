@@ -239,8 +239,11 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
       await Future.delayed(const Duration(milliseconds: 100));
     }
 
+    if (!context.mounted) return;
+    
+    final authContext = context;
     final authenticated = await VaultAuthService.authenticate(
-      context: context,
+      context: authContext,
       folderId: defaultVault.id,
       folderName: defaultVault.name,
       useBiometric: defaultVault.useBiometric,

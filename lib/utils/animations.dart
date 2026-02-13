@@ -220,8 +220,8 @@ class AnimatedMaterialPageRoute<T> extends PageRoute<T> {
   AnimatedMaterialPageRoute({
     required this.builder,
     this.transitionsBuilder,
-    RouteSettings? settings,
-  }) : super(settings: settings);
+    super.settings,
+  });
 
   @override
   Color? get barrierColor => null;
@@ -412,7 +412,7 @@ class _ShimmerLoadingState extends State<ShimmerLoading>
         widget.baseColor ?? theme.colorScheme.surfaceContainerHighest;
     final highlightColor =
         widget.highlightColor ??
-        theme.colorScheme.surfaceContainerHighest.withOpacity(0.5);
+        theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);
 
     return AnimatedBuilder(
       animation: _controller,
