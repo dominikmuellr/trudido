@@ -26,7 +26,7 @@ import '../services/vault_auth_service.dart';
 import '../widgets/note_preview_card_markdown.dart';
 import '../widgets/notes_filter_chips.dart';
 import 'quill_note_editor_screen.dart';
-import '../theme/spacing_tokens.dart';
+import '../providers/app_providers.dart';
 import '../widgets/common/common.dart';
 import '../utils/state_notifiers.dart';
 
@@ -49,6 +49,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   Widget build(BuildContext context) {
     final filteredNotesAsync = ref.watch(filteredNotesProvider);
     final selectedFolderId = ref.watch(selectedNoteFolderProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     return filteredNotesAsync.when(
       data: (notes) => _buildBody(notes, selectedFolderId == null),
@@ -62,18 +63,18 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               size: 64,
               color: Theme.of(context).colorScheme.error,
             ),
-            SpacingGap.gapV16,
+            spacing.gapV16,
             Text(
               'Error loading notes',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            SpacingGap.gapV8,
+            spacing.gapV8,
             Text(
               error.toString(),
               style: Theme.of(context).textTheme.bodySmall,
               textAlign: TextAlign.center,
             ),
-            SpacingGap.gapV16,
+            spacing.gapV16,
             FilledButton(
               onPressed: () => ref.refresh(notesProvider),
               child: const Text('Retry'),
@@ -103,6 +104,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
   /// Build grid view (original MasonryGridView layout)
   Widget _buildGridView(List<Note> notes, bool isAllNotesView) {
+    final spacing = ref.watch(adaptiveSpacingProvider);
     return NotificationListener<ScrollNotification>(
       onNotification: (scrollNotification) {
         // Detect pull-to-search gesture
@@ -125,11 +127,11 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         return false;
       },
       child: MasonryGridView.count(
-        padding: SpacingEdgeInsets.insets8,
+        padding: spacing.insets8,
         physics: const BouncingScrollPhysics(),
         crossAxisCount: 2,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
+        mainAxisSpacing: spacing.s8,
+        crossAxisSpacing: spacing.s8,
         itemCount: notes.length,
         itemBuilder: (context, index) {
           final note = notes[index];
@@ -200,6 +202,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   Widget _buildEmptyState() {
     final isSearchMode = ref.watch(notesSearchModeProvider);
     final searchQuery = ref.watch(notesSearchQueryProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     return Center(
       child: Column(
@@ -210,7 +213,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             size: 64,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
-          SpacingGap.gapV16,
+          spacing.gapV16,
           Text(
             isSearchMode && searchQuery.isNotEmpty
                 ? 'No notes found'
@@ -219,7 +222,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               color: Theme.of(context).colorScheme.primary,
             ),
           ),
-          SpacingGap.gapV8,
+          spacing.gapV8,
           Text(
             isSearchMode && searchQuery.isNotEmpty
                 ? 'Try a different search term'

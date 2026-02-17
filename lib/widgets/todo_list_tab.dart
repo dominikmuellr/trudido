@@ -95,6 +95,7 @@ class TodoListTab extends ConsumerWidget {
                         )
                   ? _buildEmptyState(
                       context,
+                      ref,
                       ref.watch(
                         searchQueryProvider.select((query) => query.isNotEmpty),
                       ),
@@ -107,7 +108,12 @@ class TodoListTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, bool isSearching) {
+  Widget _buildEmptyState(
+    BuildContext context,
+    WidgetRef ref,
+    bool isSearching,
+  ) {
+    final spacing = ref.watch(adaptiveSpacingProvider);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -117,14 +123,14 @@ class TodoListTab extends ConsumerWidget {
             size: 64,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
-          SpacingGap.gapV16,
+          spacing.gapV16,
           Text(
             isSearching ? 'No tasks found' : 'No tasks yet',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               color: Theme.of(context).colorScheme.primary,
             ),
           ),
-          SpacingGap.gapV8,
+          spacing.gapV8,
           Text(
             isSearching
                 ? 'Try adjusting your search or filters'
@@ -290,57 +296,60 @@ class TodoListTab extends ConsumerWidget {
     if (isEmpty) {
       return _buildEmptyState(
         context,
+        ref,
         ref.watch(searchQueryProvider).isNotEmpty,
       );
     }
 
+    final spacing = ref.watch(adaptiveSpacingProvider);
+
     return ListView(
       physics: const BouncingScrollPhysics(),
-      padding: SpacingEdgeInsets.insets16,
+      padding: spacing.insets16,
       children: [
         // OVERDUE section
         if (overdueItems.isNotEmpty) ...[
-          _buildSectionHeader(context, 'OVERDUE', colorScheme),
+          _buildSectionHeader(context, ref, 'OVERDUE', colorScheme),
           ...overdueItems.map(
             (item) => _buildListItem(context, ref, item, theme, colorScheme),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: spacing.s16),
         ],
 
         // TODAY section
         if (todayItems.isNotEmpty) ...[
-          _buildSectionHeader(context, 'TODAY', colorScheme),
+          _buildSectionHeader(context, ref, 'TODAY', colorScheme),
           ...todayItems.map(
             (item) => _buildListItem(context, ref, item, theme, colorScheme),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: spacing.s16),
         ],
 
         // TOMORROW section
         if (tomorrowItems.isNotEmpty) ...[
-          _buildSectionHeader(context, 'TOMORROW', colorScheme),
+          _buildSectionHeader(context, ref, 'TOMORROW', colorScheme),
           ...tomorrowItems.map(
             (item) => _buildListItem(context, ref, item, theme, colorScheme),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: spacing.s16),
         ],
 
         // UPCOMING section
         if (upcomingItems.isNotEmpty) ...[
-          _buildSectionHeader(context, 'UPCOMING', colorScheme),
+          _buildSectionHeader(context, ref, 'UPCOMING', colorScheme),
           ...upcomingItems.map(
             (item) => _buildListItem(context, ref, item, theme, colorScheme),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: spacing.s16),
         ],
 
         // NO DATE section
         if (noDateItems.isNotEmpty) ...[
-          _buildSectionHeader(context, 'NO DATE', colorScheme),
+          _buildSectionHeader(context, ref, 'NO DATE', colorScheme),
           ...noDateItems.map(
             (item) => _buildListItem(context, ref, item, theme, colorScheme),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: spacing.s16),
         ],
       ],
     );
@@ -349,11 +358,13 @@ class TodoListTab extends ConsumerWidget {
   /// Build section header
   Widget _buildSectionHeader(
     BuildContext context,
+    WidgetRef ref,
     String title,
     ColorScheme colorScheme,
   ) {
+    final spacing = ref.watch(adaptiveSpacingProvider);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: spacing.s8),
       child: Text(
         title,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
@@ -373,6 +384,7 @@ class TodoListTab extends ConsumerWidget {
     ThemeData theme,
     ColorScheme colorScheme,
   ) {
+    final spacing = ref.watch(adaptiveSpacingProvider);
     if (item is Todo) {
       final multiMode = ref.watch(multiSelectModeProvider);
       final selectedIds = ref.watch(selectedTodoIdsProvider);
@@ -380,7 +392,9 @@ class TodoListTab extends ConsumerWidget {
       // RepaintBoundary prevents unnecessary repaints during scrolling
       return RepaintBoundary(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
+          padding: EdgeInsets.symmetric(
+            vertical: spacing.isCompact ? 0 : spacing.s2,
+          ),
           child: HybridTodoItem(
             todo: item,
             onToggle: () => ref
@@ -419,6 +433,7 @@ class TodoListTab extends ConsumerWidget {
     ColorScheme colorScheme,
   ) {
     final preferences = ref.watch(preferencesStateProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     return Dismissible(
       key: ValueKey('holiday_${holiday.id}'),
@@ -457,23 +472,28 @@ class TodoListTab extends ConsumerWidget {
       },
       background: _buildSwipeBackground(
         context,
+        ref,
         DismissDirection.startToEnd,
         preferences.swipeRightAction,
         colorScheme,
       ),
       secondaryBackground: _buildSwipeBackground(
         context,
+        ref,
         DismissDirection.endToStart,
         preferences.swipeLeftAction,
         colorScheme,
       ),
       child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        margin: EdgeInsets.symmetric(
+          horizontal: spacing.s8,
+          vertical: spacing.s4,
+        ),
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: SpacingBorderRadius.md),
         color: colorScheme.tertiaryContainer.withValues(alpha: 0.5),
         child: Padding(
-          padding: SpacingEdgeInsets.insets16,
+          padding: spacing.insets16,
           child: Row(
             children: [
               Icon(
@@ -481,7 +501,7 @@ class TodoListTab extends ConsumerWidget {
                 size: 24,
                 color: colorScheme.tertiary,
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: spacing.s12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -493,7 +513,7 @@ class TodoListTab extends ConsumerWidget {
                         color: colorScheme.onTertiaryContainer,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: spacing.s4),
                     Text(
                       holiday.endDate != null
                           ? '${DateFormat('MMM d').format(holiday.date)} - ${DateFormat('MMM d, yyyy').format(holiday.endDate!)}'
@@ -517,6 +537,7 @@ class TodoListTab extends ConsumerWidget {
   /// Build swipe background
   Widget _buildSwipeBackground(
     BuildContext context,
+    WidgetRef ref,
     DismissDirection direction,
     String action,
     ColorScheme colorScheme,
@@ -525,24 +546,28 @@ class TodoListTab extends ConsumerWidget {
       return Container();
     }
 
+    final spacing = ref.watch(adaptiveSpacingProvider);
     final isStartToEnd = direction == DismissDirection.startToEnd;
 
     return Container(
       alignment: isStartToEnd ? Alignment.centerLeft : Alignment.centerRight,
       padding: isStartToEnd
-          ? const EdgeInsets.only(left: 20)
-          : const EdgeInsets.only(right: 20),
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          ? EdgeInsets.only(left: spacing.s20)
+          : EdgeInsets.only(right: spacing.s20),
+      margin: EdgeInsets.symmetric(
+        horizontal: spacing.s8,
+        vertical: spacing.s4,
+      ),
       decoration: BoxDecoration(
         color: Colors.red,
         borderRadius: SpacingBorderRadius.md,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.delete, color: Colors.white, size: 28),
-          SizedBox(height: 4),
-          Text(
+        children: [
+          const Icon(Icons.delete, color: Colors.white, size: 28),
+          SizedBox(height: spacing.s4),
+          const Text(
             'DELETE',
             style: TextStyle(
               color: Colors.white,

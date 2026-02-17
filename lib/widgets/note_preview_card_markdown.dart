@@ -465,6 +465,7 @@ class NotePreviewCard extends ConsumerWidget {
 
     // Read swipe preference
     final preferences = ref.watch(preferencesStateProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
     // Map the physical swipe directions to the configured actions.
     // startToEnd => user swiped right (maps to swipeRightAction)
     final actionStart =
@@ -539,7 +540,7 @@ class NotePreviewCard extends ConsumerWidget {
           ? Container()
           : Container(
               alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.only(left: 20),
+              padding: EdgeInsets.only(left: spacing.s20),
               decoration: BoxDecoration(
                 color: actionStart == 'delete'
                     ? Colors.red
@@ -558,7 +559,7 @@ class NotePreviewCard extends ConsumerWidget {
                     color: Colors.white,
                     size: 28,
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: spacing.s4),
                   Text(
                     actionStart == 'delete'
                         ? 'DELETE'
@@ -577,7 +578,7 @@ class NotePreviewCard extends ConsumerWidget {
           ? Container()
           : Container(
               alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 20),
+              padding: EdgeInsets.only(right: spacing.s20),
               decoration: BoxDecoration(
                 color: actionEnd == 'delete'
                     ? Colors.red
@@ -596,7 +597,7 @@ class NotePreviewCard extends ConsumerWidget {
                     color: Colors.white,
                     size: 28,
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: spacing.s4),
                   Text(
                     actionEnd == 'delete'
                         ? 'DELETE'
@@ -680,7 +681,10 @@ class NotePreviewCard extends ConsumerWidget {
           _showContextMenu(context);
         },
         child: Card(
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          margin: EdgeInsets.symmetric(
+            horizontal: spacing.s8,
+            vertical: spacing.isCompact ? spacing.s2 : spacing.s4,
+          ),
           elevation: 0, // Modern MD3: flat design with no shadow
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -695,7 +699,7 @@ class NotePreviewCard extends ConsumerWidget {
           child: SizedBox(
             width: double.infinity,
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: spacing.insets16,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -710,7 +714,7 @@ class NotePreviewCard extends ConsumerWidget {
                           size: 16,
                           color: Theme.of(context).colorScheme.primary,
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: spacing.s8),
                       ],
 
                       // Title with lightweight markdown rendering
@@ -729,7 +733,7 @@ class NotePreviewCard extends ConsumerWidget {
 
                   // Subtitle (if exists)
                   if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 4), // Reduced from 6 to 4
+                    SizedBox(height: spacing.s4), // Reduced from 6 to 4
                     Text(
                       subtitle,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -747,7 +751,7 @@ class NotePreviewCard extends ConsumerWidget {
                   else if (bodySpan.text?.isNotEmpty == true ||
                       bodySpan.children?.isNotEmpty == true) ...[
                     SizedBox(
-                      height: subtitle.isNotEmpty ? 6 : 8,
+                      height: subtitle.isNotEmpty ? spacing.s6 : spacing.s8,
                     ), // Less space if subtitle exists
                     // Show more lines to allow cards to expand with content
                     RichText(
@@ -759,7 +763,7 @@ class NotePreviewCard extends ConsumerWidget {
                   ],
 
                   // Footer with metadata
-                  const SizedBox(height: 12),
+                  SizedBox(height: spacing.s12),
                   Row(
                     children: [
                       ScaledIcon(
@@ -767,7 +771,7 @@ class NotePreviewCard extends ConsumerWidget {
                         size: 14,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: spacing.s4),
                       Flexible(
                         child: Text(
                           formattedDate,

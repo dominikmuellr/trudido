@@ -73,6 +73,7 @@ class DefaultsSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -82,7 +83,7 @@ class DefaultsSettingsScreen extends ConsumerWidget {
       ),
       body: ListView(
         children: [
-          SpacingGap.gapV8,
+          spacing.gapV8,
           const _DefaultTabSelector(),
           const _DefaultViewSelector(),
           const _DefaultNotesFolderSelector(),
@@ -90,9 +91,10 @@ class DefaultsSettingsScreen extends ConsumerWidget {
           const _WeekStartSelector(),
           const _GreetingLanguageSelector(),
           const _ContrastLevelSelector(),
+          const _CompactModeSelector(),
           const _SwipeActionsSelector(),
           const _BlackoutRecentsSelector(),
-          SpacingGap.gapV16,
+          spacing.gapV16,
         ],
       ),
     );
@@ -109,23 +111,30 @@ class _DefaultTabSelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final defaultTabAsync = ref.watch(defaultTabNotifierProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     return defaultTabAsync.when(
-      loading: () => const ListTile(
-        leading: Icon(Icons.home_outlined),
-        title: Text('Default Starting Tab'),
-        subtitle: Text('Loading...'),
+      loading: () => ListTile(
+        contentPadding: spacing.listTileInsets,
+        visualDensity: spacing.listTileDensity,
+        leading: const Icon(Icons.home_outlined),
+        title: const Text('Default Starting Tab'),
+        subtitle: const Text('Loading...'),
       ),
-      error: (error, _) => const ListTile(
-        leading: Icon(Icons.error_outline),
-        title: Text('Default Starting Tab'),
-        subtitle: Text('Error loading setting'),
+      error: (error, _) => ListTile(
+        contentPadding: spacing.listTileInsets,
+        visualDensity: spacing.listTileDensity,
+        leading: const Icon(Icons.error_outline),
+        title: const Text('Default Starting Tab'),
+        subtitle: const Text('Error loading setting'),
       ),
       data: (currentTab) {
         final tabs = DefaultTabService.getAllTabs();
         final currentTabName = tabs[currentTab] ?? 'Unknown';
 
         return ListTile(
+          contentPadding: spacing.listTileInsets,
+          visualDensity: spacing.listTileDensity,
           leading: const Icon(Icons.home_outlined),
           title: const Text('Default Starting Tab'),
           subtitle: Text(currentTabName),
@@ -163,10 +172,13 @@ class _DefaultTabSheet extends ConsumerWidget {
     final hideBottomNav = ref
         .watch(preferencesStateProvider)
         .hideBottomNavigation;
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     Widget buildOption(String tabId, String tabName, IconData icon) {
       final selected = current == tabId;
       return ListTile(
+        contentPadding: spacing.listTileInsets,
+        visualDensity: spacing.listTileDensity,
         leading: Icon(icon, color: selected ? cs.primary : cs.onSurfaceVariant),
         title: Text(
           tabName,
@@ -187,7 +199,7 @@ class _DefaultTabSheet extends ConsumerWidget {
           }),
           const Divider(height: 12),
           SwitchListTile.adaptive(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            contentPadding: spacing.insetsH16,
             secondary: const Icon(Icons.view_agenda_outlined),
             title: const Text('Show bottom navigation'),
             subtitle: const Text('Hide the bottom tab bar and navigation rail'),
@@ -229,8 +241,11 @@ class _DefaultViewSelector extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final defaultView = ref.watch(preferencesStateProvider).defaultTaskView;
     final viewName = defaultView == 'calendar' ? 'Calendar' : 'List';
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     return ListTile(
+      contentPadding: spacing.listTileInsets,
+      visualDensity: spacing.listTileDensity,
       leading: const Icon(Icons.view_list_outlined),
       title: const Text('Default Task View'),
       subtitle: Text(viewName),
@@ -259,26 +274,37 @@ class _DefaultViewSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final spacing = ref.watch(adaptiveSpacingProvider);
     return ListView(
       shrinkWrap: true,
       children: [
-        _buildOption(context, 'list', 'List', Icons.list),
-        _buildOption(context, 'calendar', 'Calendar', Icons.calendar_month),
-        const SizedBox(height: 16),
+        _buildOption(context, ref, 'list', 'List', Icons.list),
+        _buildOption(
+          context,
+          ref,
+          'calendar',
+          'Calendar',
+          Icons.calendar_month,
+        ),
+        SizedBox(height: spacing.s16),
       ],
     );
   }
 
   Widget _buildOption(
     BuildContext context,
+    WidgetRef ref,
     String value,
     String label,
     IconData icon,
   ) {
     final isSelected = value == current;
     final theme = Theme.of(context);
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     return ListTile(
+      contentPadding: spacing.listTileInsets,
+      visualDensity: spacing.listTileDensity,
       leading: Icon(icon),
       title: Text(label),
       trailing: isSelected
@@ -303,6 +329,7 @@ class _DefaultNotesFolderSelector extends ConsumerWidget {
         .watch(preferencesStateProvider)
         .defaultNotesFolderId;
     final foldersAsync = ref.watch(noteFoldersProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     return foldersAsync.when(
       data: (folders) {
@@ -319,6 +346,8 @@ class _DefaultNotesFolderSelector extends ConsumerWidget {
         }
 
         return ListTile(
+          contentPadding: spacing.listTileInsets,
+          visualDensity: spacing.listTileDensity,
           leading: const Icon(Icons.folder_outlined),
           title: const Text('Default Notes View'),
           subtitle: Text(displayName),
@@ -343,21 +372,25 @@ class _DefaultNotesFolderSelector extends ConsumerWidget {
           },
         );
       },
-      loading: () => const ListTile(
-        leading: Icon(Icons.folder_outlined),
-        title: Text('Default Notes View'),
-        subtitle: Text('Loading...'),
+      loading: () => ListTile(
+        contentPadding: spacing.listTileInsets,
+        visualDensity: spacing.listTileDensity,
+        leading: const Icon(Icons.folder_outlined),
+        title: const Text('Default Notes View'),
+        subtitle: const Text('Loading...'),
       ),
-      error: (_, __) => const ListTile(
-        leading: Icon(Icons.folder_outlined),
-        title: Text('Default Notes View'),
-        subtitle: Text('All Notes'),
+      error: (_, __) => ListTile(
+        contentPadding: spacing.listTileInsets,
+        visualDensity: spacing.listTileDensity,
+        leading: const Icon(Icons.folder_outlined),
+        title: const Text('Default Notes View'),
+        subtitle: const Text('All Notes'),
       ),
     );
   }
 }
 
-class _DefaultNotesFolderSheet extends StatelessWidget {
+class _DefaultNotesFolderSheet extends ConsumerWidget {
   final String? current;
   final List folders;
 
@@ -367,12 +400,20 @@ class _DefaultNotesFolderSheet extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
-    Widget buildOption(String? folderId, String name, IconData icon) {
+    Widget buildOption(
+      String? folderId,
+      String name,
+      IconData icon,
+      AdaptiveSpacing spacing,
+    ) {
       final selected = current == folderId;
       return ListTile(
+        contentPadding: spacing.listTileInsets,
+        visualDensity: spacing.listTileDensity,
         leading: Icon(icon, color: selected ? cs.primary : cs.onSurfaceVariant),
         title: Text(
           name,
@@ -388,17 +429,17 @@ class _DefaultNotesFolderSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 4),
+            SizedBox(height: spacing.s4),
             // All Notes option
-            buildOption(null, 'All Notes', Icons.folder_outlined),
+            buildOption(null, 'All Notes', Icons.folder_outlined, spacing),
             // Unfiled Notes option
-            buildOption('UNFILED', 'Unfiled Notes', Icons.folder_open),
+            buildOption('UNFILED', 'Unfiled Notes', Icons.folder_open, spacing),
             if (folders.isNotEmpty) const Divider(),
             // Individual folders (exclude vault folders)
             ...folders.where((f) => !f.isVault).map((folder) {
-              return buildOption(folder.id, folder.name, Icons.folder);
+              return buildOption(folder.id, folder.name, Icons.folder, spacing);
             }),
-            const SizedBox(height: 16),
+            SizedBox(height: spacing.s16),
           ],
         ),
       ),
@@ -419,8 +460,11 @@ class _WeekStartSelector extends ConsumerWidget {
     final controller = ref.read(preferencesControllerProvider);
     final currentDay = prefs.firstDayOfWeek;
     final dayName = WeekStartUtils.getDayName(currentDay);
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     return ListTile(
+      contentPadding: spacing.listTileInsets,
+      visualDensity: spacing.listTileDensity,
       leading: const Icon(Icons.calendar_view_week_outlined),
       title: const Text('Week Starts On'),
       subtitle: Text(dayName),
@@ -441,18 +485,21 @@ class _WeekStartSelector extends ConsumerWidget {
   }
 }
 
-class _WeekStartSheet extends StatelessWidget {
+class _WeekStartSheet extends ConsumerWidget {
   final int current;
   const _WeekStartSheet({required this.current});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     Widget buildOption(int dayIndex) {
       final selected = current == dayIndex;
       final dayName = WeekStartUtils.getDayName(dayIndex);
       return ListTile(
+        contentPadding: spacing.listTileInsets,
+        visualDensity: spacing.listTileDensity,
         leading: Icon(
           Icons.today,
           color: selected ? cs.primary : cs.onSurfaceVariant,
@@ -476,7 +523,12 @@ class _WeekStartSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              padding: EdgeInsets.fromLTRB(
+                spacing.s16,
+                spacing.s8,
+                spacing.s16,
+                spacing.s8,
+              ),
               child: Text(
                 'Common',
                 style: Theme.of(
@@ -487,7 +539,12 @@ class _WeekStartSheet extends StatelessWidget {
             ...commonDays.map(buildOption),
             const Divider(),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              padding: EdgeInsets.fromLTRB(
+                spacing.s16,
+                spacing.s8,
+                spacing.s16,
+                spacing.s8,
+              ),
               child: Text(
                 'Other',
                 style: Theme.of(
@@ -496,7 +553,7 @@ class _WeekStartSheet extends StatelessWidget {
               ),
             ),
             ...otherDays.map(buildOption),
-            const SizedBox(height: 16),
+            SizedBox(height: spacing.s16),
           ],
         ),
       ),
@@ -514,8 +571,11 @@ class _GreetingLanguageSelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final preferences = ref.watch(preferencesStateProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     return ListTile(
+      contentPadding: spacing.listTileInsets,
+      visualDensity: spacing.listTileDensity,
       leading: const Icon(Icons.translate),
       title: const Text('Greeting Language'),
       subtitle: Text(_getGreetingLanguageName(preferences.greetingLanguage)),
@@ -582,6 +642,7 @@ class _GreetingLanguageSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final preferences = ref.watch(preferencesStateProvider);
     final controller = ref.read(preferencesControllerProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     final languages = [
       'English',
@@ -610,6 +671,8 @@ class _GreetingLanguageSheet extends ConsumerWidget {
         itemBuilder: (context, index) {
           final isSelected = preferences.greetingLanguage == index;
           return ListTile(
+            contentPadding: spacing.listTileInsets,
+            visualDensity: spacing.listTileDensity,
             title: Text(languages[index]),
             trailing: isSelected
                 ? Icon(
@@ -651,8 +714,11 @@ class _SwipeActionsSelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final preferences = ref.watch(preferencesStateProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     return ListTile(
+      contentPadding: spacing.listTileInsets,
+      visualDensity: spacing.listTileDensity,
       leading: const Icon(Icons.swipe),
       title: const Text('Swipe Actions'),
       subtitle: Text(
@@ -678,6 +744,7 @@ class _SwipeActionSheet extends ConsumerWidget {
     final preferences = ref.watch(preferencesStateProvider);
     final controller = ref.read(preferencesControllerProvider);
     final cs = Theme.of(context).colorScheme;
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     Widget buildActionOption(
       String action,
@@ -687,6 +754,8 @@ class _SwipeActionSheet extends ConsumerWidget {
       VoidCallback onTap,
     ) {
       return ListTile(
+        contentPadding: spacing.listTileInsets,
+        visualDensity: spacing.listTileDensity,
         leading: Icon(
           icon,
           color: isSelected ? cs.primary : cs.onSurfaceVariant,
@@ -705,13 +774,15 @@ class _SwipeActionSheet extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(spacing.s16),
             child: Text(
               'Configure Swipe Actions',
               style: Theme.of(context).textTheme.titleLarge,
             ),
           ),
           ListTile(
+            contentPadding: spacing.listTileInsets,
+            visualDensity: spacing.listTileDensity,
             title: const Text('Left Swipe Action'),
             subtitle: Text(_getSwipeActionName(preferences.swipeLeftAction)),
           ),
@@ -743,6 +814,8 @@ class _SwipeActionSheet extends ConsumerWidget {
             },
           ),
           ListTile(
+            contentPadding: spacing.listTileInsets,
+            visualDensity: spacing.listTileDensity,
             title: const Text('Right Swipe Action'),
             subtitle: Text(_getSwipeActionName(preferences.swipeRightAction)),
           ),
@@ -773,7 +846,7 @@ class _SwipeActionSheet extends ConsumerWidget {
               controller.setSwipeRightAction('none');
             },
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: spacing.s16),
         ],
       ),
     );
@@ -793,8 +866,11 @@ class _TimeFormatSelector extends ConsumerWidget {
     final controller = ref.read(preferencesControllerProvider);
     final currentFormat = prefs.timeFormat;
     final formatName = _getFormatName(currentFormat, context);
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     return ListTile(
+      contentPadding: spacing.listTileInsets,
+      visualDensity: spacing.listTileDensity,
       leading: const Icon(Icons.schedule_outlined),
       title: const Text('Time Format'),
       subtitle: Text(formatName),
@@ -827,13 +903,14 @@ class _TimeFormatSelector extends ConsumerWidget {
   }
 }
 
-class _TimeFormatSheet extends StatelessWidget {
+class _TimeFormatSheet extends ConsumerWidget {
   final String current;
   const _TimeFormatSheet({required this.current});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     Widget buildOption(
       String value,
@@ -843,6 +920,8 @@ class _TimeFormatSheet extends StatelessWidget {
     ) {
       final selected = current == value;
       return ListTile(
+        contentPadding: spacing.listTileInsets,
+        visualDensity: spacing.listTileDensity,
         leading: Icon(icon, color: selected ? cs.primary : cs.onSurfaceVariant),
         title: Text(
           label,
@@ -868,7 +947,7 @@ class _TimeFormatSheet extends StatelessWidget {
           ),
           buildOption('12h', '12-hour', '3:30 PM', Icons.schedule_outlined),
           buildOption('24h', '24-hour', '15:30', Icons.schedule_outlined),
-          const SizedBox(height: 16),
+          SizedBox(height: spacing.s16),
         ],
       ),
     );
@@ -886,6 +965,7 @@ class _ContrastLevelSelector extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(preferencesStateProvider);
     final currentLevel = prefs.contrastLevel;
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     String getDisplayName(String level) {
       switch (level) {
@@ -900,6 +980,8 @@ class _ContrastLevelSelector extends ConsumerWidget {
     }
 
     return ListTile(
+      contentPadding: spacing.listTileInsets,
+      visualDensity: spacing.listTileDensity,
       leading: const Icon(Icons.contrast),
       title: const Text('Contrast Level'),
       subtitle: Text(getDisplayName(currentLevel)),
@@ -921,17 +1003,20 @@ class _ContrastLevelSelector extends ConsumerWidget {
   }
 }
 
-class _ContrastLevelSheet extends StatelessWidget {
+class _ContrastLevelSheet extends ConsumerWidget {
   final String current;
   const _ContrastLevelSheet({required this.current});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     Widget buildOption(String level, String label, String desc, IconData icon) {
       final selected = current == level;
       return ListTile(
+        contentPadding: spacing.listTileInsets,
+        visualDensity: spacing.listTileDensity,
         leading: Icon(icon, color: selected ? cs.primary : cs.onSurfaceVariant),
         title: Text(
           label,
@@ -949,7 +1034,12 @@ class _ContrastLevelSheet extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+            padding: EdgeInsets.fromLTRB(
+              spacing.s24,
+              spacing.s8,
+              spacing.s24,
+              spacing.s16,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -959,7 +1049,7 @@ class _ContrastLevelSheet extends StatelessWidget {
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: spacing.s4),
                 Text(
                   'Adjust color contrast for better visibility',
                   style: Theme.of(
@@ -987,9 +1077,48 @@ class _ContrastLevelSheet extends StatelessWidget {
             'Maximum contrast for accessibility needs',
             Icons.accessibility_new,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: spacing.s16),
         ],
       ),
+    );
+  }
+}
+
+// ============================================================================
+// Compact Mode Selector
+// ============================================================================
+
+class _CompactModeSelector extends ConsumerWidget {
+  const _CompactModeSelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final preferences = ref.watch(preferencesStateProvider);
+    final controller = ref.read(preferencesControllerProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
+
+    return SwitchListTile.adaptive(
+      contentPadding: spacing.listTileInsets,
+      visualDensity: spacing.listTileDensity,
+      secondary: const Icon(Icons.density_medium),
+      title: const Text('Compact Mode'),
+      subtitle: const Text(
+        'Reduce spacing by 35% and text size by 15% to fit more content',
+      ),
+      value: preferences.compactDensity,
+      onChanged: (value) async {
+        await controller.toggleCompactDensity();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                value ? 'Compact Mode enabled' : 'Compact Mode disabled',
+              ),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      },
     );
   }
 }
@@ -1005,8 +1134,11 @@ class _BlackoutRecentsSelector extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final preferences = ref.watch(preferencesStateProvider);
     final controller = ref.read(preferencesControllerProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     return SwitchListTile.adaptive(
+      contentPadding: spacing.listTileInsets,
+      visualDensity: spacing.listTileDensity,
       secondary: const Icon(Icons.security),
       title: const Text('Black Out Recents'),
       subtitle: const Text('Hide app content in Android recents for privacy'),

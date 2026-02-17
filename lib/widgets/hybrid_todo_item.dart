@@ -55,6 +55,7 @@ class HybridTodoItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final preferences = ref.watch(preferencesStateProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
 
     return Dismissible(
       key: ValueKey(todo.id),
@@ -85,17 +86,22 @@ class HybridTodoItem extends ConsumerWidget {
         context,
         DismissDirection.startToEnd,
         preferences,
+        spacing,
       ),
       secondaryBackground: _buildSwipeBackground(
         context,
         DismissDirection.endToStart,
         preferences,
+        spacing,
       ),
       child: ExpressiveGestureDetector(
         onTap: selectable ? onSelectToggle : onEdit,
         onLongPress: selectable ? null : onSelectToggle,
         child: Card(
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          margin: EdgeInsets.symmetric(
+            horizontal: spacing.s8,
+            vertical: spacing.isCompact ? spacing.s2 : spacing.s4,
+          ),
           elevation: 0, // Modern MD3: flat design with no shadow
           shape: RoundedRectangleBorder(borderRadius: SpacingBorderRadius.md),
           color: selected
@@ -110,7 +116,7 @@ class HybridTodoItem extends ConsumerWidget {
           child: SizedBox(
             width: double.infinity,
             child: Padding(
-              padding: SpacingEdgeInsets.insets16,
+              padding: spacing.insets16,
               child: Row(
                 children: [
                   // Checkbox on the left (completion or selection)
@@ -124,7 +130,7 @@ class HybridTodoItem extends ConsumerWidget {
                       value: selected,
                       onChanged: (v) => onSelectToggle(),
                     ),
-                  SpacingGap.gapH8,
+                  spacing.gapH8,
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,18 +159,18 @@ class HybridTodoItem extends ConsumerWidget {
                                   fontSize: 16,
                                 ),
                               ),
-                        const SizedBox(height: 6),
+                        SizedBox(height: spacing.s6),
                         // Show priority and due date/time in a row
                         Wrap(
-                          spacing: 12,
-                          runSpacing: 4,
+                          spacing: spacing.s12,
+                          runSpacing: spacing.s4,
                           children: [
                             // Calendar source color indicator (for imported tasks)
                             if (todo.sourceCalendarColor != null)
-                              _buildCalendarSourceChip(context),
+                              _buildCalendarSourceChip(context, spacing),
                             // Priority indicator (only show if not 'none')
                             if (todo.priority != 'none')
-                              _buildPriorityChip(context),
+                              _buildPriorityChip(context, spacing),
                             // Due date and time
                             if (todo.dueDate != null)
                               _buildDueDateChip(
@@ -172,12 +178,14 @@ class HybridTodoItem extends ConsumerWidget {
                                 preferences.resolveUse24Hour(
                                   MediaQuery.of(context).alwaysUse24HourFormat,
                                 ),
+                                spacing,
                               ),
                             // Duration indicator
                             if (todo.durationMinutes != null)
-                              _buildDurationChip(context),
+                              _buildDurationChip(context, spacing),
                             // Repeat indicator
-                            if (todo.isRecurring) _buildRepeatChip(context),
+                            if (todo.isRecurring)
+                              _buildRepeatChip(context, spacing),
                           ],
                         ),
                       ],
@@ -192,11 +200,17 @@ class HybridTodoItem extends ConsumerWidget {
     );
   }
 
-  Widget _buildCalendarSourceChip(BuildContext context) {
+  Widget _buildCalendarSourceChip(
+    BuildContext context,
+    AdaptiveSpacing spacing,
+  ) {
     final color = Color(todo.sourceCalendarColor!);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing.s6,
+        vertical: spacing.s4,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.2),
         borderRadius: SpacingBorderRadius.md,
@@ -210,14 +224,14 @@ class HybridTodoItem extends ConsumerWidget {
             height: 8,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: spacing.s4),
           Icon(Icons.event, size: 12, color: color),
         ],
       ),
     );
   }
 
-  Widget _buildPriorityChip(BuildContext context) {
+  Widget _buildPriorityChip(BuildContext context, AdaptiveSpacing spacing) {
     final colorScheme = Theme.of(context).colorScheme;
 
     Color chipColor;
@@ -242,7 +256,10 @@ class HybridTodoItem extends ConsumerWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing.s8,
+        vertical: spacing.s4,
+      ),
       decoration: BoxDecoration(
         color: chipColor,
         borderRadius: SpacingBorderRadius.md,
@@ -251,7 +268,7 @@ class HybridTodoItem extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 14, color: textColor),
-          const SizedBox(width: 4),
+          SizedBox(width: spacing.s4),
           Text(
             todo.priority.toUpperCase(),
             style: TextStyle(
@@ -265,7 +282,11 @@ class HybridTodoItem extends ConsumerWidget {
     );
   }
 
-  Widget _buildDueDateChip(BuildContext context, bool use24Hour) {
+  Widget _buildDueDateChip(
+    BuildContext context,
+    bool use24Hour,
+    AdaptiveSpacing spacing,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     final dueDate = todo.dueDate!;
 
@@ -288,7 +309,10 @@ class HybridTodoItem extends ConsumerWidget {
     final isOverdue = dueDate.isBefore(now) && !todo.isCompleted;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing.s8,
+        vertical: spacing.s4,
+      ),
       decoration: BoxDecoration(
         color: isOverdue
             ? colorScheme.errorContainer
@@ -305,7 +329,7 @@ class HybridTodoItem extends ConsumerWidget {
                 ? colorScheme.onErrorContainer
                 : colorScheme.onTertiaryContainer,
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: spacing.s4),
           Text(
             dateTimeText,
             style: TextStyle(
@@ -321,7 +345,7 @@ class HybridTodoItem extends ConsumerWidget {
     );
   }
 
-  Widget _buildDurationChip(BuildContext context) {
+  Widget _buildDurationChip(BuildContext context, AdaptiveSpacing spacing) {
     final colorScheme = Theme.of(context).colorScheme;
     final durationMinutes = todo.durationMinutes!;
 
@@ -338,7 +362,10 @@ class HybridTodoItem extends ConsumerWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing.s8,
+        vertical: spacing.s4,
+      ),
       decoration: BoxDecoration(
         color: colorScheme.primaryContainer,
         borderRadius: SpacingBorderRadius.md,
@@ -351,7 +378,7 @@ class HybridTodoItem extends ConsumerWidget {
             size: 14,
             color: colorScheme.onPrimaryContainer,
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: spacing.s4),
           Text(
             durationText,
             style: TextStyle(
@@ -365,7 +392,7 @@ class HybridTodoItem extends ConsumerWidget {
     );
   }
 
-  Widget _buildRepeatChip(BuildContext context) {
+  Widget _buildRepeatChip(BuildContext context, AdaptiveSpacing spacing) {
     final colorScheme = Theme.of(context).colorScheme;
 
     String repeatText;
@@ -387,7 +414,10 @@ class HybridTodoItem extends ConsumerWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing.s8,
+        vertical: spacing.s4,
+      ),
       decoration: BoxDecoration(
         color: colorScheme.tertiaryContainer,
         borderRadius: SpacingBorderRadius.md,
@@ -396,7 +426,7 @@ class HybridTodoItem extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.repeat, size: 14, color: colorScheme.onTertiaryContainer),
-          const SizedBox(width: 4),
+          SizedBox(width: spacing.s4),
           Text(
             repeatText,
             style: TextStyle(
@@ -414,6 +444,7 @@ class HybridTodoItem extends ConsumerWidget {
     BuildContext context,
     DismissDirection direction,
     PreferencesState preferences,
+    AdaptiveSpacing spacing,
   ) {
     // direction == startToEnd -> user swiped right (show left-side background)
     final isStartToEnd = direction == DismissDirection.startToEnd;
@@ -444,8 +475,8 @@ class HybridTodoItem extends ConsumerWidget {
     return Container(
       alignment: isStartToEnd ? Alignment.centerLeft : Alignment.centerRight,
       padding: isStartToEnd
-          ? const EdgeInsets.only(left: 20)
-          : const EdgeInsets.only(right: 20),
+          ? EdgeInsets.only(left: spacing.s20)
+          : EdgeInsets.only(right: spacing.s20),
       decoration: BoxDecoration(
         color: color,
         borderRadius: SpacingBorderRadius.md,
@@ -454,7 +485,7 @@ class HybridTodoItem extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           ScaledIcon(icon, color: Colors.white, size: 28),
-          const SizedBox(height: 4),
+          SizedBox(height: spacing.s4),
           Text(
             text,
             style: const TextStyle(

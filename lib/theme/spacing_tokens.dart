@@ -412,3 +412,128 @@ extension SpacingBorderRadius on Spacing {
   /// Circular/pill shape
   static final BorderRadius circular = BorderRadius.circular(1000);
 }
+
+/// Adaptive spacing values based on compact density mode.
+/// Use this class to get spacing values that automatically adjust when
+/// compact mode is enabled. Access via the adaptiveSpacingProvider.
+class AdaptiveSpacing {
+  final bool isCompact;
+
+  const AdaptiveSpacing({this.isCompact = false});
+
+  /// Multiplier for spacing values in compact mode (65% of normal - aggressive 35% reduction)
+  static const double _compactMultiplier = 0.65;
+
+  /// Scale factor for text in compact mode (85% of normal - 15% reduction)
+  static const double compactTextScale = 0.85;
+
+  double get _multiplier => isCompact ? _compactMultiplier : 1.0;
+
+  // ============================================================================
+  // Adaptive Base Spacing Values
+  // ============================================================================
+
+  double get s0 => 0;
+  double get s2 => 2 * _multiplier;
+  double get s4 => 4 * _multiplier;
+  double get s6 => 6 * _multiplier;
+  double get s8 => 8 * _multiplier;
+  double get s12 => 12 * _multiplier;
+  double get s16 => 16 * _multiplier;
+  double get s20 => 20 * _multiplier;
+  double get s24 => 24 * _multiplier;
+  double get s28 => 28 * _multiplier;
+  double get s32 => 32 * _multiplier;
+  double get s40 => 40 * _multiplier;
+  double get s48 => 48 * _multiplier;
+  double get s56 => 56 * _multiplier;
+  double get s64 => 64 * _multiplier;
+  double get s72 => 72 * _multiplier;
+  double get s80 => 80 * _multiplier;
+
+  // ============================================================================
+  // Adaptive Semantic Spacing
+  // ============================================================================
+
+  double get paddingCompact => 8 * _multiplier;
+  double get paddingStandard => 16 * _multiplier;
+  double get paddingComfortable => 24 * _multiplier;
+  double get gapSmall => 4 * _multiplier;
+  double get gapMedium => 8 * _multiplier;
+  double get gapLarge => 16 * _multiplier;
+  double get sectionGap => 24 * _multiplier;
+  double get cardPadding => 16 * _multiplier;
+  double get cardPaddingCompact => 12 * _multiplier;
+  double get listTileHorizontal => 16 * _multiplier;
+
+  /// List tile vertical padding - more aggressive in compact mode
+  double get listTileVertical => isCompact ? 0.0 : 4.0;
+
+  double get dialogPadding => 24 * _multiplier;
+  double get bottomSheetPadding => 16 * _multiplier;
+  double get fabMargin => 16 * _multiplier;
+  double get iconTextGap => 8 * _multiplier;
+
+  // ============================================================================
+  // Adaptive EdgeInsets
+  // ============================================================================
+
+  EdgeInsets get insets0 => EdgeInsets.zero;
+  EdgeInsets get insets4 => EdgeInsets.all(s4);
+  EdgeInsets get insets8 => EdgeInsets.all(s8);
+  EdgeInsets get insets12 => EdgeInsets.all(s12);
+  EdgeInsets get insets16 => EdgeInsets.all(s16);
+  EdgeInsets get insets20 => EdgeInsets.all(s20);
+  EdgeInsets get insets24 => EdgeInsets.all(s24);
+  EdgeInsets get insets32 => EdgeInsets.all(s32);
+
+  EdgeInsets get insetsH8 => EdgeInsets.symmetric(horizontal: s8);
+  EdgeInsets get insetsH12 => EdgeInsets.symmetric(horizontal: s12);
+  EdgeInsets get insetsH16 => EdgeInsets.symmetric(horizontal: s16);
+  EdgeInsets get insetsH24 => EdgeInsets.symmetric(horizontal: s24);
+
+  EdgeInsets get insetsV4 => EdgeInsets.symmetric(vertical: s4);
+  EdgeInsets get insetsV8 => EdgeInsets.symmetric(vertical: s8);
+  EdgeInsets get insetsV12 => EdgeInsets.symmetric(vertical: s12);
+  EdgeInsets get insetsV16 => EdgeInsets.symmetric(vertical: s16);
+  EdgeInsets get insetsV24 => EdgeInsets.symmetric(vertical: s24);
+
+  EdgeInsets get cardInsets => EdgeInsets.all(cardPadding);
+  EdgeInsets get cardInsetsCompact => EdgeInsets.all(cardPaddingCompact);
+
+  EdgeInsets get listTileInsets => EdgeInsets.symmetric(
+    horizontal: listTileHorizontal,
+    vertical: listTileVertical,
+  );
+
+  EdgeInsets get dialogInsets => EdgeInsets.all(dialogPadding);
+  EdgeInsets get bottomSheetInsets => EdgeInsets.all(bottomSheetPadding);
+
+  // ============================================================================
+  // Adaptive Gaps (SizedBox)
+  // ============================================================================
+
+  SizedBox get gapH4 => SizedBox(width: s4);
+  SizedBox get gapH8 => SizedBox(width: s8);
+  SizedBox get gapH12 => SizedBox(width: s12);
+  SizedBox get gapH16 => SizedBox(width: s16);
+  SizedBox get gapH24 => SizedBox(width: s24);
+
+  SizedBox get gapV2 => SizedBox(height: s2);
+  SizedBox get gapV4 => SizedBox(height: s4);
+  SizedBox get gapV6 => SizedBox(height: s6);
+  SizedBox get gapV8 => SizedBox(height: s8);
+  SizedBox get gapV12 => SizedBox(height: s12);
+  SizedBox get gapV16 => SizedBox(height: s16);
+  SizedBox get gapV24 => SizedBox(height: s24);
+  SizedBox get gapV32 => SizedBox(height: s32);
+  SizedBox get gapV48 => SizedBox(height: s48);
+
+  // ============================================================================
+  // Material Components
+  // ============================================================================
+
+  /// Visual density for list tiles - compact when in compact mode
+  VisualDensity get listTileDensity =>
+      isCompact ? VisualDensity.compact : VisualDensity.standard;
+}

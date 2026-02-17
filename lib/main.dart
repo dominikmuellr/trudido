@@ -431,11 +431,15 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
                 );
                 SystemChrome.setSystemUIOverlayStyle(overlayStyle);
 
-                // Apply text scale factor
+                // Apply text scale factor with compact mode adjustment
                 final mq = MediaQuery.of(context);
-                final effective = ignoreSystem
+                final baseScale = ignoreSystem
                     ? scale
                     : mq.textScaler.scale(1.0) * scale;
+
+                // Apply compact mode text scale reduction if enabled
+                final compactScale = ref.watch(compactTextScaleProvider);
+                final effective = baseScale * compactScale;
 
                 return MediaQuery(
                   data: mq.copyWith(textScaler: TextScaler.linear(effective)),

@@ -230,6 +230,7 @@ class PreferencesService {
     bool? useDynamicColor,
     bool? useBlackTheme,
     int? accentColorSeed,
+    bool? compactDensity,
     bool? hideGreeting,
     int? greetingLanguage,
     bool? showSearchBar,
@@ -270,6 +271,9 @@ class PreferencesService {
       }
       if (accentColorSeed != null) {
         await p.setInt('accent_color_seed', accentColorSeed);
+      }
+      if (compactDensity != null) {
+        await p.setBool('compact_density', compactDensity);
       }
       if (hideGreeting != null) await p.setBool('hide_greeting', hideGreeting);
       if (greetingLanguage != null) {

@@ -124,6 +124,7 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage>
   @override
   Widget build(BuildContext context) {
     final watcher = ref.watch(alarmSettingsWatcherProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
     final perms = PermissionsChannel.instance;
     final notifEnabledAsync = ref.watch(_notificationsStatusProvider);
 
@@ -137,13 +138,13 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage>
           ref.invalidate(_notificationsStatusProvider);
         },
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: spacing.insets16,
           children: [
             const Text(
               'Control permissions & system settings that affect reminder timing.',
               style: TextStyle(fontSize: 14),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: spacing.s16),
             _StatusTile(
               title: 'Notifications',
               status: notifEnabledAsync.maybeWhen(
@@ -277,20 +278,20 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage>
                 }
               },
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: spacing.s24),
             const Text('Notes', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            SizedBox(height: spacing.s8),
             const Text(
               '• Exact alarms show no popup: you must toggle in system settings.\n'
               '• Some OEMs add extra background limits; check auto-start / battery menus if delays persist.',
             ),
             if (const bool.fromEnvironment('dart.vm.product') == false) ...[
-              const SizedBox(height: 32),
+              SizedBox(height: spacing.s32),
               const Text(
                 'Debug',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: spacing.s8),
               FilledButton.icon(
                 onPressed: () async {
                   final ok = await SystemSettingsService.instance
@@ -310,7 +311,7 @@ class _UnifiedSettingsPageState extends ConsumerState<UnifiedSettingsPage>
                 icon: const Icon(Icons.alarm),
                 label: const Text('Schedule Debug Exact Alarm (2 min)'),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: spacing.s8),
               const Text(
                 'Use this once to force system to list the app under "Alarms & reminders".'
                 ' Remove before release.',

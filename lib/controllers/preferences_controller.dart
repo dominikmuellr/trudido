@@ -62,6 +62,9 @@ class PreferencesController {
   Future<void> toggleBlackTheme() =>
       _update(useBlackTheme: !state.useBlackTheme);
 
+  Future<void> toggleCompactDensity() =>
+      _update(compactDensity: !state.compactDensity);
+
   Future<void> setAccentColorSeed(int colorSeed) async {
     // If setting hack theme (0xFF00FF00) or Dracula theme (0xFFBD93F9) while in light or auto mode,
     // and dynamic colors are disabled, automatically switch to dark mode
@@ -141,6 +144,7 @@ class PreferencesController {
     bool? useDynamicColor,
     bool? useBlackTheme,
     int? accentColorSeed,
+    bool? compactDensity,
     bool? hideGreeting,
     int? greetingLanguage,
     bool? showSearchBar,
@@ -168,6 +172,7 @@ class PreferencesController {
       useDynamicColor: useDynamicColor,
       useBlackTheme: useBlackTheme,
       accentColorSeed: accentColorSeed,
+      compactDensity: compactDensity,
       hideGreeting: hideGreeting,
       greetingLanguage: greetingLanguage,
       showSearchBar: showSearchBar,

@@ -14,12 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/preferences_state.dart';
 import '../models/todo.dart';
 import '../repositories/task_repository.dart';
 import '../services/preferences_service.dart';
 import '../services/lifecycle_sync_observer.dart';
+import '../theme/spacing_tokens.dart';
 import 'clock.dart';
 import '../utils/state_notifiers.dart';
 
@@ -93,4 +95,26 @@ final lifecycleSyncObserverProvider = Provider<LifecycleSyncObserver>((ref) {
   observer.start();
   ref.onDispose(() => observer.dispose());
   return observer;
+});
+
+/// Adaptive spacing provider based on compact density setting.
+/// Use this to get spacing values that automatically adjust when compact mode is enabled.
+///
+/// Example:
+/// ```dart
+/// final spacing = ref.watch(adaptiveSpacingProvider);
+/// Padding(padding: spacing.listTileInsets)
+/// SizedBox(height: spacing.s16)
+/// ```
+final adaptiveSpacingProvider = Provider<AdaptiveSpacing>((ref) {
+  final isCompact = ref.watch(preferencesStateProvider).compactDensity;
+  return AdaptiveSpacing(isCompact: isCompact);
+});
+
+/// Text scale factor based on compact density setting.
+/// Returns 0.90 when compact mode is enabled, 1.0 otherwise.
+/// Apply this to MediaQuery textScaleFactor for global text scaling.
+final compactTextScaleProvider = Provider<double>((ref) {
+  final isCompact = ref.watch(preferencesStateProvider).compactDensity;
+  return isCompact ? AdaptiveSpacing.compactTextScale : 1.0;
 });
