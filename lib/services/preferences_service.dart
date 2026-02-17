@@ -186,6 +186,7 @@ class PreferencesService {
       defaultTaskView:
           p.getString('default_task_view') ??
           PreferencesState.defaultState.defaultTaskView,
+      defaultNotesFolderId: p.getString('default_notes_folder_id'),
       hapticsEnabled:
           p.getBool('haptics_enabled') ??
           PreferencesState.defaultState.hapticsEnabled,
@@ -243,6 +244,8 @@ class PreferencesService {
     bool? hideBottomNavigation,
     int? firstDayOfWeek,
     String? defaultTaskView,
+    String? defaultNotesFolderId,
+    bool clearDefaultNotesFolderId = false,
     bool? hapticsEnabled,
     String? fontFamily,
     String? timeFormat,
@@ -305,6 +308,12 @@ class PreferencesService {
       }
       if (defaultTaskView != null) {
         await p.setString('default_task_view', defaultTaskView);
+      }
+      if (defaultNotesFolderId != null) {
+        await p.setString('default_notes_folder_id', defaultNotesFolderId);
+      }
+      if (clearDefaultNotesFolderId) {
+        await p.remove('default_notes_folder_id');
       }
       if (hapticsEnabled != null) {
         await p.setBool('haptics_enabled', hapticsEnabled);

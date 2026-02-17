@@ -41,6 +41,8 @@ class PreferencesState {
   final bool hideBottomNavigation; // Hide bottom nav/rail
   final int firstDayOfWeek; // 0=Sunday, 1=Monday, ..., 6=Saturday
   final String defaultTaskView; // list | calendar - default view on app start
+  final String?
+  defaultNotesFolderId; // Default folder for Notes tab (null = All Notes)
   final bool hapticsEnabled; // Enable haptic feedback for interactions
   final String
   fontFamily; // Font family: roboto | opensans | jetbrains | lexend
@@ -76,6 +78,7 @@ class PreferencesState {
     required this.hideBottomNavigation,
     required this.firstDayOfWeek,
     required this.defaultTaskView,
+    this.defaultNotesFolderId,
     required this.hapticsEnabled,
     required this.fontFamily,
     required this.timeFormat,
@@ -109,6 +112,7 @@ class PreferencesState {
     bool? hideBottomNavigation,
     int? firstDayOfWeek,
     String? defaultTaskView,
+    String? defaultNotesFolderId,
     bool? hapticsEnabled,
     String? fontFamily,
     String? timeFormat,
@@ -139,6 +143,7 @@ class PreferencesState {
     hideBottomNavigation: hideBottomNavigation ?? this.hideBottomNavigation,
     firstDayOfWeek: firstDayOfWeek ?? this.firstDayOfWeek,
     defaultTaskView: defaultTaskView ?? this.defaultTaskView,
+    defaultNotesFolderId: defaultNotesFolderId ?? this.defaultNotesFolderId,
     hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
     fontFamily: fontFamily ?? this.fontFamily,
     timeFormat: timeFormat ?? this.timeFormat,
@@ -173,6 +178,7 @@ class PreferencesState {
     hideBottomNavigation: false, // Default: show nav
     firstDayOfWeek: 1, // Default: Monday (0=Sunday, 1=Monday, etc.)
     defaultTaskView: 'list', // Default: list view
+    defaultNotesFolderId: null, // Default: All Notes
     hapticsEnabled: true, // Default: haptic feedback enabled
     fontFamily: 'lexend', // Default: Lexend font (optimized for readability)
     timeFormat: 'system', // Default: auto-detect from device locale

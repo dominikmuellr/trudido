@@ -204,6 +204,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             }
             return;
           }
+
+          // Clear folder selection for UNFILED or regular folders
+          ref.read(selectedNoteFolderProvider.notifier).update(null);
+          return;
         }
 
         // If none of the above, allow default back behavior (exit app)
@@ -443,8 +447,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         backgroundColor: Theme.of(context)
                             .colorScheme
                             .secondaryContainer
-                            .withValues(alpha: 
-                              0.7,
+                            .withValues(
+                              alpha: 0.7,
                             ), // Semi-transparent for subtle effect
                         foregroundColor: Theme.of(
                           context,

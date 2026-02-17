@@ -16,6 +16,8 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/default_tab_service.dart';
+import '../providers/app_providers.dart';
+import '../controllers/notes_controller.dart';
 import '../utils/state_notifiers.dart';
 
 /// Manages the set of selected todo IDs for bulk operations (multi-select mode).
@@ -57,7 +59,24 @@ class CurrentTabNotifier extends Notifier<int> {
 
   /// Update current tab.
   void setTab(int index) {
+    final previousTab = state;
     state = index;
+
+    // Apply default notes folder when switching to Notes tab (tab 1)
+    if (index == 1 && previousTab != 1) {
+      _applyDefaultNotesFolder();
+    }
+  }
+
+  /// Apply the user's default notes folder preference.
+  void _applyDefaultNotesFolder() {
+    final prefs = ref.read(preferencesStateProvider);
+    final defaultFolderId = prefs.defaultNotesFolderId;
+
+    // Only apply if a default is set and different from current selection
+    if (defaultFolderId != null) {
+      ref.read(selectedNoteFolderProvider.notifier).update(defaultFolderId);
+    }
   }
 
   /// Reset to default tab.

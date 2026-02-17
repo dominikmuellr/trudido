@@ -157,11 +157,13 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   /// Create note with optional preset title
   void createNewNoteWithTitle({String? presetTitle}) {
     final selectedFolderId = ref.read(selectedNoteFolderProvider);
+    // Convert 'UNFILED' to null since unfiled notes have no folder
+    final folderId = selectedFolderId == 'UNFILED' ? null : selectedFolderId;
 
     AnimatedNavigation.pushContainerTransform(
       context,
       QuillNoteEditorScreen(
-        initialFolderId: selectedFolderId,
+        initialFolderId: folderId,
         initialTitle: presetTitle,
       ),
     );
@@ -172,12 +174,14 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     if (text.isEmpty) return;
 
     final selectedFolderId = ref.read(selectedNoteFolderProvider);
+    // Convert 'UNFILED' to null since unfiled notes have no folder
+    final folderId = selectedFolderId == 'UNFILED' ? null : selectedFolderId;
     final controller = ref.read(notesControllerProvider.notifier);
 
     await controller.createNote(
       title: 'Quick Note',
       content: text,
-      folderId: selectedFolderId,
+      folderId: folderId,
     );
 
     if (mounted) {
@@ -193,10 +197,12 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   /// Create a new note in selected folder
   void createNewNote() {
     final selectedFolderId = ref.read(selectedNoteFolderProvider);
+    // Convert 'UNFILED' to null since unfiled notes have no folder
+    final folderId = selectedFolderId == 'UNFILED' ? null : selectedFolderId;
 
     AnimatedNavigation.pushContainerTransform(
       context,
-      QuillNoteEditorScreen(initialFolderId: selectedFolderId),
+      QuillNoteEditorScreen(initialFolderId: folderId),
     );
   }
 
@@ -240,7 +246,7 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     }
 
     if (!context.mounted) return;
-    
+
     final authContext = context;
     final authenticated = await VaultAuthService.authenticate(
       context: authContext,

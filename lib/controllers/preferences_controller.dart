@@ -112,6 +112,11 @@ class PreferencesController {
   Future<void> setDefaultTaskView(String view) =>
       _update(defaultTaskView: view);
 
+  Future<void> setDefaultNotesFolder(String? folderId) => _update(
+    defaultNotesFolderId: folderId,
+    clearDefaultNotesFolderId: folderId == null,
+  );
+
   Future<void> setTimeFormat(String format) => _update(timeFormat: format);
 
   Future<void> setFirstDayOfWeek(int dayIndex) =>
@@ -147,6 +152,8 @@ class PreferencesController {
     bool? enableNoteHistory,
     int? firstDayOfWeek,
     String? defaultTaskView,
+    String? defaultNotesFolderId,
+    bool clearDefaultNotesFolderId = false,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
     String? contrastLevel,
@@ -172,6 +179,8 @@ class PreferencesController {
       enableNoteHistory: enableNoteHistory,
       firstDayOfWeek: firstDayOfWeek,
       defaultTaskView: defaultTaskView,
+      defaultNotesFolderId: defaultNotesFolderId,
+      clearDefaultNotesFolderId: clearDefaultNotesFolderId,
       lineHeightMultiplier: lineHeightMultiplier,
       paragraphSpacing: paragraphSpacing,
       contrastLevel: contrastLevel,

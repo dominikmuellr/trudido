@@ -22,6 +22,7 @@ import '../services/preferences_service.dart';
 import '../services/privacy_service.dart';
 import '../providers/app_providers.dart';
 import '../controllers/preferences_controller.dart';
+import '../repositories/note_folder_repository.dart';
 import '../utils/week_start_utils.dart';
 import '../theme/spacing_tokens.dart';
 
@@ -84,6 +85,7 @@ class DefaultsSettingsScreen extends ConsumerWidget {
           SpacingGap.gapV8,
           const _DefaultTabSelector(),
           const _DefaultViewSelector(),
+          const _DefaultNotesFolderSelector(),
           const _TimeFormatSelector(),
           const _WeekStartSelector(),
           const _GreetingLanguageSelector(),
@@ -284,6 +286,122 @@ class _DefaultViewSheet extends ConsumerWidget {
           : null,
       selected: isSelected,
       onTap: () => Navigator.pop(context, value),
+    );
+  }
+}
+
+// ============================================================================
+// Default Notes Folder Selector
+// ============================================================================
+
+class _DefaultNotesFolderSelector extends ConsumerWidget {
+  const _DefaultNotesFolderSelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final defaultFolderId = ref
+        .watch(preferencesStateProvider)
+        .defaultNotesFolderId;
+    final foldersAsync = ref.watch(noteFoldersProvider);
+
+    return foldersAsync.when(
+      data: (folders) {
+        String displayName;
+        if (defaultFolderId == null) {
+          displayName = 'All Notes';
+        } else if (defaultFolderId == 'UNFILED') {
+          displayName = 'Unfiled Notes';
+        } else {
+          final folder = folders
+              .where((f) => f.id == defaultFolderId)
+              .firstOrNull;
+          displayName = folder?.name ?? 'All Notes';
+        }
+
+        return ListTile(
+          leading: const Icon(Icons.folder_outlined),
+          title: const Text('Default Notes View'),
+          subtitle: Text(displayName),
+          trailing: const Icon(Icons.arrow_drop_down),
+          onTap: () async {
+            final choice = await showModalBottomSheet<String?>(
+              context: context,
+              showDragHandle: true,
+              builder: (ctx) {
+                return _DefaultNotesFolderSheet(
+                  current: defaultFolderId,
+                  folders: folders,
+                );
+              },
+            );
+            if (choice != null || choice == 'CLEAR') {
+              final controller = ref.read(preferencesControllerProvider);
+              await controller.setDefaultNotesFolder(
+                choice == 'CLEAR' ? null : choice,
+              );
+            }
+          },
+        );
+      },
+      loading: () => const ListTile(
+        leading: Icon(Icons.folder_outlined),
+        title: Text('Default Notes View'),
+        subtitle: Text('Loading...'),
+      ),
+      error: (_, __) => const ListTile(
+        leading: Icon(Icons.folder_outlined),
+        title: Text('Default Notes View'),
+        subtitle: Text('All Notes'),
+      ),
+    );
+  }
+}
+
+class _DefaultNotesFolderSheet extends StatelessWidget {
+  final String? current;
+  final List folders;
+
+  const _DefaultNotesFolderSheet({
+    required this.current,
+    required this.folders,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    Widget buildOption(String? folderId, String name, IconData icon) {
+      final selected = current == folderId;
+      return ListTile(
+        leading: Icon(icon, color: selected ? cs.primary : cs.onSurfaceVariant),
+        title: Text(
+          name,
+          style: TextStyle(fontWeight: selected ? FontWeight.w600 : null),
+        ),
+        trailing: selected ? Icon(Icons.check, color: cs.primary) : null,
+        onTap: () => Navigator.pop(context, folderId ?? 'CLEAR'),
+      );
+    }
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 4),
+            // All Notes option
+            buildOption(null, 'All Notes', Icons.folder_outlined),
+            // Unfiled Notes option
+            buildOption('UNFILED', 'Unfiled Notes', Icons.folder_open),
+            if (folders.isNotEmpty) const Divider(),
+            // Individual folders (exclude vault folders)
+            ...folders.where((f) => !f.isVault).map((folder) {
+              return buildOption(folder.id, folder.name, Icons.folder);
+            }),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
     );
   }
 }

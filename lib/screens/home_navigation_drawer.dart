@@ -23,6 +23,7 @@ import '../models/note_folder.dart';
 import '../providers/app_providers.dart';
 import '../providers/filter_providers.dart';
 import '../controllers/notes_controller.dart';
+import '../controllers/preferences_controller.dart';
 import '../services/folder_provider.dart';
 import '../services/vault_auth_service.dart';
 import '../repositories/note_folder_repository.dart';
@@ -268,8 +269,8 @@ class _TaskFoldersList extends ConsumerWidget {
                     ),
                   ),
                   selected: selectedFolderId == null,
-                  selectedTileColor: colorScheme.secondaryContainer.withValues(alpha: 
-                    0.3,
+                  selectedTileColor: colorScheme.secondaryContainer.withValues(
+                    alpha: 0.3,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: SpacingBorderRadius.md,
@@ -338,8 +339,8 @@ class _TaskFoldersList extends ConsumerWidget {
                   ),
                 ),
                 selected: isSelected,
-                selectedTileColor: colorScheme.secondaryContainer.withValues(alpha: 
-                  0.3,
+                selectedTileColor: colorScheme.secondaryContainer.withValues(
+                  alpha: 0.3,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: SpacingBorderRadius.md,
@@ -383,6 +384,9 @@ class _NoteFoldersList extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
     final foldersAsync = ref.watch(noteFoldersProvider);
     final selectedFolderId = ref.watch(selectedNoteFolderProvider);
+    final defaultFolderId = ref
+        .watch(preferencesStateProvider)
+        .defaultNotesFolderId;
 
     return foldersAsync.when(
       data: (folders) {
@@ -411,9 +415,12 @@ class _NoteFoldersList extends ConsumerWidget {
                       : FontWeight.normal,
                 ),
               ),
+              trailing: defaultFolderId == null
+                  ? Icon(Icons.push_pin, size: 16, color: colorScheme.primary)
+                  : null,
               selected: selectedFolderId == null,
-              selectedTileColor: colorScheme.secondaryContainer.withValues(alpha: 
-                0.3,
+              selectedTileColor: colorScheme.secondaryContainer.withValues(
+                alpha: 0.3,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: SpacingBorderRadius.md,
@@ -422,11 +429,63 @@ class _NoteFoldersList extends ConsumerWidget {
                 ref.read(selectedNoteFolderProvider.notifier).update(null);
                 Navigator.of(context).pop();
               },
+              onLongPress: () => _showSetDefaultDialog(
+                context,
+                ref,
+                null,
+                'All Notes',
+                defaultFolderId,
+              ),
+            ),
+            // "Unfiled Notes" option
+            ListTile(
+              dense: true,
+              visualDensity: VisualDensity.compact,
+              leading: Icon(
+                Icons.folder_open,
+                size: 20,
+                color: selectedFolderId == 'UNFILED'
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+              title: Text(
+                'Unfiled Notes',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: selectedFolderId == 'UNFILED'
+                      ? colorScheme.primary
+                      : colorScheme.onSurface,
+                  fontWeight: selectedFolderId == 'UNFILED'
+                      ? FontWeight.w600
+                      : FontWeight.normal,
+                ),
+              ),
+              trailing: defaultFolderId == 'UNFILED'
+                  ? Icon(Icons.push_pin, size: 16, color: colorScheme.primary)
+                  : null,
+              selected: selectedFolderId == 'UNFILED',
+              selectedTileColor: colorScheme.secondaryContainer.withValues(
+                alpha: 0.3,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: SpacingBorderRadius.md,
+              ),
+              onTap: () {
+                ref.read(selectedNoteFolderProvider.notifier).update('UNFILED');
+                Navigator.of(context).pop();
+              },
+              onLongPress: () => _showSetDefaultDialog(
+                context,
+                ref,
+                'UNFILED',
+                'Unfiled Notes',
+                defaultFolderId,
+              ),
             ),
             // Individual folders
             ...folders.map((folder) {
               final isSelected = selectedFolderId == folder.id;
               final isVault = folder.isVault;
+              final isDefault = defaultFolderId == folder.id;
               return ListTile(
                 dense: true,
                 visualDensity: VisualDensity.compact,
@@ -450,13 +509,25 @@ class _NoteFoldersList extends ConsumerWidget {
                         : FontWeight.normal,
                   ),
                 ),
+                trailing: isDefault
+                    ? Icon(Icons.push_pin, size: 16, color: colorScheme.primary)
+                    : null,
                 selected: isSelected,
-                selectedTileColor: colorScheme.secondaryContainer.withValues(alpha: 
-                  0.3,
+                selectedTileColor: colorScheme.secondaryContainer.withValues(
+                  alpha: 0.3,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: SpacingBorderRadius.md,
                 ),
+                onLongPress: isVault
+                    ? null
+                    : () => _showSetDefaultDialog(
+                        context,
+                        ref,
+                        folder.id,
+                        folder.name,
+                        defaultFolderId,
+                      ),
                 onTap: () async {
                   if (isVault && !folder.hasPassword) {
                     final success = await onVaultSetup(context, folder);
@@ -526,6 +597,68 @@ class _NoteFoldersList extends ConsumerWidget {
           child: Text(
             'Error loading folders',
             style: TextStyle(color: colorScheme.error),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Show dialog to set or unset default folder
+  void _showSetDefaultDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String? folderId,
+    String folderName,
+    String? currentDefault,
+  ) {
+    final isCurrentlyDefault = currentDefault == folderId;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(
+                  isCurrentlyDefault ? Icons.push_pin_outlined : Icons.push_pin,
+                  color: colorScheme.primary,
+                ),
+                title: Text(
+                  isCurrentlyDefault
+                      ? 'Remove as default view'
+                      : 'Set as default view',
+                ),
+                subtitle: Text(
+                  isCurrentlyDefault
+                      ? 'Stop opening \"$folderName\" when switching to Notes tab'
+                      : 'Always open \"$folderName\" when switching to Notes tab',
+                ),
+                onTap: () async {
+                  final controller = ref.read(preferencesControllerProvider);
+                  await controller.setDefaultNotesFolder(
+                    isCurrentlyDefault ? null : folderId,
+                  );
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isCurrentlyDefault
+                              ? 'Default view removed'
+                              : '\"$folderName\" set as default',
+                        ),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
           ),
         ),
       ),
@@ -710,7 +843,9 @@ class _CompactCalendar extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
             child: Container(
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                color: colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.3,
+                ),
                 borderRadius: SpacingBorderRadius.md,
               ),
               child: TableCalendar<Todo>(

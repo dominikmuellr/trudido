@@ -205,9 +205,15 @@ final filteredNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
 
       // Filter by folder if one is selected
       if (selectedFolderId != null) {
-        filtered = filtered
-            .where((note) => note.folderId == selectedFolderId)
-            .toList();
+        if (selectedFolderId == 'UNFILED') {
+          // Show only notes that are not in any folder
+          filtered = filtered.where((note) => note.folderId == null).toList();
+        } else {
+          // Show notes in the selected folder
+          filtered = filtered
+              .where((note) => note.folderId == selectedFolderId)
+              .toList();
+        }
       } else {
         // When viewing "All Notes", exclude notes from vault folders
         foldersAsync.whenData((folders) {
