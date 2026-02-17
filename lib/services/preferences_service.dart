@@ -198,6 +198,7 @@ class PreferencesService {
           p.getDouble('paragraph_spacing') ??
           PreferencesState.defaultState.paragraphSpacing,
       activeCustomThemeId: p.getString('active_custom_theme_id'),
+      blackoutRecents: p.getBool('blackout_recents'),
     );
   }
 
@@ -250,6 +251,7 @@ class PreferencesService {
     String? contrastLevel,
     String? activeCustomThemeId,
     bool clearActiveCustomTheme = false,
+    bool? blackoutRecents,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -322,6 +324,9 @@ class PreferencesService {
         await p.setString('active_custom_theme_id', activeCustomThemeId);
       }
       if (clearActiveCustomTheme) await p.remove('active_custom_theme_id');
+      if (blackoutRecents != null) {
+        await p.setBool('blackout_recents', blackoutRecents);
+      }
       _hydrate();
       return _cache;
     } catch (e, st) {

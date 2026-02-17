@@ -128,6 +128,9 @@ class PreferencesController {
   Future<void> toggleHaptics() =>
       _update(hapticsEnabled: !state.hapticsEnabled);
 
+  Future<void> toggleBlackoutRecents() =>
+      _update(blackoutRecents: !state.blackoutRecents);
+
   Future<void> _update({
     String? themeMode,
     bool? useDynamicColor,
@@ -151,6 +154,7 @@ class PreferencesController {
     String? fontFamily,
     String? timeFormat,
     String? activeCustomThemeId,
+    bool? blackoutRecents,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -175,6 +179,7 @@ class PreferencesController {
       fontFamily: fontFamily,
       timeFormat: timeFormat,
       activeCustomThemeId: activeCustomThemeId,
+      blackoutRecents: blackoutRecents,
     );
     ref.read(preferencesStateProvider.notifier).update(updated);
   }

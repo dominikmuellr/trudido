@@ -3,6 +3,7 @@ package com.trudido.app
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.app.ActivityManager
 import android.app.AlarmManager
 import android.app.Activity
 import android.content.Context
@@ -10,12 +11,16 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import android.os.PowerManager
+import android.view.WindowManager
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterFragmentActivity() {
     private lateinit var fileHandler: TaskFileHandler
+    private var blackoutRecentsEnabled = false
     companion object {
         var methodChannel: MethodChannel? = null
         var filesChannel: MethodChannel? = null
@@ -26,12 +31,70 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        loadBlackoutPreference()
+        // FLAG_SECURE must be set BEFORE super.onCreate to be active
+        // before any rendering happens.
+        if (blackoutRecentsEnabled) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+
         super.onCreate(savedInstanceState)
+
+        // Set black backgrounds AFTER super.onCreate because Flutter's
+        // switchLaunchThemeForNormalTheme() inside super.onCreate resets
+        // the window background to the theme default (white).
+        if (blackoutRecentsEnabled) {
+            forceBlackBackground()
+        }
+        
         fileHandler = TaskFileHandler(this)
-        // Mark Java/Kotlin onCreate reached; additional timing done once first frame renders.
         Log.d("StartupTrace", "onCreate elapsedMs=" + (System.nanoTime() - processStartNano)/1_000_000)
-        // Handle notification intent if app was opened from notification
         handleNotificationIntent(intent)
+    }
+
+    private fun loadBlackoutPreference() {
+        try {
+            val prefs = getSharedPreferences("FlutterSharedPreferences", MODE_PRIVATE)
+            blackoutRecentsEnabled = prefs.getBoolean("flutter.blackout_recents", false)
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * Forces the window background and recents card to black.
+     * When FLAG_SECURE hides content, Android shows the window background
+     * in recents — so this must be black, not the default white.
+     */
+    private fun forceBlackBackground() {
+        // Set on the window itself
+        window.setBackgroundDrawable(ColorDrawable(Color.BLACK))
+        // Also set directly on the decorView (harder for Flutter to override)
+        window.decorView.setBackgroundColor(Color.BLACK)
+        // Set the recents card header/background to black
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            @Suppress("DEPRECATION")
+            setTaskDescription(ActivityManager.TaskDescription(null, 0, Color.BLACK))
+        } else {
+            @Suppress("DEPRECATION")
+            setTaskDescription(ActivityManager.TaskDescription(null, null as android.graphics.Bitmap?, Color.BLACK))
+        }
+    }
+
+    private fun applySecureMode() {
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        forceBlackBackground()
+    }
+
+    private fun removeSecureMode() {
+        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        window.setBackgroundDrawable(null)
+        // Reset recents card
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            @Suppress("DEPRECATION")
+            setTaskDescription(ActivityManager.TaskDescription(null, 0, 0))
+        } else {
+            @Suppress("DEPRECATION")
+            setTaskDescription(ActivityManager.TaskDescription())
+        }
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -247,6 +310,18 @@ class MainActivity : FlutterFragmentActivity() {
                         am.setAlarmClock(info, pi)
                         result.success(true)
                     } catch (e: Exception) { result.error("ERR", e.message, null) }
+                }
+                "setSecureFlag" -> {
+                    val secure = call.argument<Boolean>("secure") ?: false
+                    blackoutRecentsEnabled = secure
+                    runOnUiThread {
+                        if (secure) {
+                            applySecureMode()
+                        } else {
+                            removeSecureMode()
+                        }
+                    }
+                    result.success(true)
                 }
                 else -> result.notImplemented()
             }

@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/default_tab_service.dart';
 import 'home_screen_notifiers.dart';
 import '../services/preferences_service.dart';
+import '../services/privacy_service.dart';
 import '../providers/app_providers.dart';
 import '../controllers/preferences_controller.dart';
 import '../utils/week_start_utils.dart';
@@ -88,6 +89,7 @@ class DefaultsSettingsScreen extends ConsumerWidget {
           const _GreetingLanguageSelector(),
           const _ContrastLevelSelector(),
           const _SwipeActionsSelector(),
+          const _BlackoutRecentsSelector(),
           SpacingGap.gapV16,
         ],
       ),
@@ -870,6 +872,36 @@ class _ContrastLevelSheet extends StatelessWidget {
           const SizedBox(height: 16),
         ],
       ),
+    );
+  }
+}
+
+// ============================================================================
+// Blackout Recents Selector
+// ============================================================================
+
+class _BlackoutRecentsSelector extends ConsumerWidget {
+  const _BlackoutRecentsSelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final preferences = ref.watch(preferencesStateProvider);
+    final controller = ref.read(preferencesControllerProvider);
+
+    return SwitchListTile.adaptive(
+      secondary: const Icon(Icons.security),
+      title: const Text('Black Out Recents'),
+      subtitle: const Text('Hide app content in Android recents for privacy'),
+      value: preferences.blackoutRecents,
+      onChanged: (value) async {
+        await controller.toggleBlackoutRecents();
+
+        if (context.mounted) {
+          final privacyService = PrivacyService();
+          final newValue = ref.read(preferencesStateProvider).blackoutRecents;
+          await privacyService.setSecureFlag(newValue);
+        }
+      },
     );
   }
 }

@@ -29,6 +29,7 @@ import 'services/storage_service.dart';
 import 'models/custom_theme.dart';
 import 'services/auto_backup_service.dart';
 import 'services/permissions_channel.dart';
+import 'services/privacy_service.dart';
 import 'services/theme_service.dart';
 import 'services/text_scale_service.dart';
 import 'services/widget_service.dart';
@@ -173,6 +174,10 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
       if (mounted) {
         // Push hydrated snapshot into reactive state provider.
         ref.read(preferencesStateProvider.notifier).update(svc.snapshot);
+
+        // Apply blackout recents setting on startup
+        final privacyService = PrivacyService();
+        await privacyService.setSecureFlag(svc.snapshot.blackoutRecents);
       }
     }
 

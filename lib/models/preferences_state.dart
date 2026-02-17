@@ -50,6 +50,9 @@ class PreferencesState {
   final double? _paragraphSpacing; // Paragraph spacing in points (e.g. 8.0)
   double get paragraphSpacing => _paragraphSpacing ?? 8.0;
   final String? activeCustomThemeId; // Active custom theme ID (null = none)
+  final bool?
+  _blackoutRecents; // Black out app content in Android recents (privacy)
+  bool get blackoutRecents => _blackoutRecents ?? false;
 
   const PreferencesState({
     required this.themeMode,
@@ -79,8 +82,10 @@ class PreferencesState {
     this.activeCustomThemeId,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
+    bool? blackoutRecents,
   }) : _lineHeightMultiplier = lineHeightMultiplier,
-       _paragraphSpacing = paragraphSpacing;
+       _paragraphSpacing = paragraphSpacing,
+       _blackoutRecents = blackoutRecents;
 
   PreferencesState copyWith({
     String? themeMode,
@@ -110,6 +115,7 @@ class PreferencesState {
     String? activeCustomThemeId,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
+    bool? blackoutRecents,
   }) => PreferencesState(
     themeMode: themeMode ?? this.themeMode,
     useDynamicColor: useDynamicColor ?? this.useDynamicColor,
@@ -139,6 +145,7 @@ class PreferencesState {
     activeCustomThemeId: activeCustomThemeId ?? this.activeCustomThemeId,
     lineHeightMultiplier: lineHeightMultiplier ?? this.lineHeightMultiplier,
     paragraphSpacing: paragraphSpacing ?? this.paragraphSpacing,
+    blackoutRecents: blackoutRecents ?? this.blackoutRecents,
   );
 
   static const defaultState = PreferencesState(
