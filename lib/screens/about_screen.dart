@@ -133,17 +133,19 @@ class _AboutScreenState extends State<AboutScreen> {
 
           // Packages Section
           _buildSectionHeader(context, 'Core Packages'),
-          _buildPackageTile('State Management', 'flutter_riverpod', '^2.5.1'),
+          _buildPackageTile('State Management', 'flutter_riverpod', '^3.2.1'),
           _buildPackageTile('Local Database', 'hive', '^2.2.3'),
+          _buildPackageTile('Hive Flutter', 'hive_flutter', '^1.1.0'),
           _buildPackageTile(
             'Shared Preferences',
             'shared_preferences',
             '^2.3.2',
           ),
           _buildPackageTile('Path Provider', 'path_provider', '^2.1.4'),
+          _buildPackageTile('Path Utilities', 'path', '^1.9.0'),
 
           _buildSectionHeader(context, 'UI & Utilities'),
-          _buildPackageTile('Material You Colors', 'dynamic_color', '^1.7.0'),
+          _buildPackageTile('Material You Colors', 'dynamic_color', '^1.8.1'),
           _buildPackageTile('Slidable Widgets', 'flutter_slidable', '^4.0.1'),
           _buildPackageTile('Calendar', 'table_calendar', '^3.1.2'),
           _buildPackageTile(
@@ -154,15 +156,19 @@ class _AboutScreenState extends State<AboutScreen> {
           _buildPackageTile(
             'Markdown Rendering',
             'flutter_markdown_plus',
-            '^1.0.5',
+            '^1.0.7',
           ),
           _buildPackageTile('Rich Text Editor', 'flutter_quill', '^11.5.0'),
           _buildPackageTile('URL Launcher', 'url_launcher', '^6.1.10'),
           _buildPackageTile('Internationalization', 'intl', '^0.20.2'),
           _buildPackageTile('UUID Generator', 'uuid', '^4.5.0'),
+          _buildPackageTile('Cupertino Icons', 'cupertino_icons', '^1.0.8'),
+          _buildPackageTile('Meta Annotations', 'meta', '^1.16.0'),
+          _buildPackageTile('Color Picker', 'flex_color_picker', '^3.7.2'),
+          _buildPackageTile('Share Plus', 'share_plus', '^12.0.1'),
 
           _buildSectionHeader(context, 'Media & Files'),
-          _buildPackageTile('File Picker', 'file_picker', '^10.3.2'),
+          _buildPackageTile('File Picker', 'file_picker', '^10.3.10'),
           _buildPackageTile('Image Picker', 'image_picker', '^1.1.2'),
           _buildPackageTile('Video Player', 'video_player', '^2.9.2'),
           _buildPackageTile(
@@ -170,21 +176,26 @@ class _AboutScreenState extends State<AboutScreen> {
             'fc_native_video_thumbnail',
             '^0.17.2',
           ),
-          _buildPackageTile('Audio Recording', 'record', '^5.1.2'),
+          _buildPackageTile('Audio Recording', 'record', '^6.2.0'),
           _buildPackageTile('Audio Playback', 'audioplayers', '^6.0.0'),
           _buildPackageTile('PDF Generation', 'pdf', '^3.11.1'),
           _buildPackageTile('PDF Printing', 'printing', '^5.13.4'),
 
-          _buildSectionHeader(context, 'Security'),
+          _buildSectionHeader(context, 'Security & Integrations'),
           _buildPackageTile('Encryption', 'encrypt', '^5.0.3'),
           _buildPackageTile(
             'Secure Storage',
             'flutter_secure_storage',
-            '^9.2.2',
+            '^10.0.0',
           ),
-          _buildPackageTile('Biometric Auth', 'local_auth', '^2.3.0'),
+          _buildPackageTile('Biometric Auth', 'local_auth', '^3.0.0'),
           _buildPackageTile('Cryptography', 'crypto', '^3.0.3'),
           _buildPackageTile('Permissions', 'permission_handler', '^12.0.1'),
+          _buildPackageTile(
+            'Calendar Integration',
+            'device_calendar_plus',
+            '^0.3.3',
+          ),
 
           SpacingGap.gapV16,
           Padding(
