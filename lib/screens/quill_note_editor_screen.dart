@@ -41,6 +41,10 @@ import '../providers/app_providers.dart';
 import '../services/preferences_service.dart';
 import '../providers/note_history_provider.dart';
 import '../widgets/note_history_bottom_sheet.dart';
+import '../widgets/mention_autocomplete_popup.dart';
+import '../widgets/backlinks_section.dart';
+import '../utils/mention_parser.dart';
+import '../utils/mention_navigator.dart';
 import '../models/note_history.dart';
 import '../services/storage_service.dart';
 import '../widgets/common/common.dart';
@@ -119,6 +123,16 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   bool _hideToolbar = false;
   bool _useFloatingToolbar = false;
 
+  // Mention autocomplete
+  MentionAutocompletePopup? _mentionPopup;
+  bool _quillTapPending = false;
+
+  /// Mention ranges from the last time the document was clean.
+  /// Used to detect partial mention damage (atomic deletion).
+  List<({int start, int end, String link, String text})> _prevMentionRanges =
+      [];
+  bool _mentionGuardActive = false;
+
   @override
   void initState() {
     super.initState();
@@ -135,6 +149,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     _quillController.addListener(_handleScrollOnDelete);
     _quillController.addListener(_trackMediaChanges);
     _quillController.addListener(_handleMarkdownShortcuts);
+    _quillController.addListener(_onQuillMentionCheck);
     // Title controller listener for unsaved changes
     _titleController.addListener(_onTitleChanged);
     // Update toolbar buttons when selection changes
@@ -657,7 +672,10 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
           final json = jsonDecode(_originalNote!.content);
 
           // MIGRATION: Clean up old font size format ("18px" -> "18")
-          final migratedJson = _migrateFontSizes(json);
+          var migratedJson = _migrateFontSizes(json);
+
+          // MIGRATION: Convert raw @[Title](type:id) to display @Title + link
+          migratedJson = _migrateRawMentions(migratedJson);
 
           document = quill.Document.fromJson(migratedJson);
         } else {
@@ -689,6 +707,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         _quillController.addListener(_checkForSlashCommand);
         _quillController.addListener(_handleScrollOnDelete);
         _quillController.addListener(_trackMediaChanges);
+        _quillController.addListener(_handleMarkdownShortcuts);
+        _quillController.addListener(_onQuillMentionCheck);
+        _prevMentionRanges = _findQuillMentionRanges();
       });
 
       // Request focus after loading to show keyboard
@@ -736,6 +757,192 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
           _performAutoSave();
         }
       });
+    }
+  }
+
+  /// Scans the Quill delta for all mention link ranges.
+  List<({int start, int end, String link, String text})>
+  _findQuillMentionRanges() {
+    final ranges = <({int start, int end, String link, String text})>[];
+    final delta = _quillController.document.toDelta();
+    int offset = 0;
+    for (final op in delta.toList()) {
+      if (op.isInsert) {
+        if (op.data is String) {
+          final text = op.data as String;
+          final attrs = op.attributes;
+          if (attrs != null && attrs.containsKey('link')) {
+            final link = attrs['link'].toString();
+            if (link.startsWith('mention:')) {
+              ranges.add((
+                start: offset,
+                end: offset + text.length,
+                link: link,
+                text: text,
+              ));
+            }
+          }
+          offset += text.length;
+        } else {
+          offset += 1; // embed
+        }
+      }
+    }
+    return ranges;
+  }
+
+  void _onQuillMentionCheck() {
+    if (_mentionGuardActive) return;
+    _mentionGuardActive = true;
+    try {
+      _onQuillMentionCheckInner();
+    } catch (e) {
+      _mentionPopup?.hide();
+    } finally {
+      _mentionGuardActive = false;
+    }
+  }
+
+  void _onQuillMentionCheckInner() {
+    final selection = _quillController.selection;
+    if (!selection.isCollapsed) {
+      _quillTapPending = false;
+      _mentionPopup?.hide();
+      _prevMentionRanges = _findQuillMentionRanges();
+      return;
+    }
+
+    final cursor = selection.baseOffset;
+    final currentRanges = _findQuillMentionRanges();
+
+    // ── Atomic deletion: if a mention was partially damaged, delete it ──
+    for (final prev in _prevMentionRanges) {
+      bool found = false;
+      for (final curr in currentRanges) {
+        if (curr.link == prev.link && curr.text == prev.text) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        // Check if a shorter version still exists (partially deleted)
+        for (final curr in currentRanges) {
+          if (curr.link == prev.link && curr.text != prev.text) {
+            // Mention was damaged → delete the remaining fragment
+            _quillController.removeListener(_onQuillMentionCheck);
+            _quillController.replaceText(
+              curr.start,
+              curr.end - curr.start,
+              '',
+              TextSelection.collapsed(offset: curr.start),
+            );
+            _quillController.addListener(_onQuillMentionCheck);
+            _prevMentionRanges = _findQuillMentionRanges();
+            _quillTapPending = false;
+            return;
+          }
+        }
+      }
+    }
+
+    _prevMentionRanges = currentRanges;
+
+    // ── Cursor snap: if cursor is strictly inside a mention, snap out ──
+    for (final range in currentRanges) {
+      if (cursor > range.start && cursor < range.end) {
+        _mentionPopup?.hide();
+        // Navigate on real tap
+        if (_quillTapPending) {
+          _quillTapPending = false;
+          _openLink(range.link);
+          return;
+        }
+        // Snap cursor to nearest edge (schedule after Quill's own
+        // tap handling completes to avoid being overridden)
+        final snapTo = (cursor - range.start) <= (range.end - cursor)
+            ? range.start
+            : range.end;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _quillController.updateSelection(
+            TextSelection.collapsed(offset: snapTo),
+            quill.ChangeSource.local,
+          );
+        });
+        return;
+      }
+    }
+
+    // ── Cursor at mention boundary: suppress popup, navigate on tap ──
+    if (cursor > 0) {
+      for (final range in currentRanges) {
+        if (cursor == range.end) {
+          // Cursor is right at the end of a mention
+          if (_quillTapPending) {
+            _quillTapPending = false;
+            _mentionPopup?.hide();
+            _openLink(range.link);
+            return;
+          }
+        }
+      }
+    }
+    _quillTapPending = false;
+
+    // ── Suppress popup if cursor is adjacent to a mention ──
+    for (final range in currentRanges) {
+      if (cursor >= range.start && cursor <= range.end) {
+        _mentionPopup?.hide();
+        return;
+      }
+    }
+
+    // ── Normal autocomplete trigger detection ──
+    final text = _quillController.document.toPlainText();
+    final query = MentionParser.detectMentionTrigger(text, cursor);
+
+    if (query != null) {
+      _mentionPopup ??= MentionAutocompletePopup(
+        context: context,
+        ref: ref,
+        onItemSelected: _onQuillMentionSelected,
+        excludeId: widget.noteId,
+      );
+      _mentionPopup!.show(query);
+    } else {
+      _mentionPopup?.hide();
+    }
+  }
+
+  void _onQuillMentionSelected(MentionSearchItem item) {
+    try {
+      final displayText = '@${item.title}';
+      final linkUrl = 'mention:${item.type}:${item.id}';
+
+      final text = _quillController.document.toPlainText();
+      final cursor = _quillController.selection.baseOffset;
+      final range = MentionParser.getMentionTriggerRange(text, cursor);
+
+      if (range != null) {
+        final deleteLength = range.end - range.start;
+        _quillController.removeListener(_onQuillMentionCheck);
+        _quillController.replaceText(
+          range.start,
+          deleteLength,
+          '$displayText ',
+          TextSelection.collapsed(offset: range.start + displayText.length + 1),
+        );
+        // Apply link attribute to the mention text (not the trailing space)
+        _quillController.formatText(
+          range.start,
+          displayText.length,
+          quill.Attribute.fromKeyValue('link', linkUrl),
+        );
+        _quillController.addListener(_onQuillMentionCheck);
+        _prevMentionRanges = _findQuillMentionRanges();
+      }
+    } catch (e) {
+      debugPrint('Error inserting mention: $e');
     }
   }
 
@@ -913,6 +1120,62 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       }
       return op;
     }).toList();
+  }
+
+  /// Migrates raw `@[Title](type:id)` mentions in Quill delta JSON to
+  /// display text `@Title` with a `link: mention:type:id` attribute.
+  List<dynamic> _migrateRawMentions(List<dynamic> deltaJson) {
+    final pattern = MentionParser.mentionPattern;
+    final result = <dynamic>[];
+
+    for (final op in deltaJson) {
+      if (op is Map<String, dynamic> && op['insert'] is String) {
+        final text = op['insert'] as String;
+        final attrs = op['attributes'] as Map<String, dynamic>?;
+
+        if (!pattern.hasMatch(text)) {
+          result.add(op);
+          continue;
+        }
+
+        // Split this insert op around mention patterns
+        int lastEnd = 0;
+        for (final match in pattern.allMatches(text)) {
+          // Text before the mention
+          if (match.start > lastEnd) {
+            final before = text.substring(lastEnd, match.start);
+            result.add({
+              'insert': before,
+              if (attrs != null) 'attributes': Map<String, dynamic>.from(attrs),
+            });
+          }
+
+          // The mention itself: display as @Title with link attribute
+          final title = match.group(1)!;
+          final type = match.group(2)!;
+          final id = match.group(3)!;
+          final mentionAttrs = <String, dynamic>{
+            if (attrs != null) ...attrs,
+            'link': 'mention:$type:$id',
+          };
+          result.add({'insert': '@$title', 'attributes': mentionAttrs});
+
+          lastEnd = match.end;
+        }
+
+        // Remaining text after last mention
+        if (lastEnd < text.length) {
+          result.add({
+            'insert': text.substring(lastEnd),
+            if (attrs != null) 'attributes': Map<String, dynamic>.from(attrs),
+          });
+        }
+      } else {
+        result.add(op);
+      }
+    }
+
+    return result;
   }
 
   String _getPlainText() {
@@ -1384,6 +1647,24 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   }
 
   Future<void> _openLink(String url) async {
+    // Handle mention links
+    if (url.startsWith('mention:')) {
+      final parts = url.substring('mention:'.length).split(':');
+      if (parts.length >= 2) {
+        final type = parts[0];
+        final id = parts.sublist(1).join(':');
+        final mention = MentionLink(
+          title: '',
+          type: type,
+          id: id,
+          start: 0,
+          end: 0,
+        );
+        MentionNavigator.navigateToMention(context, ref, mention);
+      }
+      return;
+    }
+
     try {
       // Add scheme if not present
       String urlString = url;
@@ -1480,6 +1761,8 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
 
   @override
   void dispose() {
+    _quillController.removeListener(_onQuillMentionCheck);
+    _mentionPopup?.hide();
     _autoSaveTimer?.cancel();
     _historyRecordTimer?.cancel();
 
@@ -1846,39 +2129,51 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                     ],
                   ),
                 ),
+              // Backlinks (items that reference this note)
+              if (_originalNote != null)
+                BacklinksSection(itemId: _originalNote!.id, itemType: 'note'),
               // Quill editor
               Expanded(
                 child: Stack(
                   children: [
-                    ExpressiveGestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onLongPress: () {
-                        // Check if cursor is on a link
-                        final selection = _quillController.selection;
-                        if (selection.isValid) {
-                          final offset = selection.baseOffset;
-                          if (offset > 0) {
-                            final checkOffset = offset - 1;
-                            final leaf = _quillController.document.queryChild(
-                              checkOffset,
-                            );
-                            if (leaf.node != null) {
-                              final style = leaf.node!.style;
-                              final linkAttr =
-                                  style.attributes[quill.Attribute.link.key];
-                              if (linkAttr != null && linkAttr.value != null) {
-                                _openLink(linkAttr.value.toString());
-                              }
-                            }
-                          }
-                        }
+                    Listener(
+                      onPointerUp: (_) {
+                        _quillTapPending = true;
                       },
                       child: quill.QuillEditor(
                         focusNode: _focusNode,
                         scrollController: _scrollController,
                         controller: _quillController,
                         config: quill.QuillEditorConfig(
+                          onLaunchUrl: (url) {
+                            if (url.startsWith('mention:')) {
+                              _openLink(url);
+                            } else {
+                              _openLink(url);
+                            }
+                          },
+                          linkActionPickerDelegate:
+                              (context, link, node) async {
+                                if (link.startsWith('mention:')) {
+                                  _openLink(link);
+                                  return quill.LinkMenuAction.none;
+                                }
+                                return quill.defaultLinkActionPickerDelegate(
+                                  context,
+                                  link,
+                                  node,
+                                );
+                              },
                           customStyles: quill.DefaultStyles(
+                            link: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.none,
+                              backgroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .primaryContainer
+                                  .withValues(alpha: 0.4),
+                            ),
                             paragraph: quill.DefaultTextBlockStyle(
                               TextStyle(
                                 fontSize: 16,
@@ -1927,7 +2222,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                 16,
                           ),
                           placeholder: _shouldShowPlaceholder()
-                              ? 'Type "/" for media or use markdown syntax'
+                              ? 'Type "/" for media, "@" to link tasks or notes'
                               : null,
                         ),
                       ),

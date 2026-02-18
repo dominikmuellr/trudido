@@ -24,8 +24,13 @@ import '../providers/clock.dart';
 import '../providers/app_providers.dart';
 import '../widgets/add_reminder_dialog.dart';
 import '../widgets/create_folder_dialog.dart';
+import '../widgets/mention_autocomplete_popup.dart';
+import '../widgets/mention_text.dart';
+import '../widgets/backlinks_section.dart';
 import '../utils/date_formatters.dart';
 import '../utils/week_start_utils.dart';
+import '../utils/mention_parser.dart';
+import '../utils/mention_navigator.dart';
 import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
 
@@ -52,7 +57,7 @@ class TaskEditorScreen extends ConsumerStatefulWidget {
 
 class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   late TextEditingController _titleController;
-  late TextEditingController _notesController;
+  late MentionTextEditingController _notesController;
   final _formKey = GlobalKey<FormState>();
 
   // Core task data
@@ -74,13 +79,23 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   // UI state
   bool _isLoading = false;
 
+  // Mention autocomplete
+  MentionAutocompletePopup? _mentionPopup;
+
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(
       text: widget.todo?.text ?? widget.presetTitle ?? '',
     );
-    _notesController = TextEditingController(text: widget.todo?.notes ?? '');
+    _notesController = MentionTextEditingController(
+      text: widget.todo?.notes ?? '',
+    );
+    _notesController.onMentionTap = (mention) {
+      _mentionPopup?.hide();
+      MentionNavigator.navigateToMention(context, ref, mention);
+    };
+    _notesController.addListener(_onNotesChanged);
 
     // Initialize from existing todo if editing
     if (widget.todo != null) {
@@ -128,8 +143,55 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     if (mounted) setState(() {});
   }
 
+  void _onNotesChanged() {
+    final text = _notesController.text;
+    final cursor = _notesController.selection.baseOffset;
+
+    // Suppress popup when cursor sits at a mention boundary
+    if (_notesController.mentionAtCursor(cursor) != null) {
+      _mentionPopup?.hide();
+      return;
+    }
+
+    final query = MentionParser.detectMentionTrigger(text, cursor);
+
+    if (query != null) {
+      _mentionPopup ??= MentionAutocompletePopup(
+        context: context,
+        ref: ref,
+        onItemSelected: _onMentionSelected,
+        excludeId: widget.todo?.id,
+      );
+      _mentionPopup!.show(query);
+    } else {
+      _mentionPopup?.hide();
+    }
+  }
+
+  void _onMentionSelected(MentionSearchItem item) {
+    final mentionLink = MentionLink(
+      title: item.title,
+      type: item.type,
+      id: item.id,
+      start: 0,
+      end: 0,
+    );
+
+    final range = MentionParser.getMentionTriggerRange(
+      _notesController.text,
+      _notesController.selection.baseOffset,
+    );
+    if (range == null) return;
+
+    _notesController.removeListener(_onNotesChanged);
+    _notesController.insertMention(mentionLink, range.start, range.end);
+    _notesController.addListener(_onNotesChanged);
+  }
+
   @override
   void dispose() {
+    _notesController.removeListener(_onNotesChanged);
+    _mentionPopup?.hide();
     _titleController.dispose();
     _notesController.dispose();
     super.dispose();
@@ -481,19 +543,26 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         SpacingGap.gapV16,
 
         // Notes input
-        TextFormField(
-          controller: _notesController,
-          decoration: InputDecoration(
-            labelText: 'Notes (optional)',
-            hintText: 'Add details...',
-            filled: true,
-            border: OutlineInputBorder(borderRadius: SpacingBorderRadius.lg),
-            prefixIcon: ScaledIcon(Icons.notes_outlined),
+        Listener(
+          onPointerUp: (_) => _notesController.notifyPointerUp(),
+          child: TextFormField(
+            controller: _notesController,
+            decoration: InputDecoration(
+              labelText: 'Notes (optional)',
+              hintText: 'Add details... (type @ to link a task or note)',
+              filled: true,
+              border: OutlineInputBorder(borderRadius: SpacingBorderRadius.lg),
+              prefixIcon: ScaledIcon(Icons.notes_outlined),
+            ),
+            maxLines: 3,
+            textCapitalization: TextCapitalization.sentences,
           ),
-          maxLines: 3,
-          textCapitalization: TextCapitalization.sentences,
         ),
         SpacingGap.gapV16,
+
+        // Backlinks (items that reference this task)
+        if (widget.todo != null)
+          BacklinksSection(itemId: widget.todo!.id, itemType: 'task'),
 
         // Folder selection
         _buildFolderSelection(theme, colorScheme),
@@ -1313,9 +1382,9 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
             widget.todo?.id ??
             ref.read(clockProvider).now().millisecondsSinceEpoch.toString(),
         text: _titleController.text.trim(),
-        notes: _notesController.text.trim().isEmpty
+        notes: _notesController.toStorageText().trim().isEmpty
             ? null
-            : _notesController.text.trim(),
+            : _notesController.toStorageText().trim(),
         startDate: finalStartDate,
         dueDate: finalDueDate,
         priority: _priority,

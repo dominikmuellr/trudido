@@ -635,8 +635,8 @@ class _NoteFoldersList extends ConsumerWidget {
                 ),
                 subtitle: Text(
                   isCurrentlyDefault
-                      ? 'Stop opening \"$folderName\" when switching to Notes tab'
-                      : 'Always open \"$folderName\" when switching to Notes tab',
+                      ? 'Stop opening "$folderName" when switching to Notes tab'
+                      : 'Always open "$folderName" when switching to Notes tab',
                 ),
                 onTap: () async {
                   final controller = ref.read(preferencesControllerProvider);
@@ -650,7 +650,7 @@ class _NoteFoldersList extends ConsumerWidget {
                         content: Text(
                           isCurrentlyDefault
                               ? 'Default view removed'
-                              : '\"$folderName\" set as default',
+                              : '"$folderName" set as default',
                         ),
                         duration: const Duration(seconds: 2),
                       ),

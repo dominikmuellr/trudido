@@ -20,6 +20,8 @@ import 'dart:convert';
 import '../models/note.dart';
 import '../utils/smart_markdown_helper.dart';
 import '../utils/todo_txt_converter.dart';
+import '../utils/mention_parser.dart';
+import '../utils/mention_navigator.dart';
 import '../services/theme_service.dart';
 import '../services/vault_auth_service.dart';
 import '../repositories/note_folder_repository.dart';
@@ -27,6 +29,7 @@ import '../repositories/notes_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'quill_note_editor_screen.dart';
+import '../widgets/backlinks_section.dart';
 import '../widgets/common/common.dart';
 
 /// Full-screen note preview that renders complete markdown
@@ -244,10 +247,30 @@ class _NotePreviewScreenState extends ConsumerState<NotePreviewScreen> {
               _currentNote.content,
             ).isNotEmpty)
               MarkdownBody(
-                data: _getCleanContentWithoutTitleAndSubtitle(
-                  _currentNote.content,
+                data: _convertMentionsForMarkdown(
+                  _getCleanContentWithoutTitleAndSubtitle(_currentNote.content),
                 ),
                 selectable: true,
+                onTapLink: (text, href, title) {
+                  if (href != null && href.startsWith('mention:')) {
+                    final parts = href.substring('mention:'.length).split(':');
+                    if (parts.length >= 2) {
+                      final type = parts[0];
+                      final id = parts.sublist(1).join(':');
+                      MentionNavigator.navigateToMention(
+                        context,
+                        ref,
+                        MentionLink(
+                          title: text.replaceFirst('\u2060@', ''),
+                          type: type,
+                          id: id,
+                          start: 0,
+                          end: 0,
+                        ),
+                      );
+                    }
+                  }
+                },
                 styleSheet: SmartMarkdownHelper.createCompactStyleSheet(context)
                     .copyWith(
                       p: Theme.of(
@@ -284,6 +307,9 @@ class _NotePreviewScreenState extends ConsumerState<NotePreviewScreen> {
                   ],
                 ),
               ),
+
+            // Backlinks section
+            BacklinksSection(itemId: _currentNote.id, itemType: 'note'),
           ],
         ),
       ),
@@ -637,5 +663,15 @@ class _NotePreviewScreenState extends ConsumerState<NotePreviewScreen> {
     final result = contentLines.join('\n').trim();
     debugPrint('DEBUG Preview - Cleaned content for markdown: "$result"');
     return result;
+  }
+
+  /// Converts mention patterns to markdown links for clickable rendering.
+  /// Transforms `@[Title](task:id)` → `[@Title](mention:task:id)`
+  String _convertMentionsForMarkdown(String text) {
+    return text.replaceAllMapped(
+      MentionParser.mentionPattern,
+      (match) =>
+          '[\u2060@${match.group(1)}](mention:${match.group(2)}:${match.group(3)})',
+    );
   }
 }

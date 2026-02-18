@@ -379,7 +379,7 @@ class _DefaultNotesFolderSelector extends ConsumerWidget {
         title: const Text('Default Notes View'),
         subtitle: const Text('Loading...'),
       ),
-      error: (_, __) => ListTile(
+      error: (_, _) => ListTile(
         contentPadding: spacing.listTileInsets,
         visualDensity: spacing.listTileDensity,
         leading: const Icon(Icons.folder_outlined),

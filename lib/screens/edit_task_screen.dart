@@ -26,6 +26,7 @@ import '../widgets/add_reminder_dialog.dart';
 import '../utils/date_formatters.dart';
 import '../utils/week_start_utils.dart';
 import '../theme/spacing_tokens.dart';
+import '../widgets/mention_text.dart';
 import '../widgets/common/common.dart';
 
 class EditTaskScreen extends ConsumerStatefulWidget {
@@ -39,7 +40,7 @@ class EditTaskScreen extends ConsumerStatefulWidget {
 
 class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
   late TextEditingController _titleController;
-  late TextEditingController _notesController;
+  late MentionTextEditingController _notesController;
   late String _selectedPriority;
   String? _selectedFolderId;
   DateTime? _selectedDueDate;
@@ -60,7 +61,9 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
   void _initializeFields() {
     if (widget.task != null) {
       _titleController = TextEditingController(text: widget.task!.text);
-      _notesController = TextEditingController(text: widget.task!.notes ?? '');
+      _notesController = MentionTextEditingController(
+        text: widget.task!.notes ?? '',
+      );
 
       // Ensure priority is valid
       const validPriorities = ['low', 'medium', 'high'];
@@ -81,7 +84,7 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
       _tags = List<String>.from(widget.task?.tags ?? []);
     } else {
       _titleController = TextEditingController();
-      _notesController = TextEditingController();
+      _notesController = MentionTextEditingController();
       _selectedPriority = 'medium';
       _reminderOffsetsMinutes = [];
       _tags = [];
@@ -117,9 +120,9 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
         );
         final updatedTask = widget.task!.copyWith(
           text: _titleController.text.trim(),
-          notes: _notesController.text.trim().isEmpty
+          notes: _notesController.toStorageText().trim().isEmpty
               ? null
-              : _notesController.text.trim(),
+              : _notesController.toStorageText().trim(),
           priority: _selectedPriority,
           folderId: _selectedFolderId,
           dueDate: _selectedDueDate,
@@ -135,9 +138,9 @@ class _EditTaskScreenState extends ConsumerState<EditTaskScreen> {
         );
         final newTask = Todo(
           text: _titleController.text.trim(),
-          notes: _notesController.text.trim().isEmpty
+          notes: _notesController.toStorageText().trim().isEmpty
               ? null
-              : _notesController.text.trim(),
+              : _notesController.toStorageText().trim(),
           priority: _selectedPriority,
           folderId: _selectedFolderId,
           dueDate: _selectedDueDate,

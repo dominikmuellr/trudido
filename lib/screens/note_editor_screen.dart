@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:trudido/utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
@@ -27,6 +28,11 @@ import '../services/note_export_service.dart';
 import '../providers/app_providers.dart';
 import '../providers/note_history_provider.dart';
 import '../utils/markdown_inline_patterns.dart';
+import '../widgets/mention_autocomplete_popup.dart';
+import '../widgets/mention_text.dart';
+import '../widgets/backlinks_section.dart';
+import '../utils/mention_parser.dart';
+import '../utils/mention_navigator.dart';
 import '../widgets/note_history_bottom_sheet.dart';
 import '../widgets/common/common.dart';
 
@@ -43,7 +49,7 @@ class NoteEditorScreen extends ConsumerStatefulWidget {
 
 class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     with TickerProviderStateMixin {
-  late final TextEditingController _contentController;
+  late final MentionTextEditingController _contentController;
   late final TabController _tabController;
   bool _isEditing = false;
   bool _hasUnsavedChanges = false;
@@ -61,14 +67,22 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   static const double _minPreviewHeight = 100.0;
   static const double _maxPreviewHeight = 500.0;
 
+  // Mention autocomplete
+  MentionAutocompletePopup? _mentionPopup;
+
   @override
   void initState() {
     super.initState();
-    _contentController = TextEditingController();
+    _contentController = MentionTextEditingController();
+    _contentController.onMentionTap = (mention) {
+      _mentionPopup?.hide();
+      MentionNavigator.navigateToMention(context, ref, mention);
+    };
     _tabController = TabController(length: 2, vsync: this);
 
     _loadNote();
     _contentController.addListener(_onContentChanged);
+    _contentController.addListener(_onMentionCheck);
 
     if (kDebugMode) {
       debugPrint('NoteEditor initialized: noteId=${widget.noteId}');
@@ -103,12 +117,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         '',
       );
       if (firstLineStripped == titleLine.trim()) {
-        _contentController.text = _originalNote!.content;
+        _contentController.setFromStorageText(_originalNote!.content);
       } else {
-        _contentController.text = '$titleLine\n${_originalNote!.content}';
+        _contentController.setFromStorageText(
+          '$titleLine\n${_originalNote!.content}',
+        );
       }
     } else {
-      _contentController.text = '$titleLine\n${_originalNote!.content}';
+      _contentController.setFromStorageText(
+        '$titleLine\n${_originalNote!.content}',
+      );
     }
 
     // Check if loaded note has markdown and show preview
@@ -198,9 +216,58 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     }
   }
 
+  void _onMentionCheck() {
+    final text = _contentController.text;
+    final cursor = _contentController.selection.baseOffset;
+
+    // Suppress popup when cursor sits at a mention boundary
+    if (_contentController.mentionAtCursor(cursor) != null) {
+      _mentionPopup?.hide();
+      return;
+    }
+
+    final query = MentionParser.detectMentionTrigger(text, cursor);
+
+    if (query != null) {
+      _mentionPopup ??= MentionAutocompletePopup(
+        context: context,
+        ref: ref,
+        onItemSelected: _onMentionSelected,
+        excludeId: widget.noteId,
+      );
+      _mentionPopup!.show(query);
+    } else {
+      _mentionPopup?.hide();
+    }
+  }
+
+  void _onMentionSelected(MentionSearchItem item) {
+    final mentionLink = MentionLink(
+      title: item.title,
+      type: item.type,
+      id: item.id,
+      start: 0,
+      end: 0,
+    );
+
+    final range = MentionParser.getMentionTriggerRange(
+      _contentController.text,
+      _contentController.selection.baseOffset,
+    );
+    if (range == null) return;
+
+    _contentController.removeListener(_onMentionCheck);
+    _contentController.removeListener(_onContentChanged);
+    _contentController.insertMention(mentionLink, range.start, range.end);
+    _contentController.addListener(_onContentChanged);
+    _contentController.addListener(_onMentionCheck);
+  }
+
   @override
   void dispose() {
     _removeSlashMenu();
+    _contentController.removeListener(_onMentionCheck);
+    _mentionPopup?.hide();
     _debounceTimer?.cancel();
     _autoSaveTimer?.cancel();
     _contentController.dispose();
@@ -292,6 +359,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
           children: [
             // Editor section
             Expanded(child: _buildMarkdownEditor()),
+            // Backlinks (items that reference this note)
+            if (_isEditing && widget.noteId != null)
+              BacklinksSection(itemId: widget.noteId!, itemType: 'note'),
             // Preview toggle button
             Container(
               decoration: BoxDecoration(
@@ -420,35 +490,38 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   Widget _buildMarkdownEditor() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20.0),
-      child: TextField(
-        controller: _contentController,
-        decoration: InputDecoration(
-          hintText:
-              'Note title...\n\nStart writing your note here.\n\nType "/" for formatting options.',
-          hintStyle: TextStyle(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-            fontStyle: FontStyle.italic,
+      child: Listener(
+        onPointerUp: (_) => _contentController.notifyPointerUp(),
+        child: TextField(
+          controller: _contentController,
+          decoration: InputDecoration(
+            hintText:
+                'Note title...\n\nStart writing your note here.\n\nType "/" for formatting, "@" to link tasks or notes.',
+            hintStyle: TextStyle(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              fontStyle: FontStyle.italic,
+            ),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            contentPadding: EdgeInsets.zero,
+            fillColor: Colors.transparent,
+            filled: false,
           ),
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          contentPadding: EdgeInsets.zero,
-          fillColor: Colors.transparent,
-          filled: false,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+          maxLines: null,
+          keyboardType: TextInputType.multiline,
+          textCapitalization: TextCapitalization.sentences,
+          onChanged: (value) {
+            _detectSlashCommand(_contentController, true);
+            _updatePreviewVisibility(value);
+            setState(() {});
+          },
         ),
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-        maxLines: null,
-        keyboardType: TextInputType.multiline,
-        textCapitalization: TextCapitalization.sentences,
-        onChanged: (value) {
-          _detectSlashCommand(_contentController, true);
-          _updatePreviewVisibility(value);
-          setState(() {});
-        },
       ),
     );
   }
@@ -515,7 +588,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   }
 
   Widget _buildMarkdownPreview(String markdown) {
-    return SelectableText.rich(
+    return Text.rich(
       _parseMarkdownToTextSpan(markdown, context),
       style: Theme.of(context).textTheme.bodyLarge,
       textAlign: TextAlign.left,
@@ -526,7 +599,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     if (text.isEmpty) return const TextSpan(text: '');
 
     final lines = text.split('\n');
-    List<TextSpan> allSpans = [];
+    List<InlineSpan> allSpans = [];
 
     for (int i = 0; i < lines.length; i++) {
       String line = lines[i];
@@ -586,12 +659,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     return TextSpan(children: allSpans);
   }
 
-  List<TextSpan> _parseInlineFormatting(
+  List<InlineSpan> _parseInlineFormatting(
     String text,
     BuildContext context,
     TextStyle? baseStyle,
   ) {
-    List<TextSpan> spans = [];
+    List<InlineSpan> spans = [];
     int currentIndex = 0;
 
     final filteredMatches = MarkdownInlinePatterns.findNonOverlappingMatches(
@@ -604,10 +677,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       final type = matchEntry.value;
 
       if (match.start > currentIndex) {
-        spans.add(
-          TextSpan(
-            text: text.substring(currentIndex, match.start),
-            style: baseStyle,
+        // Process plain text segment for mentions
+        spans.addAll(
+          _parseMentionsInText(
+            text.substring(currentIndex, match.start),
+            baseStyle,
           ),
         );
       }
@@ -659,15 +733,77 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       currentIndex = match.end;
     }
 
-    // Add remaining text
+    // Add remaining text (process for mentions too)
     if (currentIndex < text.length) {
-      spans.add(TextSpan(text: text.substring(currentIndex), style: baseStyle));
+      spans.addAll(
+        _parseMentionsInText(text.substring(currentIndex), baseStyle),
+      );
     }
 
     // Return list with at least one span
     if (spans.isEmpty) {
       return [TextSpan(text: text, style: baseStyle)];
     }
+    return spans;
+  }
+
+  /// Parses a plain text segment for `@Name` mention patterns that exist
+  /// in the controller's mention map and returns styled, tappable spans.
+  List<InlineSpan> _parseMentionsInText(String text, TextStyle? baseStyle) {
+    final mentionMap = _contentController.mentionMap;
+    if (mentionMap.isEmpty) {
+      return [TextSpan(text: text, style: baseStyle)];
+    }
+
+    final colorScheme = Theme.of(context).colorScheme;
+    final hits = MentionTextEditingController.findMentionHits(text, mentionMap);
+
+    if (hits.isEmpty) {
+      return [TextSpan(text: text, style: baseStyle)];
+    }
+
+    final spans = <InlineSpan>[];
+    int lastEnd = 0;
+
+    for (final hit in hits) {
+      if (hit.start > lastEnd) {
+        spans.add(
+          TextSpan(text: text.substring(lastEnd, hit.start), style: baseStyle),
+        );
+      }
+
+      final mentionStyle = baseStyle?.copyWith(
+        color: hit.mention.isTask ? colorScheme.primary : colorScheme.tertiary,
+        fontWeight: FontWeight.w600,
+        decoration: TextDecoration.underline,
+        decorationStyle: TextDecorationStyle.dotted,
+        decorationColor:
+            (hit.mention.isTask ? colorScheme.primary : colorScheme.tertiary)
+                .withValues(alpha: 0.5),
+      );
+
+      spans.add(
+        TextSpan(
+          text: hit.key,
+          style: mentionStyle,
+          recognizer: TapGestureRecognizer()
+            ..onTap = () {
+              MentionNavigator.navigateToMention(context, ref, hit.mention);
+            },
+        ),
+      );
+
+      lastEnd = hit.end;
+    }
+
+    if (lastEnd == 0) {
+      return [TextSpan(text: text, style: baseStyle)];
+    }
+
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(text: text.substring(lastEnd), style: baseStyle));
+    }
+
     return spans;
   }
 
@@ -1009,7 +1145,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   }
 
   Future<void> _saveNoteInternal({bool showFeedback = true}) async {
-    String rawContent = _contentController.text;
+    String rawContent = _contentController.toStorageText();
     if (kDebugMode) {
       debugPrint('DEBUG Save - Raw content from controller: "$rawContent"');
     }
@@ -1075,13 +1211,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       _isEditing = true;
     }
 
-    if (_contentController.text != rawContent) {
-      _contentController.text = rawContent;
-      // Move cursor to end to avoid disruption
-      _contentController.selection = TextSelection.fromPosition(
-        TextPosition(offset: rawContent.length),
-      );
-    }
+    _contentController.setFromStorageText(rawContent);
+    // Move cursor to end to avoid disruption
+    _contentController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _contentController.text.length),
+    );
 
     if (mounted) {
       setState(() {
@@ -1139,7 +1273,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
 
   Future<void> _showExportOptions() async {
     // Build a Note from current editor content (use formatted content)
-    final rawContent = _contentController.text.trim();
+    final rawContent = _contentController.toStorageText().trim();
     final formatted = _autoFormatWithHeaders(rawContent);
     final lines = formatted.split('\n');
     final firstLine = lines.isNotEmpty ? lines.first.trim() : '';
@@ -1337,7 +1471,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         .undo(widget.noteId!);
     if (entry != null) {
       setState(() {
-        _contentController.text = entry.contentBefore ?? '';
+        _contentController.setFromStorageText(entry.contentBefore ?? '');
         _hasUnsavedChanges = true;
       });
     }
@@ -1350,7 +1484,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         .redo(widget.noteId!);
     if (entry != null) {
       setState(() {
-        _contentController.text = entry.contentAfter ?? '';
+        _contentController.setFromStorageText(entry.contentAfter ?? '');
         _hasUnsavedChanges = true;
       });
     }
@@ -1372,7 +1506,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       noteTitle: title,
       onRestore: (restoredContent) {
         setState(() {
-          _contentController.text = restoredContent ?? '';
+          _contentController.setFromStorageText(restoredContent ?? '');
           _hasUnsavedChanges = true;
         });
       },

@@ -15,15 +15,18 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 
 import '../screens/task_editor_screen.dart';
 import '../models/todo.dart';
 import '../services/theme_service.dart';
+import '../utils/mention_navigator.dart';
+import '../widgets/mention_text.dart';
 import '../widgets/common/common.dart';
 
-class TodoItem extends StatelessWidget {
+class TodoItem extends ConsumerWidget {
   final Todo todo;
   final VoidCallback onToggle;
   final VoidCallback onEdit;
@@ -46,7 +49,7 @@ class TodoItem extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
@@ -197,6 +200,7 @@ class TodoItem extends StatelessWidget {
                             SizedBox(height: subtitleGap),
                             _buildSubtitleRow(
                               context,
+                              ref,
                               overrideColor: selected
                                   ? selectedFg.withAlpha(180)
                                   : null,
@@ -224,7 +228,11 @@ class TodoItem extends StatelessWidget {
       todo.durationMinutes != null ||
       (todo.notes != null && todo.notes!.isNotEmpty);
 
-  Widget _buildSubtitleRow(BuildContext context, {Color? overrideColor}) {
+  Widget _buildSubtitleRow(
+    BuildContext context,
+    WidgetRef ref, {
+    Color? overrideColor,
+  }) {
     final parts = <Widget>[];
     if (todo.dueDate != null) {
       final dueDateText = DateFormat('MMM dd, yyyy').format(todo.dueDate!);
@@ -284,14 +292,17 @@ class TodoItem extends StatelessWidget {
     }
     if (todo.notes != null && todo.notes!.isNotEmpty) {
       parts.add(
-        Text(
-          todo.notes!,
+        MentionText(
+          text: todo.notes!,
           style: TextStyle(
             color: overrideColor ?? Theme.of(context).colorScheme.outline,
             fontSize: 12,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          onMentionTap: (mention) {
+            MentionNavigator.navigateToMention(context, ref, mention);
+          },
         ),
       );
     }

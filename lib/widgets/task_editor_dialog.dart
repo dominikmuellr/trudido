@@ -23,6 +23,7 @@ import '../providers/clock.dart';
 import '../providers/app_providers.dart';
 import '../utils/week_start_utils.dart';
 import '../utils/date_formatters.dart';
+import '../widgets/mention_text.dart';
 import '../widgets/common/common.dart';
 
 class TaskEditorDialog extends ConsumerStatefulWidget {
@@ -37,7 +38,7 @@ class TaskEditorDialog extends ConsumerStatefulWidget {
 
 class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
   late TextEditingController _titleController;
-  late TextEditingController _notesController;
+  late MentionTextEditingController _notesController;
   final _formKey = GlobalKey<FormState>();
 
   DateTime? _startDate;
@@ -56,7 +57,9 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.todo?.text ?? '');
-    _notesController = TextEditingController(text: widget.todo?.notes ?? '');
+    _notesController = MentionTextEditingController(
+      text: widget.todo?.notes ?? '',
+    );
 
     if (widget.todo != null) {
       _startDate = widget.todo!.startDate;
@@ -741,9 +744,9 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
             widget.todo?.id ??
             ref.read(clockProvider).now().millisecondsSinceEpoch.toString(),
         text: _titleController.text.trim(),
-        notes: _notesController.text.trim().isEmpty
+        notes: _notesController.toStorageText().trim().isEmpty
             ? null
-            : _notesController.text.trim(),
+            : _notesController.toStorageText().trim(),
         startDate: _isMultiDay ? _startDate : null,
         dueDate: finalDueDate,
         priority: _priority,
