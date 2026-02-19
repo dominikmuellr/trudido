@@ -1,5 +1,5 @@
 // Trudido - A privacy-focused todo and notes app
-// Copyright (C) 2025 Dominik Müller
+// Copyright (C) 2026 Dominik Müller
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
