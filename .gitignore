@@ -118,6 +118,8 @@ reports/
 .idea/*tasks.xml
 # dotenv environment variables file
 .env*
+# Python virtual environment
+.venv/
 
 # Avoid committing generated Javascript files:
 *.dart.js
