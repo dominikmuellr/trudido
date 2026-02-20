@@ -206,6 +206,10 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
         }
       });
     }
+
+    // Cache backup data on cold start so the WorkManager worker always has
+    // fresh data even if the app is never brought back to the foreground.
+    _cacheBackupDataIfNeeded();
   }
 
   Future<void> _maybeRunInitialReliabilityFlow() async {

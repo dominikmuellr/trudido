@@ -1,12 +1,10 @@
 package com.trudido.app
 
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
-import android.os.Environment
+import android.provider.DocumentsContract
 import android.util.Log
 import androidx.work.*
-import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -86,8 +84,11 @@ class AutoBackupWorker(
             workInfos.addListener({
                 try {
                     val workList = workInfos.get()
-                    val isScheduled = workList.isNotEmpty() && 
-                        workList.any { it.state == WorkInfo.State.ENQUEUED }
+                    val isScheduled = workList.isNotEmpty() &&
+                        workList.any {
+                            it.state == WorkInfo.State.ENQUEUED ||
+                            it.state == WorkInfo.State.RUNNING
+                        }
                     callback(isScheduled)
                 } catch (e: Exception) {
                     Log.e(TAG, "Error checking auto backup status", e)
@@ -104,21 +105,24 @@ class AutoBackupWorker(
         return try {
             Log.d(TAG, "Starting automatic backup...")
 
-            // Get app data from Flutter (this would require method channel integration)
             val backupData = getAppDataForBackup()
-            
-            // Create backup file
-            val backupFile = createBackupFile()
-            
-            // Write data to file
-            writeBackupData(backupFile, backupData)
-            
-            // Clean up old backup files
+            val fileName = generateBackupFileName()
+
+            // Always write to app folder (required for in-app listing/import)
+            val appFile = createBackupFileInAppFolder(fileName)
+            writeBackupData(appFile, backupData)
             cleanupOldBackups()
-            
-            Log.d(TAG, "Automatic backup completed successfully: ${backupFile.name}")
+
+            // Also write to user-selected custom folder via SAF if configured
+            val prefs = context.getSharedPreferences("backup_prefs", Context.MODE_PRIVATE)
+            val customFolderUri = prefs.getString("custom_backup_folder", null)
+            if (customFolderUri != null) {
+                writeBackupToCustomFolder(customFolderUri, fileName, backupData)
+            }
+
+            Log.d(TAG, "Automatic backup completed successfully: ${appFile.name}")
             Result.success()
-            
+
         } catch (e: Exception) {
             Log.e(TAG, "Automatic backup failed", e)
             // Retry with exponential backoff if failure was temporary
@@ -171,54 +175,56 @@ class AutoBackupWorker(
     }
 
     /**
-     * Creates a backup file with timestamp in name
+     * Generates a timestamped backup filename.
      */
-    private fun createBackupFile(): File {
-        // Check if user has selected a custom backup folder
-        val prefs = context.getSharedPreferences("backup_prefs", Context.MODE_PRIVATE)
-        val customFolderUri = prefs.getString("custom_backup_folder", null)
-        
-        return if (customFolderUri != null) {
-            createBackupFileInCustomFolder(customFolderUri)
-        } else {
-            createBackupFileInAppFolder()
-        }
+    private fun generateBackupFileName(): String {
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault())
+        return "auto_backup_${dateFormat.format(Date())}.json"
     }
-    
+
     /**
-     * Creates backup file in user-selected custom folder
-     * For WorkManager, we'll create in a predictable subfolder of the custom location
+     * Creates a backup File in the app's private external storage.
+     * This is always used so that in-app listing and import keep working.
      */
-    private fun createBackupFileInCustomFolder(customFolderUri: String): File {
-        try {
-            // For WorkManager, we'll create backups in a subfolder named "auto_backups"
-            // within the custom folder. We'll use a temp file approach and copy later
-            // if needed, but for now we'll fall back to app folder for reliability
-            Log.d(TAG, "Custom folder set: $customFolderUri, using app folder for auto backup reliability")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error with custom backup folder, falling back to app folder", e)
-        }
-        
-        // For WorkManager reliability, always use app folder but log the custom setting
-        return createBackupFileInAppFolder()
-    }
-    
-    /**
-     * Creates backup file in app's default folder
-     */
-    private fun createBackupFileInAppFolder(): File {
-        // Create backup directory in app's external files directory
+    private fun createBackupFileInAppFolder(fileName: String): File {
         val backupDir = File(context.getExternalFilesDir(null), BACKUP_FOLDER)
         if (!backupDir.exists()) {
             backupDir.mkdirs()
         }
-
-        // Generate filename with timestamp
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault())
-        val timestamp = dateFormat.format(Date())
-        val fileName = "auto_backup_$timestamp.json"
-
         return File(backupDir, fileName)
+    }
+
+    /**
+     * Writes the backup data to the user-selected SAF folder.
+     * Uses persisted URI permissions so this works from a background Worker.
+     * Failures are logged but do not affect the primary app-folder backup.
+     */
+    private fun writeBackupToCustomFolder(folderUri: String, fileName: String, data: String) {
+        try {
+            val treeUri = Uri.parse(folderUri)
+            val docId = DocumentsContract.getTreeDocumentId(treeUri)
+            val docUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId)
+
+            val newDocUri = DocumentsContract.createDocument(
+                context.contentResolver,
+                docUri,
+                "application/json",
+                fileName
+            )
+
+            if (newDocUri != null) {
+                context.contentResolver.openOutputStream(newDocUri)?.use { out ->
+                    out.write(data.toByteArray(Charsets.UTF_8))
+                    out.flush()
+                }
+                Log.d(TAG, "Backup also written to custom folder: $newDocUri")
+            } else {
+                Log.w(TAG, "DocumentsContract.createDocument returned null for custom folder")
+            }
+        } catch (e: Exception) {
+            // Non-fatal: primary backup to app folder already succeeded
+            Log.e(TAG, "Failed to write backup to custom folder (URI: $folderUri): ${e.message}")
+        }
     }
 
     /**
