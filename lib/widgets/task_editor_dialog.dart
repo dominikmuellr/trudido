@@ -242,6 +242,16 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           label: _getDueDateLabel(),
           isSelected: _dueDate != null,
           onTap: _selectDueDate,
+          onClear: _dueDate != null
+              ? () => setState(() {
+                  _dueDate = null;
+                  _dueTime = null;
+                  _durationMinutes = null;
+                  _startDate = null;
+                  _isMultiDay = false;
+                  _reminderOffsetsMinutes = [];
+                })
+              : null,
           theme: theme,
           colorScheme: colorScheme,
         ),
@@ -253,6 +263,12 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
             label: _getTimeLabel(),
             isSelected: _dueTime != null,
             onTap: _selectTime,
+            onClear: _dueTime != null
+                ? () => setState(() {
+                    _dueTime = null;
+                    _durationMinutes = null;
+                  })
+                : null,
             theme: theme,
             colorScheme: colorScheme,
           ),
@@ -266,6 +282,9 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
             label: _getDurationLabel(),
             isSelected: _durationMinutes != null,
             onTap: _selectDuration,
+            onClear: _durationMinutes != null
+                ? () => setState(() => _durationMinutes = null)
+                : null,
             theme: theme,
             colorScheme: colorScheme,
           ),
@@ -277,6 +296,9 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           label: 'Priority: ${_priority.toUpperCase()}',
           isSelected: _priority != 'none',
           onTap: _showPrioritySelector,
+          onClear: _priority != 'none'
+              ? () => setState(() => _priority = 'none')
+              : null,
           theme: theme,
           colorScheme: colorScheme,
         ),
@@ -333,14 +355,23 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
     required VoidCallback onTap,
     required ThemeData theme,
     required ColorScheme colorScheme,
+    VoidCallback? onClear,
   }) {
+    final chipColor = isSelected
+        ? colorScheme.onPrimaryContainer
+        : colorScheme.onSurfaceVariant;
     return Material(
       color: Colors.transparent,
       child: ExpressiveInkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          padding: EdgeInsets.only(
+            top: 12,
+            bottom: 12,
+            left: 16,
+            right: (isSelected && onClear != null) ? 4 : 16,
+          ),
           decoration: BoxDecoration(
             color: isSelected
                 ? colorScheme.primaryContainer
@@ -355,21 +386,13 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 18,
-                color: isSelected
-                    ? colorScheme.onPrimaryContainer
-                    : colorScheme.onSurfaceVariant,
-              ),
+              Icon(icon, size: 18, color: chipColor),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
                   label,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isSelected
-                        ? colorScheme.onPrimaryContainer
-                        : colorScheme.onSurfaceVariant,
+                    color: chipColor,
                     fontWeight: isSelected
                         ? FontWeight.w600
                         : FontWeight.normal,
@@ -377,6 +400,25 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (isSelected && onClear != null) ...[
+                const SizedBox(width: 4),
+                SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: onClear,
+                      child: Icon(
+                        Icons.close,
+                        size: 16,
+                        color: chipColor.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -595,34 +637,32 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
       setState(() {
         _startDate = picked.start;
         _dueDate = picked.end;
-
         _isMultiDay = picked.start != picked.end;
       });
     }
   }
 
   Future<void> _selectTime() async {
-    if (_dueDate != null) {
-      final prefs = ref.read(preferencesStateProvider);
-      final use24Hour = prefs.resolveUse24Hour(
-        MediaQuery.of(context).alwaysUse24HourFormat,
-      );
-      final time = await showTimePicker(
-        context: context,
-        initialTime: _dueTime ?? TimeOfDay.now(),
-        helpText: 'Select time',
-        builder: (context, child) {
-          return MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(alwaysUse24HourFormat: use24Hour),
-            child: child!,
-          );
-        },
-      );
-      if (time != null) {
-        setState(() => _dueTime = time);
-      }
+    if (_dueDate == null) return;
+    final prefs = ref.read(preferencesStateProvider);
+    final use24Hour = prefs.resolveUse24Hour(
+      MediaQuery.of(context).alwaysUse24HourFormat,
+    );
+    final time = await showTimePicker(
+      context: context,
+      initialTime: _dueTime ?? TimeOfDay.now(),
+      helpText: 'Select time',
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(alwaysUse24HourFormat: use24Hour),
+          child: child!,
+        );
+      },
+    );
+    if (time != null) {
+      setState(() => _dueTime = time);
     }
   }
 

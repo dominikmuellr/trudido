@@ -298,6 +298,20 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           label: _getDueDateLabel(),
           isSelected: _dueDate != null,
           onTap: _selectDueDate,
+          onClear: _dueDate != null
+              ? () => setState(() {
+                  _dueDate = null;
+                  _dueTime = null;
+                  _durationMinutes = null;
+                  _startDate = null;
+                  _isMultiDay = false;
+                  _repeatType = 'none';
+                  _repeatInterval = 1;
+                  _repeatDays = [];
+                  _repeatEndDate = null;
+                  _reminderOffsetsMinutes = [];
+                })
+              : null,
           theme: theme,
           colorScheme: colorScheme,
         ),
@@ -312,6 +326,12 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                 : 'Make multi-day',
             isSelected: _isMultiDay,
             onTap: _toggleMultiDay,
+            onClear: _isMultiDay
+                ? () => setState(() {
+                    _isMultiDay = false;
+                    _startDate = null;
+                  })
+                : null,
             theme: theme,
             colorScheme: colorScheme,
           ),
@@ -325,6 +345,12 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
             label: _getTimeLabel(),
             isSelected: _dueTime != null,
             onTap: _selectTime,
+            onClear: _dueTime != null
+                ? () => setState(() {
+                    _dueTime = null;
+                    _durationMinutes = null;
+                  })
+                : null,
             theme: theme,
             colorScheme: colorScheme,
           ),
@@ -338,6 +364,9 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
             label: _getDurationLabel(),
             isSelected: _durationMinutes != null,
             onTap: _selectDuration,
+            onClear: _durationMinutes != null
+                ? () => setState(() => _durationMinutes = null)
+                : null,
             theme: theme,
             colorScheme: colorScheme,
           ),
@@ -350,6 +379,9 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           label: 'Priority: ${_priority.toUpperCase()}',
           isSelected: _priority != 'none',
           onTap: _showPrioritySelector,
+          onClear: _priority != 'none'
+              ? () => setState(() => _priority = 'none')
+              : null,
           theme: theme,
           colorScheme: colorScheme,
         ),
@@ -361,6 +393,9 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           label: _getReminderLabel(),
           isSelected: _reminderOffsetsMinutes.isNotEmpty,
           onTap: _showAddReminderDialog,
+          onClear: _reminderOffsetsMinutes.isNotEmpty
+              ? () => setState(() => _reminderOffsetsMinutes = [])
+              : null,
           theme: theme,
           colorScheme: colorScheme,
         ),
@@ -372,6 +407,14 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           label: _getRepeatLabel(),
           isSelected: _repeatType != 'none',
           onTap: _dueDate != null ? _showRepeatSelector : null,
+          onClear: _repeatType != 'none'
+              ? () => setState(() {
+                  _repeatType = 'none';
+                  _repeatInterval = 1;
+                  _repeatDays = [];
+                  _repeatEndDate = null;
+                })
+              : null,
           theme: theme,
           colorScheme: colorScheme,
           isDisabled: _dueDate == null,
@@ -472,7 +515,11 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     required ThemeData theme,
     required ColorScheme colorScheme,
     bool isDisabled = false,
+    VoidCallback? onClear,
   }) {
+    final chipColor = isSelected
+        ? colorScheme.onPrimaryContainer
+        : colorScheme.onSurfaceVariant;
     return Material(
       color: Colors.transparent,
       child: ExpressiveInkWell(
@@ -481,10 +528,12 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         child: Opacity(
           opacity: isDisabled ? 0.5 : 1.0,
           child: Container(
-            padding: const EdgeInsets.symmetric(
-              vertical: 12,
-              horizontal: 16,
-            ), // Custom button padding
+            padding: EdgeInsets.only(
+              top: 12,
+              bottom: 12,
+              left: 16,
+              right: (isSelected && onClear != null) ? 4 : 16,
+            ),
             decoration: BoxDecoration(
               color: isSelected
                   ? colorScheme.primaryContainer
@@ -499,21 +548,13 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ScaledIcon(
-                  icon,
-                  size: 18,
-                  color: isSelected
-                      ? colorScheme.onPrimaryContainer
-                      : colorScheme.onSurfaceVariant,
-                ),
+                ScaledIcon(icon, size: 18, color: chipColor),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
                     label,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: isSelected
-                          ? colorScheme.onPrimaryContainer
-                          : colorScheme.onSurfaceVariant,
+                      color: chipColor,
                       fontWeight: isSelected
                           ? FontWeight.w600
                           : FontWeight.normal,
@@ -521,6 +562,25 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                if (isSelected && onClear != null) ...[
+                  const SizedBox(width: 4),
+                  SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: onClear,
+                        child: Icon(
+                          Icons.close,
+                          size: 16,
+                          color: chipColor.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1118,7 +1178,6 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     final now = ref.read(clockProvider).now();
     final firstDayOfWeek = ref.read(preferencesStateProvider).firstDayOfWeek;
 
-    // Show single date picker for due date
     final picked = await showDatePicker(
       context: context,
       firstDate: now,
@@ -1136,7 +1195,6 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     if (picked != null) {
       setState(() {
         _dueDate = picked;
-        // If it was multi-day, reset it since we're selecting a single date
         if (!_isMultiDay) {
           _startDate = null;
         }
@@ -1180,27 +1238,26 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   }
 
   Future<void> _selectTime() async {
-    if (_dueDate != null) {
-      final prefs = ref.read(preferencesStateProvider);
-      final use24Hour = prefs.resolveUse24Hour(
-        MediaQuery.of(context).alwaysUse24HourFormat,
-      );
-      final time = await showTimePicker(
-        context: context,
-        initialTime: _dueTime ?? TimeOfDay.now(),
-        helpText: 'Select time',
-        builder: (context, child) {
-          return MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(alwaysUse24HourFormat: use24Hour),
-            child: child!,
-          );
-        },
-      );
-      if (time != null) {
-        setState(() => _dueTime = time);
-      }
+    if (_dueDate == null) return;
+    final prefs = ref.read(preferencesStateProvider);
+    final use24Hour = prefs.resolveUse24Hour(
+      MediaQuery.of(context).alwaysUse24HourFormat,
+    );
+    final time = await showTimePicker(
+      context: context,
+      initialTime: _dueTime ?? TimeOfDay.now(),
+      helpText: 'Select time',
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(alwaysUse24HourFormat: use24Hour),
+          child: child!,
+        );
+      },
+    );
+    if (time != null) {
+      setState(() => _dueTime = time);
     }
   }
 
