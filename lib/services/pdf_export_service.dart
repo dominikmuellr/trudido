@@ -25,6 +25,16 @@ import '../models/note.dart';
 import '../models/todo.dart';
 import '../services/storage_service.dart';
 
+/// Line accumulation helper for Quill-to-PDF conversion inside [PdfExportService].
+/// In Quill Delta, block attributes live on the "\n" op that terminates each
+/// block; preceding text ops carry only inline attributes.  We accumulate spans
+/// across ops and emit one [_NotePdfLine] per logical line.
+class _NotePdfLine {
+  final List<pw.TextSpan>? spans;
+  final Map<String, dynamic> blockAttrs;
+  _NotePdfLine({this.spans, required this.blockAttrs});
+}
+
 /// Service for exporting notes and todos as PDF files
 class PdfExportService {
   /// Export all todos and notes as a comprehensive PDF
@@ -404,7 +414,11 @@ class PdfExportService {
     }
   }
 
-  /// Add a single note to PDF with images and formatting
+  /// Add a single note to PDF with images and formatting.
+  ///
+  /// Uses line-accumulation to correctly handle Quill Delta format where block
+  /// attributes (header, list, code-block, blockquote) are placed on the "\n"
+  /// op that terminates each block, not on the text content ops.
   static Future<void> _addSingleNote(
     pw.Document pdf,
     Note note,
@@ -445,7 +459,7 @@ class PdfExportService {
     contentWidgets.add(pw.Divider(thickness: 1));
     contentWidgets.add(pw.SizedBox(height: 10));
 
-    // Parse Quill JSON and render with images
+    // Parse Quill JSON and render
     try {
       final jsonContent = jsonDecode(note.content);
       List<dynamic> ops;
@@ -458,7 +472,26 @@ class PdfExportService {
         throw FormatException('Not Quill format');
       }
 
-      // Process each op
+      // Build inline TextStyle from Quill inline attributes.
+      pw.TextStyle styledText(Map<String, dynamic> attrs) {
+        var s = pw.TextStyle(font: font, fontSize: 12);
+        if (attrs['bold'] == true) s = s.copyWith(font: fontBold);
+        if (attrs['italic'] == true) s = s.copyWith(font: fontItalic);
+        if (attrs['code'] == true) s = s.copyWith(font: pw.Font.helvetica());
+        if (attrs.containsKey('link')) s = s.copyWith(color: PdfColors.blue);
+        if (attrs['strike'] == true) {
+          s = s.copyWith(decoration: pw.TextDecoration.lineThrough);
+        }
+        if (attrs['underline'] == true) {
+          s = s.copyWith(decoration: pw.TextDecoration.underline);
+        }
+        return s;
+      }
+
+      // Phase 1 – accumulate ops into logical lines.
+      final List<_NotePdfLine> lines = [];
+      List<pw.TextSpan> currentSpans = [];
+
       for (var op in ops) {
         if (op is! Map<String, dynamic> || !op.containsKey('insert')) continue;
 
@@ -467,155 +500,308 @@ class PdfExportService {
             ? (op['attributes'] as Map).cast<String, dynamic>()
             : <String, dynamic>{};
 
-        // Handle media embeds
+        // ── Map inserts (media, link embeds, etc.) ─────────────────────────
         if (insert is Map) {
-          final custom = insert['custom'];
-          if (kDebugMode) {
-            debugPrint(
-              '[PdfExport] Found Map insert, custom field type: ${custom?.runtimeType}',
+          // Flush accumulated spans before inserting a block-level widget.
+          if (currentSpans.isNotEmpty) {
+            lines.add(
+              _NotePdfLine(spans: List.from(currentSpans), blockAttrs: {}),
             );
-            debugPrint('[PdfExport] Custom value: $custom');
+            currentSpans.clear();
           }
 
-          if (custom is String) {
-            if (kDebugMode) {
-              debugPrint(
-                '[PdfExport] Custom is String, attempting to parse...',
-              );
+          // Custom media embed: {"insert": {"custom": "{\"media\":\"...\"}"}}
+          String? mediaJson;
+          if (insert.containsKey('custom')) {
+            final raw = insert['custom'];
+            if (raw is String) {
+              mediaJson = raw;
+              try {
+                final parsed = jsonDecode(raw) as Map<String, dynamic>;
+                if (parsed.containsKey('media')) {
+                  mediaJson = parsed['media'] as String;
+                }
+              } catch (_) {}
             }
+          } else if (insert.containsKey('media')) {
+            mediaJson = insert['media'] as String?;
+          }
+
+          if (mediaJson != null) {
             try {
-              final parsed = jsonDecode(custom) as Map<String, dynamic>;
-              if (kDebugMode) {
-                debugPrint('[PdfExport] Parsed media: $parsed');
-              }
-
-              // The media field contains ANOTHER JSON string
-              final mediaString = parsed['media'] as String?;
-              if (mediaString != null) {
-                if (kDebugMode) {
-                  debugPrint(
-                    '[PdfExport] Found media string, parsing again...',
-                  );
-                }
-                final media = jsonDecode(mediaString) as Map<String, dynamic>;
-                if (kDebugMode) {
-                  debugPrint('[PdfExport] Final parsed media: $media');
-                }
-
-                final type = media['type'] as String?;
-                final pathStr = media['path'] as String?;
-                if (kDebugMode) {
-                  debugPrint('[PdfExport] Type: $type, Path: $pathStr');
-                }
-
-                if (type == 'image' && pathStr != null) {
-                  final file = File(pathStr);
-                  final exists = await file.exists();
-                  if (kDebugMode) {
-                    debugPrint('[PdfExport] Image file exists: $exists');
-                  }
-                  if (exists) {
-                    final bytes = await file.readAsBytes();
-                    if (kDebugMode) {
-                      debugPrint('[PdfExport] Loaded ${bytes.length} bytes');
-                    }
-                    final image = pw.MemoryImage(bytes);
-                    contentWidgets.add(pw.SizedBox(height: 8));
-                    contentWidgets.add(
-                      pw.Center(
-                        child: pw.Image(
-                          image,
-                          width: PdfPageFormat.a4.availableWidth * 0.7,
-                          fit: pw.BoxFit.scaleDown,
-                        ),
+              final mediaData = jsonDecode(mediaJson) as Map<String, dynamic>;
+              final type = mediaData['type'] as String? ?? 'image';
+              final pathStr = mediaData['path'] as String?;
+              if (type == 'image' && pathStr != null) {
+                final file = File(pathStr);
+                if (await file.exists()) {
+                  final bytes = await file.readAsBytes();
+                  final image = pw.MemoryImage(bytes);
+                  contentWidgets.add(pw.SizedBox(height: 8));
+                  contentWidgets.add(
+                    pw.Center(
+                      child: pw.Image(
+                        image,
+                        width: PdfPageFormat.a4.availableWidth * 0.7,
+                        fit: pw.BoxFit.scaleDown,
                       ),
+                    ),
+                  );
+                  contentWidgets.add(pw.SizedBox(height: 8));
+                  if (kDebugMode) {
+                    debugPrint(
+                      '[PdfExport] Image added for note ${note.title}',
                     );
-                    contentWidgets.add(pw.SizedBox(height: 8));
-                    if (kDebugMode) {
-                      debugPrint('[PdfExport] Image widget added!');
-                    }
                   }
                 }
               }
             } catch (e) {
-              if (kDebugMode) {
-                debugPrint('[PdfExport] Error parsing custom: $e');
+              if (kDebugMode) debugPrint('[PdfExport] Media parse error: $e');
+            }
+            continue;
+          }
+
+          // Link embed – extract display text into a span.
+          if (insert.containsKey('link')) {
+            final linkData = insert['link'];
+            String linkText = '';
+            if (linkData is Map) {
+              linkText =
+                  (linkData['text'] as String?) ??
+                  (linkData['url'] as String?) ??
+                  '';
+            } else if (linkData is String) {
+              try {
+                final parsed = jsonDecode(linkData) as Map<String, dynamic>;
+                linkText =
+                    (parsed['text'] as String?) ??
+                    (parsed['url'] as String?) ??
+                    '';
+              } catch (_) {
+                linkText = linkData;
               }
             }
-          } else if (custom is Map) {
-            if (kDebugMode) {
-              debugPrint('[PdfExport] Custom is Map: ${custom.keys.toList()}');
+            if (linkText.isNotEmpty) {
+              currentSpans.add(
+                pw.TextSpan(
+                  text: linkText,
+                  style: pw.TextStyle(
+                    font: font,
+                    fontSize: 12,
+                    color: PdfColors.blue,
+                  ),
+                ),
+              );
             }
           }
           continue;
         }
 
-        // Handle text
-        if (insert is String && insert.isNotEmpty) {
-          var style = pw.TextStyle(font: font, fontSize: 12);
-          if (attrs['bold'] == true) style = style.copyWith(font: fontBold);
-          if (attrs['italic'] == true) style = style.copyWith(font: fontItalic);
+        // ── Text insert ─────────────────────────────────────────────────────
+        if (insert is String) {
+          final parts = insert.split('\n');
+          for (var i = 0; i < parts.length; i++) {
+            final part = parts[i];
+            if (part.isNotEmpty) {
+              currentSpans.add(
+                pw.TextSpan(text: part, style: styledText(attrs)),
+              );
+            }
+            if (i < parts.length - 1) {
+              // The block attributes for this line come from attrs of the \n op.
+              lines.add(
+                _NotePdfLine(
+                  spans: List.from(currentSpans),
+                  blockAttrs: Map<String, dynamic>.from(attrs),
+                ),
+              );
+              currentSpans.clear();
+            }
+          }
+        }
+      }
 
-          if (attrs.containsKey('header')) {
-            final level = attrs['header'] is int ? attrs['header'] as int : 1;
-            final size = level == 1 ? 18.0 : (level == 2 ? 16.0 : 14.0);
-            contentWidgets.add(
-              pw.Padding(
-                padding: const pw.EdgeInsets.only(top: 10, bottom: 5),
-                child: pw.Text(
-                  insert,
+      if (currentSpans.isNotEmpty) {
+        lines.add(_NotePdfLine(spans: List.from(currentSpans), blockAttrs: {}));
+      }
+
+      // Phase 2 – render lines as PDF widgets.
+      int idx = 0;
+      while (idx < lines.length) {
+        final line = lines[idx];
+        final block = line.blockAttrs;
+
+        // ── Lists ────────────────────────────────────────────────────────────
+        if (block.containsKey('list')) {
+          final listType = block['list'] as String? ?? 'bullet';
+          final items = <_NotePdfLine>[];
+
+          if (listType == 'ordered') {
+            while (idx < lines.length &&
+                lines[idx].blockAttrs['list'] == 'ordered') {
+              items.add(lines[idx]);
+              idx++;
+            }
+            for (var i = 0; i < items.length; i++) {
+              contentWidgets.add(
+                pw.Padding(
+                  padding: const pw.EdgeInsets.only(left: 20, bottom: 2),
+                  child: pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Container(
+                        width: 24,
+                        child: pw.Text(
+                          '${i + 1}.',
+                          style: pw.TextStyle(font: font, fontSize: 12),
+                        ),
+                      ),
+                      pw.Expanded(
+                        child: pw.RichText(
+                          text: pw.TextSpan(
+                            children: items[i].spans ?? [pw.TextSpan(text: '')],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          } else {
+            // bullet / checked / unchecked – group all consecutive non-ordered
+            while (idx < lines.length &&
+                lines[idx].blockAttrs.containsKey('list') &&
+                lines[idx].blockAttrs['list'] != 'ordered') {
+              items.add(lines[idx]);
+              idx++;
+            }
+            for (var item in items) {
+              final iType = item.blockAttrs['list'] as String? ?? listType;
+              final String marker;
+              final double markerWidth;
+              if (iType == 'checked') {
+                marker = '[x]';
+                markerWidth = 28;
+              } else if (iType == 'unchecked') {
+                marker = '[ ]';
+                markerWidth = 28;
+              } else {
+                marker = '\u2022';
+                markerWidth = 14;
+              }
+              contentWidgets.add(
+                pw.Padding(
+                  padding: const pw.EdgeInsets.only(left: 20, bottom: 2),
+                  child: pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Container(
+                        width: markerWidth,
+                        child: pw.Text(
+                          marker,
+                          style: pw.TextStyle(font: font, fontSize: 11),
+                        ),
+                      ),
+                      pw.SizedBox(width: 4),
+                      pw.Expanded(
+                        child: pw.RichText(
+                          text: pw.TextSpan(
+                            children: item.spans ?? [pw.TextSpan(text: '')],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          }
+          continue;
+        }
+
+        // ── Header ───────────────────────────────────────────────────────────
+        if (block.containsKey('header')) {
+          final level = block['header'] is int
+              ? block['header'] as int
+              : int.tryParse(block['header']?.toString() ?? '') ?? 1;
+          final size = level == 1 ? 20.0 : (level == 2 ? 18.0 : 14.0);
+          contentWidgets.add(
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(top: 8, bottom: 4),
+              child: pw.RichText(
+                text: pw.TextSpan(
+                  children: line.spans ?? [pw.TextSpan(text: '')],
                   style: pw.TextStyle(font: fontBold, fontSize: size),
                 ),
               ),
-            );
-          } else if (attrs['list'] == 'checked') {
-            contentWidgets.add(
-              pw.Padding(
-                padding: const pw.EdgeInsets.only(left: 20, bottom: 2),
-                child: pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text('[x] ', style: style),
-                    pw.Expanded(child: pw.Text(insert, style: style)),
-                  ],
-                ),
-              ),
-            );
-          } else if (attrs['list'] == 'unchecked') {
-            contentWidgets.add(
-              pw.Padding(
-                padding: const pw.EdgeInsets.only(left: 20, bottom: 2),
-                child: pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text('[ ] ', style: style),
-                    pw.Expanded(child: pw.Text(insert, style: style)),
-                  ],
-                ),
-              ),
-            );
-          } else if (attrs['list'] == 'bullet') {
-            contentWidgets.add(
-              pw.Padding(
-                padding: const pw.EdgeInsets.only(left: 20, bottom: 2),
-                child: pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text('\u2022 ', style: style),
-                    pw.Expanded(child: pw.Text(insert, style: style)),
-                  ],
-                ),
-              ),
-            );
-          } else {
-            contentWidgets.add(
-              pw.Padding(
-                padding: const pw.EdgeInsets.only(bottom: 4),
-                child: pw.Text(insert, style: style),
-              ),
-            );
-          }
+            ),
+          );
+          idx++;
+          continue;
         }
+
+        // ── Code block ───────────────────────────────────────────────────────
+        if (block.containsKey('code-block')) {
+          contentWidgets.add(
+            pw.Container(
+              margin: const pw.EdgeInsets.symmetric(vertical: 4),
+              padding: const pw.EdgeInsets.all(8),
+              color: PdfColors.grey200,
+              child: pw.RichText(
+                text: pw.TextSpan(
+                  children: line.spans ?? [pw.TextSpan(text: '')],
+                  style: pw.TextStyle(fontSize: 11, font: pw.Font.helvetica()),
+                ),
+              ),
+            ),
+          );
+          idx++;
+          continue;
+        }
+
+        // ── Blockquote ───────────────────────────────────────────────────────
+        if (block.containsKey('blockquote')) {
+          contentWidgets.add(
+            pw.Container(
+              margin: const pw.EdgeInsets.symmetric(vertical: 2),
+              padding: const pw.EdgeInsets.only(left: 10),
+              decoration: const pw.BoxDecoration(
+                border: pw.Border(
+                  left: pw.BorderSide(color: PdfColors.grey400, width: 3),
+                ),
+              ),
+              child: pw.RichText(
+                text: pw.TextSpan(
+                  children: line.spans ?? [pw.TextSpan(text: '')],
+                  style: pw.TextStyle(
+                    font: fontItalic,
+                    fontSize: 12,
+                    color: PdfColors.grey700,
+                  ),
+                ),
+              ),
+            ),
+          );
+          idx++;
+          continue;
+        }
+
+        // ── Plain paragraph (skip empty trailing-newline lines) ───────────────
+        if (line.spans != null && line.spans!.isNotEmpty) {
+          contentWidgets.add(
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(bottom: 4),
+              child: pw.RichText(
+                text: pw.TextSpan(
+                  children: line.spans!,
+                  style: pw.TextStyle(font: font, fontSize: 12),
+                ),
+              ),
+            ),
+          );
+        }
+        idx++;
       }
     } catch (e) {
       // Fallback to plain text

@@ -48,6 +48,12 @@ pw.TextStyle _mapInlineAttributesToStyle(Map<String, dynamic> attrs) {
   if (attrs.containsKey('link')) {
     style = style.copyWith(color: PdfColors.blue);
   }
+  if (attrs.containsKey('strike') && attrs['strike'] == true) {
+    style = style.copyWith(decoration: pw.TextDecoration.lineThrough);
+  }
+  if (attrs.containsKey('underline') && attrs['underline'] == true) {
+    style = style.copyWith(decoration: pw.TextDecoration.underline);
+  }
   return style;
 }
 
@@ -337,6 +343,37 @@ class NoteExportService {
 
                 continue;
               }
+
+              // Handle link embeds (key 'link') – extract display text
+              if (insert.containsKey('link')) {
+                final linkData = insert['link'];
+                String linkText = '';
+                if (linkData is Map) {
+                  linkText =
+                      (linkData['text'] as String?) ??
+                      (linkData['url'] as String?) ??
+                      '';
+                } else if (linkData is String) {
+                  try {
+                    final parsed = jsonDecode(linkData) as Map<String, dynamic>;
+                    linkText =
+                        (parsed['text'] as String?) ??
+                        (parsed['url'] as String?) ??
+                        '';
+                  } catch (_) {
+                    linkText = linkData;
+                  }
+                }
+                if (linkText.isNotEmpty) {
+                  currentSpans.add(
+                    pw.TextSpan(
+                      text: linkText,
+                      style: pw.TextStyle(fontSize: 12, color: PdfColors.blue),
+                    ),
+                  );
+                }
+                continue;
+              }
             }
 
             // Text insert: split into lines by newline and create spans
@@ -416,19 +453,32 @@ class NoteExportService {
               }
             } else {
               for (var item in items) {
+                final itemType = item.blockAttrs['list'] as String? ?? listType;
+                final String marker;
+                final double markerWidth;
+                if (itemType == 'checked') {
+                  marker = '[x]';
+                  markerWidth = 28;
+                } else if (itemType == 'unchecked') {
+                  marker = '[ ]';
+                  markerWidth = 28;
+                } else {
+                  marker = '\u2022';
+                  markerWidth = 14;
+                }
                 contentWidgets.add(
                   pw.Padding(
                     padding: const pw.EdgeInsets.symmetric(vertical: 2),
                     child: pw.Row(
                       children: [
                         pw.Container(
-                          width: 14,
+                          width: markerWidth,
                           child: pw.Text(
-                            '•',
-                            style: pw.TextStyle(fontSize: 12),
+                            marker,
+                            style: pw.TextStyle(fontSize: 11),
                           ),
                         ),
-                        pw.SizedBox(width: 6),
+                        pw.SizedBox(width: 4),
                         pw.Expanded(
                           child: pw.RichText(
                             text: pw.TextSpan(
@@ -472,18 +522,65 @@ class NoteExportService {
             continue;
           }
 
-          // Paragraph
-          contentWidgets.add(
-            pw.Padding(
-              padding: const pw.EdgeInsets.symmetric(vertical: 2),
-              child: pw.RichText(
-                text: pw.TextSpan(
-                  children: line.spans ?? [pw.TextSpan(text: '')],
-                  style: pw.TextStyle(fontSize: 12),
+          // Code block
+          if (block.containsKey('code-block')) {
+            contentWidgets.add(
+              pw.Container(
+                margin: const pw.EdgeInsets.symmetric(vertical: 4),
+                padding: const pw.EdgeInsets.all(8),
+                color: PdfColors.grey200,
+                child: pw.RichText(
+                  text: pw.TextSpan(
+                    children: line.spans ?? [pw.TextSpan(text: '')],
+                    style: pw.TextStyle(
+                      fontSize: 11,
+                      font: pw.Font.helvetica(),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          );
+            );
+            idx++;
+            continue;
+          }
+
+          // Blockquote
+          if (block.containsKey('blockquote')) {
+            contentWidgets.add(
+              pw.Container(
+                margin: const pw.EdgeInsets.symmetric(vertical: 2),
+                padding: const pw.EdgeInsets.only(left: 10),
+                decoration: const pw.BoxDecoration(
+                  border: pw.Border(
+                    left: pw.BorderSide(color: PdfColors.grey400, width: 3),
+                  ),
+                ),
+                child: pw.RichText(
+                  text: pw.TextSpan(
+                    children: line.spans ?? [pw.TextSpan(text: '')],
+                    style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+                  ),
+                ),
+              ),
+            );
+            idx++;
+            continue;
+          }
+
+          // Paragraph (skip lines with no spans, e.g. trailing newline)
+          if (line.spans != null && line.spans!.isNotEmpty) {
+            contentWidgets.add(
+              pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                child: pw.RichText(
+                  text: pw.TextSpan(
+                    children: line.spans!,
+                    style: pw.TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
+            );
+          }
           idx++;
         }
       } catch (e) {
@@ -520,10 +617,7 @@ class NoteExportService {
   }
 
   /// Shares a PDF using the platform sharing mechanism.
-  static Future<void> sharePdf(
-    Uint8List bytes,
-    String filename,
-  ) async {
+  static Future<void> sharePdf(Uint8List bytes, String filename) async {
     try {
       await Printing.sharePdf(bytes: bytes, filename: filename);
     } catch (e) {
