@@ -290,7 +290,9 @@ class _ThemeModeSheet extends ConsumerWidget {
           label,
           style: TextStyle(
             fontWeight: selected ? FontWeight.w600 : null,
-            color: !isEnabled ? cs.onSurfaceVariant.withValues(alpha: 0.4) : null,
+            color: !isEnabled
+                ? cs.onSurfaceVariant.withValues(alpha: 0.4)
+                : null,
           ),
         ),
         subtitle: Text(
@@ -299,7 +301,9 @@ class _ThemeModeSheet extends ConsumerWidget {
               ? getUnavailableMessage()
               : desc,
           style: TextStyle(
-            color: !isEnabled ? cs.onSurfaceVariant.withValues(alpha: 0.4) : null,
+            color: !isEnabled
+                ? cs.onSurfaceVariant.withValues(alpha: 0.4)
+                : null,
           ),
         ),
         trailing: selected ? Icon(Icons.check, color: cs.primary) : null,

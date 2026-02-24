@@ -146,6 +146,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             isInVault: isInVault,
             onMoveToFolder: isInVault ? null : () => _moveNoteToFolder(note),
             showFormatIndicator: isAllNotesView,
+            isGridView: true,
           );
         },
       ),

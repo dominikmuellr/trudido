@@ -60,6 +60,7 @@ class NotePreviewCard extends ConsumerWidget {
   final bool
   showFormatIndicator; // Show .md/.txt indicator (only in All Notes view)
   final String? searchHighlight; // Search term to highlight
+  final bool isGridView; // True when rendered inside the grid layout
 
   const NotePreviewCard({
     super.key,
@@ -72,11 +73,75 @@ class NotePreviewCard extends ConsumerWidget {
     this.isInVault = false, // Default to not in vault
     this.showFormatIndicator = false, // Default to hidden
     this.searchHighlight,
+    this.isGridView = false,
   });
 
   /// Checks if content is Quill JSON format
   bool _isQuillFormat() {
     return note.content.trim().startsWith('[');
+  }
+
+  /// Returns true when a TextSpan (and all its children) contain only
+  /// whitespace / newline text – used to suppress empty body sections.
+  static bool _isSpanEffectivelyEmpty(InlineSpan span) {
+    if (span is WidgetSpan) return false; // visible widget → not empty
+    if (span is TextSpan) {
+      final text = span.text;
+      if (text != null && text.trim().isNotEmpty) return false;
+      final children = span.children;
+      if (children != null) {
+        for (final child in children) {
+          if (!_isSpanEffectivelyEmpty(child)) return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /// Extracts the file path of the first image embedded in the note.
+  ///
+  /// Handles both Quill JSON embeds and plain markdown `![]()` syntax.
+  /// Returns `null` when no image is found or the file does not exist.
+  String? _extractFirstImagePath() {
+    try {
+      if (_isQuillFormat()) {
+        final dynamic decoded = jsonDecode(note.content);
+        if (decoded is! List) return null;
+        for (final op in decoded) {
+          if (op is! Map) continue;
+          final insertValue = op['insert'];
+          if (insertValue is! Map) continue;
+
+          String? mediaJson;
+          if (insertValue.containsKey('custom')) {
+            try {
+              final parsed =
+                  jsonDecode(insertValue['custom'] as String)
+                      as Map<String, dynamic>;
+              if (parsed.containsKey('media')) {
+                mediaJson = parsed['media'] as String;
+              }
+            } catch (_) {}
+          } else if (insertValue.containsKey('media')) {
+            mediaJson = insertValue['media'] as String;
+          }
+
+          if (mediaJson != null) {
+            try {
+              final mediaData = jsonDecode(mediaJson) as Map<String, dynamic>;
+              if (mediaData['type'] == 'image' && mediaData['path'] is String) {
+                return mediaData['path'] as String;
+              }
+            } catch (_) {}
+          }
+        }
+      } else {
+        // Markdown format — find first `![alt](path)` pattern
+        final match = RegExp(r'!\[.*?\]\((.+?)\)').firstMatch(note.content);
+        if (match != null) return match.group(1);
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// Migrate old font size format from "18px" to "18"
@@ -119,7 +184,11 @@ class NotePreviewCard extends ConsumerWidget {
   }
 
   /// Converts Quill Delta JSON to formatted TextSpan
-  TextSpan _quillToTextSpan(BuildContext context, WidgetRef ref) {
+  TextSpan _quillToTextSpan(
+    BuildContext context,
+    WidgetRef ref, {
+    bool hideImages = false,
+  }) {
     try {
       final json = jsonDecode(note.content) as List;
       final migratedJson = _migrateFontSizes(json);
@@ -224,6 +293,8 @@ class NotePreviewCard extends ConsumerWidget {
 
                 Widget thumbnail;
                 if (mediaType == 'image' && mediaPath != null) {
+                  // When the big banner is shown, skip inline image thumbnails
+                  if (hideImages) continue;
                   // Show actual image thumbnail
                   thumbnail = ClipRRect(
                     borderRadius: BorderRadius.circular(4),
@@ -515,7 +586,7 @@ class NotePreviewCard extends ConsumerWidget {
             ),
           )
         : (_isQuillFormat()
-              ? _quillToTextSpan(context, ref)
+              ? _quillToTextSpan(context, ref, hideImages: true)
               : _parseMarkdownToTextSpan(
                   contentText,
                   context,
@@ -748,8 +819,7 @@ class NotePreviewCard extends ConsumerWidget {
                   // Body snippet - show todo.txt tasks or markdown content
                   if (isTodoTxt)
                     ..._buildTodoTxtPreview(context)
-                  else if (bodySpan.text?.isNotEmpty == true ||
-                      bodySpan.children?.isNotEmpty == true) ...[
+                  else if (!_isSpanEffectivelyEmpty(bodySpan)) ...[
                     SizedBox(
                       height: subtitle.isNotEmpty ? spacing.s6 : spacing.s8,
                     ), // Less space if subtitle exists
@@ -761,6 +831,31 @@ class NotePreviewCard extends ConsumerWidget {
                       text: bodySpan,
                     ),
                   ],
+
+                  // Expanded image banner
+                  Builder(
+                    builder: (context) {
+                      final imagePath = _extractFirstImagePath();
+                      if (imagePath == null) return const SizedBox.shrink();
+                      final imageFile = File(imagePath);
+                      if (!imageFile.existsSync()) {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: EdgeInsets.only(top: spacing.s12),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.file(
+                            imageFile,
+                            width: double.infinity,
+                            height: 160,
+                            fit: isGridView ? BoxFit.cover : BoxFit.contain,
+                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
 
                   // Footer with metadata
                   SizedBox(height: spacing.s12),
