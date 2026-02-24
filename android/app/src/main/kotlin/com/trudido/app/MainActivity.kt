@@ -14,6 +14,7 @@ import android.os.PowerManager
 import android.view.WindowManager
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import androidx.activity.enableEdgeToEdge
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -31,6 +32,8 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Enable edge-to-edge for backward compatibility with Android 15+
+        enableEdgeToEdge()
         loadBlackoutPreference()
         // FLAG_SECURE must be set BEFORE super.onCreate to be active
         // before any rendering happens.
