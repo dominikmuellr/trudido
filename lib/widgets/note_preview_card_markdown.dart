@@ -523,8 +523,6 @@ class NotePreviewCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    debugPrint('Note title: ${note.title}');
-
     // Check if this is a todo.txt note
     final isTodoTxt =
         note.todoTxtContent != null && note.todoTxtContent!.isNotEmpty;
@@ -593,7 +591,6 @@ class NotePreviewCard extends ConsumerWidget {
                   ref,
                   isTitle: false,
                 ));
-    debugPrint('Preview: bodySpan created successfully');
 
     final formattedDate = _formatCompactDate(
       note.updatedAt,
