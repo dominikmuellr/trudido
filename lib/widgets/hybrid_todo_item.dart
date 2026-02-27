@@ -112,7 +112,8 @@ class HybridTodoItem extends ConsumerWidget {
                           .surfaceContainerHighest // Lighter surface in dark mode
                     : Theme.of(context)
                           .colorScheme
-                          .surfaceContainer), // Balanced elevation in light mode
+                          .primary
+                          .withValues(alpha: 0.08)), // Match note preview card tint
           child: SizedBox(
             width: double.infinity,
             child: Padding(

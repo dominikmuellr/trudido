@@ -29,6 +29,7 @@ import '../utils/date_formatters.dart';
 import '../utils/markdown_inline_patterns.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import '../widgets/common/common.dart';
+import '../theme/spacing_tokens.dart';
 
 /// A clean, scannable preview card with lightweight markdown rendering
 ///
@@ -748,142 +749,162 @@ class NotePreviewCard extends ConsumerWidget {
           // Show context menu on long press
           _showContextMenu(context);
         },
-        child: Card(
-          margin: EdgeInsets.symmetric(
-            horizontal: spacing.s8,
-            vertical: spacing.isCompact ? spacing.s2 : spacing.s4,
-          ),
-          elevation: 0, // Modern MD3: flat design with no shadow
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest // Highest surface for best visibility
-              : Theme.of(context).colorScheme.primary.withValues(
-                  alpha: 0.08,
-                ), // Subtle tint of theme color in light mode
-          child: SizedBox(
-            width: double.infinity,
-            child: Padding(
-              padding: spacing.insets16,
-              child: Column(
+        child: _buildCard(
+          context: context,
+          spacing: spacing,
+          titleSpan: titleSpan,
+          subtitle: subtitle,
+          isTodoTxt: isTodoTxt,
+          bodySpan: bodySpan,
+          formattedDate: formattedDate,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard({
+    required BuildContext context,
+    required AdaptiveSpacing spacing,
+    required TextSpan titleSpan,
+    required String subtitle,
+    required bool isTodoTxt,
+    required TextSpan bodySpan,
+    required String formattedDate,
+  }) {
+    final cardColor = Theme.of(context).brightness == Brightness.dark
+        ? Theme.of(context).colorScheme.surfaceContainerHighest
+        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08);
+
+    final mainCard = Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      color: cardColor,
+      child: SizedBox(
+        width: double.infinity,
+        child: Padding(
+          padding: spacing.insets16,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header row with pin indicator, title, and menu
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header row with pin indicator, title, and menu
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Pin indicator
-                      if (note.isPinned) ...[
-                        ScaledIcon(
-                          Icons.push_pin,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        SizedBox(width: spacing.s8),
-                      ],
+                  // Pin indicator
+                  if (note.isPinned) ...[
+                    ScaledIcon(
+                      Icons.push_pin,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    SizedBox(width: spacing.s8),
+                  ],
 
-                      // Title with lightweight markdown rendering
-                      // CRITICAL: maxLines=1 prevents vertical overflow
-                      Expanded(
-                        child: RichText(
-                          textScaler: MediaQuery.textScalerOf(context),
-                          maxLines: 1, // ⭐ ESSENTIAL for preventing overflow
-                          overflow:
-                              TextOverflow.ellipsis, // ⭐ Graceful truncation
-                          text: titleSpan,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Subtitle (if exists)
-                  if (subtitle.isNotEmpty) ...[
-                    SizedBox(height: spacing.s4), // Reduced from 6 to 4
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  // Title with lightweight markdown rendering
+                  Expanded(
+                    child: RichText(
+                      textScaler: MediaQuery.textScalerOf(context),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      text: titleSpan,
                     ),
-                  ],
-
-                  // Body snippet - show todo.txt tasks or markdown content
-                  if (isTodoTxt)
-                    ..._buildTodoTxtPreview(context)
-                  else if (!_isSpanEffectivelyEmpty(bodySpan)) ...[
-                    SizedBox(
-                      height: subtitle.isNotEmpty ? spacing.s6 : spacing.s8,
-                    ), // Less space if subtitle exists
-                    // Show more lines to allow cards to expand with content
-                    RichText(
-                      textScaler: MediaQuery.textScalerOf(context),
-                      maxLines: 8, // Allow more lines for variable height cards
-                      overflow: TextOverflow.ellipsis,
-                      text: bodySpan,
-                    ),
-                  ],
-
-                  // Expanded image banner
-                  Builder(
-                    builder: (context) {
-                      final imagePath = _extractFirstImagePath();
-                      if (imagePath == null) return const SizedBox.shrink();
-                      final imageFile = File(imagePath);
-                      if (!imageFile.existsSync()) {
-                        return const SizedBox.shrink();
-                      }
-                      return Padding(
-                        padding: EdgeInsets.only(top: spacing.s12),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.file(
-                            imageFile,
-                            width: double.infinity,
-                            height: 160,
-                            fit: isGridView ? BoxFit.cover : BoxFit.contain,
-                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                  // Footer with metadata
-                  SizedBox(height: spacing.s12),
-                  Row(
-                    children: [
-                      ScaledIcon(
-                        Icons.schedule,
-                        size: 14,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      SizedBox(width: spacing.s4),
-                      Flexible(
-                        child: Text(
-                          formattedDate,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
-            ),
+
+              // Subtitle (if exists)
+              if (subtitle.isNotEmpty) ...[
+                SizedBox(height: spacing.s4),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+
+              // Body snippet - show todo.txt tasks or markdown content
+              if (isTodoTxt)
+                ..._buildTodoTxtPreview(context)
+              else if (!_isSpanEffectivelyEmpty(bodySpan)) ...[
+                SizedBox(
+                  height: subtitle.isNotEmpty ? spacing.s6 : spacing.s8,
+                ),
+                RichText(
+                  textScaler: MediaQuery.textScalerOf(context),
+                  maxLines: 8,
+                  overflow: TextOverflow.ellipsis,
+                  text: bodySpan,
+                ),
+              ],
+
+              // Expanded image banner
+              Builder(
+                builder: (context) {
+                  final imagePath = _extractFirstImagePath();
+                  if (imagePath == null) return const SizedBox.shrink();
+                  final imageFile = File(imagePath);
+                  if (!imageFile.existsSync()) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: EdgeInsets.only(top: spacing.s12),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.file(
+                        imageFile,
+                        width: double.infinity,
+                        height: 160,
+                        fit: isGridView ? BoxFit.cover : BoxFit.contain,
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              // Footer with metadata
+              SizedBox(height: spacing.s12),
+              Row(
+                children: [
+                  ScaledIcon(
+                    Icons.schedule,
+                    size: 14,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  SizedBox(width: spacing.s4),
+                  Flexible(
+                    child: Text(
+                      formattedDate,
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
+    );
+
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing.s8,
+        vertical: spacing.isCompact ? spacing.s2 : spacing.s4,
+      ),
+      child: mainCard,
     );
   }
 
