@@ -55,6 +55,10 @@ class PreferencesState {
   final bool?
   _blackoutRecents; // Black out app content in Android recents (privacy)
   bool get blackoutRecents => _blackoutRecents ?? false;
+  final bool? _autoOpenKeyboardInNotes; // Auto-open keyboard when opening notes
+  bool get autoOpenKeyboardInNotes => _autoOpenKeyboardInNotes ?? true;
+  final bool? _defaultNoteReadMode; // Default to read mode when opening notes
+  bool get defaultNoteReadMode => _defaultNoteReadMode ?? false;
 
   const PreferencesState({
     required this.themeMode,
@@ -86,9 +90,13 @@ class PreferencesState {
     double? lineHeightMultiplier,
     double? paragraphSpacing,
     bool? blackoutRecents,
+    bool? autoOpenKeyboardInNotes,
+    bool? defaultNoteReadMode,
   }) : _lineHeightMultiplier = lineHeightMultiplier,
        _paragraphSpacing = paragraphSpacing,
-       _blackoutRecents = blackoutRecents;
+       _blackoutRecents = blackoutRecents,
+       _autoOpenKeyboardInNotes = autoOpenKeyboardInNotes,
+       _defaultNoteReadMode = defaultNoteReadMode;
 
   PreferencesState copyWith({
     String? themeMode,
@@ -120,6 +128,8 @@ class PreferencesState {
     double? lineHeightMultiplier,
     double? paragraphSpacing,
     bool? blackoutRecents,
+    bool? autoOpenKeyboardInNotes,
+    bool? defaultNoteReadMode,
   }) => PreferencesState(
     themeMode: themeMode ?? this.themeMode,
     useDynamicColor: useDynamicColor ?? this.useDynamicColor,
@@ -151,6 +161,9 @@ class PreferencesState {
     lineHeightMultiplier: lineHeightMultiplier ?? this.lineHeightMultiplier,
     paragraphSpacing: paragraphSpacing ?? this.paragraphSpacing,
     blackoutRecents: blackoutRecents ?? this.blackoutRecents,
+    autoOpenKeyboardInNotes:
+        autoOpenKeyboardInNotes ?? this.autoOpenKeyboardInNotes,
+    defaultNoteReadMode: defaultNoteReadMode ?? this.defaultNoteReadMode,
   );
 
   static const defaultState = PreferencesState(
@@ -184,6 +197,8 @@ class PreferencesState {
     timeFormat: 'system', // Default: auto-detect from device locale
     lineHeightMultiplier: 1.2,
     paragraphSpacing: 8.0,
+    autoOpenKeyboardInNotes: true, // Default: auto-open keyboard
+    defaultNoteReadMode: false, // Default: open in edit mode
   );
 
   /// Resolves whether to use 24-hour format based on the user preference.

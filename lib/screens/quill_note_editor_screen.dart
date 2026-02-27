@@ -127,6 +127,11 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   MentionAutocompletePopup? _mentionPopup;
   bool _quillTapPending = false;
 
+  // Read/Edit mode toggle
+  bool _isReadMode = false;
+  bool _fabVisible = true;
+  double _lastScrollOffset = 0.0;
+
   /// Mention ranges from the last time the document was clean.
   /// Used to detect partial mention damage (atomic deletion).
   List<({int start, int end, String link, String text})> _prevMentionRanges =
@@ -152,15 +157,20 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     _quillController.addListener(_onQuillMentionCheck);
     // Title controller listener for unsaved changes
     _titleController.addListener(_onTitleChanged);
+    // Scroll listener for hiding/showing FAB
+    _scrollController.addListener(_onEditorScroll);
     // Update toolbar buttons when selection changes
     _focusNode.addListener(() {
       if (mounted) setState(() {});
     });
 
-    // Auto-focus for new notes
+    // Auto-focus for new notes (respects keyboard preference)
     if (widget.noteId == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _focusNode.requestFocus();
+        final prefs = ref.read(preferencesStateProvider);
+        if (prefs.autoOpenKeyboardInNotes) {
+          _focusNode.requestFocus();
+        }
       });
     }
 
@@ -184,6 +194,42 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         _showMoreToolbar = prefs.showMoreNoteToolbar;
       }
     });
+  }
+
+  /// Scroll listener to hide/show the read/edit FAB
+  void _onEditorScroll() {
+    final offset = _scrollController.offset;
+    const threshold = 10.0;
+    if (offset > _lastScrollOffset + threshold && _fabVisible) {
+      setState(() => _fabVisible = false);
+    } else if (offset < _lastScrollOffset - threshold && !_fabVisible) {
+      setState(() => _fabVisible = true);
+    }
+    _lastScrollOffset = offset;
+  }
+
+  /// Toggle between read and edit mode
+  void _toggleReadMode() {
+    setState(() {
+      _isReadMode = !_isReadMode;
+      _quillController.readOnly = _isReadMode;
+      if (_isReadMode) {
+        // Dismiss keyboard and unfocus when entering read mode
+        _focusNode.unfocus();
+        _titleFocusNode.unfocus();
+      }
+    });
+
+    // Persist per-note read mode preference
+    final noteId = _originalNote?.id ?? widget.noteId;
+    if (noteId != null) {
+      final controller = ref.read(notesControllerProvider.notifier);
+      controller.updateNote(id: noteId, lastReadMode: _isReadMode);
+      // Also update _originalNote to keep local state in sync
+      if (_originalNote != null) {
+        _originalNote = _originalNote!.copyWith(lastReadMode: _isReadMode);
+      }
+    }
   }
 
   /// Save toolbar visibility preferences
@@ -218,33 +264,30 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       );
     }
 
-    // Detect line deletion and scroll up proportionally
+    // Detect line deletion and scroll up proportionally.
+    // Only adjust scroll if cursor is in the upper half of the visible area
+    // to avoid incorrect jumps from checkbox toggles or attribute changes.
     if (lineCount < _previousLineCount) {
       final linesDeleted = _previousLineCount - lineCount;
-      if (kDebugMode) {
-        debugPrint('Lines deleted: $linesDeleted, scrolling up...');
-      }
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
+      // Guard: only scroll when deleting text lines, not checkbox state changes.
+      // If the user is just toggling a checkbox, the line count may briefly
+      // appear reduced but the cursor position is unchanged and correct.
+      // Check that the scroll position actually needs adjusting by verifying
+      // the cursor is visible.
+      if (linesDeleted > 0 && _scrollController.hasClients) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !_scrollController.hasClients) return;
+
           final maxScroll = _scrollController.position.maxScrollExtent;
           final currentScroll = _scrollController.offset;
 
-          // Scroll up immediately by the amount of deleted lines
-          final lineHeight = 24.0;
-          final scrollAmount = linesDeleted * lineHeight;
-          final targetScroll = (currentScroll - scrollAmount).clamp(
-            0.0,
-            maxScroll,
-          );
-          if (kDebugMode) {
-            debugPrint(
-              'Scrolling from $currentScroll to $targetScroll (delta: $scrollAmount)',
-            );
+          // Only adjust if current scroll exceeds max (content shortened)
+          if (currentScroll > maxScroll) {
+            _scrollController.jumpTo(maxScroll);
           }
-          _scrollController.jumpTo(targetScroll);
-        }
-      });
+        });
+      }
     }
     _previousLineCount = lineCount;
   }
@@ -710,12 +753,21 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         _quillController.addListener(_handleMarkdownShortcuts);
         _quillController.addListener(_onQuillMentionCheck);
         _prevMentionRanges = _findQuillMentionRanges();
+
+        // Determine initial read/edit mode from per-note preference
+        // or fallback to app-wide default
+        final prefs = ref.read(preferencesStateProvider);
+        _isReadMode = _originalNote!.lastReadMode || prefs.defaultNoteReadMode;
+        _quillController.readOnly = _isReadMode;
       });
 
-      // Request focus after loading to show keyboard
+      // Request focus after loading (respects read mode and keyboard preference)
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _focusNode.requestFocus();
+        if (mounted && !_isReadMode) {
+          final prefs = ref.read(preferencesStateProvider);
+          if (prefs.autoOpenKeyboardInNotes) {
+            _focusNode.requestFocus();
+          }
         }
       });
 
@@ -1762,6 +1814,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   @override
   void dispose() {
     _quillController.removeListener(_onQuillMentionCheck);
+    _scrollController.removeListener(_onEditorScroll);
     _mentionPopup?.hide();
     _autoSaveTimer?.cancel();
     _historyRecordTimer?.cancel();
@@ -1785,6 +1838,79 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     _scrollController.dispose();
     _mediaService.dispose();
     super.dispose();
+  }
+
+  /// Builds the floating action buttons for the editor.
+  /// Shows the read/edit toggle FAB (hides on scroll down, shows on scroll up).
+  /// When in edit mode with floating toolbar enabled, also shows the toolbar FAB.
+  Widget? _buildFloatingActionButtons() {
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom > 0
+        ? 8.0
+        : 0.0;
+
+    return AnimatedSlide(
+      duration: const Duration(milliseconds: 200),
+      offset: _fabVisible ? Offset.zero : const Offset(0, 2),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: _fabVisible ? 1.0 : 0.0,
+        child: Padding(
+          padding: EdgeInsets.only(bottom: bottomPadding),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Floating toolbar (only in edit mode when enabled)
+              if (_useFloatingToolbar && !_isReadMode) ...[
+                FloatingNoteToolbar(
+                  controller: _quillController,
+                  onInsertImage: _insertImage,
+                  onInsertVideo: _insertVideo,
+                  onInsertVoice: _insertVoiceNote,
+                  onInsertLink: _insertLink,
+                  currentLineHeight: _originalNote?.lineHeightMultiplier ?? 1.5,
+                  currentParagraphSpacing:
+                      _originalNote?.paragraphSpacing ?? 8.0,
+                  onLineHeightChanged: (newHeight) {
+                    if (_originalNote != null) {
+                      setState(() {
+                        _originalNote = _originalNote!.copyWith(
+                          lineHeightMultiplier: newHeight,
+                        );
+                        _hasUnsavedChanges = true;
+                      });
+                      _saveNoteInternal(showFeedback: false);
+                    }
+                  },
+                  onParagraphSpacingChanged: (newSpacing) {
+                    if (_originalNote != null) {
+                      setState(() {
+                        _originalNote = _originalNote!.copyWith(
+                          paragraphSpacing: newSpacing,
+                        );
+                        _hasUnsavedChanges = true;
+                      });
+                      _saveNoteInternal(showFeedback: false);
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+              ],
+              // Read/Edit mode toggle FAB
+              ExpressiveFloatingActionButton(
+                heroTag: 'readEditToggle',
+                onPressed: _toggleReadMode,
+                tooltip: _isReadMode ? 'Switch to Edit' : 'Switch to Read',
+                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                foregroundColor: Theme.of(
+                  context,
+                ).colorScheme.onPrimaryContainer,
+                child: Icon(_isReadMode ? Icons.edit : Icons.visibility),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -1832,6 +1958,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                 ),
                 cursorColor: Theme.of(context).colorScheme.primary,
                 maxLines: 1,
+                readOnly: _isReadMode,
+                showCursor: !_isReadMode,
+                enableInteractiveSelection: !_isReadMode,
                 textCapitalization: TextCapitalization.sentences,
                 textInputAction: TextInputAction.next,
                 onSubmitted: (_) {
@@ -1851,8 +1980,8 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                   color: _getStatusColor(),
                 ),
               ),
-            // Toolbar toggle button - only show when not using floating toolbar
-            if (!_useFloatingToolbar)
+            // Toolbar toggle button - only show when not using floating toolbar and not in read mode
+            if (!_useFloatingToolbar && !_isReadMode)
               ExpressiveIconButton(
                 icon: Icon(
                   _hideToolbar
@@ -1877,56 +2006,17 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
             ),
           ],
         ),
-        // Floating toolbar FAB - shown when floating toolbar is enabled
-        floatingActionButton: _useFloatingToolbar
-            ? Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom > 0
-                      ? 8 // When keyboard is open, FAB is just above it
-                      : 0,
-                ),
-                child: FloatingNoteToolbar(
-                  controller: _quillController,
-                  onInsertImage: _insertImage,
-                  onInsertVideo: _insertVideo,
-                  onInsertVoice: _insertVoiceNote,
-                  onInsertLink: _insertLink,
-                  currentLineHeight: _originalNote?.lineHeightMultiplier ?? 1.5,
-                  currentParagraphSpacing:
-                      _originalNote?.paragraphSpacing ?? 8.0,
-                  onLineHeightChanged: (newHeight) {
-                    if (_originalNote != null) {
-                      setState(() {
-                        _originalNote = _originalNote!.copyWith(
-                          lineHeightMultiplier: newHeight,
-                        );
-                        _hasUnsavedChanges = true;
-                      });
-                      _saveNoteInternal(showFeedback: false);
-                    }
-                  },
-                  onParagraphSpacingChanged: (newSpacing) {
-                    if (_originalNote != null) {
-                      setState(() {
-                        _originalNote = _originalNote!.copyWith(
-                          paragraphSpacing: newSpacing,
-                        );
-                        _hasUnsavedChanges = true;
-                      });
-                      _saveNoteInternal(showFeedback: false);
-                    }
-                  },
-                ),
-              )
-            : null,
+        // Floating toolbar FAB - shown when floating toolbar is enabled and in edit mode
+        // Read/Edit toggle FAB - always available, hides on scroll
+        floatingActionButton: _buildFloatingActionButtons(),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         body: SafeArea(
           top: false, // AppBar handles top
           bottom: true, // Ensure content clears bottom nav bar
           child: Column(
             children: [
-              // Main toolbar - collapsible (only when not using floating toolbar)
-              if (!_hideToolbar && !_useFloatingToolbar)
+              // Main toolbar - collapsible (only when not using floating toolbar and not in read mode)
+              if (!_hideToolbar && !_useFloatingToolbar && !_isReadMode)
                 Container(
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
@@ -2145,22 +2235,32 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                         scrollController: _scrollController,
                         controller: _quillController,
                         config: quill.QuillEditorConfig(
+                          showCursor: !_isReadMode,
+                          enableInteractiveSelection: !_isReadMode,
                           onLaunchUrl: (url) {
-                            if (url.startsWith('mention:')) {
-                              _openLink(url);
-                            } else {
-                              _openLink(url);
-                            }
+                            // Flutter Quill prepends https:// to
+                            // URLs it considers invalid (like mention:)
+                            // so strip that prefix before handling.
+                            final cleanUrl = url.startsWith('https://mention:')
+                                ? url.substring('https://'.length)
+                                : url;
+                            _openLink(cleanUrl);
                           },
                           linkActionPickerDelegate:
                               (context, link, node) async {
-                                if (link.startsWith('mention:')) {
-                                  _openLink(link);
+                                // Handle mention links (including
+                                // https:// prefix added by Quill)
+                                final cleanLink =
+                                    link.startsWith('https://mention:')
+                                    ? link.substring('https://'.length)
+                                    : link;
+                                if (cleanLink.startsWith('mention:')) {
+                                  _openLink(cleanLink);
                                   return quill.LinkMenuAction.none;
                                 }
                                 return quill.defaultLinkActionPickerDelegate(
                                   context,
-                                  link,
+                                  cleanLink,
                                   node,
                                 );
                               },

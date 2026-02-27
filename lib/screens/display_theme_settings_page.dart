@@ -80,6 +80,11 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
           _buildSectionHeader(context, 'Interface'),
           _buildGreetingSettings(),
 
+          // Notes Section
+          _buildSectionHeader(context, 'Notes'),
+          _buildAutoOpenKeyboardToggle(),
+          _buildDefaultReadModeToggle(),
+
           // Experimental Section
           _buildSectionHeader(context, 'Experimental'),
           _buildFloatingToolbarToggle(),
@@ -153,6 +158,44 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
           ),
           value: preferences.useFloatingNoteToolbar,
           onChanged: (v) => controller.toggleFloatingNoteToolbar(),
+        );
+      },
+    );
+  }
+
+  Widget _buildAutoOpenKeyboardToggle() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final preferences = ref.watch(preferencesStateProvider);
+        final controller = ref.read(preferencesControllerProvider);
+
+        return SwitchListTile(
+          secondary: const Icon(Icons.keyboard_outlined),
+          title: const Text('Auto-Open Keyboard'),
+          subtitle: const Text(
+            'Automatically show the keyboard when opening a note',
+          ),
+          value: preferences.autoOpenKeyboardInNotes,
+          onChanged: (v) => controller.toggleAutoOpenKeyboardInNotes(),
+        );
+      },
+    );
+  }
+
+  Widget _buildDefaultReadModeToggle() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final preferences = ref.watch(preferencesStateProvider);
+        final controller = ref.read(preferencesControllerProvider);
+
+        return SwitchListTile(
+          secondary: const Icon(Icons.visibility_outlined),
+          title: const Text('Default to Read Mode'),
+          subtitle: const Text(
+            'Open notes in read mode by default (each note remembers its last mode)',
+          ),
+          value: preferences.defaultNoteReadMode,
+          onChanged: (v) => controller.toggleDefaultNoteReadMode(),
         );
       },
     );

@@ -54,6 +54,9 @@ class Note extends HiveObject {
   @HiveField(10, defaultValue: 8.0)
   double paragraphSpacing;
 
+  @HiveField(11, defaultValue: false)
+  bool lastReadMode;
+
   Note({
     String? id,
     required this.title,
@@ -66,6 +69,7 @@ class Note extends HiveObject {
     this.isDeleted = false,
     this.lineHeightMultiplier = 1.5,
     this.paragraphSpacing = 8.0,
+    this.lastReadMode = false,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
@@ -82,6 +86,7 @@ class Note extends HiveObject {
     bool? isDeleted,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
+    bool? lastReadMode,
   }) {
     return Note(
       id: id ?? this.id,
@@ -95,6 +100,7 @@ class Note extends HiveObject {
       isDeleted: isDeleted ?? this.isDeleted,
       lineHeightMultiplier: lineHeightMultiplier ?? this.lineHeightMultiplier,
       paragraphSpacing: paragraphSpacing ?? this.paragraphSpacing,
+      lastReadMode: lastReadMode ?? this.lastReadMode,
     );
   }
 
@@ -126,6 +132,7 @@ class Note extends HiveObject {
       'isDeleted': isDeleted,
       'lineHeightMultiplier': lineHeightMultiplier,
       'paragraphSpacing': paragraphSpacing,
+      'lastReadMode': lastReadMode,
     };
   }
 
@@ -144,6 +151,7 @@ class Note extends HiveObject {
       lineHeightMultiplier:
           (json['lineHeightMultiplier'] as num?)?.toDouble() ?? 1.5,
       paragraphSpacing: (json['paragraphSpacing'] as num?)?.toDouble() ?? 8.0,
+      lastReadMode: json['lastReadMode'] as bool? ?? false,
     );
   }
 }

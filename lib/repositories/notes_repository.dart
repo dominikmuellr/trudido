@@ -165,6 +165,7 @@ class NotesRepository {
     String? todoTxtContent,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
+    bool? lastReadMode,
   }) async {
     final existingNote = StorageService.getNote(id);
     if (existingNote == null) return null;
@@ -192,6 +193,7 @@ class NotesRepository {
       lineHeightMultiplier:
           lineHeightMultiplier ?? decryptedNote.lineHeightMultiplier,
       paragraphSpacing: paragraphSpacing ?? decryptedNote.paragraphSpacing,
+      lastReadMode: lastReadMode ?? decryptedNote.lastReadMode,
       updatedAt: DateTime.now(),
     );
 
@@ -330,6 +332,7 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
     String? todoTxtContent,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
+    bool? lastReadMode,
   }) async {
     final repository = ref.read(notesRepositoryProvider);
     final note = await repository.updateNote(
@@ -341,6 +344,7 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
       todoTxtContent: todoTxtContent,
       lineHeightMultiplier: lineHeightMultiplier,
       paragraphSpacing: paragraphSpacing,
+      lastReadMode: lastReadMode,
     );
     if (note != null) {
       await refresh();

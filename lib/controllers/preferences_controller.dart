@@ -112,6 +112,12 @@ class PreferencesController {
   Future<void> toggleNoteHistory() =>
       _update(enableNoteHistory: !state.enableNoteHistory);
 
+  Future<void> toggleAutoOpenKeyboardInNotes() =>
+      _update(autoOpenKeyboardInNotes: !state.autoOpenKeyboardInNotes);
+
+  Future<void> toggleDefaultNoteReadMode() =>
+      _update(defaultNoteReadMode: !state.defaultNoteReadMode);
+
   Future<void> setDefaultTaskView(String view) =>
       _update(defaultTaskView: view);
 
@@ -166,6 +172,8 @@ class PreferencesController {
     String? timeFormat,
     String? activeCustomThemeId,
     bool? blackoutRecents,
+    bool? autoOpenKeyboardInNotes,
+    bool? defaultNoteReadMode,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -194,6 +202,8 @@ class PreferencesController {
       timeFormat: timeFormat,
       activeCustomThemeId: activeCustomThemeId,
       blackoutRecents: blackoutRecents,
+      autoOpenKeyboardInNotes: autoOpenKeyboardInNotes,
+      defaultNoteReadMode: defaultNoteReadMode,
     );
     ref.read(preferencesStateProvider.notifier).update(updated);
   }

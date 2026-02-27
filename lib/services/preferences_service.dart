@@ -200,6 +200,8 @@ class PreferencesService {
           PreferencesState.defaultState.paragraphSpacing,
       activeCustomThemeId: p.getString('active_custom_theme_id'),
       blackoutRecents: p.getBool('blackout_recents'),
+      autoOpenKeyboardInNotes: p.getBool('auto_open_keyboard_in_notes'),
+      defaultNoteReadMode: p.getBool('default_note_read_mode'),
     );
   }
 
@@ -256,6 +258,8 @@ class PreferencesService {
     String? activeCustomThemeId,
     bool clearActiveCustomTheme = false,
     bool? blackoutRecents,
+    bool? autoOpenKeyboardInNotes,
+    bool? defaultNoteReadMode,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -339,6 +343,12 @@ class PreferencesService {
       if (clearActiveCustomTheme) await p.remove('active_custom_theme_id');
       if (blackoutRecents != null) {
         await p.setBool('blackout_recents', blackoutRecents);
+      }
+      if (autoOpenKeyboardInNotes != null) {
+        await p.setBool('auto_open_keyboard_in_notes', autoOpenKeyboardInNotes);
+      }
+      if (defaultNoteReadMode != null) {
+        await p.setBool('default_note_read_mode', defaultNoteReadMode);
       }
       _hydrate();
       return _cache;
