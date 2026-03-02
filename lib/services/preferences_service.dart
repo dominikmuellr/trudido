@@ -205,6 +205,8 @@ class PreferencesService {
       dismissedBatteryOptimizationReminder: p.getBool(
         'dismissed_battery_opt_reminder',
       ),
+      enableBin: p.getBool('enable_bin'),
+      autoDeleteDaysInBin: p.getInt('auto_delete_days_in_bin'),
     );
   }
 
@@ -264,6 +266,8 @@ class PreferencesService {
     bool? autoOpenKeyboardInNotes,
     bool? defaultNoteReadMode,
     bool? dismissedBatteryOptimizationReminder,
+    bool? enableBin,
+    int? autoDeleteDaysInBin,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -359,6 +363,10 @@ class PreferencesService {
           'dismissed_battery_opt_reminder',
           dismissedBatteryOptimizationReminder,
         );
+      }
+      if (enableBin != null) await p.setBool('enable_bin', enableBin);
+      if (autoDeleteDaysInBin != null) {
+        await p.setInt('auto_delete_days_in_bin', autoDeleteDaysInBin);
       }
       _hydrate();
       return _cache;

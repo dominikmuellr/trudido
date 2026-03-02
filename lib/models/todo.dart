@@ -84,6 +84,9 @@ class Todo extends HiveObject {
   @HiveField(21)
   int? durationMinutes; // Duration of the task in minutes
 
+  @HiveField(22)
+  DateTime? deletedAt;
+
   Todo({
     String? id,
     required this.text,
@@ -106,6 +109,7 @@ class Todo extends HiveObject {
     this.sourceCalendarName,
     this.isDeleted = false,
     this.durationMinutes,
+    this.deletedAt,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
        tags = tags ?? [],
@@ -134,6 +138,7 @@ class Todo extends HiveObject {
     String? sourceCalendarName,
     bool? isDeleted,
     int? durationMinutes,
+    DateTime? deletedAt,
   }) {
     return Todo(
       id: id ?? this.id,
@@ -159,6 +164,7 @@ class Todo extends HiveObject {
       sourceCalendarName: sourceCalendarName ?? this.sourceCalendarName,
       isDeleted: isDeleted ?? this.isDeleted,
       durationMinutes: durationMinutes ?? this.durationMinutes,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 

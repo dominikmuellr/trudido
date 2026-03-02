@@ -410,6 +410,7 @@ Happy note-taking! ✨''',
         final todo = await _todosLazyBox!.get(id);
         if (todo != null) {
           todo.isDeleted = true;
+          todo.deletedAt = DateTime.now();
           await _todosLazyBox!.put(id, todo);
         }
         return;
@@ -529,6 +530,7 @@ Happy note-taking! ✨''',
     final note = _notesBox!.get(id);
     if (note != null) {
       note.isDeleted = true;
+      note.deletedAt = DateTime.now();
       await _notesBox!.put(id, note);
     }
   }
@@ -536,6 +538,44 @@ Happy note-taking! ✨''',
   static Future<void> permanentlyDeleteNote(String id) async {
     if (_notesBox == null) return;
     await _notesBox!.delete(id);
+  }
+
+  /// Purges bin items older than [daysInBin] days from both notes and todos.
+  /// Items without a [deletedAt] timestamp are skipped (safe migration).
+  static Future<void> purgeExpiredBinItems(int daysInBin) async {
+    if (daysInBin <= 0) return;
+    final cutoff = DateTime.now().subtract(Duration(days: daysInBin));
+
+    // Purge expired notes
+    if (_notesBox != null) {
+      final expiredNoteIds = _notesBox!.values
+          .where(
+            (n) =>
+                n.isDeleted &&
+                n.deletedAt != null &&
+                n.deletedAt!.isBefore(cutoff),
+          )
+          .map((n) => n.id)
+          .toList();
+      for (final id in expiredNoteIds) {
+        await _notesBox!.delete(id);
+      }
+    }
+
+    // Purge expired todos
+    await waitTodosReady();
+    if (_todosLazyBox != null) {
+      final keys = _todosLazyBox!.keys.cast<dynamic>().toList();
+      for (final k in keys) {
+        final todo = await _todosLazyBox!.get(k);
+        if (todo != null &&
+            todo.isDeleted &&
+            todo.deletedAt != null &&
+            todo.deletedAt!.isBefore(cutoff)) {
+          await _todosLazyBox!.delete(k);
+        }
+      }
+    }
   }
 
   static Future<void> restoreNote(String id) async {

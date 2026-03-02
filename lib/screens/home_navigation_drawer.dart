@@ -684,6 +684,7 @@ class _DrawerActions extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final preferences = ref.watch(preferencesStateProvider);
 
     return Column(
       children: [
@@ -723,11 +724,12 @@ class _DrawerActions extends ConsumerWidget {
           },
         ),
 
-        // Bin
-        _BinListTile(
-          currentTab: currentTab,
-          onClearVaultSelection: onClearVaultSelection,
-        ),
+        // Bin (hidden when enableBin is false)
+        if (preferences.enableBin)
+          _BinListTile(
+            currentTab: currentTab,
+            onClearVaultSelection: onClearVaultSelection,
+          ),
 
         // Settings
         ListTile(

@@ -175,6 +175,12 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
         // Push hydrated snapshot into reactive state provider.
         ref.read(preferencesStateProvider.notifier).update(svc.snapshot);
 
+        // Auto-delete expired bin items if configured
+        final autoDeleteDays = svc.snapshot.autoDeleteDaysInBin;
+        if (autoDeleteDays > 0) {
+          await StorageService.purgeExpiredBinItems(autoDeleteDays);
+        }
+
         // Apply blackout recents setting on startup
         final privacyService = PrivacyService();
         await privacyService.setSecureFlag(svc.snapshot.blackoutRecents);

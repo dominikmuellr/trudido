@@ -17,6 +17,7 @@
 import 'package:meta/meta.dart';
 import '../models/app_error.dart';
 import '../models/todo.dart';
+import '../services/preferences_service.dart';
 import '../services/storage_service.dart';
 
 class TaskRepository {
@@ -73,7 +74,11 @@ class TaskRepository {
 
   Future<void> delete(String id) async {
     final before = _cache.length;
-    await StorageService.deleteTodo(id);
+    if (PreferencesService().snapshot.enableBin) {
+      await StorageService.deleteTodo(id);
+    } else {
+      await StorageService.permanentlyDeleteTodo(id);
+    }
     _cache = _cache.where((t) => t.id != id).toList();
     if (_cache.length == before) {
       throw const AppError(AppErrorType.notFound, 'Task not found');

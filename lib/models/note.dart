@@ -57,6 +57,9 @@ class Note extends HiveObject {
   @HiveField(11, defaultValue: false)
   bool lastReadMode;
 
+  @HiveField(12)
+  DateTime? deletedAt;
+
   Note({
     String? id,
     required this.title,
@@ -70,6 +73,7 @@ class Note extends HiveObject {
     this.lineHeightMultiplier = 1.5,
     this.paragraphSpacing = 8.0,
     this.lastReadMode = false,
+    this.deletedAt,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
@@ -87,6 +91,7 @@ class Note extends HiveObject {
     double? lineHeightMultiplier,
     double? paragraphSpacing,
     bool? lastReadMode,
+    DateTime? deletedAt,
   }) {
     return Note(
       id: id ?? this.id,
@@ -101,6 +106,7 @@ class Note extends HiveObject {
       lineHeightMultiplier: lineHeightMultiplier ?? this.lineHeightMultiplier,
       paragraphSpacing: paragraphSpacing ?? this.paragraphSpacing,
       lastReadMode: lastReadMode ?? this.lastReadMode,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 

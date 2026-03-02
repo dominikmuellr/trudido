@@ -21,6 +21,7 @@ import '../utils/responsive_size.dart';
 import 'calendar_sync_settings_screen.dart';
 import 'holiday_calendar_settings_screen.dart';
 import 'backup_settings_page.dart';
+import 'bin_settings_screen.dart';
 import '../widgets/common/common.dart';
 
 class DataManagementScreen extends ConsumerWidget {
@@ -76,6 +77,19 @@ class DataManagementScreen extends ConsumerWidget {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => const BackupSettingsPage(),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: ScaledIcon(Icons.delete_outline),
+            title: const Text('Bin Settings'),
+            subtitle: const Text('Enable or disable the bin, set auto-delete'),
+            trailing: ScaledIcon(Icons.arrow_forward_ios),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const BinSettingsScreen(),
                 ),
               );
             },

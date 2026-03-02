@@ -151,6 +151,11 @@ class PreferencesController {
   Future<void> resetBatteryOptimizationReminder() =>
       _update(dismissedBatteryOptimizationReminder: false);
 
+  Future<void> setEnableBin(bool value) => _update(enableBin: value);
+
+  Future<void> setAutoDeleteDaysInBin(int days) =>
+      _update(autoDeleteDaysInBin: days);
+
   Future<void> _update({
     String? themeMode,
     bool? useDynamicColor,
@@ -181,6 +186,8 @@ class PreferencesController {
     bool? autoOpenKeyboardInNotes,
     bool? defaultNoteReadMode,
     bool? dismissedBatteryOptimizationReminder,
+    bool? enableBin,
+    int? autoDeleteDaysInBin,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -213,6 +220,8 @@ class PreferencesController {
       defaultNoteReadMode: defaultNoteReadMode,
       dismissedBatteryOptimizationReminder:
           dismissedBatteryOptimizationReminder,
+      enableBin: enableBin,
+      autoDeleteDaysInBin: autoDeleteDaysInBin,
     );
     ref.read(preferencesStateProvider.notifier).update(updated);
   }

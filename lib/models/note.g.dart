@@ -29,13 +29,14 @@ class NoteAdapter extends TypeAdapter<Note> {
       lineHeightMultiplier: fields[9] == null ? 1.5 : fields[9] as double,
       paragraphSpacing: fields[10] == null ? 8.0 : fields[10] as double,
       lastReadMode: fields[11] == null ? false : fields[11] as bool,
+      deletedAt: fields[12] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Note obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -59,7 +60,9 @@ class NoteAdapter extends TypeAdapter<Note> {
       ..writeByte(10)
       ..write(obj.paragraphSpacing)
       ..writeByte(11)
-      ..write(obj.lastReadMode);
+      ..write(obj.lastReadMode)
+      ..writeByte(12)
+      ..write(obj.deletedAt);
   }
 
   @override

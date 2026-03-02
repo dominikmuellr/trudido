@@ -63,6 +63,11 @@ class PreferencesState {
   _dismissedBatteryOptimizationReminder; // User dismissed the battery opt reminder
   bool get dismissedBatteryOptimizationReminder =>
       _dismissedBatteryOptimizationReminder ?? false;
+  final bool? _enableBin; // Whether the bin (trash) is enabled
+  bool get enableBin => _enableBin ?? true;
+  final int?
+  _autoDeleteDaysInBin; // Days after which bin items are auto-deleted (0 = disabled)
+  int get autoDeleteDaysInBin => _autoDeleteDaysInBin ?? 0;
 
   const PreferencesState({
     required this.themeMode,
@@ -97,13 +102,17 @@ class PreferencesState {
     bool? autoOpenKeyboardInNotes,
     bool? defaultNoteReadMode,
     bool? dismissedBatteryOptimizationReminder,
+    bool? enableBin,
+    int? autoDeleteDaysInBin,
   }) : _lineHeightMultiplier = lineHeightMultiplier,
        _paragraphSpacing = paragraphSpacing,
        _blackoutRecents = blackoutRecents,
        _autoOpenKeyboardInNotes = autoOpenKeyboardInNotes,
        _defaultNoteReadMode = defaultNoteReadMode,
        _dismissedBatteryOptimizationReminder =
-           dismissedBatteryOptimizationReminder;
+           dismissedBatteryOptimizationReminder,
+       _enableBin = enableBin,
+       _autoDeleteDaysInBin = autoDeleteDaysInBin;
 
   PreferencesState copyWith({
     String? themeMode,
@@ -138,6 +147,8 @@ class PreferencesState {
     bool? autoOpenKeyboardInNotes,
     bool? defaultNoteReadMode,
     bool? dismissedBatteryOptimizationReminder,
+    bool? enableBin,
+    int? autoDeleteDaysInBin,
   }) => PreferencesState(
     themeMode: themeMode ?? this.themeMode,
     useDynamicColor: useDynamicColor ?? this.useDynamicColor,
@@ -175,6 +186,8 @@ class PreferencesState {
     dismissedBatteryOptimizationReminder:
         dismissedBatteryOptimizationReminder ??
         this.dismissedBatteryOptimizationReminder,
+    enableBin: enableBin ?? this.enableBin,
+    autoDeleteDaysInBin: autoDeleteDaysInBin ?? this.autoDeleteDaysInBin,
   );
 
   static const defaultState = PreferencesState(

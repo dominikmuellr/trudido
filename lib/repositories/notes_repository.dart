@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/note.dart';
 import '../models/note_history.dart';
 import '../services/storage_service.dart';
+import '../services/preferences_service.dart';
 import '../utils/encryption_helper.dart';
 import '../repositories/note_folder_repository.dart';
 
@@ -208,7 +209,11 @@ class NotesRepository {
   /// Deletes a note by ID
   Future<bool> deleteNote(String id) async {
     try {
-      await StorageService.deleteNote(id);
+      if (PreferencesService().snapshot.enableBin) {
+        await StorageService.deleteNote(id);
+      } else {
+        await StorageService.permanentlyDeleteNote(id);
+      }
       return true;
     } catch (e) {
       return false;
