@@ -145,6 +145,12 @@ class PreferencesController {
   Future<void> toggleBlackoutRecents() =>
       _update(blackoutRecents: !state.blackoutRecents);
 
+  Future<void> dismissBatteryOptimizationReminder() =>
+      _update(dismissedBatteryOptimizationReminder: true);
+
+  Future<void> resetBatteryOptimizationReminder() =>
+      _update(dismissedBatteryOptimizationReminder: false);
+
   Future<void> _update({
     String? themeMode,
     bool? useDynamicColor,
@@ -174,6 +180,7 @@ class PreferencesController {
     bool? blackoutRecents,
     bool? autoOpenKeyboardInNotes,
     bool? defaultNoteReadMode,
+    bool? dismissedBatteryOptimizationReminder,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -204,6 +211,8 @@ class PreferencesController {
       blackoutRecents: blackoutRecents,
       autoOpenKeyboardInNotes: autoOpenKeyboardInNotes,
       defaultNoteReadMode: defaultNoteReadMode,
+      dismissedBatteryOptimizationReminder:
+          dismissedBatteryOptimizationReminder,
     );
     ref.read(preferencesStateProvider.notifier).update(updated);
   }

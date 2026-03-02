@@ -59,6 +59,10 @@ class PreferencesState {
   bool get autoOpenKeyboardInNotes => _autoOpenKeyboardInNotes ?? true;
   final bool? _defaultNoteReadMode; // Default to read mode when opening notes
   bool get defaultNoteReadMode => _defaultNoteReadMode ?? false;
+  final bool?
+  _dismissedBatteryOptimizationReminder; // User dismissed the battery opt reminder
+  bool get dismissedBatteryOptimizationReminder =>
+      _dismissedBatteryOptimizationReminder ?? false;
 
   const PreferencesState({
     required this.themeMode,
@@ -92,11 +96,14 @@ class PreferencesState {
     bool? blackoutRecents,
     bool? autoOpenKeyboardInNotes,
     bool? defaultNoteReadMode,
+    bool? dismissedBatteryOptimizationReminder,
   }) : _lineHeightMultiplier = lineHeightMultiplier,
        _paragraphSpacing = paragraphSpacing,
        _blackoutRecents = blackoutRecents,
        _autoOpenKeyboardInNotes = autoOpenKeyboardInNotes,
-       _defaultNoteReadMode = defaultNoteReadMode;
+       _defaultNoteReadMode = defaultNoteReadMode,
+       _dismissedBatteryOptimizationReminder =
+           dismissedBatteryOptimizationReminder;
 
   PreferencesState copyWith({
     String? themeMode,
@@ -130,6 +137,7 @@ class PreferencesState {
     bool? blackoutRecents,
     bool? autoOpenKeyboardInNotes,
     bool? defaultNoteReadMode,
+    bool? dismissedBatteryOptimizationReminder,
   }) => PreferencesState(
     themeMode: themeMode ?? this.themeMode,
     useDynamicColor: useDynamicColor ?? this.useDynamicColor,
@@ -164,6 +172,9 @@ class PreferencesState {
     autoOpenKeyboardInNotes:
         autoOpenKeyboardInNotes ?? this.autoOpenKeyboardInNotes,
     defaultNoteReadMode: defaultNoteReadMode ?? this.defaultNoteReadMode,
+    dismissedBatteryOptimizationReminder:
+        dismissedBatteryOptimizationReminder ??
+        this.dismissedBatteryOptimizationReminder,
   );
 
   static const defaultState = PreferencesState(

@@ -202,6 +202,9 @@ class PreferencesService {
       blackoutRecents: p.getBool('blackout_recents'),
       autoOpenKeyboardInNotes: p.getBool('auto_open_keyboard_in_notes'),
       defaultNoteReadMode: p.getBool('default_note_read_mode'),
+      dismissedBatteryOptimizationReminder: p.getBool(
+        'dismissed_battery_opt_reminder',
+      ),
     );
   }
 
@@ -260,6 +263,7 @@ class PreferencesService {
     bool? blackoutRecents,
     bool? autoOpenKeyboardInNotes,
     bool? defaultNoteReadMode,
+    bool? dismissedBatteryOptimizationReminder,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -349,6 +353,12 @@ class PreferencesService {
       }
       if (defaultNoteReadMode != null) {
         await p.setBool('default_note_read_mode', defaultNoteReadMode);
+      }
+      if (dismissedBatteryOptimizationReminder != null) {
+        await p.setBool(
+          'dismissed_battery_opt_reminder',
+          dismissedBatteryOptimizationReminder,
+        );
       }
       _hydrate();
       return _cache;

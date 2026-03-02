@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 import '../services/system_settings_service.dart';
 import '../services/navigation_service.dart';
+import '../services/preferences_service.dart';
 import '../widgets/common/common.dart';
 
 Future<bool> showExactAlarmDialogIfNeeded(BuildContext context) async {
@@ -58,10 +59,15 @@ Future<bool> showExactAlarmDialogIfNeeded(BuildContext context) async {
 Future<bool> showBatteryOptimizationDialogIfNeeded(BuildContext context) async {
   final service = SystemSettingsService.instance;
   if (await service.isIgnoringBatteryOptimizations()) return true;
+  // User previously chose "Don't show again" — skip the prompt
+  if (PreferencesService().snapshot.dismissedBatteryOptimizationReminder) {
+    return true;
+  }
   if (!context.mounted) return false;
   final dialogContext = _bestDialogContext(context);
   if (!dialogContext.mounted) return false;
-  final proceed = await showDialog<bool>(
+  // 0 = 'Later', 1 = 'Open Settings', 2 = 'Don\'t show again'
+  final result = await showDialog<int>(
     context: dialogContext,
     builder: (ctx) => AlertDialog(
       title: const Text('Allow Unrestricted Background'),
@@ -71,17 +77,28 @@ Future<bool> showBatteryOptimizationDialogIfNeeded(BuildContext context) async {
       ),
       actions: [
         ExpressiveTextButton(
-          onPressed: () => Navigator.of(ctx).pop(false),
+          onPressed: () => Navigator.of(ctx).pop(2),
+          child: const Text("Don't show again"),
+        ),
+        ExpressiveTextButton(
+          onPressed: () => Navigator.of(ctx).pop(0),
           child: const Text('Later'),
         ),
         FilledButton(
-          onPressed: () => Navigator.of(ctx).pop(true),
+          onPressed: () => Navigator.of(ctx).pop(1),
           child: const Text('Open Settings'),
         ),
       ],
     ),
   );
-  if (proceed == true) {
+  if (result == 2) {
+    // Persist the user's choice to suppress future prompts
+    await PreferencesService().update(
+      dismissedBatteryOptimizationReminder: true,
+    );
+    return true;
+  }
+  if (result == 1) {
     await service.requestIgnoreBatteryOptimizations();
     await Future.delayed(const Duration(milliseconds: 200));
   }

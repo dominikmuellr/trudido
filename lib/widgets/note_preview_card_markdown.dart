@@ -778,9 +778,7 @@ class NotePreviewCard extends ConsumerWidget {
     final mainCard = Card(
       margin: EdgeInsets.zero,
       elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: cardColor,
       child: SizedBox(
         width: double.infinity,
@@ -833,9 +831,7 @@ class NotePreviewCard extends ConsumerWidget {
               if (isTodoTxt)
                 ..._buildTodoTxtPreview(context)
               else if (!_isSpanEffectivelyEmpty(bodySpan)) ...[
-                SizedBox(
-                  height: subtitle.isNotEmpty ? spacing.s6 : spacing.s8,
-                ),
+                SizedBox(height: subtitle.isNotEmpty ? spacing.s6 : spacing.s8),
                 RichText(
                   textScaler: MediaQuery.textScalerOf(context),
                   maxLines: 8,
@@ -882,12 +878,9 @@ class NotePreviewCard extends ConsumerWidget {
                   Flexible(
                     child: Text(
                       formattedDate,
-                      style: Theme.of(context).textTheme.bodySmall
-                          ?.copyWith(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                          ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

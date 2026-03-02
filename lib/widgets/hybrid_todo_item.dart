@@ -110,10 +110,9 @@ class HybridTodoItem extends ConsumerWidget {
                     ? Theme.of(context)
                           .colorScheme
                           .surfaceContainerHighest // Lighter surface in dark mode
-                    : Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.08)), // Match note preview card tint
+                    : Theme.of(context).colorScheme.primary.withValues(
+                        alpha: 0.08,
+                      )), // Match note preview card tint
           child: SizedBox(
             width: double.infinity,
             child: Padding(
