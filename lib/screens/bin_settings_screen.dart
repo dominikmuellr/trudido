@@ -150,17 +150,24 @@ class BinSettingsScreen extends ConsumerWidget {
                   style: Theme.of(ctx).textTheme.titleMedium,
                 ),
               ),
-              ..._autoDeleteOptions.map(
-                (option) => RadioListTile<int>(
-                  title: Text(option.label),
-                  value: option.days,
-                  groupValue: currentDays,
-                  onChanged: (value) async {
-                    if (value != null) {
-                      await controller.setAutoDeleteDaysInBin(value);
-                    }
-                    if (ctx.mounted) Navigator.pop(ctx);
-                  },
+              RadioGroup<int>(
+                groupValue: currentDays,
+                onChanged: (value) async {
+                  if (value != null) {
+                    await controller.setAutoDeleteDaysInBin(value);
+                  }
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: _autoDeleteOptions
+                      .map(
+                        (option) => RadioListTile<int>(
+                          title: Text(option.label),
+                          value: option.days,
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
             ],

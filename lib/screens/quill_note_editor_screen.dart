@@ -138,6 +138,17 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       [];
   bool _mentionGuardActive = false;
 
+  // Re-entrance guard for document change handler (checkbox fix)
+  bool _applyingDocFix = false;
+
+  // Cached placeholder visibility (updated in listener, read in build)
+  bool _showPlaceholder = true;
+
+  // Checkbox: Enter-key auto-uncheck subscription
+  // (Visual strikethrough is applied via textSpanBuilder, not stored in the
+  // document, so no document-mutation logic is needed here.)
+  StreamSubscription<quill.DocChange>? _docChangesSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -149,20 +160,14 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     }
     _loadNote();
     _loadToolbarPreferences();
-    _quillController.addListener(_onContentChanged);
-    _quillController.addListener(_checkForSlashCommand);
-    _quillController.addListener(_handleScrollOnDelete);
-    _quillController.addListener(_trackMediaChanges);
-    _quillController.addListener(_handleMarkdownShortcuts);
-    _quillController.addListener(_onQuillMentionCheck);
+    _quillController.addListener(_onControllerChange);
+    _subscribeToDocChanges();
     // Title controller listener for unsaved changes
     _titleController.addListener(_onTitleChanged);
     // Scroll listener for hiding/showing FAB
     _scrollController.addListener(_onEditorScroll);
     // Update toolbar buttons when selection changes
-    _focusNode.addListener(() {
-      if (mounted) setState(() {});
-    });
+    _focusNode.addListener(_onFocusChange);
 
     // Auto-focus for new notes (respects keyboard preference)
     if (widget.noteId == null) {
@@ -177,35 +182,71 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     debugPrint('QuillNoteEditor initialized: noteId=${widget.noteId}');
   }
 
-  /// Load toolbar visibility preferences
-  void _loadToolbarPreferences() {
-    final prefs = ref.read(preferencesStateProvider);
-    setState(() {
-      // Check if floating toolbar is enabled
-      _useFloatingToolbar = prefs.useFloatingNoteToolbar;
+  /// Consolidated controller change handler — single listener replaces six.
+  /// Dispatches to all sub-handlers in a deterministic order, avoiding
+  /// redundant notification cycles per keystroke.
+  ///
+  /// Caches [_cachedPlainText] so sub-handlers don't each call toPlainText().
+  String _cachedPlainText = '';
 
-      // For new notes, always show the main toolbar by default
-      // User can still collapse it, but it starts expanded
-      if (widget.noteId == null) {
-        _hideToolbar = false;
-        _showMoreToolbar = prefs.showMoreNoteToolbar;
-      } else {
-        _hideToolbar = prefs.hideNoteToolbar;
-        _showMoreToolbar = prefs.showMoreNoteToolbar;
-      }
+  void _onControllerChange() {
+    // Cache plain text once for all sub-handlers (O(n) document walk)
+    _cachedPlainText = _quillController.document.toPlainText();
+
+    _onContentChanged();
+    _checkForSlashCommand();
+    _handleScrollOnDelete();
+    _handleMarkdownShortcuts();
+    _onQuillMentionCheck();
+    _updatePlaceholderCache();
+  }
+
+  /// Focus change handler — defers setState to avoid mid-build updates.
+  void _onFocusChange() {
+    if (!mounted) return;
+    _scheduleRebuild();
+  }
+
+  /// Deferred rebuild — batches multiple setState calls into one post-frame
+  /// callback so that listener cascades don't trigger redundant rebuilds.
+  bool _rebuildScheduled = false;
+  void _scheduleRebuild() {
+    if (_rebuildScheduled) return;
+    _rebuildScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _rebuildScheduled = false;
+      if (mounted) setState(() {});
     });
   }
 
-  /// Scroll listener to hide/show the read/edit FAB
+  /// Load toolbar visibility preferences (no setState — called before first build).
+  void _loadToolbarPreferences() {
+    final prefs = ref.read(preferencesStateProvider);
+    // Check if floating toolbar is enabled
+    _useFloatingToolbar = prefs.useFloatingNoteToolbar;
+
+    // For new notes, always show the main toolbar by default
+    // User can still collapse it, but it starts expanded
+    if (widget.noteId == null) {
+      _hideToolbar = false;
+      _showMoreToolbar = prefs.showMoreNoteToolbar;
+    } else {
+      _hideToolbar = prefs.hideNoteToolbar;
+      _showMoreToolbar = prefs.showMoreNoteToolbar;
+    }
+  }
+
+  /// Scroll listener to hide/show the read/edit FAB.
+  /// Defers rebuild to avoid interference with scroll notifications.
   void _onEditorScroll() {
     final offset = _scrollController.offset;
     const threshold = 10.0;
-    if (offset > _lastScrollOffset + threshold && _fabVisible) {
-      setState(() => _fabVisible = false);
-    } else if (offset < _lastScrollOffset - threshold && !_fabVisible) {
-      setState(() => _fabVisible = true);
-    }
+    final shouldHide = offset > _lastScrollOffset + threshold && _fabVisible;
+    final shouldShow = offset < _lastScrollOffset - threshold && !_fabVisible;
     _lastScrollOffset = offset;
+    if (shouldHide) _fabVisible = false;
+    if (shouldShow) _fabVisible = true;
+    if (shouldHide || shouldShow) _scheduleRebuild();
   }
 
   /// Toggle between read and edit mode
@@ -246,7 +287,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     // Scroll adjustment when deleting lines
     if (!_scrollController.hasClients) return;
 
-    final text = _quillController.document.toPlainText();
+    final text = _cachedPlainText;
     final selection = _quillController.selection;
     if (!selection.isValid) {
       return;
@@ -292,38 +333,11 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     _previousLineCount = lineCount;
   }
 
-  bool _shouldShowPlaceholder() {
-    // Show placeholder when cursor is on an empty line
-    final selection = _quillController.selection;
-    if (!selection.isCollapsed) return false;
-
-    final text = _quillController.document.toPlainText();
-    if (text.isEmpty) return true;
-
-    final cursorPosition = selection.baseOffset;
-    if (cursorPosition < 0 || cursorPosition > text.length) return false;
-
-    // Find the start and end of the current line
-    int lineStart = cursorPosition;
-    while (lineStart > 0 && text[lineStart - 1] != '\n') {
-      lineStart--;
-    }
-
-    int lineEnd = cursorPosition;
-    while (lineEnd < text.length && text[lineEnd] != '\n') {
-      lineEnd++;
-    }
-
-    // Check if the line is empty or only whitespace
-    final lineContent = text.substring(lineStart, lineEnd).trim();
-    return lineContent.isEmpty;
-  }
-
   void _handleMarkdownShortcuts() {
     final selection = _quillController.selection;
     if (!selection.isCollapsed) return;
 
-    final text = _quillController.document.toPlainText();
+    final text = _cachedPlainText;
     final cursorPosition = selection.baseOffset;
 
     if (cursorPosition <= 0 || cursorPosition > text.length) return;
@@ -370,7 +384,75 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     }
   }
 
+  /// Subscribe (or re-subscribe) to document change stream for checkbox strikethrough.
+  void _subscribeToDocChanges() {
+    _docChangesSubscription?.cancel();
+    _docChangesSubscription = _quillController.document.changes.listen(
+      _onDocumentChange,
+    );
+  }
+
+  /// Fires on every document change. Only handles the Enter-key case inside
+  /// a checked item (visual strikethrough is handled by textSpanBuilder).
+  void _onDocumentChange(quill.DocChange change) {
+    // Skip silent changes (e.g. programmatic document initialisation)
+    if (change.source == quill.ChangeSource.silent) return;
+
+    // Skip during history restore — the entire document is being replaced
+    if (_isRestoringFromHistory) return;
+
+    int offset = 0;
+    for (final op in change.change.toList()) {
+      if (op.isRetain) {
+        offset += op.length ?? 0;
+      } else if (op.isInsert) {
+        final data = op.data;
+        if (data is String) {
+          final insertAttrs = op.attributes;
+          // Detect Enter pressed inside a checked item: flutter_quill inserts a
+          // new `\n{list:'checked'}` which pushes the original \n one position
+          // forward.  Reset that original \n to unchecked so the new (empty)
+          // item isn't pre-checked.
+          if (insertAttrs != null &&
+              insertAttrs['list'] == 'checked' &&
+              data.contains('\n')) {
+            final origNewlinePos = offset + data.length;
+            Future.microtask(() {
+              if (!mounted || _applyingDocFix) return;
+              _applyingDocFix = true;
+              try {
+                final plainText = _quillController.document.toPlainText();
+                if (origNewlinePos < plainText.length &&
+                    plainText[origNewlinePos] == '\n') {
+                  _quillController.formatText(
+                    origNewlinePos,
+                    1,
+                    quill.Attribute.unchecked,
+                  );
+                }
+              } finally {
+                _applyingDocFix = false;
+              }
+            });
+          }
+          offset += data.length;
+        } else {
+          offset += 1;
+        }
+      }
+      // delete ops don't advance offset in the change delta context
+    }
+  }
+
+  // Guard for markdown shortcut application to prevent listener re-entrance
+  bool _applyingMarkdownFormat = false;
+
   void _applyMarkdownFormat(int start, int end, quill.Attribute attribute) {
+    if (_applyingMarkdownFormat) return;
+    _applyingMarkdownFormat = true;
+
+    // Temporarily remove listener to avoid re-entrance from replaceText
+    _quillController.removeListener(_onControllerChange);
     try {
       final markdownLength = end - start;
 
@@ -383,10 +465,12 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       );
 
       // Apply block-level formatting (header, list, etc.) to current position
-      // This will format the entire paragraph/block at the cursor position
       _quillController.formatSelection(attribute);
     } catch (e) {
       debugPrint('Error applying markdown format: $e');
+    } finally {
+      _quillController.addListener(_onControllerChange);
+      _applyingMarkdownFormat = false;
     }
   }
 
@@ -397,20 +481,27 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       // Close menu if text is selected
       if (!selection.isCollapsed) {
         if (_showSlashMenu) {
-          setState(() => _showSlashMenu = false);
+          _showSlashMenu = false;
+          _scheduleRebuild();
         }
         return;
       }
 
       final cursorPosition = selection.baseOffset;
       if (cursorPosition <= 0) {
-        if (_showSlashMenu) setState(() => _showSlashMenu = false);
+        if (_showSlashMenu) {
+          _showSlashMenu = false;
+          _scheduleRebuild();
+        }
         return;
       }
 
-      final text = _quillController.document.toPlainText();
+      final text = _cachedPlainText;
       if (text.isEmpty || cursorPosition > text.length) {
-        if (_showSlashMenu) setState(() => _showSlashMenu = false);
+        if (_showSlashMenu) {
+          _showSlashMenu = false;
+          _scheduleRebuild();
+        }
         return;
       }
 
@@ -434,11 +525,10 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
           // This ensures it's always visible regardless of scroll position
           final clampedTop = (availableHeight - menuHeight) / 2;
 
-          setState(() {
-            _showSlashMenu = true;
-            _slashCommandStartIndex = cursorPosition - 1;
-            _slashMenuTop = clampedTop;
-          });
+          _showSlashMenu = true;
+          _slashCommandStartIndex = cursorPosition - 1;
+          _slashMenuTop = clampedTop;
+          _scheduleRebuild();
           return;
         }
       }
@@ -452,12 +542,16 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
             text[_slashCommandStartIndex] != '/'; // Slash position changed
 
         if (shouldClose) {
-          setState(() => _showSlashMenu = false);
+          _showSlashMenu = false;
+          _scheduleRebuild();
         }
       }
     } catch (e) {
       // Fail gracefully
-      if (_showSlashMenu) setState(() => _showSlashMenu = false);
+      if (_showSlashMenu) {
+        _showSlashMenu = false;
+        _scheduleRebuild();
+      }
     }
   }
 
@@ -741,25 +835,30 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       _lastRecordedContent = _originalNote!.content;
       _lastHistoryRecordTime = DateTime.now();
 
-      setState(() {
-        _quillController = quill.QuillController(
-          document: document,
-          selection: const TextSelection.collapsed(offset: 0),
-        );
-        _quillController.addListener(_onContentChanged);
-        _quillController.addListener(_checkForSlashCommand);
-        _quillController.addListener(_handleScrollOnDelete);
-        _quillController.addListener(_trackMediaChanges);
-        _quillController.addListener(_handleMarkdownShortcuts);
-        _quillController.addListener(_onQuillMentionCheck);
-        _prevMentionRanges = _findQuillMentionRanges();
+      // Build the new controller outside setState to avoid listener
+      // registration during a build frame.
+      final oldController = _quillController;
+      oldController.removeListener(_onControllerChange);
 
-        // Determine initial read/edit mode from per-note preference
-        // or fallback to app-wide default
-        final prefs = ref.read(preferencesStateProvider);
-        _isReadMode = _originalNote!.lastReadMode || prefs.defaultNoteReadMode;
-        _quillController.readOnly = _isReadMode;
+      final newController = quill.QuillController(
+        document: document,
+        selection: const TextSelection.collapsed(offset: 0),
+      );
+      newController.addListener(_onControllerChange);
+
+      // Determine initial read/edit mode
+      final prefs = ref.read(preferencesStateProvider);
+      final readMode = _originalNote!.lastReadMode || prefs.defaultNoteReadMode;
+      newController.readOnly = readMode;
+
+      setState(() {
+        _quillController = newController;
+        _isReadMode = readMode;
       });
+
+      _subscribeToDocChanges();
+      _prevMentionRanges = _findQuillMentionRanges();
+      _updatePlaceholderCache();
 
       // Request focus after loading (respects read mode and keyboard preference)
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -797,11 +896,8 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
               _quillController.document.toPlainText().trim().isNotEmpty
         : _titleController.text != _originalNote!.title;
 
-    if (mounted) {
-      setState(() {
-        _hasUnsavedChanges = hasChanges;
-      });
-    }
+    // Update unsaved flag silently — no rebuild needed.
+    _hasUnsavedChanges = hasChanges;
 
     if (hasChanges) {
       _autoSaveTimer = Timer(_autoSaveDuration, () {
@@ -881,14 +977,14 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         for (final curr in currentRanges) {
           if (curr.link == prev.link && curr.text != prev.text) {
             // Mention was damaged → delete the remaining fragment
-            _quillController.removeListener(_onQuillMentionCheck);
+            _quillController.removeListener(_onControllerChange);
             _quillController.replaceText(
               curr.start,
               curr.end - curr.start,
               '',
               TextSelection.collapsed(offset: curr.start),
             );
-            _quillController.addListener(_onQuillMentionCheck);
+            _quillController.addListener(_onControllerChange);
             _prevMentionRanges = _findQuillMentionRanges();
             _quillTapPending = false;
             return;
@@ -950,7 +1046,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     }
 
     // ── Normal autocomplete trigger detection ──
-    final text = _quillController.document.toPlainText();
+    final text = _cachedPlainText;
     final query = MentionParser.detectMentionTrigger(text, cursor);
 
     if (query != null) {
@@ -977,7 +1073,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
 
       if (range != null) {
         final deleteLength = range.end - range.start;
-        _quillController.removeListener(_onQuillMentionCheck);
+        _quillController.removeListener(_onControllerChange);
         _quillController.replaceText(
           range.start,
           deleteLength,
@@ -990,7 +1086,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
           displayText.length,
           quill.Attribute.fromKeyValue('link', linkUrl),
         );
-        _quillController.addListener(_onQuillMentionCheck);
+        _quillController.addListener(_onControllerChange);
         _prevMentionRanges = _findQuillMentionRanges();
       }
     } catch (e) {
@@ -999,22 +1095,33 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   }
 
   void _onContentChanged() {
-    final currentJson = jsonEncode(
-      _quillController.document.toDelta().toJson(),
-    );
+    // Skip expensive delta serialization if already dirty — stays dirty until save.
+    if (_hasUnsavedChanges) {
+      _autoSaveTimer?.cancel();
+      _autoSaveTimer = Timer(_autoSaveDuration, () {
+        if (mounted && _hasUnsavedChanges) {
+          _performAutoSave();
+        }
+      });
+      return;
+    }
 
-    final hasChanges = _originalNote == null
-        ? _quillController.document.toPlainText().trim().isNotEmpty
-        : currentJson != _originalNote!.content;
+    final bool hasChanges;
+    if (_originalNote == null) {
+      hasChanges = _cachedPlainText.trim().isNotEmpty;
+    } else {
+      // Only serialize when transitioning from clean → dirty
+      final currentJson = jsonEncode(
+        _quillController.document.toDelta().toJson(),
+      );
+      hasChanges = currentJson != _originalNote!.content;
+    }
 
     _autoSaveTimer?.cancel();
 
-    // Always update state to refresh placeholder visibility and unsaved changes
-    if (mounted) {
-      setState(() {
-        _hasUnsavedChanges = hasChanges;
-      });
-    }
+    // Update unsaved flag silently — no rebuild needed. PopScope checks
+    // this lazily, and no visual element depends on it.
+    _hasUnsavedChanges = hasChanges;
 
     if (hasChanges) {
       _autoSaveTimer = Timer(_autoSaveDuration, () {
@@ -1023,6 +1130,40 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         }
       });
     }
+  }
+
+  /// Update cached placeholder visibility (called from consolidated listener).
+  void _updatePlaceholderCache() {
+    final newValue = _computePlaceholderVisible();
+    if (newValue != _showPlaceholder) {
+      _showPlaceholder = newValue;
+      // No setState here — _onContentChanged already schedules a deferred rebuild.
+    }
+  }
+
+  /// Compute whether placeholder should be visible.
+  bool _computePlaceholderVisible() {
+    final selection = _quillController.selection;
+    if (!selection.isCollapsed) return false;
+
+    final text = _cachedPlainText;
+    if (text.isEmpty) return true;
+
+    final cursorPosition = selection.baseOffset;
+    if (cursorPosition < 0 || cursorPosition > text.length) return false;
+
+    int lineStart = cursorPosition;
+    while (lineStart > 0 && text[lineStart - 1] != '\n') {
+      lineStart--;
+    }
+
+    int lineEnd = cursorPosition;
+    while (lineEnd < text.length && text[lineEnd] != '\n') {
+      lineEnd++;
+    }
+
+    final lineContent = text.substring(lineStart, lineEnd).trim();
+    return lineContent.isEmpty;
   }
 
   void _initializeTrackedMedia(quill.Document document) {
@@ -1235,6 +1376,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   }
 
   Future<void> _performAutoSave() async {
+    // Track media deletions at save time (not on every keystroke)
+    _trackMediaChanges();
+
     final plainText = _getPlainText();
 
     if (plainText.isEmpty) {
@@ -1506,6 +1650,11 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
 
   // Restore content from JSON string (Quill Delta format)
   void _restoreContentFromJson(String jsonContent) {
+    // Remove listener during document replacement to prevent cascading
+    // side effects (slash commands, mention checks, content changed, etc.)
+    _quillController.removeListener(_onControllerChange);
+    _docChangesSubscription?.cancel();
+
     try {
       // Try to parse as JSON (Quill Delta format)
       final json = jsonDecode(jsonContent);
@@ -1518,35 +1667,36 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
           jsonContent,
         );
       }
-      // Update _originalNote to reflect the restored content
-      // This prevents the restored content from being recorded as a new change
-      if (_originalNote != null) {
-        _originalNote = _originalNote!.copyWith(content: jsonContent);
-      }
-      setState(() {
-        _hasUnsavedChanges = true; // Mark as needing save
-      });
-      // Save the restored content (but skip history recording via _isRestoringFromHistory flag)
-      _saveNoteInternal(showFeedback: false);
     } catch (e) {
       // Fallback: treat as markdown/plain text
       try {
         _quillController.document = MarkdownToQuillConverter.markdownToDocument(
           jsonContent,
         );
-        if (_originalNote != null) {
-          _originalNote = _originalNote!.copyWith(content: jsonContent);
-        }
-        setState(() {
-          _hasUnsavedChanges = true;
-        });
-        _saveNoteInternal(showFeedback: false);
       } catch (e2) {
         if (kDebugMode) {
           debugPrint('Error restoring content: $e2');
         }
+        // Re-add listeners even on failure
+        _quillController.addListener(_onControllerChange);
+        _subscribeToDocChanges();
+        return;
       }
     }
+
+    // Re-add listener and re-subscribe to document changes
+    _quillController.addListener(_onControllerChange);
+    _subscribeToDocChanges();
+
+    // Update _originalNote to reflect the restored content
+    if (_originalNote != null) {
+      _originalNote = _originalNote!.copyWith(content: jsonContent);
+    }
+    _hasUnsavedChanges = true;
+    _scheduleRebuild();
+
+    // Save the restored content (but skip history recording via _isRestoringFromHistory flag)
+    _saveNoteInternal(showFeedback: false);
   }
 
   // Show note history bottom sheet
@@ -1813,8 +1963,10 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
 
   @override
   void dispose() {
-    _quillController.removeListener(_onQuillMentionCheck);
+    _quillController.removeListener(_onControllerChange);
     _scrollController.removeListener(_onEditorScroll);
+    _focusNode.removeListener(_onFocusChange);
+    _docChangesSubscription?.cancel();
     _mentionPopup?.hide();
     _autoSaveTimer?.cancel();
     _historyRecordTimer?.cancel();
@@ -1916,13 +2068,19 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: !_hasUnsavedChanges,
+      // Always intercept back navigation — _hasUnsavedChanges is checked
+      // lazily in the callback so toggling it doesn't require a rebuild
+      // (which would disrupt the QuillEditor layout).
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
-        if (!didPop && _hasUnsavedChanges) {
-          final shouldDiscard = await _showDiscardDialog();
-          if (shouldDiscard == true && context.mounted) {
-            Navigator.of(context).pop();
-          }
+        if (didPop) return;
+        if (!_hasUnsavedChanges) {
+          if (context.mounted) Navigator.of(context).pop();
+          return;
+        }
+        final shouldDiscard = await _showDiscardDialog();
+        if (shouldDiscard == true && context.mounted) {
+          Navigator.of(context).pop();
         }
       },
       child: Scaffold(
@@ -2226,104 +2384,152 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
               Expanded(
                 child: Stack(
                   children: [
-                    Listener(
-                      onPointerUp: (_) {
-                        _quillTapPending = true;
-                      },
-                      child: quill.QuillEditor(
-                        focusNode: _focusNode,
-                        scrollController: _scrollController,
-                        controller: _quillController,
-                        config: quill.QuillEditorConfig(
-                          showCursor: !_isReadMode,
-                          enableInteractiveSelection: !_isReadMode,
-                          onLaunchUrl: (url) {
-                            // Flutter Quill prepends https:// to
-                            // URLs it considers invalid (like mention:)
-                            // so strip that prefix before handling.
-                            final cleanUrl = url.startsWith('https://mention:')
-                                ? url.substring('https://'.length)
-                                : url;
-                            _openLink(cleanUrl);
-                          },
-                          linkActionPickerDelegate:
-                              (context, link, node) async {
-                                // Handle mention links (including
-                                // https:// prefix added by Quill)
-                                final cleanLink =
-                                    link.startsWith('https://mention:')
-                                    ? link.substring('https://'.length)
-                                    : link;
-                                if (cleanLink.startsWith('mention:')) {
-                                  _openLink(cleanLink);
-                                  return quill.LinkMenuAction.none;
-                                }
-                                return quill.defaultLinkActionPickerDelegate(
+                    RepaintBoundary(
+                      child: Listener(
+                        onPointerUp: (_) {
+                          _quillTapPending = true;
+                        },
+                        child: quill.QuillEditor(
+                          focusNode: _focusNode,
+                          scrollController: _scrollController,
+                          controller: _quillController,
+                          config: quill.QuillEditorConfig(
+                            showCursor: !_isReadMode,
+                            enableInteractiveSelection: !_isReadMode,
+                            onLaunchUrl: (url) {
+                              // Flutter Quill prepends https:// to
+                              // URLs it considers invalid (like mention:)
+                              // so strip that prefix before handling.
+                              final cleanUrl =
+                                  url.startsWith('https://mention:')
+                                  ? url.substring('https://'.length)
+                                  : url;
+                              _openLink(cleanUrl);
+                            },
+                            linkActionPickerDelegate:
+                                (context, link, node) async {
+                                  // Handle mention links (including
+                                  // https:// prefix added by Quill)
+                                  final cleanLink =
+                                      link.startsWith('https://mention:')
+                                      ? link.substring('https://'.length)
+                                      : link;
+                                  if (cleanLink.startsWith('mention:')) {
+                                    _openLink(cleanLink);
+                                    return quill.LinkMenuAction.none;
+                                  }
+                                  return quill.defaultLinkActionPickerDelegate(
+                                    context,
+                                    cleanLink,
+                                    node,
+                                  );
+                                },
+                            // Apply strikethrough to checked list items purely
+                            // visually — no document mutation, no re-entrance.
+                            textSpanBuilder:
+                                (
                                   context,
-                                  cleanLink,
                                   node,
-                                );
-                              },
-                          customStyles: quill.DefaultStyles(
-                            link: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                              decoration: TextDecoration.none,
-                              backgroundColor: Theme.of(context)
-                                  .colorScheme
-                                  .primaryContainer
-                                  .withValues(alpha: 0.4),
+                                  nodeOffset,
+                                  text,
+                                  style,
+                                  recognizer,
+                                ) {
+                                  TextStyle effectiveStyle =
+                                      style ?? const TextStyle();
+                                  if (node
+                                          .parent
+                                          ?.style
+                                          .attributes['list']
+                                          ?.value ==
+                                      'checked') {
+                                    final existing = effectiveStyle.decoration;
+                                    effectiveStyle = effectiveStyle.copyWith(
+                                      decoration: existing == null
+                                          ? TextDecoration.lineThrough
+                                          : TextDecoration.combine([
+                                              existing,
+                                              TextDecoration.lineThrough,
+                                            ]),
+                                    );
+                                  }
+                                  return TextSpan(
+                                    text: text,
+                                    style: effectiveStyle,
+                                    recognizer: recognizer,
+                                    mouseCursor: recognizer != null
+                                        ? SystemMouseCursors.click
+                                        : null,
+                                  );
+                                },
+                            customStyles: quill.DefaultStyles(
+                              link: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                                decoration: TextDecoration.none,
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer
+                                    .withValues(alpha: 0.4),
+                              ),
+                              paragraph: quill.DefaultTextBlockStyle(
+                                TextStyle(
+                                  fontSize: 16,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                  height:
+                                      _originalNote?.lineHeightMultiplier ??
+                                      1.5,
+                                ),
+                                quill.HorizontalSpacing(0, 0),
+                                quill.VerticalSpacing(
+                                  _originalNote?.paragraphSpacing ?? 8.0,
+                                  _originalNote?.paragraphSpacing ?? 8.0,
+                                ),
+                                quill.VerticalSpacing(0, 0),
+                                null,
+                              ),
+                              lists: quill.DefaultListBlockStyle(
+                                TextStyle(
+                                  fontSize: 16,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                  height:
+                                      _originalNote?.lineHeightMultiplier ??
+                                      1.5,
+                                ),
+                                quill.HorizontalSpacing(0, 0),
+                                // No inter-block spacing for lists —
+                                // flutter_quill splits checked/unchecked items
+                                // into separate blocks, so any spacing here
+                                // creates visible gaps when toggling checkboxes.
+                                quill.VerticalSpacing(0, 0),
+                                quill.VerticalSpacing(0, 0),
+                                null,
+                                null,
+                              ),
                             ),
-                            paragraph: quill.DefaultTextBlockStyle(
-                              TextStyle(
-                                fontSize: 16,
-                                color: Theme.of(context).colorScheme.onSurface,
-                                height:
-                                    _originalNote?.lineHeightMultiplier ?? 1.5,
-                              ),
-                              quill.HorizontalSpacing(0, 0),
-                              quill.VerticalSpacing(
-                                _originalNote?.paragraphSpacing ?? 8.0,
-                                _originalNote?.paragraphSpacing ?? 8.0,
-                              ),
-                              quill.VerticalSpacing(0, 0),
-                              null,
+                            embedBuilders: [
+                              MediaEmbedBuilder(),
+                              LinkEmbedBuilder(),
+                            ],
+                            padding: EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              top: 16,
+                              bottom:
+                                  math.max(
+                                    MediaQuery.of(context).viewInsets.bottom,
+                                    MediaQuery.of(context).viewPadding.bottom,
+                                  ) +
+                                  16,
                             ),
-                            lists: quill.DefaultListBlockStyle(
-                              TextStyle(
-                                fontSize: 16,
-                                color: Theme.of(context).colorScheme.onSurface,
-                                height:
-                                    _originalNote?.lineHeightMultiplier ?? 1.5,
-                              ),
-                              quill.HorizontalSpacing(0, 0),
-                              quill.VerticalSpacing(
-                                _originalNote?.paragraphSpacing ?? 8.0,
-                                _originalNote?.paragraphSpacing ?? 8.0,
-                              ),
-                              quill.VerticalSpacing(0, 0),
-                              null,
-                              null,
-                            ),
+                            placeholder: _showPlaceholder
+                                ? 'Type "/" for media, "@" to link tasks or notes'
+                                : null,
                           ),
-                          embedBuilders: [
-                            MediaEmbedBuilder(),
-                            LinkEmbedBuilder(),
-                          ],
-                          padding: EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                            top: 16,
-                            bottom:
-                                math.max(
-                                  MediaQuery.of(context).viewInsets.bottom,
-                                  MediaQuery.of(context).viewPadding.bottom,
-                                ) +
-                                16,
-                          ),
-                          placeholder: _shouldShowPlaceholder()
-                              ? 'Type "/" for media, "@" to link tasks or notes'
-                              : null,
                         ),
                       ),
                     ),

@@ -76,7 +76,7 @@ dependencies:
   flutter_markdown_plus: ^1.0.7
 
   # Rich text editor (WYSIWYG)
-  flutter_quill: ^11.5.0
+  flutter_quill: 11.5.0
 
   # Open external URLs (e.g., GitHub link in About screen)
   url_launcher: ^6.1.10
