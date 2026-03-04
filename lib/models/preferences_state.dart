@@ -68,6 +68,15 @@ class PreferencesState {
   final int?
   _autoDeleteDaysInBin; // Days after which bin items are auto-deleted (0 = disabled)
   int get autoDeleteDaysInBin => _autoDeleteDaysInBin ?? 0;
+  final double?
+  _floatingToolbarX; // Saved X position of floating toolbar (fraction 0..1)
+  double get floatingToolbarX => _floatingToolbarX ?? -1.0; // -1 = not set
+  final double?
+  _floatingToolbarY; // Saved Y position of floating toolbar (fraction 0..1)
+  double get floatingToolbarY => _floatingToolbarY ?? -1.0; // -1 = not set
+  final bool?
+  _floatingToolbarExpanded; // Whether the floating toolbar panel is open
+  bool get floatingToolbarExpanded => _floatingToolbarExpanded ?? false;
 
   const PreferencesState({
     required this.themeMode,
@@ -104,6 +113,9 @@ class PreferencesState {
     bool? dismissedBatteryOptimizationReminder,
     bool? enableBin,
     int? autoDeleteDaysInBin,
+    double? floatingToolbarX,
+    double? floatingToolbarY,
+    bool? floatingToolbarExpanded,
   }) : _lineHeightMultiplier = lineHeightMultiplier,
        _paragraphSpacing = paragraphSpacing,
        _blackoutRecents = blackoutRecents,
@@ -112,7 +124,10 @@ class PreferencesState {
        _dismissedBatteryOptimizationReminder =
            dismissedBatteryOptimizationReminder,
        _enableBin = enableBin,
-       _autoDeleteDaysInBin = autoDeleteDaysInBin;
+       _autoDeleteDaysInBin = autoDeleteDaysInBin,
+       _floatingToolbarX = floatingToolbarX,
+       _floatingToolbarY = floatingToolbarY,
+       _floatingToolbarExpanded = floatingToolbarExpanded;
 
   PreferencesState copyWith({
     String? themeMode,
@@ -149,6 +164,9 @@ class PreferencesState {
     bool? dismissedBatteryOptimizationReminder,
     bool? enableBin,
     int? autoDeleteDaysInBin,
+    double? floatingToolbarX,
+    double? floatingToolbarY,
+    bool? floatingToolbarExpanded,
   }) => PreferencesState(
     themeMode: themeMode ?? this.themeMode,
     useDynamicColor: useDynamicColor ?? this.useDynamicColor,
@@ -188,6 +206,10 @@ class PreferencesState {
         this.dismissedBatteryOptimizationReminder,
     enableBin: enableBin ?? this.enableBin,
     autoDeleteDaysInBin: autoDeleteDaysInBin ?? this.autoDeleteDaysInBin,
+    floatingToolbarX: floatingToolbarX ?? this.floatingToolbarX,
+    floatingToolbarY: floatingToolbarY ?? this.floatingToolbarY,
+    floatingToolbarExpanded:
+        floatingToolbarExpanded ?? this.floatingToolbarExpanded,
   );
 
   static const defaultState = PreferencesState(

@@ -18,6 +18,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import '../widgets/common/common.dart';
+import '../providers/app_providers.dart';
+import '../controllers/preferences_controller.dart';
 
 /// Provider to track floating toolbar expanded state
 /// Using a simple ValueNotifier instead of Riverpod to keep this widget self-contained
@@ -37,10 +39,13 @@ class _ToolbarItem {
   });
 }
 
-/// Floating toolbar FAB with vertical expandable menu for note formatting
-/// Designed for thumb-friendly one-handed use
+/// Floating toolbar panel with draggable positioning and adaptive layout.
+/// The toggle FAB lives in the parent screen; this widget only renders
+/// the expanded toolbar panel as an overlay.
 class FloatingNoteToolbar extends ConsumerStatefulWidget {
   final quill.QuillController controller;
+  final bool isExpanded;
+  final VoidCallback onToggle;
   final VoidCallback? onInsertImage;
   final VoidCallback? onInsertVideo;
   final VoidCallback? onInsertVoice;
@@ -50,9 +55,25 @@ class FloatingNoteToolbar extends ConsumerStatefulWidget {
   final Function(double)? onLineHeightChanged;
   final Function(double)? onParagraphSpacingChanged;
 
+  /// The actual available size of the parent container (e.g. from LayoutBuilder).
+  /// When the Scaffold has resizeToAvoidBottomInset: true, the body shrinks
+  /// when the keyboard opens, so MediaQuery.size is unreliable for positioning.
+  /// Pass the real constraints so the toolbar moves up with the keyboard.
+  final Size? availableSize;
+
+  /// Called when the toolbar is dragged to the top dock zone, signalling
+  /// the parent to switch back to the standard (docked) toolbar.
+  final VoidCallback? onDockToTop;
+
+  /// Initial fractional position (0..1) when first created (e.g. after detach).
+  /// Overrides saved preferences if non-null.
+  final Offset? initialPosition;
+
   const FloatingNoteToolbar({
     super.key,
     required this.controller,
+    required this.isExpanded,
+    required this.onToggle,
     this.onInsertImage,
     this.onInsertVideo,
     this.onInsertVoice,
@@ -61,6 +82,9 @@ class FloatingNoteToolbar extends ConsumerStatefulWidget {
     this.currentParagraphSpacing = 8.0,
     this.onLineHeightChanged,
     this.onParagraphSpacingChanged,
+    this.availableSize,
+    this.onDockToTop,
+    this.initialPosition,
   });
 
   @override
@@ -70,11 +94,24 @@ class FloatingNoteToolbar extends ConsumerStatefulWidget {
 
 class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
     with TickerProviderStateMixin {
-  bool _isExpanded = false;
   bool _showMoreOptions = false;
   bool _isFaded = false; // Toolbar is faded/transparent
   late AnimationController _expandController;
   late Animation<double> _expandAnimation;
+
+  // Position tracking — stored as fractional (0..1) of the panel's LEFT/TOP
+  // relative to screen size. -1 means "not set yet" → will use default.
+  double _fracX = -1.0;
+  double _fracY = -1.0;
+  bool _isDragging = false;
+  // During drag: absolute pixel left/top of the panel
+  double _dragLeft = 0.0;
+  double _dragTop = 0.0;
+  // Whether we're near the top dock zone during drag
+  bool _nearDockZone = false;
+
+  // Toolbar panel padding
+  static const double _edgePadding = 8.0;
 
   @override
   void initState() {
@@ -89,8 +126,37 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
       reverseCurve: Curves.easeInBack,
     );
 
+    // Load saved position from preferences
+    final prefs = ref.read(preferencesStateProvider);
+    _fracX = prefs.floatingToolbarX;
+    _fracY = prefs.floatingToolbarY;
+
+    // If an initial position was passed (e.g. from drag-detach), use it
+    if (widget.initialPosition != null) {
+      _fracX = widget.initialPosition!.dx;
+      _fracY = widget.initialPosition!.dy;
+    }
+
+    // Start expanded if parent says so
+    if (widget.isExpanded) {
+      _expandController.value = 1.0;
+    }
+
     // Listen to controller changes for button state updates and typing detection
     widget.controller.addListener(_onControllerChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant FloatingNoteToolbar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isExpanded != oldWidget.isExpanded) {
+      if (widget.isExpanded) {
+        _expandController.forward();
+      } else {
+        _expandController.reverse();
+        _showMoreOptions = false;
+      }
+    }
   }
 
   @override
@@ -123,20 +189,6 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
     }
   }
 
-  void _toggleExpanded() {
-    _onToolbarTouched(); // Unfade toolbar when FAB is pressed
-    setState(() {
-      _isExpanded = !_isExpanded;
-      if (_isExpanded) {
-        _expandController.forward();
-      } else {
-        _expandController.reverse();
-        // Also reset to primary toolbar when closing
-        _showMoreOptions = false;
-      }
-    });
-  }
-
   void _toggleMoreOptions() {
     setState(() {
       _showMoreOptions = !_showMoreOptions;
@@ -144,8 +196,8 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
   }
 
   void _closeToolbar() {
-    if (_isExpanded) {
-      _toggleExpanded();
+    if (widget.isExpanded) {
+      widget.onToggle();
     }
   }
 
@@ -550,140 +602,298 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
     ];
   }
 
+  /// Compute the pixel position of the toolbar panel center from fractional coords.
+  /// If not set (-1), default to bottom-right (above FAB area).
+  /// [areaSize] is the actual usable area (may already exclude the keyboard).
+  /// Returns the LEFT/TOP of the panel, given its size.
+  Offset _resolveLeftTop(Size areaSize, double panelW, double panelH) {
+    if (_fracX < 0 || _fracY < 0) {
+      // Default: bottom-right, above FAB area
+      return Offset(
+        areaSize.width - panelW - _edgePadding,
+        areaSize.height - panelH - 100,
+      );
+    }
+    return Offset(
+      (_fracX * areaSize.width).clamp(
+        _edgePadding,
+        areaSize.width - panelW - _edgePadding,
+      ),
+      (_fracY * areaSize.height).clamp(
+        _edgePadding,
+        areaSize.height - panelH - _edgePadding,
+      ),
+    );
+  }
+
+  /// Save fractional toolbar position to preferences.
+  /// [left]/[top] are the panel's pixel left/top, converted to fractional.
+  void _savePosition(double left, double top, Size screenSize) {
+    _fracX = screenSize.width > 0
+        ? (left / screenSize.width).clamp(0.0, 1.0)
+        : 0.0;
+    _fracY = screenSize.height > 0
+        ? (top / screenSize.height).clamp(0.0, 1.0)
+        : 0.0;
+    final controller = ref.read(preferencesControllerProvider);
+    controller.setFloatingToolbarPosition(_fracX, _fracY);
+  }
+
+  /// Safe clamp that handles min > max by returning the average.
+  double _safeClamp(double value, double min, double max) {
+    if (min > max) return (min + max) / 2;
+    return value.clamp(min, max);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final mq = MediaQuery.of(context);
+    final screenSize = widget.availableSize ?? mq.size;
+    final keyboardHeight = widget.availableSize != null
+        ? 0.0
+        : mq.viewInsets.bottom;
+    // Account for system navigation bar (3-button nav) via padding.bottom
+    final bottomInset = mq.padding.bottom;
+    final usableHeight = screenSize.height - keyboardHeight - bottomInset;
+
+    // If not expanded, render nothing (the FAB lives in the parent)
+    if (!widget.isExpanded) return const SizedBox.shrink();
 
     final primaryItems = _getPrimaryItems();
     final secondaryItems = _getSecondaryItems();
-
-    // Calculate max height - limit to 250px to avoid overlapping title bar
-    const maxToolbarHeight = 250.0;
-
-    // Determine which items to show based on _showMoreOptions
     final currentItems = _showMoreOptions ? secondaryItems : primaryItems;
 
-    return ExpressiveGestureDetector(
-      onTapDown: (_) => _onToolbarTouched(),
-      onPanStart: (_) => _onToolbarTouched(),
-      child: AnimatedOpacity(
-        opacity: _isFaded ? 0.3 : 1.0,
-        duration: const Duration(milliseconds: 200),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Single toolbar - shows either primary or secondary items
-            AnimatedBuilder(
-              animation: _expandAnimation,
-              builder: (context, child) {
-                final animValue = _expandAnimation.value.clamp(0.0, 1.0);
-                if (animValue == 0) {
-                  return const SizedBox.shrink();
-                }
-                return Transform.scale(
-                  scale: 0.8 + (0.2 * animValue),
-                  alignment: Alignment.bottomCenter,
-                  child: Opacity(opacity: animValue, child: child),
-                );
-              },
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: cs.shadow.withValues(alpha: 0.15),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Scrollable items area
-                    ConstrainedBox(
-                      constraints: BoxConstraints(
-                        // Max height minus space for divider and sticky button
-                        maxHeight: maxToolbarHeight - 49.0,
-                      ),
-                      child: NotificationListener<ScrollNotification>(
-                        onNotification: (notification) {
-                          _onToolbarTouched(); // Unfade on scroll
-                          return false;
-                        },
-                        child: SingleChildScrollView(
-                          reverse:
-                              true, // Start scrolled to bottom so Bold etc are visible
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            transitionBuilder: (child, animation) {
-                              return FadeTransition(
-                                opacity: animation,
-                                child: SlideTransition(
-                                  position: Tween<Offset>(
-                                    begin: Offset(
-                                      _showMoreOptions ? -0.2 : 0.2,
-                                      0,
-                                    ),
-                                    end: Offset.zero,
-                                  ).animate(animation),
-                                  child: child,
-                                ),
-                              );
-                            },
-                            child: Column(
-                              key: ValueKey<bool>(_showMoreOptions),
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Items (vertical stack)
-                                ...currentItems.map(
-                                  (item) => _buildToolbarButton(item, cs),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Sticky divider and toggle button (always visible)
-                    _buildHorizontalDivider(cs),
-                    _buildMoreOptionsToggle(cs),
-                  ],
-                ),
-              ),
-            ),
+    // Always use vertical layout for now
+    const panelWidth = 48.0;
+    final panelHeight = _verticalPanelHeight(currentItems.length);
 
-            // Main FAB
-            ExpressiveFloatingActionButton(
-              onPressed: _toggleExpanded,
-              backgroundColor: _isExpanded ? cs.primaryContainer : cs.primary,
-              foregroundColor: _isExpanded
-                  ? cs.onPrimaryContainer
-                  : cs.onPrimary,
-              shape: const CircleBorder(),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                transitionBuilder: (child, animation) {
-                  return RotationTransition(
-                    turns: Tween<double>(
-                      begin: 0.5,
-                      end: 1.0,
-                    ).animate(animation),
-                    child: ScaleTransition(scale: animation, child: child),
-                  );
-                },
-                child: Icon(
-                  _isExpanded ? Icons.close : Icons.text_fields,
-                  key: ValueKey<bool>(_isExpanded),
+    // Compute left/top: during drag use raw pixels, otherwise from fractional
+    double panelLeft;
+    double panelTop;
+    if (_isDragging) {
+      panelLeft = _dragLeft;
+      panelTop = _dragTop;
+    } else {
+      final resolved = _resolveLeftTop(
+        Size(screenSize.width, usableHeight),
+        panelWidth,
+        panelHeight,
+      );
+      panelLeft = resolved.dx;
+      panelTop = resolved.dy;
+    }
+
+    // Clamp to visible area
+    panelLeft = _safeClamp(
+      panelLeft,
+      _edgePadding,
+      screenSize.width - panelWidth - _edgePadding,
+    );
+    panelTop = _safeClamp(
+      panelTop,
+      _edgePadding,
+      usableHeight - panelHeight - _edgePadding,
+    );
+
+    final panelWidget = AnimatedOpacity(
+      opacity: _isFaded ? 0.3 : 1.0,
+      duration: const Duration(milliseconds: 200),
+      child: AnimatedBuilder(
+        animation: _expandAnimation,
+        builder: (context, child) {
+          final animValue = _expandAnimation.value.clamp(0.0, 1.0);
+          if (animValue == 0) return const SizedBox.shrink();
+          return Transform.scale(
+            scale: 0.8 + (0.2 * animValue),
+            alignment: Alignment.center,
+            child: Opacity(opacity: animValue, child: child),
+          );
+        },
+        child: _buildVerticalPanel(
+          currentItems,
+          cs,
+          panelLeft,
+          panelTop,
+          screenSize,
+          usableHeight,
+        ),
+      ),
+    );
+
+    // Use a SizedBox.expand with a Stack so Positioned works inside
+    // LayoutBuilder. The Stack itself is hit-test translucent so only
+    // the toolbar panel receives touches.
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          Positioned(left: panelLeft, top: panelTop, child: panelWidget),
+        ],
+      ),
+    );
+  }
+
+  /// Build the drag handle grip widget.
+  /// [currentLeft]/[currentTop] are the panel's current pixel position.
+  Widget _buildDragHandle(
+    ColorScheme cs,
+    double currentLeft,
+    double currentTop,
+    Size screenSize,
+    double usableHeight,
+  ) {
+    return GestureDetector(
+      onPanStart: (_) {
+        _onToolbarTouched();
+        setState(() {
+          _isDragging = true;
+          _nearDockZone = false;
+          _dragLeft = currentLeft;
+          _dragTop = currentTop;
+        });
+      },
+      onPanUpdate: (details) {
+        if (!_isDragging) return;
+        setState(() {
+          _dragLeft += details.delta.dx;
+          _dragTop += details.delta.dy;
+          // Update fractional for layout recalculation (horizontal/vertical)
+          _fracX = screenSize.width > 0
+              ? (_dragLeft / screenSize.width).clamp(0.0, 1.0)
+              : 0.0;
+          _fracY = screenSize.height > 0
+              ? (_dragTop / screenSize.height).clamp(0.0, 1.0)
+              : 0.0;
+          _nearDockZone = _dragTop < 40;
+        });
+      },
+      onPanEnd: (_) {
+        final wasDocking = _nearDockZone;
+        final left = _dragLeft;
+        final top = _dragTop;
+        setState(() {
+          _isDragging = false;
+          _nearDockZone = false;
+        });
+        if (wasDocking && widget.onDockToTop != null) {
+          widget.onDockToTop!();
+          return;
+        }
+        _savePosition(left, top, screenSize);
+      },
+      child: MouseRegion(
+        cursor: SystemMouseCursors.grab,
+        child: Container(
+          width: 40,
+          height: 16,
+          alignment: Alignment.center,
+          child: Container(
+            width: 24,
+            height: 4,
+            decoration: BoxDecoration(
+              color: cs.onSurfaceVariant.withValues(
+                alpha: _isDragging ? 0.6 : 0.35,
+              ),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Vertical panel (when toolbar is on the left/right side) ──────────────
+
+  double _verticalPanelHeight(int itemCount) {
+    // Each item 40px + more toggle 40px + divider 9px + drag handle 16px + padding 8px
+    const maxToolbarHeight = 266.0; // 250 + 16 for drag handle
+    final naturalHeight = (itemCount * 40.0) + 49.0 + 16.0 + 8.0;
+    return naturalHeight.clamp(0.0, maxToolbarHeight);
+  }
+
+  Widget _buildVerticalPanel(
+    List<_ToolbarItem> items,
+    ColorScheme cs,
+    double currentLeft,
+    double currentTop,
+    Size screenSize,
+    double usableHeight,
+  ) {
+    const maxToolbarHeight = 266.0;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+        border: _isDragging
+            ? Border.all(color: cs.primary.withValues(alpha: 0.6), width: 2)
+            : null,
+        boxShadow: [
+          BoxShadow(
+            color: cs.shadow.withValues(alpha: _isDragging ? 0.25 : 0.15),
+            blurRadius: _isDragging ? 12 : 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Scrollable items area
+          ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxHeight:
+                  maxToolbarHeight -
+                  65.0, // subtract toggle+divider+drag handle
+            ),
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                _onToolbarTouched();
+                return false;
+              },
+              child: SingleChildScrollView(
+                reverse:
+                    true, // Start scrolled to bottom so Bold etc are visible
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: Offset(_showMoreOptions ? -0.2 : 0.2, 0),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Column(
+                    key: ValueKey<bool>(_showMoreOptions),
+                    mainAxisSize: MainAxisSize.min,
+                    children: items
+                        .map((item) => _buildToolbarButton(item, cs))
+                        .toList(),
+                  ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+          // Sticky divider and toggle button (always visible)
+          _buildHorizontalDivider(cs),
+          _buildMoreOptionsToggle(cs),
+          // Drag handle at the bottom (easy thumb reach)
+          _buildDragHandle(
+            cs,
+            currentLeft,
+            currentTop,
+            screenSize,
+            usableHeight,
+          ),
+        ],
       ),
     );
   }

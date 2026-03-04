@@ -67,22 +67,6 @@ class ExperimentalSettingsScreen extends ConsumerWidget {
               final controller = ref.read(preferencesControllerProvider);
 
               return SwitchListTile(
-                secondary: const Icon(Icons.touch_app_outlined),
-                title: const Text('Floating Note Toolbar'),
-                subtitle: const Text(
-                  'Replace top toolbar with a thumb-friendly floating button',
-                ),
-                value: preferences.useFloatingNoteToolbar,
-                onChanged: (v) => controller.toggleFloatingNoteToolbar(),
-              );
-            },
-          ),
-          Consumer(
-            builder: (context, ref, _) {
-              final preferences = ref.watch(preferencesStateProvider);
-              final controller = ref.read(preferencesControllerProvider);
-
-              return SwitchListTile(
                 secondary: const Icon(Icons.edit_note_outlined),
                 title: const Text('Quick Input Bar'),
                 subtitle: const Text(

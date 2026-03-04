@@ -156,6 +156,12 @@ class PreferencesController {
   Future<void> setAutoDeleteDaysInBin(int days) =>
       _update(autoDeleteDaysInBin: days);
 
+  Future<void> setFloatingToolbarPosition(double x, double y) =>
+      _update(floatingToolbarX: x, floatingToolbarY: y);
+
+  Future<void> setFloatingToolbarExpanded(bool expanded) =>
+      _update(floatingToolbarExpanded: expanded);
+
   Future<void> _update({
     String? themeMode,
     bool? useDynamicColor,
@@ -188,6 +194,9 @@ class PreferencesController {
     bool? dismissedBatteryOptimizationReminder,
     bool? enableBin,
     int? autoDeleteDaysInBin,
+    double? floatingToolbarX,
+    double? floatingToolbarY,
+    bool? floatingToolbarExpanded,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -222,6 +231,9 @@ class PreferencesController {
           dismissedBatteryOptimizationReminder,
       enableBin: enableBin,
       autoDeleteDaysInBin: autoDeleteDaysInBin,
+      floatingToolbarX: floatingToolbarX,
+      floatingToolbarY: floatingToolbarY,
+      floatingToolbarExpanded: floatingToolbarExpanded,
     );
     ref.read(preferencesStateProvider.notifier).update(updated);
   }

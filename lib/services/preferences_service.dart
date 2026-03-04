@@ -207,6 +207,9 @@ class PreferencesService {
       ),
       enableBin: p.getBool('enable_bin'),
       autoDeleteDaysInBin: p.getInt('auto_delete_days_in_bin'),
+      floatingToolbarX: p.getDouble('floating_toolbar_x'),
+      floatingToolbarY: p.getDouble('floating_toolbar_y'),
+      floatingToolbarExpanded: p.getBool('floating_toolbar_expanded'),
     );
   }
 
@@ -268,6 +271,9 @@ class PreferencesService {
     bool? dismissedBatteryOptimizationReminder,
     bool? enableBin,
     int? autoDeleteDaysInBin,
+    double? floatingToolbarX,
+    double? floatingToolbarY,
+    bool? floatingToolbarExpanded,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -367,6 +373,15 @@ class PreferencesService {
       if (enableBin != null) await p.setBool('enable_bin', enableBin);
       if (autoDeleteDaysInBin != null) {
         await p.setInt('auto_delete_days_in_bin', autoDeleteDaysInBin);
+      }
+      if (floatingToolbarX != null) {
+        await p.setDouble('floating_toolbar_x', floatingToolbarX);
+      }
+      if (floatingToolbarY != null) {
+        await p.setDouble('floating_toolbar_y', floatingToolbarY);
+      }
+      if (floatingToolbarExpanded != null) {
+        await p.setBool('floating_toolbar_expanded', floatingToolbarExpanded);
       }
       _hydrate();
       return _cache;

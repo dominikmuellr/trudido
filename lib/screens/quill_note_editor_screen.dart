@@ -39,6 +39,7 @@ import '../widgets/note_editor_dialogs.dart';
 import '../widgets/note_editor_controls.dart';
 import '../providers/app_providers.dart';
 import '../services/preferences_service.dart';
+import '../controllers/preferences_controller.dart';
 import '../providers/note_history_provider.dart';
 import '../widgets/note_history_bottom_sheet.dart';
 import '../widgets/mention_autocomplete_popup.dart';
@@ -122,6 +123,13 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   bool _showMoreToolbar = false;
   bool _hideToolbar = false;
   bool _useFloatingToolbar = false;
+  bool _floatingToolbarExpanded = false;
+
+  // Dragging the docked toolbar out to become floating
+  bool _isDraggingDockedToolbar = false;
+  Offset _dockedDragPosition = Offset.zero; // global position of finger
+  Offset?
+  _initialFloatingPosition; // fractional position for new floating toolbar
 
   // Mention autocomplete
   MentionAutocompletePopup? _mentionPopup;
@@ -224,6 +232,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     final prefs = ref.read(preferencesStateProvider);
     // Check if floating toolbar is enabled
     _useFloatingToolbar = prefs.useFloatingNoteToolbar;
+    _floatingToolbarExpanded = prefs.floatingToolbarExpanded;
 
     // For new notes, always show the main toolbar by default
     // User can still collapse it, but it starts expanded
@@ -281,6 +290,49 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       showMoreNoteToolbar: _showMoreToolbar,
     );
     ref.read(preferencesStateProvider.notifier).update(updated);
+  }
+
+  /// Detach the docked toolbar into a floating toolbar.
+  /// If [position] is given (local to the body Stack), places the floating
+  /// toolbar there instead of defaulting to bottom-right.
+  void _detachToolbarToFloating([Offset? position]) {
+    Offset? fracPos;
+    final controller = ref.read(preferencesControllerProvider);
+    if (position != null) {
+      // Convert local pixel position to fractional (0..1) and save
+      final renderBox = context.findRenderObject() as RenderBox?;
+      final size = renderBox?.size ?? MediaQuery.of(context).size;
+      final fx = (position.dx / size.width).clamp(0.0, 1.0);
+      final fy = (position.dy / size.height).clamp(0.0, 1.0);
+      fracPos = Offset(fx, fy);
+      controller.setFloatingToolbarPosition(fx, fy);
+    } else {
+      controller.setFloatingToolbarPosition(-1.0, -1.0);
+    }
+    setState(() {
+      _useFloatingToolbar = true;
+      _floatingToolbarExpanded = true;
+      _isDraggingDockedToolbar = false;
+      _initialFloatingPosition = fracPos;
+    });
+    controller.setFloatingToolbarExpanded(true);
+    controller.toggleFloatingNoteToolbar();
+  }
+
+  /// Floating toolbar dragged to the top dock zone → dock it back as standard toolbar.
+  void _dockToolbarToTop() {
+    setState(() {
+      _useFloatingToolbar = false;
+      _floatingToolbarExpanded = false;
+      _hideToolbar = false;
+      _initialFloatingPosition = null;
+    });
+    // Reset saved position so next detach starts at default
+    ref
+        .read(preferencesControllerProvider)
+        .setFloatingToolbarPosition(-1.0, -1.0);
+    ref.read(preferencesControllerProvider).setFloatingToolbarExpanded(false);
+    ref.read(preferencesControllerProvider).toggleFloatingNoteToolbar();
   }
 
   void _handleScrollOnDelete() {
@@ -1999,6 +2051,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom > 0
         ? 8.0
         : 0.0;
+    final cs = Theme.of(context).colorScheme;
 
     return AnimatedSlide(
       duration: const Duration(milliseconds: 200),
@@ -2011,39 +2064,43 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Floating toolbar (only in edit mode when enabled)
+              // Floating toolbar toggle FAB (only in edit mode when enabled)
               if (_useFloatingToolbar && !_isReadMode) ...[
-                FloatingNoteToolbar(
-                  controller: _quillController,
-                  onInsertImage: _insertImage,
-                  onInsertVideo: _insertVideo,
-                  onInsertVoice: _insertVoiceNote,
-                  onInsertLink: _insertLink,
-                  currentLineHeight: _originalNote?.lineHeightMultiplier ?? 1.5,
-                  currentParagraphSpacing:
-                      _originalNote?.paragraphSpacing ?? 8.0,
-                  onLineHeightChanged: (newHeight) {
-                    if (_originalNote != null) {
-                      setState(() {
-                        _originalNote = _originalNote!.copyWith(
-                          lineHeightMultiplier: newHeight,
-                        );
-                        _hasUnsavedChanges = true;
-                      });
-                      _saveNoteInternal(showFeedback: false);
-                    }
+                ExpressiveFloatingActionButton(
+                  heroTag: 'floatingToolbarToggle',
+                  onPressed: () {
+                    setState(() {
+                      _floatingToolbarExpanded = !_floatingToolbarExpanded;
+                    });
+                    ref
+                        .read(preferencesControllerProvider)
+                        .setFloatingToolbarExpanded(_floatingToolbarExpanded);
                   },
-                  onParagraphSpacingChanged: (newSpacing) {
-                    if (_originalNote != null) {
-                      setState(() {
-                        _originalNote = _originalNote!.copyWith(
-                          paragraphSpacing: newSpacing,
-                        );
-                        _hasUnsavedChanges = true;
-                      });
-                      _saveNoteInternal(showFeedback: false);
-                    }
-                  },
+                  backgroundColor: _floatingToolbarExpanded
+                      ? cs.primaryContainer
+                      : cs.primary,
+                  foregroundColor: _floatingToolbarExpanded
+                      ? cs.onPrimaryContainer
+                      : cs.onPrimary,
+                  shape: const CircleBorder(),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    transitionBuilder: (child, animation) {
+                      return RotationTransition(
+                        turns: Tween<double>(
+                          begin: 0.5,
+                          end: 1.0,
+                        ).animate(animation),
+                        child: ScaleTransition(scale: animation, child: child),
+                      );
+                    },
+                    child: Icon(
+                      _floatingToolbarExpanded
+                          ? Icons.close
+                          : Icons.text_fields,
+                      key: ValueKey<bool>(_floatingToolbarExpanded),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -2052,16 +2109,71 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                 heroTag: 'readEditToggle',
                 onPressed: _toggleReadMode,
                 tooltip: _isReadMode ? 'Switch to Edit' : 'Switch to Read',
-                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                foregroundColor: Theme.of(
-                  context,
-                ).colorScheme.onPrimaryContainer,
+                backgroundColor: cs.primaryContainer,
+                foregroundColor: cs.onPrimaryContainer,
                 child: Icon(_isReadMode ? Icons.edit : Icons.visibility),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  /// Builds the floating note toolbar as a full-screen overlay.
+  /// This is separate from the FAB so it can be positioned anywhere on screen.
+  /// Wrapped in a LayoutBuilder so the toolbar knows the real available size
+  /// (which shrinks when the keyboard opens because the Scaffold has
+  /// resizeToAvoidBottomInset: true).
+  Widget _buildFloatingToolbarOverlay() {
+    if (!_useFloatingToolbar || _isReadMode) return const SizedBox.shrink();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return FloatingNoteToolbar(
+          controller: _quillController,
+          isExpanded: _floatingToolbarExpanded,
+          availableSize: Size(constraints.maxWidth, constraints.maxHeight),
+          initialPosition: _initialFloatingPosition,
+          onToggle: () {
+            setState(() {
+              _floatingToolbarExpanded = !_floatingToolbarExpanded;
+            });
+            ref
+                .read(preferencesControllerProvider)
+                .setFloatingToolbarExpanded(_floatingToolbarExpanded);
+          },
+          onDockToTop: _dockToolbarToTop,
+          onInsertImage: _insertImage,
+          onInsertVideo: _insertVideo,
+          onInsertVoice: _insertVoiceNote,
+          onInsertLink: _insertLink,
+          currentLineHeight: _originalNote?.lineHeightMultiplier ?? 1.5,
+          currentParagraphSpacing: _originalNote?.paragraphSpacing ?? 8.0,
+          onLineHeightChanged: (newHeight) {
+            if (_originalNote != null) {
+              setState(() {
+                _originalNote = _originalNote!.copyWith(
+                  lineHeightMultiplier: newHeight,
+                );
+                _hasUnsavedChanges = true;
+              });
+              _saveNoteInternal(showFeedback: false);
+            }
+          },
+          onParagraphSpacingChanged: (newSpacing) {
+            if (_originalNote != null) {
+              setState(() {
+                _originalNote = _originalNote!.copyWith(
+                  paragraphSpacing: newSpacing,
+                );
+                _hasUnsavedChanges = true;
+              });
+              _saveNoteInternal(showFeedback: false);
+            }
+          },
+        );
+      },
     );
   }
 
@@ -2164,415 +2276,566 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
             ),
           ],
         ),
-        // Floating toolbar FAB - shown when floating toolbar is enabled and in edit mode
         // Read/Edit toggle FAB - always available, hides on scroll
         floatingActionButton: _buildFloatingActionButtons(),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-        body: SafeArea(
-          top: false, // AppBar handles top
-          bottom: true, // Ensure content clears bottom nav bar
-          child: Column(
-            children: [
-              // Main toolbar - collapsible (only when not using floating toolbar and not in read mode)
-              if (!_hideToolbar && !_useFloatingToolbar && !_isReadMode)
-                Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    border: Border(
-                      bottom: BorderSide(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                        width: 0.5,
-                      ),
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Primary toolbar - essential commands with scroll indicator
-                      ScrollableToolbar(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const SizedBox(width: 8),
-                            // More options toggle button - at the beginning for visibility
-                            ExpressiveIconButton(
-                              icon: Icon(
-                                _showMoreToolbar
-                                    ? Icons.expand_less
-                                    : Icons.expand_more,
-                                size: 20,
-                              ),
-                              tooltip: _showMoreToolbar
-                                  ? 'Hide more options'
-                                  : 'More options',
-                              onPressed: () {
-                                setState(() {
-                                  _showMoreToolbar = !_showMoreToolbar;
-                                });
-                                _saveToolbarPreferences();
-                              },
-                            ),
-                            const ToolbarDivider(),
-                            // Font family dropdown - first, like Google Docs
-                            FontFamilyDropdown(
-                              controller: _quillController,
-                              onChanged: () => setState(() {}),
-                            ),
-                            const ToolbarDivider(),
-                            // Font size dropdown - numeric sizes like Word
-                            FontSizeDropdown(
-                              controller: _quillController,
-                              onChanged: () => setState(() {}),
-                            ),
-                            const ToolbarDivider(),
-                            // Bold, Italic, Underline - most common actions
-                            quill.QuillToolbarToggleStyleButton(
-                              attribute: quill.Attribute.bold,
-                              controller: _quillController,
-                              options:
-                                  const quill.QuillToolbarToggleStyleButtonOptions(),
-                            ),
-                            quill.QuillToolbarToggleStyleButton(
-                              attribute: quill.Attribute.italic,
-                              controller: _quillController,
-                              options:
-                                  const quill.QuillToolbarToggleStyleButtonOptions(),
-                            ),
-                            quill.QuillToolbarToggleStyleButton(
-                              attribute: quill.Attribute.underline,
-                              controller: _quillController,
-                              options:
-                                  const quill.QuillToolbarToggleStyleButtonOptions(),
-                            ),
-                            const ToolbarDivider(),
-                            // Header style dropdown - paragraph formatting
-                            HeaderStyleDropdown(
-                              controller: _quillController,
-                              onChanged: () => setState(() {}),
-                            ),
-                            const ToolbarDivider(),
-                            // Lists
-                            quill.QuillToolbarToggleStyleButton(
-                              attribute: quill.Attribute.ul,
-                              controller: _quillController,
-                              options:
-                                  const quill.QuillToolbarToggleStyleButtonOptions(),
-                            ),
-                            quill.QuillToolbarToggleStyleButton(
-                              attribute: quill.Attribute.ol,
-                              controller: _quillController,
-                              options:
-                                  const quill.QuillToolbarToggleStyleButtonOptions(),
-                            ),
-                            quill.QuillToolbarToggleCheckListButton(
-                              controller: _quillController,
-                              options:
-                                  const quill.QuillToolbarToggleCheckListButtonOptions(),
-                            ),
-                            const SizedBox(width: 12),
-                          ],
-                        ),
-                      ),
-                      // Secondary toolbar - additional commands (collapsible)
-                      if (_showMoreToolbar)
-                        ScrollableToolbar(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const SizedBox(width: 12),
-                              quill.QuillToolbarToggleStyleButton(
-                                attribute: quill.Attribute.strikeThrough,
-                                controller: _quillController,
-                                options:
-                                    const quill.QuillToolbarToggleStyleButtonOptions(),
-                              ),
-                              quill.QuillToolbarToggleStyleButton(
-                                attribute: quill.Attribute.inlineCode,
-                                controller: _quillController,
-                                options:
-                                    const quill.QuillToolbarToggleStyleButtonOptions(),
-                              ),
-                              const ToolbarDivider(),
-                              quill.QuillToolbarToggleStyleButton(
-                                attribute: quill.Attribute.blockQuote,
-                                controller: _quillController,
-                                options:
-                                    const quill.QuillToolbarToggleStyleButtonOptions(),
-                              ),
-                              quill.QuillToolbarToggleStyleButton(
-                                attribute: quill.Attribute.codeBlock,
-                                controller: _quillController,
-                                options:
-                                    const quill.QuillToolbarToggleStyleButtonOptions(),
-                              ),
-                              const ToolbarDivider(),
-                              quill.QuillToolbarIndentButton(
-                                controller: _quillController,
-                                isIncrease: false,
-                                options:
-                                    const quill.QuillToolbarIndentButtonOptions(),
-                              ),
-                              quill.QuillToolbarIndentButton(
-                                controller: _quillController,
-                                isIncrease: true,
-                                options:
-                                    const quill.QuillToolbarIndentButtonOptions(),
-                              ),
-                              const ToolbarDivider(),
-                              LineHeightDropdown(
-                                currentHeight:
-                                    _originalNote?.lineHeightMultiplier ?? 1.5,
-                                onChanged: (newHeight) {
-                                  if (_originalNote != null) {
-                                    setState(() {
-                                      _originalNote = _originalNote!.copyWith(
-                                        lineHeightMultiplier: newHeight,
-                                      );
-                                      _hasUnsavedChanges = true;
-                                    });
-                                    _saveNoteInternal(showFeedback: false);
-                                  }
-                                },
-                              ),
-                              ParagraphSpacingDropdown(
-                                currentSpacing:
-                                    _originalNote?.paragraphSpacing ?? 8.0,
-                                onChanged: (newSpacing) {
-                                  if (_originalNote != null) {
-                                    setState(() {
-                                      _originalNote = _originalNote!.copyWith(
-                                        paragraphSpacing: newSpacing,
-                                      );
-                                      _hasUnsavedChanges = true;
-                                    });
-                                    _saveNoteInternal(showFeedback: false);
-                                  }
-                                },
-                              ),
-                              const ToolbarDivider(),
-                              quill.QuillToolbarColorButton(
-                                controller: _quillController,
-                                isBackground: false,
-                                options:
-                                    const quill.QuillToolbarColorButtonOptions(),
-                              ),
-                              quill.QuillToolbarColorButton(
-                                controller: _quillController,
-                                isBackground: true,
-                                options:
-                                    const quill.QuillToolbarColorButtonOptions(),
-                              ),
-                              const ToolbarDivider(),
-                              quill.QuillToolbarClearFormatButton(
-                                controller: _quillController,
-                                options:
-                                    const quill.QuillToolbarClearFormatButtonOptions(),
-                              ),
-                              const SizedBox(width: 12),
-                            ],
+        body: Stack(
+          children: [
+            SafeArea(
+              top: false, // AppBar handles top
+              bottom: true, // Ensure content clears bottom nav bar
+              child: Column(
+                children: [
+                  // Main toolbar - collapsible (only when not using floating toolbar and not in read mode)
+                  // Long-press to detach into floating toolbar mode
+                  if (!_hideToolbar && !_useFloatingToolbar && !_isReadMode)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                            width: 0.5,
                           ),
                         ),
-                    ],
-                  ),
-                ),
-              // Backlinks (items that reference this note)
-              if (_originalNote != null)
-                BacklinksSection(itemId: _originalNote!.id, itemType: 'note'),
-              // Quill editor
-              Expanded(
-                child: Stack(
-                  children: [
-                    RepaintBoundary(
-                      child: Listener(
-                        onPointerUp: (_) {
-                          _quillTapPending = true;
-                        },
-                        child: quill.QuillEditor(
-                          focusNode: _focusNode,
-                          scrollController: _scrollController,
-                          controller: _quillController,
-                          config: quill.QuillEditorConfig(
-                            showCursor: !_isReadMode,
-                            enableInteractiveSelection: !_isReadMode,
-                            onLaunchUrl: (url) {
-                              // Flutter Quill prepends https:// to
-                              // URLs it considers invalid (like mention:)
-                              // so strip that prefix before handling.
-                              final cleanUrl =
-                                  url.startsWith('https://mention:')
-                                  ? url.substring('https://'.length)
-                                  : url;
-                              _openLink(cleanUrl);
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Primary toolbar - essential commands with scroll indicator
+                          ScrollableToolbar(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(width: 8),
+                                // More options toggle button - at the beginning for visibility
+                                ExpressiveIconButton(
+                                  icon: Icon(
+                                    _showMoreToolbar
+                                        ? Icons.expand_less
+                                        : Icons.expand_more,
+                                    size: 20,
+                                  ),
+                                  tooltip: _showMoreToolbar
+                                      ? 'Hide more options'
+                                      : 'More options',
+                                  onPressed: () {
+                                    setState(() {
+                                      _showMoreToolbar = !_showMoreToolbar;
+                                    });
+                                    _saveToolbarPreferences();
+                                  },
+                                ),
+                                // Drag handle to detach into floating toolbar (after expand button, away from edge)
+                                GestureDetector(
+                                  onPanStart: (details) {
+                                    final box =
+                                        context.findRenderObject()
+                                            as RenderBox?;
+                                    if (box == null) return;
+                                    setState(() {
+                                      _isDraggingDockedToolbar = true;
+                                      _dockedDragPosition =
+                                          details.globalPosition;
+                                    });
+                                  },
+                                  onPanUpdate: (details) {
+                                    if (!_isDraggingDockedToolbar) return;
+                                    setState(() {
+                                      _dockedDragPosition =
+                                          details.globalPosition;
+                                    });
+                                  },
+                                  onPanEnd: (details) {
+                                    if (!_isDraggingDockedToolbar) return;
+                                    final box =
+                                        context.findRenderObject()
+                                            as RenderBox?;
+                                    final localPos = box != null
+                                        ? box.globalToLocal(_dockedDragPosition)
+                                        : _dockedDragPosition;
+                                    _detachToolbarToFloating(localPos);
+                                  },
+                                  child: MouseRegion(
+                                    cursor: SystemMouseCursors.grab,
+                                    child: Tooltip(
+                                      message: 'Drag to detach toolbar',
+                                      child: Container(
+                                        width: 28,
+                                        height: 40,
+                                        alignment: Alignment.center,
+                                        child: Container(
+                                          width: 4,
+                                          height: 20,
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant
+                                                .withValues(alpha: 0.4),
+                                            borderRadius: BorderRadius.circular(
+                                              2,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const ToolbarDivider(),
+                                // Font family dropdown - first, like Google Docs
+                                FontFamilyDropdown(
+                                  controller: _quillController,
+                                  onChanged: () => setState(() {}),
+                                ),
+                                const ToolbarDivider(),
+                                // Font size dropdown - numeric sizes like Word
+                                FontSizeDropdown(
+                                  controller: _quillController,
+                                  onChanged: () => setState(() {}),
+                                ),
+                                const ToolbarDivider(),
+                                // Bold, Italic, Underline - most common actions
+                                quill.QuillToolbarToggleStyleButton(
+                                  attribute: quill.Attribute.bold,
+                                  controller: _quillController,
+                                  options:
+                                      const quill.QuillToolbarToggleStyleButtonOptions(),
+                                ),
+                                quill.QuillToolbarToggleStyleButton(
+                                  attribute: quill.Attribute.italic,
+                                  controller: _quillController,
+                                  options:
+                                      const quill.QuillToolbarToggleStyleButtonOptions(),
+                                ),
+                                quill.QuillToolbarToggleStyleButton(
+                                  attribute: quill.Attribute.underline,
+                                  controller: _quillController,
+                                  options:
+                                      const quill.QuillToolbarToggleStyleButtonOptions(),
+                                ),
+                                const ToolbarDivider(),
+                                // Header style dropdown - paragraph formatting
+                                HeaderStyleDropdown(
+                                  controller: _quillController,
+                                  onChanged: () => setState(() {}),
+                                ),
+                                const ToolbarDivider(),
+                                // Lists
+                                quill.QuillToolbarToggleStyleButton(
+                                  attribute: quill.Attribute.ul,
+                                  controller: _quillController,
+                                  options:
+                                      const quill.QuillToolbarToggleStyleButtonOptions(),
+                                ),
+                                quill.QuillToolbarToggleStyleButton(
+                                  attribute: quill.Attribute.ol,
+                                  controller: _quillController,
+                                  options:
+                                      const quill.QuillToolbarToggleStyleButtonOptions(),
+                                ),
+                                quill.QuillToolbarToggleCheckListButton(
+                                  controller: _quillController,
+                                  options:
+                                      const quill.QuillToolbarToggleCheckListButtonOptions(),
+                                ),
+                                const SizedBox(width: 12),
+                              ],
+                            ),
+                          ),
+                          // Secondary toolbar - additional commands (collapsible)
+                          if (_showMoreToolbar)
+                            ScrollableToolbar(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(width: 12),
+                                  quill.QuillToolbarToggleStyleButton(
+                                    attribute: quill.Attribute.strikeThrough,
+                                    controller: _quillController,
+                                    options:
+                                        const quill.QuillToolbarToggleStyleButtonOptions(),
+                                  ),
+                                  quill.QuillToolbarToggleStyleButton(
+                                    attribute: quill.Attribute.inlineCode,
+                                    controller: _quillController,
+                                    options:
+                                        const quill.QuillToolbarToggleStyleButtonOptions(),
+                                  ),
+                                  const ToolbarDivider(),
+                                  quill.QuillToolbarToggleStyleButton(
+                                    attribute: quill.Attribute.blockQuote,
+                                    controller: _quillController,
+                                    options:
+                                        const quill.QuillToolbarToggleStyleButtonOptions(),
+                                  ),
+                                  quill.QuillToolbarToggleStyleButton(
+                                    attribute: quill.Attribute.codeBlock,
+                                    controller: _quillController,
+                                    options:
+                                        const quill.QuillToolbarToggleStyleButtonOptions(),
+                                  ),
+                                  const ToolbarDivider(),
+                                  quill.QuillToolbarIndentButton(
+                                    controller: _quillController,
+                                    isIncrease: false,
+                                    options:
+                                        const quill.QuillToolbarIndentButtonOptions(),
+                                  ),
+                                  quill.QuillToolbarIndentButton(
+                                    controller: _quillController,
+                                    isIncrease: true,
+                                    options:
+                                        const quill.QuillToolbarIndentButtonOptions(),
+                                  ),
+                                  const ToolbarDivider(),
+                                  LineHeightDropdown(
+                                    currentHeight:
+                                        _originalNote?.lineHeightMultiplier ??
+                                        1.5,
+                                    onChanged: (newHeight) {
+                                      if (_originalNote != null) {
+                                        setState(() {
+                                          _originalNote = _originalNote!
+                                              .copyWith(
+                                                lineHeightMultiplier: newHeight,
+                                              );
+                                          _hasUnsavedChanges = true;
+                                        });
+                                        _saveNoteInternal(showFeedback: false);
+                                      }
+                                    },
+                                  ),
+                                  ParagraphSpacingDropdown(
+                                    currentSpacing:
+                                        _originalNote?.paragraphSpacing ?? 8.0,
+                                    onChanged: (newSpacing) {
+                                      if (_originalNote != null) {
+                                        setState(() {
+                                          _originalNote = _originalNote!
+                                              .copyWith(
+                                                paragraphSpacing: newSpacing,
+                                              );
+                                          _hasUnsavedChanges = true;
+                                        });
+                                        _saveNoteInternal(showFeedback: false);
+                                      }
+                                    },
+                                  ),
+                                  const ToolbarDivider(),
+                                  quill.QuillToolbarColorButton(
+                                    controller: _quillController,
+                                    isBackground: false,
+                                    options:
+                                        const quill.QuillToolbarColorButtonOptions(),
+                                  ),
+                                  quill.QuillToolbarColorButton(
+                                    controller: _quillController,
+                                    isBackground: true,
+                                    options:
+                                        const quill.QuillToolbarColorButtonOptions(),
+                                  ),
+                                  const ToolbarDivider(),
+                                  quill.QuillToolbarClearFormatButton(
+                                    controller: _quillController,
+                                    options:
+                                        const quill.QuillToolbarClearFormatButtonOptions(),
+                                  ),
+                                  const SizedBox(width: 12),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  // Backlinks (items that reference this note)
+                  if (_originalNote != null)
+                    BacklinksSection(
+                      itemId: _originalNote!.id,
+                      itemType: 'note',
+                    ),
+                  // Quill editor
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        RepaintBoundary(
+                          child: Listener(
+                            onPointerUp: (_) {
+                              _quillTapPending = true;
                             },
-                            linkActionPickerDelegate:
-                                (context, link, node) async {
-                                  // Handle mention links (including
-                                  // https:// prefix added by Quill)
-                                  final cleanLink =
-                                      link.startsWith('https://mention:')
-                                      ? link.substring('https://'.length)
-                                      : link;
-                                  if (cleanLink.startsWith('mention:')) {
-                                    _openLink(cleanLink);
-                                    return quill.LinkMenuAction.none;
-                                  }
-                                  return quill.defaultLinkActionPickerDelegate(
-                                    context,
-                                    cleanLink,
-                                    node,
-                                  );
+                            child: quill.QuillEditor(
+                              focusNode: _focusNode,
+                              scrollController: _scrollController,
+                              controller: _quillController,
+                              config: quill.QuillEditorConfig(
+                                showCursor: !_isReadMode,
+                                enableInteractiveSelection: !_isReadMode,
+                                onLaunchUrl: (url) {
+                                  // Flutter Quill prepends https:// to
+                                  // URLs it considers invalid (like mention:)
+                                  // so strip that prefix before handling.
+                                  final cleanUrl =
+                                      url.startsWith('https://mention:')
+                                      ? url.substring('https://'.length)
+                                      : url;
+                                  _openLink(cleanUrl);
                                 },
-                            // Apply strikethrough to checked list items purely
-                            // visually — no document mutation, no re-entrance.
-                            textSpanBuilder:
-                                (
-                                  context,
-                                  node,
-                                  nodeOffset,
-                                  text,
-                                  style,
-                                  recognizer,
-                                ) {
-                                  TextStyle effectiveStyle =
-                                      style ?? const TextStyle();
-                                  if (node
-                                          .parent
-                                          ?.style
-                                          .attributes['list']
-                                          ?.value ==
-                                      'checked') {
-                                    final existing = effectiveStyle.decoration;
-                                    effectiveStyle = effectiveStyle.copyWith(
-                                      decoration: existing == null
-                                          ? TextDecoration.lineThrough
-                                          : TextDecoration.combine([
-                                              existing,
-                                              TextDecoration.lineThrough,
-                                            ]),
-                                    );
-                                  }
-                                  return TextSpan(
-                                    text: text,
-                                    style: effectiveStyle,
-                                    recognizer: recognizer,
-                                    mouseCursor: recognizer != null
-                                        ? SystemMouseCursors.click
-                                        : null,
-                                  );
-                                },
-                            customStyles: quill.DefaultStyles(
-                              link: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.w600,
-                                decoration: TextDecoration.none,
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer
-                                    .withValues(alpha: 0.4),
-                              ),
-                              paragraph: quill.DefaultTextBlockStyle(
-                                TextStyle(
-                                  fontSize: 16,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface,
-                                  height:
-                                      _originalNote?.lineHeightMultiplier ??
-                                      1.5,
+                                linkActionPickerDelegate:
+                                    (context, link, node) async {
+                                      // Handle mention links (including
+                                      // https:// prefix added by Quill)
+                                      final cleanLink =
+                                          link.startsWith('https://mention:')
+                                          ? link.substring('https://'.length)
+                                          : link;
+                                      if (cleanLink.startsWith('mention:')) {
+                                        _openLink(cleanLink);
+                                        return quill.LinkMenuAction.none;
+                                      }
+                                      return quill
+                                          .defaultLinkActionPickerDelegate(
+                                            context,
+                                            cleanLink,
+                                            node,
+                                          );
+                                    },
+                                // Apply strikethrough to checked list items purely
+                                // visually — no document mutation, no re-entrance.
+                                textSpanBuilder:
+                                    (
+                                      context,
+                                      node,
+                                      nodeOffset,
+                                      text,
+                                      style,
+                                      recognizer,
+                                    ) {
+                                      TextStyle effectiveStyle =
+                                          style ?? const TextStyle();
+                                      if (node
+                                              .parent
+                                              ?.style
+                                              .attributes['list']
+                                              ?.value ==
+                                          'checked') {
+                                        final existing =
+                                            effectiveStyle.decoration;
+                                        effectiveStyle = effectiveStyle
+                                            .copyWith(
+                                              decoration: existing == null
+                                                  ? TextDecoration.lineThrough
+                                                  : TextDecoration.combine([
+                                                      existing,
+                                                      TextDecoration
+                                                          .lineThrough,
+                                                    ]),
+                                            );
+                                      }
+                                      return TextSpan(
+                                        text: text,
+                                        style: effectiveStyle,
+                                        recognizer: recognizer,
+                                        mouseCursor: recognizer != null
+                                            ? SystemMouseCursors.click
+                                            : null,
+                                      );
+                                    },
+                                customStyles: quill.DefaultStyles(
+                                  link: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                    decoration: TextDecoration.none,
+                                    backgroundColor: Theme.of(context)
+                                        .colorScheme
+                                        .primaryContainer
+                                        .withValues(alpha: 0.4),
+                                  ),
+                                  paragraph: quill.DefaultTextBlockStyle(
+                                    TextStyle(
+                                      fontSize: 16,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                      height:
+                                          _originalNote?.lineHeightMultiplier ??
+                                          1.5,
+                                    ),
+                                    quill.HorizontalSpacing(0, 0),
+                                    quill.VerticalSpacing(
+                                      _originalNote?.paragraphSpacing ?? 8.0,
+                                      _originalNote?.paragraphSpacing ?? 8.0,
+                                    ),
+                                    quill.VerticalSpacing(0, 0),
+                                    null,
+                                  ),
+                                  lists: quill.DefaultListBlockStyle(
+                                    TextStyle(
+                                      fontSize: 16,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                      height:
+                                          _originalNote?.lineHeightMultiplier ??
+                                          1.5,
+                                    ),
+                                    quill.HorizontalSpacing(0, 0),
+                                    // No inter-block spacing for lists —
+                                    // flutter_quill splits checked/unchecked items
+                                    // into separate blocks, so any spacing here
+                                    // creates visible gaps when toggling checkboxes.
+                                    quill.VerticalSpacing(0, 0),
+                                    quill.VerticalSpacing(0, 0),
+                                    null,
+                                    null,
+                                  ),
                                 ),
-                                quill.HorizontalSpacing(0, 0),
-                                quill.VerticalSpacing(
-                                  _originalNote?.paragraphSpacing ?? 8.0,
-                                  _originalNote?.paragraphSpacing ?? 8.0,
+                                embedBuilders: [
+                                  MediaEmbedBuilder(),
+                                  LinkEmbedBuilder(),
+                                ],
+                                padding: EdgeInsets.only(
+                                  left: 16,
+                                  right: 16,
+                                  top: 16,
+                                  bottom:
+                                      math.max(
+                                        MediaQuery.of(
+                                          context,
+                                        ).viewInsets.bottom,
+                                        MediaQuery.of(
+                                          context,
+                                        ).viewPadding.bottom,
+                                      ) +
+                                      16,
                                 ),
-                                quill.VerticalSpacing(0, 0),
-                                null,
-                              ),
-                              lists: quill.DefaultListBlockStyle(
-                                TextStyle(
-                                  fontSize: 16,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface,
-                                  height:
-                                      _originalNote?.lineHeightMultiplier ??
-                                      1.5,
-                                ),
-                                quill.HorizontalSpacing(0, 0),
-                                // No inter-block spacing for lists —
-                                // flutter_quill splits checked/unchecked items
-                                // into separate blocks, so any spacing here
-                                // creates visible gaps when toggling checkboxes.
-                                quill.VerticalSpacing(0, 0),
-                                quill.VerticalSpacing(0, 0),
-                                null,
-                                null,
+                                placeholder: _showPlaceholder
+                                    ? 'Type "/" for media, "@" to link tasks or notes'
+                                    : null,
                               ),
                             ),
-                            embedBuilders: [
-                              MediaEmbedBuilder(),
-                              LinkEmbedBuilder(),
-                            ],
-                            padding: EdgeInsets.only(
+                          ),
+                        ),
+                        // Slash command menu - positioned at cursor height
+                        if (_showSlashMenu)
+                          Positioned(
+                            left: 16,
+                            right: 16,
+                            top: _slashMenuTop,
+                            child: SlashCommandMenu(
+                              onInsertImage: () => _insertSlashCommand('image'),
+                              onInsertVideo: () => _insertSlashCommand('video'),
+                              onInsertVoice: () => _insertSlashCommand('voice'),
+                              onInsertLink: () => _insertSlashCommand('link'),
+                              onInsertCode: () => _insertSlashCommand('code'),
+                            ),
+                          ),
+                        // Floating history controls - visible when feature enabled
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final preferences = ref.watch(
+                              preferencesStateProvider,
+                            );
+                            if (!preferences.enableNoteHistory) {
+                              return const SizedBox.shrink();
+                            }
+                            return Positioned(
                               left: 16,
-                              right: 16,
-                              top: 16,
                               bottom:
-                                  math.max(
-                                    MediaQuery.of(context).viewInsets.bottom,
-                                    MediaQuery.of(context).viewPadding.bottom,
-                                  ) +
-                                  16,
-                            ),
-                            placeholder: _showPlaceholder
-                                ? 'Type "/" for media, "@" to link tasks or notes'
-                                : null,
-                          ),
+                                  MediaQuery.of(context).viewInsets.bottom > 0
+                                  ? 8
+                                  : 16,
+                              child: FloatingHistoryControls(
+                                noteId: _originalNote?.id ?? widget.noteId,
+                                onUndo: _handleUndo,
+                                onRedo: _handleRedo,
+                                onShowHistory: _showNoteHistory,
+                              ),
+                            );
+                          },
                         ),
-                      ),
+                      ],
                     ),
-                    // Slash command menu - positioned at cursor height
-                    if (_showSlashMenu)
-                      Positioned(
-                        left: 16,
-                        right: 16,
-                        top: _slashMenuTop,
-                        child: SlashCommandMenu(
-                          onInsertImage: () => _insertSlashCommand('image'),
-                          onInsertVideo: () => _insertSlashCommand('video'),
-                          onInsertVoice: () => _insertSlashCommand('voice'),
-                          onInsertLink: () => _insertSlashCommand('link'),
-                          onInsertCode: () => _insertSlashCommand('code'),
-                        ),
-                      ),
-                    // Floating history controls - visible when feature enabled
-                    Consumer(
-                      builder: (context, ref, _) {
-                        final preferences = ref.watch(preferencesStateProvider);
-                        if (!preferences.enableNoteHistory) {
-                          return const SizedBox.shrink();
-                        }
-                        return Positioned(
-                          left: 16,
-                          bottom: MediaQuery.of(context).viewInsets.bottom > 0
-                              ? 8
-                              : 16,
-                          child: FloatingHistoryControls(
-                            noteId: _originalNote?.id ?? widget.noteId,
-                            onUndo: _handleUndo,
-                            onRedo: _handleRedo,
-                            onShowHistory: _showNoteHistory,
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            // Drag preview when pulling the docked toolbar out
+            if (_isDraggingDockedToolbar)
+              Builder(
+                builder: (context) {
+                  final box = this.context.findRenderObject() as RenderBox?;
+                  final localPos = box != null
+                      ? box.globalToLocal(_dockedDragPosition)
+                      : _dockedDragPosition;
+                  final cs = Theme.of(context).colorScheme;
+                  return Positioned(
+                    left: localPos.dx - 24, // center the 48px preview on finger
+                    top: localPos.dy - 24,
+                    child: IgnorePointer(
+                      child: Material(
+                        elevation: 8,
+                        borderRadius: BorderRadius.circular(16),
+                        color: cs.surfaceContainerHigh,
+                        child: Container(
+                          width: 48,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: cs.outlineVariant.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: cs.onSurfaceVariant.withValues(
+                                    alpha: 0.4,
+                                  ),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Icon(
+                                Icons.format_bold,
+                                size: 20,
+                                color: cs.onSurfaceVariant.withValues(
+                                  alpha: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Icon(
+                                Icons.format_italic,
+                                size: 20,
+                                color: cs.onSurfaceVariant.withValues(
+                                  alpha: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Icon(
+                                Icons.format_underlined,
+                                size: 20,
+                                color: cs.onSurfaceVariant.withValues(
+                                  alpha: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            // Floating note toolbar overlay — positioned anywhere on screen
+            _buildFloatingToolbarOverlay(),
+          ],
         ),
       ),
     );
