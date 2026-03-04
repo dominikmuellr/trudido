@@ -99,6 +99,10 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
   late AnimationController _expandController;
   late Animation<double> _expandAnimation;
 
+  // Scroll hint animation
+  final ScrollController _scrollHintController = ScrollController();
+  bool _hasPlayedScrollHint = false;
+
   // Position tracking — stored as fractional (0..1) of the panel's LEFT/TOP
   // relative to screen size. -1 means "not set yet" → will use default.
   double _fracX = -1.0;
@@ -144,6 +148,48 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
 
     // Listen to controller changes for button state updates and typing detection
     widget.controller.addListener(_onControllerChanged);
+
+    // Play scroll hint animation after toolbar settles
+    if (widget.isExpanded) {
+      _scheduleScrollHint();
+    }
+  }
+
+  /// Schedules the scroll-hint animation once the toolbar has laid out.
+  void _scheduleScrollHint() {
+    if (_hasPlayedScrollHint) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _hasPlayedScrollHint) return;
+      // Wait a moment for the expand animation to finish
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (!mounted ||
+            _hasPlayedScrollHint ||
+            !_scrollHintController.hasClients)
+          return;
+        _hasPlayedScrollHint = true;
+        _playScrollHint();
+      });
+    });
+  }
+
+  /// Smoothly scrolls to top then back to bottom to hint that content is scrollable.
+  Future<void> _playScrollHint() async {
+    if (!_scrollHintController.hasClients) return;
+    final maxScroll = _scrollHintController.position.maxScrollExtent;
+    if (maxScroll <= 0) return; // Nothing to scroll
+    // Scroll up to reveal hidden items (reverse: true means 0 is the start)
+    await _scrollHintController.animateTo(
+      maxScroll,
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+    );
+    if (!mounted || !_scrollHintController.hasClients) return;
+    // Snap back to original position — faster
+    await _scrollHintController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
@@ -152,6 +198,7 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
     if (widget.isExpanded != oldWidget.isExpanded) {
       if (widget.isExpanded) {
         _expandController.forward();
+        _scheduleScrollHint();
       } else {
         _expandController.reverse();
         _showMoreOptions = false;
@@ -163,6 +210,7 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
   void dispose() {
     widget.controller.removeListener(_onControllerChanged);
     _expandController.dispose();
+    _scrollHintController.dispose();
     super.dispose();
   }
 
@@ -855,6 +903,7 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
                 return false;
               },
               child: SingleChildScrollView(
+                controller: _scrollHintController,
                 reverse:
                     true, // Start scrolled to bottom so Bold etc are visible
                 child: AnimatedSwitcher(

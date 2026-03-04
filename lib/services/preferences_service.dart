@@ -210,6 +210,9 @@ class PreferencesService {
       floatingToolbarX: p.getDouble('floating_toolbar_x'),
       floatingToolbarY: p.getDouble('floating_toolbar_y'),
       floatingToolbarExpanded: p.getBool('floating_toolbar_expanded'),
+      floatingToolbarDragHintShown: p.getBool(
+        'floating_toolbar_drag_hint_shown',
+      ),
     );
   }
 
@@ -274,6 +277,7 @@ class PreferencesService {
     double? floatingToolbarX,
     double? floatingToolbarY,
     bool? floatingToolbarExpanded,
+    bool? floatingToolbarDragHintShown,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -382,6 +386,12 @@ class PreferencesService {
       }
       if (floatingToolbarExpanded != null) {
         await p.setBool('floating_toolbar_expanded', floatingToolbarExpanded);
+      }
+      if (floatingToolbarDragHintShown != null) {
+        await p.setBool(
+          'floating_toolbar_drag_hint_shown',
+          floatingToolbarDragHintShown,
+        );
       }
       _hydrate();
       return _cache;

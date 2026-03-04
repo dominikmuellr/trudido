@@ -131,6 +131,11 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   Offset?
   _initialFloatingPosition; // fractional position for new floating toolbar
 
+  // Drag-to-detach hint tooltip
+  final GlobalKey _dragHandleKey = GlobalKey();
+  final GlobalKey _toolbarContainerKey = GlobalKey();
+  bool _showDragHint = false;
+
   // Mention autocomplete
   MentionAutocompletePopup? _mentionPopup;
   bool _quillTapPending = false;
@@ -243,6 +248,27 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       _hideToolbar = prefs.hideNoteToolbar;
       _showMoreToolbar = prefs.showMoreNoteToolbar;
     }
+
+    // Schedule the drag-to-detach hint if not shown yet and toolbar is docked
+    if (!prefs.floatingToolbarDragHintShown && !_useFloatingToolbar) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        // Small delay so the toolbar has laid out and the GlobalKey is attached
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (!mounted || _useFloatingToolbar || _hideToolbar) return;
+          setState(() => _showDragHint = true);
+        });
+      });
+    }
+  }
+
+  /// Dismiss the drag-to-detach tooltip and persist that it was shown.
+  void _dismissDragHint() {
+    if (!_showDragHint) return;
+    setState(() => _showDragHint = false);
+    ref
+        .read(preferencesControllerProvider)
+        .setFloatingToolbarDragHintShown(true);
   }
 
   /// Scroll listener to hide/show the read/edit FAB.
@@ -2290,6 +2316,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                   // Long-press to detach into floating toolbar mode
                   if (!_hideToolbar && !_useFloatingToolbar && !_isReadMode)
                     Container(
+                      key: _toolbarContainerKey,
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surface,
                         border: Border(
@@ -2335,6 +2362,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                         context.findRenderObject()
                                             as RenderBox?;
                                     if (box == null) return;
+                                    _dismissDragHint();
                                     setState(() {
                                       _isDraggingDockedToolbar = true;
                                       _dockedDragPosition =
@@ -2363,6 +2391,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                     child: Tooltip(
                                       message: 'Drag to detach toolbar',
                                       child: Container(
+                                        key: _dragHandleKey,
                                         width: 28,
                                         height: 40,
                                         alignment: Alignment.center,
@@ -2835,9 +2864,139 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
               ),
             // Floating note toolbar overlay — positioned anywhere on screen
             _buildFloatingToolbarOverlay(),
+            // One-time drag-to-detach hint tooltip
+            if (_showDragHint) _buildDragHintTooltip(),
           ],
         ),
       ),
     );
   }
+
+  /// Builds a coach-mark tooltip pointing to the drag handle, shown once.
+  Widget _buildDragHintTooltip() {
+    // Find the drag handle's position via its GlobalKey
+    final handleContext = _dragHandleKey.currentContext;
+    if (handleContext == null) return const SizedBox.shrink();
+    final handleBox = handleContext.findRenderObject() as RenderBox?;
+    if (handleBox == null || !handleBox.attached)
+      return const SizedBox.shrink();
+    final stackBox = context.findRenderObject() as RenderBox?;
+    if (stackBox == null) return const SizedBox.shrink();
+
+    final handlePos = handleBox.localToGlobal(Offset.zero, ancestor: stackBox);
+    final handleSize = handleBox.size;
+
+    // Find the bottom of the whole toolbar container for vertical positioning
+    double toolbarBottom = handlePos.dy + handleSize.height;
+    final toolbarContext = _toolbarContainerKey.currentContext;
+    if (toolbarContext != null) {
+      final toolbarBox = toolbarContext.findRenderObject() as RenderBox?;
+      if (toolbarBox != null && toolbarBox.attached) {
+        final toolbarPos = toolbarBox.localToGlobal(
+          Offset.zero,
+          ancestor: stackBox,
+        );
+        toolbarBottom = toolbarPos.dy + toolbarBox.size.height;
+      }
+    }
+
+    // Position the tooltip just below the toolbar, arrow pointing up at it
+    const tooltipWidth = 240.0;
+    const arrowHeight = 8.0;
+    final tooltipLeft = (handlePos.dx + handleSize.width / 2 - tooltipWidth / 2)
+        .clamp(8.0, (stackBox.size.width - tooltipWidth - 8));
+    final tooltipTop = toolbarBottom + arrowHeight;
+
+    // Arrow position relative to tooltip
+    final arrowLeft =
+        handlePos.dx +
+        handleSize.width / 2 -
+        tooltipLeft -
+        6; // 6 = half arrow width
+
+    final cs = Theme.of(context).colorScheme;
+
+    return Stack(
+      children: [
+        // Arrow pointing up to the drag handle
+        Positioned(
+          left: tooltipLeft + arrowLeft,
+          top: tooltipTop - arrowHeight,
+          child: CustomPaint(
+            size: const Size(12, arrowHeight),
+            painter: _TriangleArrowPainter(color: cs.inverseSurface),
+          ),
+        ),
+        // Tooltip bubble
+        Positioned(
+          left: tooltipLeft,
+          top: tooltipTop,
+          child: Material(
+            elevation: 8,
+            borderRadius: BorderRadius.circular(12),
+            color: cs.inverseSurface,
+            child: Container(
+              width: tooltipWidth,
+              padding: const EdgeInsets.only(
+                left: 14,
+                top: 10,
+                bottom: 10,
+                right: 4,
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.open_with_rounded,
+                    size: 20,
+                    color: cs.onInverseSurface,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Drag this handle to detach the toolbar',
+                      style: TextStyle(
+                        color: cs.onInverseSurface,
+                        fontSize: 13,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      iconSize: 16,
+                      icon: Icon(Icons.close, color: cs.onInverseSurface),
+                      onPressed: _dismissDragHint,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Paints a small upward-pointing triangle (arrow) for the drag hint tooltip.
+class _TriangleArrowPainter extends CustomPainter {
+  final Color color;
+  _TriangleArrowPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final path = Path()
+      ..moveTo(size.width / 2, 0)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TriangleArrowPainter old) => color != old.color;
 }

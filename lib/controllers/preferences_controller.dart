@@ -162,6 +162,9 @@ class PreferencesController {
   Future<void> setFloatingToolbarExpanded(bool expanded) =>
       _update(floatingToolbarExpanded: expanded);
 
+  Future<void> setFloatingToolbarDragHintShown(bool shown) =>
+      _update(floatingToolbarDragHintShown: shown);
+
   Future<void> _update({
     String? themeMode,
     bool? useDynamicColor,
@@ -197,6 +200,7 @@ class PreferencesController {
     double? floatingToolbarX,
     double? floatingToolbarY,
     bool? floatingToolbarExpanded,
+    bool? floatingToolbarDragHintShown,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -234,6 +238,7 @@ class PreferencesController {
       floatingToolbarX: floatingToolbarX,
       floatingToolbarY: floatingToolbarY,
       floatingToolbarExpanded: floatingToolbarExpanded,
+      floatingToolbarDragHintShown: floatingToolbarDragHintShown,
     );
     ref.read(preferencesStateProvider.notifier).update(updated);
   }

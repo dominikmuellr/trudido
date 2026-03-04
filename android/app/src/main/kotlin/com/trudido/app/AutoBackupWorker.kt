@@ -160,7 +160,7 @@ class AutoBackupWorker(
         val timestamp = System.currentTimeMillis()
         return """
         {
-          "version": "1.3.1",
+          "version": "1.3.2",
           "backup_type": "automatic",
           "exported_at": "${Date(timestamp)}",
           "timestamp": $timestamp,

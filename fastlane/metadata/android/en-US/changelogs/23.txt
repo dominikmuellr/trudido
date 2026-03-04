@@ -1,0 +1,18 @@
+Version 1.3.2
+
+• Added floating note toolbar with drag-and-drop and persistence
+• Added comprehensive bin (trash) system with flexible auto-deletion
+• Added compact mode for denser layout
+• Added toggle to switch between write and read mode in notes
+• Added inline clear buttons for task scheduling options
+• Added atomic mention behavior in task and notes editor
+• Added option to choose your default notes folder
+• Added "Don't show again" option to battery optimization reminder
+• Added setting to black out app in recent apps view
+• Expanded images in note preview cards
+• Stabilized editor performance and fixed checkbox/strikethrough glitches
+• Fixed PDF export missing formatting and content for notes
+• Fixed light mode task card preview tint matching note preview card
+• Fixed edge-to-edge display issues for Android 15 compatibility
+• Fixed auto-backup export issues
+• Updated packages in About and Licenses

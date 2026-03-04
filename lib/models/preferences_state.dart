@@ -77,6 +77,10 @@ class PreferencesState {
   final bool?
   _floatingToolbarExpanded; // Whether the floating toolbar panel is open
   bool get floatingToolbarExpanded => _floatingToolbarExpanded ?? false;
+  final bool?
+  _floatingToolbarDragHintShown; // Whether the drag-to-detach hint was shown
+  bool get floatingToolbarDragHintShown =>
+      _floatingToolbarDragHintShown ?? false;
 
   const PreferencesState({
     required this.themeMode,
@@ -116,6 +120,7 @@ class PreferencesState {
     double? floatingToolbarX,
     double? floatingToolbarY,
     bool? floatingToolbarExpanded,
+    bool? floatingToolbarDragHintShown,
   }) : _lineHeightMultiplier = lineHeightMultiplier,
        _paragraphSpacing = paragraphSpacing,
        _blackoutRecents = blackoutRecents,
@@ -127,7 +132,8 @@ class PreferencesState {
        _autoDeleteDaysInBin = autoDeleteDaysInBin,
        _floatingToolbarX = floatingToolbarX,
        _floatingToolbarY = floatingToolbarY,
-       _floatingToolbarExpanded = floatingToolbarExpanded;
+       _floatingToolbarExpanded = floatingToolbarExpanded,
+       _floatingToolbarDragHintShown = floatingToolbarDragHintShown;
 
   PreferencesState copyWith({
     String? themeMode,
@@ -167,6 +173,7 @@ class PreferencesState {
     double? floatingToolbarX,
     double? floatingToolbarY,
     bool? floatingToolbarExpanded,
+    bool? floatingToolbarDragHintShown,
   }) => PreferencesState(
     themeMode: themeMode ?? this.themeMode,
     useDynamicColor: useDynamicColor ?? this.useDynamicColor,
@@ -210,6 +217,8 @@ class PreferencesState {
     floatingToolbarY: floatingToolbarY ?? this.floatingToolbarY,
     floatingToolbarExpanded:
         floatingToolbarExpanded ?? this.floatingToolbarExpanded,
+    floatingToolbarDragHintShown:
+        floatingToolbarDragHintShown ?? this.floatingToolbarDragHintShown,
   );
 
   static const defaultState = PreferencesState(
