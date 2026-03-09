@@ -38,6 +38,7 @@ class _MenuItem {
 class FabMenu extends ConsumerStatefulWidget {
   final VoidCallback onAddTask;
   final VoidCallback onAddNote;
+  final VoidCallback? onAddEvent;
   final VoidCallback? onAddFromTemplate;
   final VoidCallback? onCreateVaultNote;
   final VoidCallback? onLockVault;
@@ -47,6 +48,7 @@ class FabMenu extends ConsumerStatefulWidget {
     super.key,
     required this.onAddTask,
     required this.onAddNote,
+    this.onAddEvent,
     this.onAddFromTemplate,
     this.onCreateVaultNote,
     this.onLockVault,
@@ -121,9 +123,15 @@ class _FabMenuState extends ConsumerState<FabMenu>
       return [
         _MenuItem(
           icon: Icons.add_task,
-          label: 'Add Task',
+          label: 'New To-do',
           onTap: widget.onAddTask,
         ),
+        if (widget.onAddEvent != null)
+          _MenuItem(
+            icon: Icons.event,
+            label: 'New Event',
+            onTap: widget.onAddEvent!,
+          ),
         if (widget.onAddFromTemplate != null)
           _MenuItem(
             icon: Icons.dashboard_customize_outlined,

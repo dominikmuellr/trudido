@@ -17,7 +17,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/preferences_state.dart';
 import '../models/todo.dart';
+import '../models/event.dart';
 import '../repositories/task_repository.dart';
+import '../repositories/event_repository.dart';
 import '../services/preferences_service.dart';
 import '../services/lifecycle_sync_observer.dart';
 import '../theme/spacing_tokens.dart';
@@ -37,6 +39,11 @@ final preferencesStateProvider = stateProvider<PreferencesState>(
 /// Task repository provider (lazy load). Use [tasksProvider] for list.
 final taskRepositoryProvider = Provider<TaskRepository>(
   (ref) => TaskRepository(),
+);
+
+/// Event repository provider (lazy load). Use [eventsProvider] for list.
+final eventRepositoryProvider = Provider<EventRepository>(
+  (ref) => EventRepository(),
 );
 
 class _TasksNotifier extends Notifier<List<Todo>> {
@@ -63,6 +70,30 @@ final tasksProvider = NotifierProvider<_TasksNotifier, List<Todo>>(
   _TasksNotifier.new,
 );
 
+class _EventsNotifier extends Notifier<List<Event>> {
+  EventRepository get repo => ref.read(eventRepositoryProvider);
+
+  @override
+  List<Event> build() {
+    _load();
+    return const [];
+  }
+
+  Future<void> _load() async {
+    await repo.load();
+    state = repo.events;
+  }
+
+  Future<void> refresh() async {
+    await repo.load();
+    state = repo.events;
+  }
+}
+
+final eventsProvider = NotifierProvider<_EventsNotifier, List<Event>>(
+  _EventsNotifier.new,
+);
+
 /// Convenience filtered list example (incomplete tasks only).
 final incompleteTasksProvider = Provider<List<Todo>>((ref) {
   final all = ref.watch(tasksProvider);
@@ -74,6 +105,13 @@ final todayActiveTasksProvider = Provider<List<Todo>>((ref) {
   final all = ref.watch(tasksProvider);
   final today = ref.watch(clockProvider).now();
   return all.where((t) => t.activeOn(today)).toList();
+});
+
+/// Events occurring today.
+final todayEventsProvider = Provider<List<Event>>((ref) {
+  final all = ref.watch(eventsProvider);
+  final today = ref.watch(clockProvider).now();
+  return all.where((e) => e.occursOn(today)).toList();
 });
 
 /// Guard helper turning exceptions into AsyncValue.

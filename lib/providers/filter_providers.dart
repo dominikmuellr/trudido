@@ -18,11 +18,11 @@
 /// These providers control what the user sees in task/note lists.
 library;
 
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/todo.dart';
+import '../models/event.dart';
 import '../utils/date_search_parser.dart';
 import 'app_providers.dart';
 import '../services/folder_provider.dart';
@@ -204,7 +204,9 @@ int _compareBySortKey(Todo a, Todo b, String key) {
   }
   if (key == 'alphabetical' && result != 0) {
     if (kDebugMode) {
-      debugPrint('[_compareBySortKey] Comparing "${a.text}" vs "${b.text}": $result');
+      debugPrint(
+        '[_compareBySortKey] Comparing "${a.text}" vs "${b.text}": $result',
+      );
     }
   }
   return result;
@@ -231,5 +233,68 @@ final tasksForSearchDateProvider = Provider<List<Todo>>((ref) {
       return a.dueDate!.compareTo(b.dueDate!);
     }
     return 0;
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Event filter providers
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Toggle to control whether events are shown in the calendar/list views.
+/// Values: 'all' | 'events_only' | 'tasks_only'
+final calendarItemFilterProvider = stateProvider<String>('all');
+
+/// Filtered events list based on search, folder, and completion filters.
+final filteredEventsProvider = Provider<List<Event>>((ref) {
+  final events = ref.watch(eventsProvider);
+  final searchQuery = ref.watch(searchQueryProvider);
+  final showCompleted = ref.watch(showCompletedProvider);
+  final selectedFolder = ref.watch(selectedFolderProvider);
+
+  var filtered = events.where((event) {
+    if (selectedFolder != null && event.folderId != selectedFolder)
+      return false;
+    if (!showCompleted && event.isCompleted) return false;
+    return true;
+  }).toList();
+
+  if (searchQuery.isNotEmpty) {
+    filtered = FuzzySearch.filter(
+      items: filtered,
+      query: searchQuery,
+      getText: (event) =>
+          '${event.text} ${event.notes ?? ''} ${event.location ?? ''}',
+      minSimilarity: 0.4,
+    );
+  }
+
+  // Sort by start date ascending by default
+  filtered.sort((a, b) {
+    if (a.isCompleted != b.isCompleted) return a.isCompleted ? 1 : -1;
+    return a.startDateTime.compareTo(b.startDateTime);
+  });
+
+  return filtered;
+});
+
+/// Events occurring on a specific date (for calendar day selection).
+final eventsForDateProvider = Provider.family<List<Event>, DateTime>((
+  ref,
+  date,
+) {
+  final events = ref.watch(filteredEventsProvider);
+  return events.where((e) => e.occursOn(date)).toList();
+});
+
+/// Provider for events filtered by search date
+final eventsForSearchDateProvider = Provider<List<Event>>((ref) {
+  final searchDate = ref.watch(searchDateProvider);
+  if (searchDate == null) return [];
+
+  final allEvents = ref.watch(eventsProvider);
+  return allEvents.where((event) {
+    return event.occursOn(searchDate);
+  }).toList()..sort((a, b) {
+    return a.startDateTime.compareTo(b.startDateTime);
   });
 });

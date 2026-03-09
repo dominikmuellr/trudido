@@ -19,8 +19,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import '../models/todo.dart';
+import '../models/event.dart' as app_event;
 import '../screens/task_editor_screen.dart';
+import '../screens/event_editor_screen.dart';
 import '../controllers/task_controller.dart';
+import '../controllers/event_controller.dart';
 import '../providers/filter_providers.dart';
 import '../providers/app_providers.dart';
 import '../providers/clock.dart';
@@ -43,8 +46,9 @@ enum CustomCalendarFormat {
 /// Shows tasks in a beautiful calendar layout with proper Material theming
 class CalendarView extends ConsumerStatefulWidget {
   final List<Todo> tasks;
+  final List<app_event.Event> events;
 
-  const CalendarView({super.key, required this.tasks});
+  const CalendarView({super.key, required this.tasks, this.events = const []});
 
   @override
   ConsumerState<CalendarView> createState() => _CalendarViewState();
@@ -834,6 +838,11 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     final selectedDayTasks = _selectedDay != null
         ? _getTasksForDay(_selectedDay!)
         : <Todo>[];
+    final selectedDayEvents = _selectedDay != null
+        ? _getEventsForDay(_selectedDay!)
+        : <app_event.Event>[];
+    final totalSelectedDayItems =
+        selectedDayTasks.length + selectedDayEvents.length;
     // Optimize: only rebuild when format value changes
     final customFormat = ref.watch(calendarFormatProvider.select((fmt) => fmt));
 
@@ -1266,7 +1275,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
               ),
             ),
           ), // AnimatedContainer
-          // Selected Day Tasks - Only show when NOT in day view
+          // Selected Day Tasks & Events - Only show when NOT in day view
           if (_selectedDay != null &&
               customFormat != CustomCalendarFormat.day) ...[
             Container(
@@ -1287,9 +1296,9 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                     ),
                   ),
                   const Spacer(),
-                  if (selectedDayTasks.isNotEmpty)
+                  if (totalSelectedDayItems > 0)
                     Text(
-                      '${selectedDayTasks.length} item${selectedDayTasks.length == 1 ? '' : 's'}',
+                      '$totalSelectedDayItems item${totalSelectedDayItems == 1 ? '' : 's'}',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -1299,39 +1308,56 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
             ),
             const SizedBox(height: 12),
 
-            // Task list for selected day
+            // Combined task and event list for selected day
             Container(
               constraints: const BoxConstraints(minHeight: 200),
-              child: selectedDayTasks.isEmpty
+              child: totalSelectedDayItems == 0
                   ? _buildEmptyState(context, colorScheme)
-                  // Use ListView.builder for better performance
-                  : ListView.builder(
+                  : ListView(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: selectedDayTasks.length,
-                      itemBuilder: (context, index) {
-                        final task = selectedDayTasks[index];
-                        // RepaintBoundary prevents unnecessary repaints
-                        return RepaintBoundary(
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              bottom: index < selectedDayTasks.length - 1
-                                  ? 8
-                                  : 0,
-                            ),
-                            child: HybridTodoItem(
-                              todo: task,
-                              onToggle: () => _toggleTaskCompletion(task),
-                              onEdit: () => _editTask(context, task),
-                              onDelete: () => ref
-                                  .read(taskControllerProvider.notifier)
-                                  .delete(task.id),
-                              onSelectToggle: () {},
+                      children: [
+                        // Events first
+                        for (int i = 0; i < selectedDayEvents.length; i++)
+                          RepaintBoundary(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                bottom:
+                                    (i < selectedDayEvents.length - 1 ||
+                                        selectedDayTasks.isNotEmpty)
+                                    ? 8
+                                    : 0,
+                              ),
+                              child: _buildEventItem(
+                                context,
+                                selectedDayEvents[i],
+                                colorScheme,
+                                theme,
+                              ),
                             ),
                           ),
-                        );
-                      },
+                        // Tasks after events
+                        for (int i = 0; i < selectedDayTasks.length; i++)
+                          RepaintBoundary(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                bottom: i < selectedDayTasks.length - 1 ? 8 : 0,
+                              ),
+                              child: HybridTodoItem(
+                                todo: selectedDayTasks[i],
+                                onToggle: () =>
+                                    _toggleTaskCompletion(selectedDayTasks[i]),
+                                onEdit: () =>
+                                    _editTask(context, selectedDayTasks[i]),
+                                onDelete: () => ref
+                                    .read(taskControllerProvider.notifier)
+                                    .delete(selectedDayTasks[i].id),
+                                onSelectToggle: () {},
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
             ),
           ], // This closes the if statement
@@ -1352,12 +1378,163 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No tasks for this day',
+            'No items for this day',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Get events for a specific day
+  List<app_event.Event> _getEventsForDay(DateTime day) {
+    return widget.events.where((event) {
+      if (event.isDeleted) return false;
+      return event.occursOn(day);
+    }).toList()..sort((a, b) => a.startDateTime.compareTo(b.startDateTime));
+  }
+
+  Widget _buildEventItem(
+    BuildContext context,
+    app_event.Event event,
+    ColorScheme colorScheme,
+    ThemeData theme,
+  ) {
+    final prefs = ref.read(preferencesStateProvider);
+    final use24Hour = prefs.resolveUse24Hour(
+      MediaQuery.of(context).alwaysUse24HourFormat,
+    );
+
+    String timeText;
+    if (event.isAllDay) {
+      timeText = 'All day';
+    } else {
+      timeText = DateFormatters.formatTime(
+        event.startDateTime,
+        use24Hour: use24Hour,
+      );
+      if (!event.isAllDay) {
+        timeText +=
+            ' – ${DateFormatters.formatTime(event.endDateTime, use24Hour: use24Hour)}';
+      }
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: ExpressiveInkWell(
+        onTap: () => _editEvent(context, event),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: event.color != null
+                ? Color(event.color!).withValues(alpha: 0.15)
+                : colorScheme.tertiaryContainer.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: event.color != null
+                  ? Color(event.color!).withValues(alpha: 0.3)
+                  : colorScheme.tertiary.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: event.color != null
+                      ? Color(event.color!)
+                      : colorScheme.tertiary,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      event.text,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        decoration: event.isCompleted
+                            ? TextDecoration.lineThrough
+                            : null,
+                        color: event.isCompleted
+                            ? colorScheme.onSurface.withValues(alpha: 0.5)
+                            : colorScheme.onSurface,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.schedule,
+                          size: 12,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          timeText,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        if (event.location != null &&
+                            event.location!.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.location_on,
+                            size: 12,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 2),
+                          Flexible(
+                            child: Text(
+                              event.location!,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (event.isRecurring)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Icon(
+                    Icons.repeat,
+                    size: 16,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _editEvent(BuildContext context, app_event.Event event) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => EventEditorScreen(
+          event: event,
+          onSave: (updatedEvent) {
+            ref.read(eventControllerProvider.notifier).update(updatedEvent);
+          },
+        ),
       ),
     );
   }

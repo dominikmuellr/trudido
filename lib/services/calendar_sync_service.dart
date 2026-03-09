@@ -19,6 +19,7 @@ import 'package:device_calendar_plus/device_calendar_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/todo.dart';
+import '../models/event.dart' as app_event;
 
 /// Represents a selected calendar for sync
 class SelectedCalendar {
@@ -846,6 +847,218 @@ class CalendarSyncService {
     }
 
     return todos;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Event-specific sync methods (separate from Task sync)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Sync an Event to the device calendar
+  Future<bool> syncEventToCalendar(app_event.Event event) async {
+    if (!isEnabled) return false;
+    final exportCal = primaryExportCalendar;
+    if (exportCal == null) return false;
+
+    // Skip events that were imported from a calendar
+    if (event.sourceCalendarColor != null) return false;
+
+    if (event.isCompleted && !syncCompletedTasks) {
+      await deleteEventFromDeviceCalendar(event.id);
+      return true;
+    }
+
+    try {
+      final hasPerms = await hasPermissions();
+      if (!hasPerms) return false;
+
+      final existingEventId = _getEventId(event.id, exportCal.id);
+
+      if (existingEventId != null) {
+        try {
+          await _calendarPlugin.updateEvent(
+            eventId: existingEventId,
+            title: _formatAppEventTitle(event),
+            description: _formatAppEventDescription(event),
+            startDate: event.startDateTime,
+            endDate: event.endDateTime,
+            isAllDay: event.isAllDay,
+          );
+          return true;
+        } catch (e) {
+          await _removeEventMapping(event.id, exportCal.id);
+        }
+      }
+
+      final eventId = await _calendarPlugin.createEvent(
+        calendarId: exportCal.id,
+        title: _formatAppEventTitle(event),
+        description: _formatAppEventDescription(event),
+        startDate: event.startDateTime,
+        endDate: event.endDateTime,
+        isAllDay: event.isAllDay,
+      );
+
+      await _storeEventMapping(event.id, eventId, exportCal.id);
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('CalendarSyncService: Error syncing event: $e');
+      }
+      return false;
+    }
+  }
+
+  /// Delete a calendar entry for an app Event
+  Future<bool> deleteEventFromDeviceCalendar(String appEventId) async {
+    if (!isEnabled) return false;
+
+    bool anyDeleted = false;
+    for (final cal in exportCalendars) {
+      try {
+        final eventId = _getEventId(appEventId, cal.id);
+        if (eventId == null) continue;
+
+        await _calendarPlugin.deleteEvent(eventId: eventId);
+        await _removeEventMapping(appEventId, cal.id);
+        anyDeleted = true;
+      } catch (e) {
+        debugPrint(
+          'CalendarSyncService: Error deleting event from \${cal.name}: $e',
+        );
+      }
+    }
+    return anyDeleted;
+  }
+
+  /// Import a calendar event as an app Event (instead of a Task)
+  Future<app_event.Event?> importCalendarEventAsEvent(String eventId) async {
+    if (!isEnabled || !twoWaySyncEnabled) return null;
+
+    try {
+      final event = await _calendarPlugin.getEvent(eventId);
+      if (event == null) return null;
+
+      SelectedCalendar? sourceCalendar;
+      for (final cal in importCalendars) {
+        try {
+          final calEvents = await _calendarPlugin.listEvents(
+            event.startDate.subtract(const Duration(days: 1)),
+            event.endDate.add(const Duration(days: 1)),
+            calendarIds: [cal.id],
+          );
+          if (calEvents.any((e) => e.instanceId == eventId)) {
+            sourceCalendar = cal;
+            break;
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+
+      final appEvent = app_event.Event(
+        text: event.title,
+        notes: event.description,
+        startDateTime: event.startDate,
+        endDateTime: event.endDate,
+        sourceCalendarColor: sourceCalendar?.color,
+        sourceCalendarName: sourceCalendar?.name,
+        uid: eventId,
+      );
+
+      await _markEventImported(eventId, appEvent.id);
+      return appEvent;
+    } catch (e) {
+      debugPrint('CalendarSyncService: Error importing event as Event: $e');
+      return null;
+    }
+  }
+
+  /// Import events from a calendar as app Events
+  Future<List<app_event.Event>> importEventsFromCalendarAsEvents({
+    required String calendarId,
+    required DateTime startDate,
+    required DateTime endDate,
+    bool skipAlreadyImported = true,
+  }) async {
+    final result = <app_event.Event>[];
+
+    try {
+      final hasPerms = await hasPermissions();
+      if (!hasPerms) return result;
+
+      final events = await _calendarPlugin.listEvents(
+        startDate,
+        endDate,
+        calendarIds: [calendarId],
+      );
+
+      final calendars = await _calendarPlugin.listCalendars();
+      final calendar = calendars.where((c) => c.id == calendarId).firstOrNull;
+      final calendarColor = calendar != null
+          ? parseColorHex(calendar.colorHex)
+          : 0xFF2196F3;
+      final calendarName = calendar?.name ?? 'Unknown';
+
+      for (final event in events) {
+        if (event.description?.contains('Synced from Trudido') == true) {
+          continue;
+        }
+        if (skipAlreadyImported && _isEventImported(event.instanceId)) {
+          continue;
+        }
+
+        final appEvent = app_event.Event(
+          text: event.title,
+          notes: event.description,
+          startDateTime: event.startDate,
+          endDateTime: event.endDate,
+          sourceCalendarColor: calendarColor,
+          sourceCalendarName: calendarName,
+          uid: event.instanceId,
+        );
+
+        await _markEventImported(event.instanceId, appEvent.id);
+        result.add(appEvent);
+      }
+    } catch (e) {
+      debugPrint('CalendarSyncService: Error importing events as Events: $e');
+    }
+
+    return result;
+  }
+
+  /// Format event title for an app Event
+  String _formatAppEventTitle(app_event.Event event) {
+    String title = event.text;
+    final priorityLevel = _getPriorityLevel(event.priority);
+    if (priorityLevel > 0) {
+      title = '${'!' * priorityLevel} $title';
+    }
+    return title;
+  }
+
+  /// Format event description for an app Event
+  String _formatAppEventDescription(app_event.Event event) {
+    final parts = <String>[];
+
+    if (event.notes != null && event.notes!.isNotEmpty) {
+      parts.add(event.notes!);
+      parts.add('');
+    }
+
+    if (event.location != null && event.location!.isNotEmpty) {
+      parts.add('Location: ${event.location!}');
+    }
+
+    if (event.tags.isNotEmpty) {
+      parts.add('Tags: ${event.tags.join(', ')}');
+    }
+
+    parts.add('Priority: ${event.priority}');
+    parts.add('Status: ${event.isCompleted ? 'Completed' : 'Upcoming'}');
+    parts.add('\n---\nSynced from Trudido');
+
+    return parts.join('\n');
   }
 
   /// Perform two-way sync

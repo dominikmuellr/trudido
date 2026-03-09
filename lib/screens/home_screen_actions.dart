@@ -19,7 +19,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../controllers/notes_controller.dart';
 import '../controllers/task_controller.dart';
+import '../controllers/event_controller.dart';
 import '../models/todo.dart';
+import '../models/event.dart' as app_event;
 import '../providers/filter_providers.dart';
 import '../providers/settings_search_provider.dart';
 import '../repositories/note_folder_repository.dart';
@@ -39,6 +41,7 @@ import 'personalization_screen.dart';
 import 'quill_note_editor_screen.dart';
 import 'settings_screen.dart';
 import 'task_editor_screen.dart';
+import 'event_editor_screen.dart';
 import 'template_management_screen.dart';
 import '../widgets/common/common.dart';
 
@@ -80,6 +83,68 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
         onSave: (updatedTodo) {
           ref.read(taskControllerProvider.notifier).update(updatedTodo);
         },
+      ),
+    );
+  }
+
+  /// Show add event dialog
+  void showAddEventDialog({DateTime? initialDate, String? presetTitle}) {
+    final viewType = ref.read(taskViewTypeProvider);
+    final selectedDate = ref.read(selectedCalendarDateProvider);
+
+    final DateTime? preset =
+        initialDate ??
+        ((viewType == TaskViewType.calendar && selectedDate != null)
+            ? selectedDate
+            : null);
+
+    AnimatedNavigation.pushContainerTransform(
+      context,
+      EventEditorScreen(
+        presetDate: preset,
+        presetTitle: presetTitle,
+        onSave: (event) {
+          ref.read(eventControllerProvider.notifier).add(event);
+        },
+      ),
+    );
+  }
+
+  /// Show edit event dialog
+  void showEditEventDialog(app_event.Event event) {
+    AnimatedNavigation.pushContainerTransform(
+      context,
+      EventEditorScreen(
+        event: event,
+        onSave: (updatedEvent) {
+          ref.read(eventControllerProvider.notifier).update(updatedEvent);
+        },
+      ),
+    );
+  }
+
+  /// Delete event with confirmation dialog
+  void deleteEventWithConfirmation(app_event.Event event) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Move to Bin'),
+        content: Text(
+          'Move "${event.text}" to bin? You can restore it later from the Bin.',
+        ),
+        actions: [
+          ExpressiveTextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ExpressiveTextButton(
+            onPressed: () {
+              ref.read(eventControllerProvider.notifier).delete(event.id);
+              Navigator.pop(context);
+            },
+            child: const Text('Move to Bin'),
+          ),
+        ],
       ),
     );
   }

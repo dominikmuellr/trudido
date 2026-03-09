@@ -17,7 +17,7 @@
 import 'package:flutter/material.dart';
 import 'package:trudido/utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/todo.dart';
+import '../models/event.dart';
 import '../services/storage_service.dart';
 import '../services/folder_provider.dart';
 import '../providers/clock.dart';
@@ -34,38 +34,39 @@ import '../utils/mention_navigator.dart';
 import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
 
-/// Unified Task Editor Screen
-/// Handles both creating new tasks and editing existing ones
+/// Unified Event Editor Screen
+/// Handles both creating new events and editing existing ones
 /// Full-screen Material Design 3 interface
-class TaskEditorScreen extends ConsumerStatefulWidget {
-  final Todo? todo;
-  final Function(Todo) onSave;
-  final DateTime? presetDueDate;
+class EventEditorScreen extends ConsumerStatefulWidget {
+  final Event? event;
+  final Function(Event) onSave;
+  final DateTime? presetDate;
   final String? presetTitle;
 
-  const TaskEditorScreen({
+  const EventEditorScreen({
     super.key,
-    this.todo,
+    this.event,
     required this.onSave,
-    this.presetDueDate,
+    this.presetDate,
     this.presetTitle,
   });
 
   @override
-  ConsumerState<TaskEditorScreen> createState() => _TaskEditorScreenState();
+  ConsumerState<EventEditorScreen> createState() => _EventEditorScreenState();
 }
 
-class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
+class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   late TextEditingController _titleController;
+  late TextEditingController _locationController;
   late MentionTextEditingController _notesController;
   final _formKey = GlobalKey<FormState>();
 
-  // Core task data
+  // Core event data
   DateTime? _startDate;
-  DateTime? _dueDate;
-  TimeOfDay? _dueTime;
-  int? _durationMinutes; // Duration in minutes
-  bool _isMultiDay = false;
+  TimeOfDay? _startTime;
+  DateTime? _endDate;
+  TimeOfDay? _endTime;
+  bool _isAllDay = true;
   String _priority = 'none';
   String _selectedFolderId = '';
   List<int> _reminderOffsetsMinutes = [];
@@ -86,10 +87,13 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(
-      text: widget.todo?.text ?? widget.presetTitle ?? '',
+      text: widget.event?.text ?? widget.presetTitle ?? '',
+    );
+    _locationController = TextEditingController(
+      text: widget.event?.location ?? '',
     );
     _notesController = MentionTextEditingController(
-      text: widget.todo?.notes ?? '',
+      text: widget.event?.notes ?? '',
     );
     _notesController.onMentionTap = (mention) {
       _mentionPopup?.hide();
@@ -97,42 +101,44 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     };
     _notesController.addListener(_onNotesChanged);
 
-    // Initialize from existing todo if editing
-    if (widget.todo != null) {
-      _startDate = widget.todo!.startDate;
-      _dueDate = widget.todo!.dueDate;
-      _isMultiDay = _startDate != null && _dueDate != null;
-      if (_dueDate != null) {
-        _dueTime = TimeOfDay.fromDateTime(_dueDate!);
+    // Initialize from existing event if editing
+    if (widget.event != null) {
+      final e = widget.event!;
+      _startDate = DateTime(
+        e.startDateTime.year,
+        e.startDateTime.month,
+        e.startDateTime.day,
+      );
+      _endDate = DateTime(
+        e.endDateTime.year,
+        e.endDateTime.month,
+        e.endDateTime.day,
+      );
+      _isAllDay = e.isAllDay;
+      if (!_isAllDay) {
+        _startTime = TimeOfDay.fromDateTime(e.startDateTime);
+        _endTime = TimeOfDay.fromDateTime(e.endDateTime);
       }
-      _durationMinutes = widget.todo!.durationMinutes;
-      _priority = widget.todo!.priority;
-      _reminderOffsetsMinutes = List<int>.from(
-        widget.todo!.reminderOffsetsMinutes,
-      );
-      _repeatType = widget.todo!.repeatType;
-      _repeatInterval = widget.todo!.repeatInterval ?? 1;
-      _repeatDays = widget.todo!.repeatDays != null
-          ? List<int>.from(widget.todo!.repeatDays!)
-          : [];
-      _repeatEndDate = widget.todo!.repeatEndDate;
-    } else if (widget.presetDueDate != null) {
-      // If creating a new task with a preset due date (from calendar)
-      // Only set the date, not the time (let user choose time if needed)
-      _dueDate = DateTime(
-        widget.presetDueDate!.year,
-        widget.presetDueDate!.month,
-        widget.presetDueDate!.day,
-      );
-      // Don't set _dueTime - let it stay null so user can choose
+      _priority = e.priority;
+      _reminderOffsetsMinutes = List<int>.from(e.reminderOffsetsMinutes);
+      _repeatType = e.repeatType;
+      _repeatInterval = e.repeatInterval ?? 1;
+      _repeatDays = e.repeatDays != null ? List<int>.from(e.repeatDays!) : [];
+      _repeatEndDate = e.repeatEndDate;
+    } else {
+      // Creating new event
+      final preset = widget.presetDate;
+      final now = DateTime.now();
+      _startDate = preset ?? DateTime(now.year, now.month, now.day);
+      _endDate = _startDate;
     }
 
     _initializeFolderSelection();
   }
 
   Future<void> _initializeFolderSelection() async {
-    if (widget.todo?.folderId != null) {
-      _selectedFolderId = widget.todo!.folderId!;
+    if (widget.event?.folderId != null) {
+      _selectedFolderId = widget.event!.folderId!;
     } else {
       try {
         _selectedFolderId = await StorageService.getDefaultFolderId();
@@ -147,7 +153,6 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     final text = _notesController.text;
     final cursor = _notesController.selection.baseOffset;
 
-    // Suppress popup when cursor sits at a mention boundary
     if (_notesController.mentionAtCursor(cursor) != null) {
       _mentionPopup?.hide();
       return;
@@ -160,7 +165,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         context: context,
         ref: ref,
         onItemSelected: _onMentionSelected,
-        excludeId: widget.todo?.id,
+        excludeId: widget.event?.id,
       );
       _mentionPopup!.show(query);
     } else {
@@ -193,6 +198,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     _notesController.removeListener(_onNotesChanged);
     _mentionPopup?.hide();
     _titleController.dispose();
+    _locationController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -204,14 +210,13 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.todo == null ? 'New To-do' : 'Edit To-do'),
-        backgroundColor: colorScheme.surface,
-        foregroundColor: colorScheme.onSurface,
+        title: Text(widget.event == null ? 'New Event' : 'Edit Event'),
+        backgroundColor: colorScheme.tertiaryContainer,
+        foregroundColor: colorScheme.onTertiaryContainer,
         elevation: 0,
         actions: [
-          // Save button in app bar
           ExpressiveTextButton(
-            onPressed: _isLoading ? null : _saveTodo,
+            onPressed: _isLoading ? null : _saveEvent,
             child: _isLoading
                 ? SizedBox(
                     width: 16,
@@ -249,7 +254,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
               _buildQuickActions(theme, colorScheme),
               SpacingGap.gapV24,
 
-              // Advanced options (always visible)
+              // Advanced options
               _buildAdvancedOptions(theme, colorScheme),
             ],
           ),
@@ -263,15 +268,15 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       controller: _titleController,
       autofocus: true,
       decoration: InputDecoration(
-        labelText: 'To-do title',
-        hintText: 'What needs to be done?',
+        labelText: 'Event title',
+        hintText: 'What\'s happening?',
         filled: true,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-        prefixIcon: ScaledIcon(Icons.title),
+        prefixIcon: ScaledIcon(Icons.event),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return 'Please enter a to-do title';
+          return 'Please enter an event name';
         }
         return null;
       },
@@ -285,87 +290,81 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Quick Options',
+          'Date & Time',
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w600,
             color: colorScheme.onSurface.withValues(alpha: 0.9),
           ),
         ),
         SpacingGap.gapV12,
-        // Date selection (full width for better display of ranges)
+
+        // Start date
         _buildQuickActionChip(
           icon: Icons.event_outlined,
-          label: _getDueDateLabel(),
-          isSelected: _dueDate != null,
-          onTap: _selectDueDate,
-          onClear: _dueDate != null
-              ? () => setState(() {
-                  _dueDate = null;
-                  _dueTime = null;
-                  _durationMinutes = null;
-                  _startDate = null;
-                  _isMultiDay = false;
-                  _repeatType = 'none';
-                  _repeatInterval = 1;
-                  _repeatDays = [];
-                  _repeatEndDate = null;
-                  _reminderOffsetsMinutes = [];
-                })
+          label: _getStartDateLabel(),
+          isSelected: _startDate != null,
+          onTap: _selectStartDate,
+          onClear: null, // Start date is required
+          theme: theme,
+          colorScheme: colorScheme,
+        ),
+        SpacingGap.gapV12,
+
+        // End date
+        _buildQuickActionChip(
+          icon: Icons.event_outlined,
+          label: _getEndDateLabel(),
+          isSelected: _endDate != null && _endDate != _startDate,
+          onTap: _selectEndDate,
+          onClear: _endDate != null && _endDate != _startDate
+              ? () => setState(() => _endDate = _startDate)
               : null,
           theme: theme,
           colorScheme: colorScheme,
         ),
         SpacingGap.gapV12,
 
-        // Multi-day toggle (only show if date is selected)
-        if (_dueDate != null) ...[
-          _buildQuickActionChip(
-            icon: Icons.date_range_outlined,
-            label: _isMultiDay && _startDate != null
-                ? 'End: ${DateFormatters.formatSmart(_startDate!, now: ref.read(clockProvider).now(), includeTime: false)}'
-                : 'Make multi-day',
-            isSelected: _isMultiDay,
-            onTap: _toggleMultiDay,
-            onClear: _isMultiDay
-                ? () => setState(() {
-                    _isMultiDay = false;
-                    _startDate = null;
-                  })
-                : null,
-            theme: theme,
-            colorScheme: colorScheme,
-          ),
-          SpacingGap.gapV12,
-        ],
+        // All-day toggle
+        _buildQuickActionChip(
+          icon: _isAllDay ? Icons.wb_sunny_outlined : Icons.schedule_outlined,
+          label: _isAllDay ? 'All day' : 'Timed event',
+          isSelected: !_isAllDay,
+          onTap: () => setState(() {
+            _isAllDay = !_isAllDay;
+            if (_isAllDay) {
+              _startTime = null;
+              _endTime = null;
+            }
+          }),
+          onClear: null,
+          theme: theme,
+          colorScheme: colorScheme,
+        ),
+        SpacingGap.gapV12,
 
-        // Time selection (only show if date is selected)
-        if (_dueDate != null) ...[
+        // Start time (only if not all-day)
+        if (!_isAllDay) ...[
           _buildQuickActionChip(
             icon: Icons.schedule_outlined,
-            label: _getTimeLabel(),
-            isSelected: _dueTime != null,
-            onTap: _selectTime,
-            onClear: _dueTime != null
-                ? () => setState(() {
-                    _dueTime = null;
-                    _durationMinutes = null;
-                  })
+            label: _getStartTimeLabel(),
+            isSelected: _startTime != null,
+            onTap: _selectStartTime,
+            onClear: _startTime != null
+                ? () => setState(() => _startTime = null)
                 : null,
             theme: theme,
             colorScheme: colorScheme,
           ),
           SpacingGap.gapV12,
-        ],
 
-        // Duration selection (only show if time is selected)
-        if (_dueDate != null && _dueTime != null) ...[
+          // End time (only if not all-day)
           _buildQuickActionChip(
-            icon: Icons.timelapse_outlined,
-            label: _getDurationLabel(),
-            isSelected: _durationMinutes != null,
-            onTap: _selectDuration,
-            onClear: _durationMinutes != null
-                ? () => setState(() => _durationMinutes = null)
+            icon: Icons.schedule_outlined,
+            label: _getEndTimeLabel(),
+            isSelected: _endTime != null,
+            onTap: _selectEndTime,
+            onClear: _endTime != null
+                ? () => setState(() => _endTime = null)
                 : null,
             theme: theme,
             colorScheme: colorScheme,
@@ -373,7 +372,35 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
           SpacingGap.gapV12,
         ],
 
-        // Priority selection
+        SpacingGap.gapV8,
+        Text(
+          'Options',
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface.withValues(alpha: 0.9),
+          ),
+        ),
+        SpacingGap.gapV12,
+
+        // Location
+        _buildQuickActionChip(
+          icon: Icons.location_on_outlined,
+          label: _locationController.text.isNotEmpty
+              ? _locationController.text
+              : 'Add location',
+          isSelected: _locationController.text.isNotEmpty,
+          onTap: _showLocationDialog,
+          onClear: _locationController.text.isNotEmpty
+              ? () {
+                  setState(() => _locationController.clear());
+                }
+              : null,
+          theme: theme,
+          colorScheme: colorScheme,
+        ),
+        SpacingGap.gapV12,
+
+        // Priority
         _buildQuickActionChip(
           icon: _getPriorityIcon(_priority),
           label: 'Priority: ${_priority.toUpperCase()}',
@@ -387,7 +414,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         ),
         SpacingGap.gapV12,
 
-        // Reminder selection
+        // Reminder
         _buildQuickActionChip(
           icon: Icons.notifications_outlined,
           label: _getReminderLabel(),
@@ -401,12 +428,12 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         ),
         SpacingGap.gapV12,
 
-        // Repeat selection (disabled if no due date)
+        // Repeat
         _buildQuickActionChip(
           icon: Icons.repeat_outlined,
           label: _getRepeatLabel(),
           isSelected: _repeatType != 'none',
-          onTap: _dueDate != null ? _showRepeatSelector : null,
+          onTap: _showRepeatSelector,
           onClear: _repeatType != 'none'
               ? () => setState(() {
                   _repeatType = 'none';
@@ -417,85 +444,57 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
               : null,
           theme: theme,
           colorScheme: colorScheme,
-          isDisabled: _dueDate == null,
         ),
       ],
     );
   }
 
-  String _getDueDateLabel() {
+  // --- Label helpers ---
+
+  String _getStartDateLabel() {
     final now = ref.read(clockProvider).now();
-    if (_dueDate == null) {
-      return 'Select due date';
-    } else if (_isMultiDay && _startDate != null) {
-      // Multi-day: show "Due: [date] (ends [end date])"
-      return 'Due: ${DateFormatters.formatSmart(_dueDate!, now: now, includeTime: false)}';
-    } else {
-      // Single day: show smart date
-      return DateFormatters.formatSmart(
-        _dueDate!,
-        now: now,
-        includeTime: false,
-      );
-    }
+    if (_startDate == null) return 'Select start date';
+    return 'Start: ${DateFormatters.formatSmart(_startDate!, now: now, includeTime: false)}';
   }
 
-  String _getTimeLabel() {
-    if (_dueTime == null) {
-      return 'All day';
-    } else {
-      final prefs = ref.read(preferencesStateProvider);
-      final use24Hour = prefs.resolveUse24Hour(
-        MediaQuery.of(context).alwaysUse24HourFormat,
-      );
-      return DateFormatters.formatTimeOfDay(
-        _dueTime!.hour,
-        _dueTime!.minute,
-        use24Hour: use24Hour,
-      );
-    }
+  String _getEndDateLabel() {
+    final now = ref.read(clockProvider).now();
+    if (_endDate == null || _endDate == _startDate)
+      return 'Same day (tap to set end date)';
+    return 'End: ${DateFormatters.formatSmart(_endDate!, now: now, includeTime: false)}';
   }
 
-  String _getDurationLabel() {
-    if (_durationMinutes == null) {
-      return 'Set duration';
-    } else {
-      final hours = _durationMinutes! ~/ 60;
-      final minutes = _durationMinutes! % 60;
-      if (hours == 0) {
-        return '$minutes min';
-      } else if (minutes == 0) {
-        return '$hours ${hours == 1 ? 'hour' : 'hours'}';
-      } else {
-        return '$hours h $minutes min';
-      }
-    }
+  String _getStartTimeLabel() {
+    if (_startTime == null) return 'Set start time';
+    final prefs = ref.read(preferencesStateProvider);
+    final use24Hour = prefs.resolveUse24Hour(
+      MediaQuery.of(context).alwaysUse24HourFormat,
+    );
+    return 'Start: ${DateFormatters.formatTimeOfDay(_startTime!.hour, _startTime!.minute, use24Hour: use24Hour)}';
+  }
+
+  String _getEndTimeLabel() {
+    if (_endTime == null) return 'Set end time';
+    final prefs = ref.read(preferencesStateProvider);
+    final use24Hour = prefs.resolveUse24Hour(
+      MediaQuery.of(context).alwaysUse24HourFormat,
+    );
+    return 'End: ${DateFormatters.formatTimeOfDay(_endTime!.hour, _endTime!.minute, use24Hour: use24Hour)}';
   }
 
   String _getReminderLabel() {
-    if (_reminderOffsetsMinutes.isEmpty) {
-      return 'Add reminders';
-    } else if (_reminderOffsetsMinutes.length == 1) {
-      return '1 reminder set';
-    } else {
-      return '${_reminderOffsetsMinutes.length} reminders set';
-    }
+    if (_reminderOffsetsMinutes.isEmpty) return 'Add reminders';
+    if (_reminderOffsetsMinutes.length == 1) return '1 reminder set';
+    return '${_reminderOffsetsMinutes.length} reminders set';
   }
 
   String _getRepeatLabel() {
-    if (_dueDate == null) {
-      return 'Set due date to enable repeat';
-    }
-
     switch (_repeatType) {
       case 'daily':
         if (_repeatInterval == 1) return 'Repeats daily';
         return 'Repeats every $_repeatInterval days';
       case 'weekly':
-        if (_repeatInterval == 1) {
-          if (_repeatDays.isEmpty) return 'Repeats weekly';
-          return 'Repeats weekly';
-        }
+        if (_repeatInterval == 1) return 'Repeats weekly';
         return 'Repeats every $_repeatInterval weeks';
       case 'monthly':
         if (_repeatInterval == 1) return 'Repeats monthly';
@@ -506,6 +505,8 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         return 'Does not repeat';
     }
   }
+
+  // --- Quick action chip ---
 
   Widget _buildQuickActionChip({
     required IconData icon,
@@ -589,6 +590,8 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     );
   }
 
+  // --- Advanced options ---
+
   Widget _buildAdvancedOptions(ThemeData theme, ColorScheme colorScheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -620,9 +623,9 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         ),
         SpacingGap.gapV16,
 
-        // Backlinks (items that reference this task)
-        if (widget.todo != null)
-          BacklinksSection(itemId: widget.todo!.id, itemType: 'task'),
+        // Backlinks
+        if (widget.event != null)
+          BacklinksSection(itemId: widget.event!.id, itemType: 'event'),
 
         // Folder selection
         _buildFolderSelection(theme, colorScheme),
@@ -651,7 +654,6 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                 Wrap(
                   spacing: 8,
                   children: [
-                    // "None" option
                     FilterChip(
                       label: Text('NONE'),
                       selected: _selectedFolderId.isEmpty,
@@ -661,7 +663,6 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                         }
                       },
                     ),
-                    // Folder options
                     ...folders.map((folder) {
                       final isSelected = _selectedFolderId == folder.id;
                       return FilterChip(
@@ -688,7 +689,6 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                         },
                       );
                     }),
-                    // Add folder chip
                     ActionChip(
                       label: const Text('ADD FOLDER'),
                       avatar: const Icon(Icons.add, size: 14),
@@ -705,6 +705,8 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       },
     );
   }
+
+  // --- Dialogs ---
 
   void _showAddReminderDialog() {
     showDialog(
@@ -730,12 +732,45 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     );
 
     if (result == true) {
-      // Folder was created successfully, refresh the folder list
       ref.read(folderNotifierProvider.notifier).loadFolders();
     }
   }
 
-  // Helper methods
+  void _showLocationDialog() async {
+    final controller = TextEditingController(text: _locationController.text);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Location'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'Enter location',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+        ),
+        actions: [
+          ExpressiveTextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ExpressiveTextButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      setState(() => _locationController.text = result);
+    }
+  }
+
+  // --- Pickers ---
+
   IconData _getPriorityIcon(String priority) {
     switch (priority) {
       case 'high':
@@ -744,23 +779,209 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         return Icons.keyboard_arrow_down;
       case 'medium':
         return Icons.remove;
-      default: // 'none'
+      default:
         return Icons.radio_button_unchecked;
     }
   }
 
-  void _showRepeatSelector() {
-    // Ensure there's a due date before showing repeat options
-    if (_dueDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a due date before setting up repeat'),
-          duration: Duration(milliseconds: 1500),
-        ),
-      );
-      return;
-    }
+  void _showPrioritySelector() {
+    final colorScheme = Theme.of(context).colorScheme;
 
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: SpacingEdgeInsets.insets16,
+                child: Text(
+                  'Select Priority',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              _buildPriorityOption(
+                'none',
+                'None',
+                Icons.radio_button_unchecked,
+                colorScheme.surfaceContainerHighest,
+                colorScheme.onSurface,
+              ),
+              _buildPriorityOption(
+                'low',
+                'Low',
+                Icons.keyboard_arrow_down,
+                colorScheme.tertiaryContainer,
+                colorScheme.onTertiaryContainer,
+              ),
+              _buildPriorityOption(
+                'medium',
+                'Medium',
+                Icons.remove,
+                colorScheme.secondaryContainer,
+                colorScheme.onSecondaryContainer,
+              ),
+              _buildPriorityOption(
+                'high',
+                'High',
+                Icons.keyboard_arrow_up,
+                colorScheme.errorContainer,
+                colorScheme.onErrorContainer,
+              ),
+              SpacingGap.gapV8,
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPriorityOption(
+    String value,
+    String label,
+    IconData icon,
+    Color backgroundColor,
+    Color textColor,
+  ) {
+    final isSelected = _priority == value;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return ListTile(
+      leading: Container(
+        padding: SpacingEdgeInsets.insets8,
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: SpacingBorderRadius.sm,
+        ),
+        child: ScaledIcon(icon, color: textColor, size: 20),
+      ),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+      trailing: isSelected
+          ? ScaledIcon(Icons.check, color: colorScheme.primary)
+          : null,
+      onTap: () {
+        setState(() => _priority = value);
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  Future<void> _selectStartDate() async {
+    final now = ref.read(clockProvider).now();
+    final firstDayOfWeek = ref.read(preferencesStateProvider).firstDayOfWeek;
+
+    final picked = await showDatePicker(
+      context: context,
+      firstDate: now.subtract(const Duration(days: 365)),
+      lastDate: now.add(const Duration(days: 1825)),
+      initialDate: _startDate ?? now,
+      helpText: 'Select start date',
+      builder: (context, child) {
+        return WeekStartOverride(
+          firstDayOfWeekIndex: firstDayOfWeek,
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _startDate = picked;
+        // Auto-adjust end date if it's before start date
+        if (_endDate == null || _endDate!.isBefore(_startDate!)) {
+          _endDate = _startDate;
+        }
+      });
+    }
+  }
+
+  Future<void> _selectEndDate() async {
+    final now = ref.read(clockProvider).now();
+    final firstDayOfWeek = ref.read(preferencesStateProvider).firstDayOfWeek;
+
+    final picked = await showDatePicker(
+      context: context,
+      firstDate: _startDate ?? now,
+      lastDate: (_startDate ?? now).add(const Duration(days: 1825)),
+      initialDate: _endDate ?? _startDate ?? now,
+      helpText: 'Select end date',
+      builder: (context, child) {
+        return WeekStartOverride(
+          firstDayOfWeekIndex: firstDayOfWeek,
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() => _endDate = picked);
+    }
+  }
+
+  Future<void> _selectStartTime() async {
+    final prefs = ref.read(preferencesStateProvider);
+    final use24Hour = prefs.resolveUse24Hour(
+      MediaQuery.of(context).alwaysUse24HourFormat,
+    );
+    final time = await showTimePicker(
+      context: context,
+      initialTime: _startTime ?? TimeOfDay.now(),
+      helpText: 'Select start time',
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(alwaysUse24HourFormat: use24Hour),
+          child: child!,
+        );
+      },
+    );
+    if (time != null) {
+      setState(() {
+        _startTime = time;
+        // Auto-set end time 1 hour after start if not set
+        if (_endTime == null) {
+          final endHour = (time.hour + 1) % 24;
+          _endTime = TimeOfDay(hour: endHour, minute: time.minute);
+        }
+      });
+    }
+  }
+
+  Future<void> _selectEndTime() async {
+    final prefs = ref.read(preferencesStateProvider);
+    final use24Hour = prefs.resolveUse24Hour(
+      MediaQuery.of(context).alwaysUse24HourFormat,
+    );
+    final time = await showTimePicker(
+      context: context,
+      initialTime: _endTime ?? _startTime ?? TimeOfDay.now(),
+      helpText: 'Select end time',
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(alwaysUse24HourFormat: use24Hour),
+          child: child!,
+        );
+      },
+    );
+    if (time != null) {
+      setState(() => _endTime = time);
+    }
+  }
+
+  void _showRepeatSelector() {
     final colorScheme = Theme.of(context).colorScheme;
 
     showModalBottomSheet(
@@ -779,7 +1000,6 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Header
                       Padding(
                         padding: SpacingEdgeInsets.insets16,
                         child: Text(
@@ -789,8 +1009,6 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                         ),
                       ),
                       const Divider(height: 1),
-
-                      // Repeat options
                       _buildRepeatOption(
                         'none',
                         'Does not repeat',
@@ -821,14 +1039,10 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                         Icons.tune,
                         setModalState,
                       ),
-
-                      // Show custom options if custom is selected
                       if (_repeatType == 'custom') ...[
                         const Divider(height: 1),
                         _buildCustomRepeatOptions(setModalState, colorScheme),
                       ],
-
-                      // End date option (for all repeat types except 'none')
                       if (_repeatType != 'none') ...[
                         const Divider(height: 1),
                         ListTile(
@@ -857,7 +1071,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                               initialDate:
                                   _repeatEndDate ??
                                   now.add(const Duration(days: 30)),
-                              firstDate: _dueDate ?? now,
+                              firstDate: _startDate ?? now,
                               lastDate: now.add(const Duration(days: 1825)),
                               helpText: 'Select end date',
                               builder: (context, child) {
@@ -874,15 +1088,12 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                           },
                         ),
                       ],
-
                       SpacingGap.gapV16,
-
-                      // Done button
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 8,
-                        ), // Custom asymmetric padding
+                        ),
                         child: SizedBox(
                           width: double.infinity,
                           child: FilledButton(
@@ -927,7 +1138,6 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         setModalState(() => _repeatType = value);
         setState(() {
           _repeatType = value;
-          // Reset to defaults when changing type
           if (value != 'custom') {
             _repeatInterval = 1;
             _repeatDays = [];
@@ -953,8 +1163,6 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
             ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           SpacingGap.gapV16,
-
-          // Interval selector
           Row(
             children: [
               Text('Repeat every'),
@@ -994,14 +1202,12 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                   DropdownMenuItem(value: 'weeks', child: Text('weeks')),
                 ],
                 onChanged: (value) {
-                  // Switching between days and weeks mode
                   if (value == 'days') {
                     setModalState(() => _repeatDays = []);
                     setState(() => _repeatDays = []);
                   } else if (value == 'weeks' && _repeatDays.isEmpty) {
-                    // Default to current day of week if switching to weekly
                     final currentDay =
-                        _dueDate?.weekday ??
+                        _startDate?.weekday ??
                         ref.read(clockProvider).now().weekday;
                     setModalState(() => _repeatDays = [currentDay]);
                     setState(() => _repeatDays = [currentDay]);
@@ -1010,8 +1216,6 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
               ),
             ],
           ),
-
-          // Day selection for weekly custom repeat
           if (_repeatDays.isNotEmpty) ...[
             SpacingGap.gapV16,
             Text(
@@ -1076,374 +1280,72 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     }
   }
 
-  void _showPrioritySelector() {
-    final colorScheme = Theme.of(context).colorScheme;
+  // --- Save ---
 
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              Padding(
-                padding: SpacingEdgeInsets.insets16,
-                child: Text(
-                  'Select Priority',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const Divider(height: 1),
-
-              // Priority options
-              _buildPriorityOption(
-                'none',
-                'None',
-                Icons.radio_button_unchecked,
-                colorScheme.surfaceContainerHighest,
-                colorScheme.onSurface,
-              ),
-              _buildPriorityOption(
-                'low',
-                'Low',
-                Icons.keyboard_arrow_down,
-                colorScheme.tertiaryContainer,
-                colorScheme.onTertiaryContainer,
-              ),
-              _buildPriorityOption(
-                'medium',
-                'Medium',
-                Icons.remove,
-                colorScheme.secondaryContainer,
-                colorScheme.onSecondaryContainer,
-              ),
-              _buildPriorityOption(
-                'high',
-                'High',
-                Icons.keyboard_arrow_up,
-                colorScheme.errorContainer,
-                colorScheme.onErrorContainer,
-              ),
-
-              SpacingGap.gapV8,
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildPriorityOption(
-    String value,
-    String label,
-    IconData icon,
-    Color backgroundColor,
-    Color textColor,
-  ) {
-    final isSelected = _priority == value;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return ListTile(
-      leading: Container(
-        padding: SpacingEdgeInsets.insets8,
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: SpacingBorderRadius.sm,
-        ),
-        child: ScaledIcon(icon, color: textColor, size: 20),
-      ),
-      title: Text(
-        label,
-        style: TextStyle(
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-        ),
-      ),
-      trailing: isSelected
-          ? ScaledIcon(Icons.check, color: colorScheme.primary)
-          : null,
-      onTap: () {
-        setState(() {
-          _priority = value;
-        });
-        Navigator.pop(context);
-      },
-    );
-  }
-
-  Future<void> _selectDueDate() async {
-    final now = ref.read(clockProvider).now();
-    final firstDayOfWeek = ref.read(preferencesStateProvider).firstDayOfWeek;
-
-    final picked = await showDatePicker(
-      context: context,
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365)),
-      initialDate: _dueDate ?? now,
-      helpText: 'Select due date',
-      builder: (context, child) {
-        return WeekStartOverride(
-          firstDayOfWeekIndex: firstDayOfWeek,
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() {
-        _dueDate = picked;
-        if (!_isMultiDay) {
-          _startDate = null;
-        }
-      });
-    }
-  }
-
-  Future<void> _toggleMultiDay() async {
-    if (_isMultiDay) {
-      // Disable multi-day mode
-      setState(() {
-        _isMultiDay = false;
-        _startDate = null;
-      });
-    } else {
-      // Enable multi-day mode - ask for end date
-      final now = ref.read(clockProvider).now();
-      final firstDayOfWeek = ref.read(preferencesStateProvider).firstDayOfWeek;
-
-      final picked = await showDatePicker(
-        context: context,
-        firstDate: _dueDate ?? now,
-        lastDate: (_dueDate ?? now).add(const Duration(days: 365)),
-        initialDate: _dueDate ?? now,
-        helpText: 'Select end date',
-        builder: (context, child) {
-          return WeekStartOverride(
-            firstDayOfWeekIndex: firstDayOfWeek,
-            child: child!,
-          );
-        },
-      );
-
-      if (picked != null) {
-        setState(() {
-          _startDate = picked;
-          _isMultiDay = true;
-        });
-      }
-    }
-  }
-
-  Future<void> _selectTime() async {
-    if (_dueDate == null) return;
-    final prefs = ref.read(preferencesStateProvider);
-    final use24Hour = prefs.resolveUse24Hour(
-      MediaQuery.of(context).alwaysUse24HourFormat,
-    );
-    final time = await showTimePicker(
-      context: context,
-      initialTime: _dueTime ?? TimeOfDay.now(),
-      helpText: 'Select time',
-      builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(alwaysUse24HourFormat: use24Hour),
-          child: child!,
-        );
-      },
-    );
-    if (time != null) {
-      setState(() => _dueTime = time);
-    }
-  }
-
-  Future<void> _selectDuration() async {
-    // Common duration presets in minutes
-    final durations = <int, String>{
-      15: '15 min',
-      30: '30 min',
-      45: '45 min',
-      60: '1 hour',
-      90: '1.5 hours',
-      120: '2 hours',
-      180: '3 hours',
-      240: '4 hours',
-      480: '8 hours',
-      0: 'Custom...', // Placeholder for custom selection
-    };
-
-    // Calculate end times if we have a start time
-    DateTime? startTime;
-    if (_dueDate != null && _dueTime != null) {
-      startTime = DateTime(
-        _dueDate!.year,
-        _dueDate!.month,
-        _dueDate!.day,
-        _dueTime!.hour,
-        _dueTime!.minute,
-      );
-    }
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        final prefs = ref.read(preferencesStateProvider);
-        final use24Hour = prefs.resolveUse24Hour(
-          MediaQuery.of(context).alwaysUse24HourFormat,
-        );
-
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'Duration',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const Divider(height: 1),
-              ...durations.entries.map((entry) {
-                if (entry.key == 0) {
-                  // Custom duration option
-                  return ListTile(
-                    leading: const Icon(Icons.edit_outlined),
-                    title: Text(entry.value),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showCustomDurationDialog();
-                    },
-                  );
-                } else {
-                  // Calculate end time for this duration
-                  String? endTimeText;
-                  if (startTime != null) {
-                    final endTime = startTime.add(Duration(minutes: entry.key));
-                    endTimeText = DateFormatters.formatTime(
-                      endTime,
-                      use24Hour: use24Hour,
-                    );
-                  }
-
-                  return ListTile(
-                    leading: _durationMinutes == entry.key
-                        ? Icon(
-                            Icons.check,
-                            color: Theme.of(context).colorScheme.primary,
-                          )
-                        : const SizedBox(width: 24),
-                    title: Text(
-                      endTimeText != null
-                          ? '${entry.value} (ends $endTimeText)'
-                          : entry.value,
-                    ),
-                    selected: _durationMinutes == entry.key,
-                    onTap: () {
-                      setState(() => _durationMinutes = entry.key);
-                      Navigator.pop(context);
-                    },
-                  );
-                }
-              }),
-              // Clear duration option
-              ListTile(
-                leading: const Icon(Icons.clear),
-                title: const Text('No duration'),
-                onTap: () {
-                  setState(() => _durationMinutes = null);
-                  Navigator.pop(context);
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showCustomDurationDialog() async {
-    final result = await showDialog<int?>(
-      context: context,
-      builder: (context) =>
-          _CustomDurationDialog(initialMinutes: _durationMinutes),
-    );
-
-    if (result != null) {
-      setState(() => _durationMinutes = result);
-    }
-  }
-
-  // Remove the old _askForTime method since we now have separate time selection
-
-  Future<void> _saveTodo() async {
+  Future<void> _saveEvent() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      // Combine date and time for the final due date
-      DateTime? finalDueDate;
-      DateTime? finalStartDate;
+      final now = ref.read(clockProvider).now();
 
-      if (_isMultiDay && _dueDate != null && _startDate != null) {
-        // Multi-day task: _dueDate is start, _startDate is end
-        finalStartDate = _dueDate; // Start date (without time)
+      // Build start and end DateTimes
+      DateTime startDateTime;
+      DateTime endDateTime;
 
-        // End date with optional time
-        if (_dueTime != null) {
-          finalDueDate = DateTime(
-            _startDate!.year,
-            _startDate!.month,
-            _startDate!.day,
-            _dueTime!.hour,
-            _dueTime!.minute,
-          );
-        } else {
-          finalDueDate = _startDate;
-        }
-      } else if (_dueDate != null) {
-        // Single day task
-        finalStartDate = null;
-        if (_dueTime != null) {
-          finalDueDate = DateTime(
-            _dueDate!.year,
-            _dueDate!.month,
-            _dueDate!.day,
-            _dueTime!.hour,
-            _dueTime!.minute,
-          );
-        } else {
-          finalDueDate = _dueDate;
-        }
+      final startDate = _startDate ?? DateTime(now.year, now.month, now.day);
+      final endDate = _endDate ?? startDate;
+
+      if (_isAllDay) {
+        // All-day event: midnight to midnight
+        startDateTime = DateTime(
+          startDate.year,
+          startDate.month,
+          startDate.day,
+        );
+        endDateTime = DateTime(endDate.year, endDate.month, endDate.day);
+      } else {
+        final sTime = _startTime ?? const TimeOfDay(hour: 9, minute: 0);
+        final eTime =
+            _endTime ??
+            TimeOfDay(hour: (sTime.hour + 1) % 24, minute: sTime.minute);
+
+        startDateTime = DateTime(
+          startDate.year,
+          startDate.month,
+          startDate.day,
+          sTime.hour,
+          sTime.minute,
+        );
+        endDateTime = DateTime(
+          endDate.year,
+          endDate.month,
+          endDate.day,
+          eTime.hour,
+          eTime.minute,
+        );
       }
 
-      // If creating a new task with a due date and no reminders set, use default [0]
+      // Ensure end is not before start
+      if (endDateTime.isBefore(startDateTime)) {
+        endDateTime = startDateTime.add(const Duration(hours: 1));
+      }
+
+      // Default reminder for new events with a start time
       final reminders =
-          _reminderOffsetsMinutes.isEmpty &&
-              finalDueDate != null &&
-              widget.todo == null
+          _reminderOffsetsMinutes.isEmpty && !_isAllDay && widget.event == null
           ? [0]
           : _reminderOffsetsMinutes;
 
-      final todo = Todo(
-        id:
-            widget.todo?.id ??
-            ref.read(clockProvider).now().millisecondsSinceEpoch.toString(),
+      final event = Event(
+        id: widget.event?.id ?? now.millisecondsSinceEpoch.toString(),
         text: _titleController.text.trim(),
         notes: _notesController.toStorageText().trim().isEmpty
             ? null
             : _notesController.toStorageText().trim(),
-        startDate: finalStartDate,
-        dueDate: finalDueDate,
+        startDateTime: startDateTime,
+        endDateTime: endDateTime,
         priority: _priority,
         folderId: _selectedFolderId.isEmpty ? null : _selectedFolderId,
         reminderOffsetsMinutes: reminders,
@@ -1451,13 +1353,18 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         repeatInterval: _repeatType != 'none' ? _repeatInterval : null,
         repeatDays: _repeatDays.isNotEmpty ? _repeatDays : null,
         repeatEndDate: _repeatEndDate,
-        durationMinutes: _durationMinutes,
-        isCompleted: widget.todo?.isCompleted ?? false,
-        createdAt: widget.todo?.createdAt ?? ref.read(clockProvider).now(),
-        completedAt: widget.todo?.completedAt,
+        location: _locationController.text.trim().isEmpty
+            ? null
+            : _locationController.text.trim(),
+        isCompleted: widget.event?.isCompleted ?? false,
+        createdAt: widget.event?.createdAt ?? now,
+        completedAt: widget.event?.completedAt,
+        uid: widget.event?.uid ?? '',
+        color: widget.event?.color,
+        parentRecurringEventId: widget.event?.parentRecurringEventId,
       );
 
-      widget.onSave(todo);
+      widget.onSave(event);
 
       if (mounted) {
         Navigator.of(context).pop();
@@ -1466,95 +1373,12 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error saving task: $e')));
+        ).showSnackBar(SnackBar(content: Text('Error saving event: $e')));
       }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
-  }
-}
-
-class _CustomDurationDialog extends StatefulWidget {
-  final int? initialMinutes;
-
-  const _CustomDurationDialog({this.initialMinutes});
-
-  @override
-  State<_CustomDurationDialog> createState() => _CustomDurationDialogState();
-}
-
-class _CustomDurationDialogState extends State<_CustomDurationDialog> {
-  late TextEditingController _hoursController;
-  late TextEditingController _minutesController;
-
-  @override
-  void initState() {
-    super.initState();
-    _hoursController = TextEditingController(
-      text: widget.initialMinutes != null
-          ? (widget.initialMinutes! ~/ 60).toString()
-          : '0',
-    );
-    _minutesController = TextEditingController(
-      text: widget.initialMinutes != null
-          ? (widget.initialMinutes! % 60).toString()
-          : '0',
-    );
-  }
-
-  @override
-  void dispose() {
-    _hoursController.dispose();
-    _minutesController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Custom Duration'),
-      content: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _hoursController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Hours',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: TextField(
-              controller: _minutesController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Minutes',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        ExpressiveTextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ExpressiveTextButton(
-          onPressed: () {
-            final hours = int.tryParse(_hoursController.text) ?? 0;
-            final minutes = int.tryParse(_minutesController.text) ?? 0;
-            final totalMinutes = hours * 60 + minutes;
-            Navigator.pop(context, totalMinutes > 0 ? totalMinutes : null);
-          },
-          child: const Text('Save'),
-        ),
-      ],
-    );
   }
 }

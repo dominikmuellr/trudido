@@ -26,18 +26,21 @@ import '../models/note.dart';
 import '../models/note_folder.dart';
 import '../models/note_history.dart';
 import '../models/holiday.dart';
+import '../models/event.dart';
 import '../repositories/hive_folder_repository.dart';
 import '../repositories/hive_folder_template_repository.dart';
 import '../utils/encryption_helper.dart';
 
 class StorageService {
   static const String _todosBoxName = 'todos';
+  static const String _eventsBoxName = 'events';
   static const String _notesBoxName = 'notes';
   static const String _noteFoldersBoxName = 'note_folders';
   static const String _noteHistoryBoxName = 'note_history';
 
   // Deferred / lazy boxes
   static LazyBox<Todo>? _todosLazyBox; // large dataset
+  static LazyBox<Event>? _eventsLazyBox; // events storage
   static Box<Note>? _notesBox; // notes storage
   static Box<NoteFolder>? _noteFoldersBox; // note folders storage
   static Box<NoteHistoryEntry>? _noteHistoryBox; // note edit history storage
@@ -61,6 +64,8 @@ class StorageService {
   static Completer<void>?
   _initCompleter; // completion for initial (settings only) init
   static Completer<void>? _todosCompleter; // completion for todos lazy box open
+  static Completer<void>?
+  _eventsCompleter; // completion for events lazy box open
   static Completer<void>? _notesCompleter; // completion for notes box open
   static Completer<void>?
   _noteFoldersCompleter; // completion for note folders box open
@@ -89,6 +94,10 @@ class StorageService {
     // Register note history adapter
     if (!Hive.isAdapterRegistered(9)) {
       Hive.registerAdapter(NoteHistoryEntryAdapter());
+    }
+    // Register event adapter
+    if (!Hive.isAdapterRegistered(10)) {
+      Hive.registerAdapter(EventAdapter());
     }
     // Register template adapters if they exist
     try {
@@ -197,6 +206,18 @@ class StorageService {
         }
       } catch (e, st) {
         _todosCompleter?.completeError(e, st);
+      }
+
+      // Events lazy box (potentially large, like todos)
+      _eventsCompleter ??= Completer<void>();
+      try {
+        _eventsLazyBox = await Hive.openLazyBox<Event>(_eventsBoxName);
+        _eventsCompleter?.complete();
+        if (enableLogging) {
+          debugPrint('[StorageService] Events lazy box opened successfully');
+        }
+      } catch (e, st) {
+        _eventsCompleter?.completeError(e, st);
       }
 
       // Note history box (for undo/redo and edit history)
@@ -309,6 +330,16 @@ class StorageService {
     await ensureReady();
     _todosCompleter ??= Completer<void>();
     return _todosCompleter!.future.timeout(
+      const Duration(seconds: 20),
+      onTimeout: () {},
+    );
+  }
+
+  static Future<void> waitEventsReady() async {
+    if (_eventsLazyBox != null) return;
+    await ensureReady();
+    _eventsCompleter ??= Completer<void>();
+    return _eventsCompleter!.future.timeout(
       const Duration(seconds: 20),
       onTimeout: () {},
     );
@@ -517,6 +548,128 @@ Happy note-taking! ✨''',
     }
   }
 
+  // Event operations
+  static Future<void> saveEvent(Event event) async {
+    await waitEventsReady();
+    try {
+      _eventsLazyBox ??= await Hive.openLazyBox<Event>(_eventsBoxName);
+      if (_eventsLazyBox != null) {
+        await _eventsLazyBox!.put(event.id, event);
+        return;
+      }
+      throw Exception('Events lazy box is not available');
+    } catch (e, st) {
+      debugPrint('[StorageService] saveEvent failed: $e\n$st');
+      rethrow;
+    }
+  }
+
+  static Future<void> deleteEvent(String id) async {
+    await waitEventsReady();
+    try {
+      _eventsLazyBox ??= await Hive.openLazyBox<Event>(_eventsBoxName);
+      if (_eventsLazyBox != null) {
+        final event = await _eventsLazyBox!.get(id);
+        if (event != null) {
+          event.isDeleted = true;
+          event.deletedAt = DateTime.now();
+          await _eventsLazyBox!.put(id, event);
+        }
+        return;
+      }
+      throw Exception('Events lazy box is not available');
+    } catch (e, st) {
+      debugPrint('[StorageService] deleteEvent failed: $e\n$st');
+      rethrow;
+    }
+  }
+
+  static Future<void> permanentlyDeleteEvent(String id) async {
+    await waitEventsReady();
+    if (_eventsLazyBox != null) {
+      await _eventsLazyBox!.delete(id);
+    }
+  }
+
+  static Future<void> restoreEvent(String id) async {
+    await waitEventsReady();
+    if (_eventsLazyBox != null) {
+      final event = await _eventsLazyBox!.get(id);
+      if (event != null) {
+        event.isDeleted = false;
+        await _eventsLazyBox!.put(id, event);
+      }
+    }
+  }
+
+  static Future<void> updateEvent(Event event) async {
+    await waitEventsReady();
+    try {
+      _eventsLazyBox ??= await Hive.openLazyBox<Event>(_eventsBoxName);
+      if (_eventsLazyBox != null) {
+        await _eventsLazyBox!.put(event.id, event);
+        return;
+      }
+      throw Exception('Events lazy box is not available');
+    } catch (e, st) {
+      debugPrint('[StorageService] updateEvent failed: $e\n$st');
+      rethrow;
+    }
+  }
+
+  static Future<List<Event>> getAllEventsAsync() async {
+    await waitEventsReady();
+    if (_eventsLazyBox != null) {
+      final keys = _eventsLazyBox!.keys.cast<dynamic>().toList();
+      final List<Event> list = [];
+      for (final k in keys) {
+        final e = await _eventsLazyBox!.get(k);
+        if (e != null && !e.isDeleted) list.add(e);
+      }
+      return list;
+    }
+    return const [];
+  }
+
+  static Future<List<Event>> getDeletedEvents() async {
+    await waitEventsReady();
+    if (_eventsLazyBox != null) {
+      final keys = _eventsLazyBox!.keys.cast<dynamic>().toList();
+      final List<Event> list = [];
+      for (final k in keys) {
+        final e = await _eventsLazyBox!.get(k);
+        if (e != null && e.isDeleted) list.add(e);
+      }
+      return list;
+    }
+    return const [];
+  }
+
+  static Future<Event?> getEventAsync(String id) async {
+    await waitEventsReady();
+    if (_eventsLazyBox != null) return _eventsLazyBox!.get(id);
+    return null;
+  }
+
+  static Future<void> clearAllEvents() async {
+    await waitEventsReady();
+    if (_eventsLazyBox != null) {
+      await _eventsLazyBox!.clear();
+      return;
+    }
+  }
+
+  static Future<void> saveEventsOrder(List<Event> events) async {
+    await waitEventsReady();
+    if (_eventsLazyBox != null) {
+      await _eventsLazyBox!.clear();
+      for (final e in events) {
+        await _eventsLazyBox!.put(e.id, e);
+      }
+      return;
+    }
+  }
+
   // Notes operations
   static Future<void> saveNote(Note note) async {
     if (_notesBox == null) {
@@ -573,6 +726,21 @@ Happy note-taking! ✨''',
             todo.deletedAt != null &&
             todo.deletedAt!.isBefore(cutoff)) {
           await _todosLazyBox!.delete(k);
+        }
+      }
+    }
+
+    // Purge expired events
+    await waitEventsReady();
+    if (_eventsLazyBox != null) {
+      final keys = _eventsLazyBox!.keys.cast<dynamic>().toList();
+      for (final k in keys) {
+        final event = await _eventsLazyBox!.get(k);
+        if (event != null &&
+            event.isDeleted &&
+            event.deletedAt != null &&
+            event.deletedAt!.isBefore(cutoff)) {
+          await _eventsLazyBox!.delete(k);
         }
       }
     }
@@ -1048,14 +1216,20 @@ Happy note-taking! ✨''',
                 .toList()
           : <Map<String, dynamic>>[];
 
+      // Export events
+      final events = await getAllEventsAsync().then(
+        (l) => l.map((event) => event.toJson()).toList(),
+      );
+
       debugPrint(
-        '[StorageService] Exporting ${todos.length} todos, ${decryptedNotes.length} notes, '
+        '[StorageService] Exporting ${todos.length} todos, ${events.length} events, ${decryptedNotes.length} notes, '
         '${noteFoldersJson.length} note folders, ${folders.length} task folders, '
         'and ${templates.length} templates',
       );
 
       final exportMap = {
         'todos': todos,
+        'events': events,
         'notes': decryptedNotes,
         'noteFolders': noteFoldersJson,
         'folders': folders,
@@ -1069,7 +1243,7 @@ Happy note-taking! ✨''',
           'show_completed_tasks': getShowCompletedTasks(),
         },
         'exported_at': DateTime.now().toIso8601String(),
-        'version': '1.3.2', // Version bump for vault backup support
+        'version': '1.4.0', // Version bump for events support
       };
 
       debugPrint('[StorageService] Export data prepared successfully');
@@ -1251,6 +1425,18 @@ Happy note-taking! ✨''',
         }
       }
 
+      // Import events
+      if (data['events'] != null) {
+        final eventsData = data['events'] as List;
+        debugPrint('[StorageService] Importing ${eventsData.length} events...');
+        await clearAllEvents();
+        for (final eventJson in eventsData) {
+          final event = Event.fromJson(eventJson as Map<String, dynamic>);
+          await saveEvent(event);
+          debugPrint('[StorageService] Imported event: ${event.text}');
+        }
+      }
+
       // Import settings
       if (data['settings'] != null) {
         debugPrint('[StorageService] Importing settings...');
@@ -1277,9 +1463,11 @@ Happy note-taking! ✨''',
 
   static Future<void> clearAllData() async {
     await waitTodosReady();
+    await waitEventsReady();
     await waitNotesReady();
 
     await clearAllTodos();
+    await clearAllEvents();
     await clearAllNotes();
 
     if (_folderRepository != null) {
@@ -1304,6 +1492,7 @@ Happy note-taking! ✨''',
   // Cleanup and close
   static Future<void> dispose() async {
     await _todosLazyBox?.close();
+    await _eventsLazyBox?.close();
   }
 
   // ============================================================================

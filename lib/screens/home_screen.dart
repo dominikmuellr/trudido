@@ -328,6 +328,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             child: FabMenu(
               onAddTask: showAddTaskDialog,
               onAddNote: createNewNote,
+              onAddEvent: showAddEventDialog,
               onAddFromTemplate: showTemplateSelection,
               onCreateVaultNote: createVaultNote,
               onLockVault: lockVault,
@@ -431,6 +432,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     child: FabMenu(
                       onAddTask: showAddTaskDialog,
                       onAddNote: createNewNote,
+                      onAddEvent: showAddEventDialog,
                       onAddFromTemplate: showTemplateSelection,
                       onCreateVaultNote: createVaultNote,
                       onLockVault: lockVault,

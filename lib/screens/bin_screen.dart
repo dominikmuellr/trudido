@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'dart:convert';
 import '../models/todo.dart';
+import '../models/event.dart' as app_event;
 import '../models/note.dart';
 import '../providers/app_providers.dart';
 import '../repositories/notes_repository.dart';
@@ -21,6 +23,7 @@ class _BinScreenState extends ConsumerState<BinScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Todo> _deletedTasks = [];
+  List<app_event.Event> _deletedEvents = [];
   List<Note> _deletedNotes = [];
   bool _isLoading = true;
 
@@ -28,7 +31,7 @@ class _BinScreenState extends ConsumerState<BinScreen>
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 2,
+      length: 3,
       vsync: this,
       initialIndex: widget.initialTab,
     );
@@ -40,6 +43,9 @@ class _BinScreenState extends ConsumerState<BinScreen>
 
     final taskRepo = ref.read(taskRepositoryProvider);
     _deletedTasks = await taskRepo.getDeletedTasks();
+
+    final eventRepo = ref.read(eventRepositoryProvider);
+    _deletedEvents = await eventRepo.getDeletedEvents();
 
     final notesRepo = ref.read(notesRepositoryProvider);
     final allDeletedNotes = await notesRepo.getDeletedNotes();
@@ -86,6 +92,8 @@ class _BinScreenState extends ConsumerState<BinScreen>
     if (confirmed == true) {
       if (_tabController.index == 0) {
         await ref.read(taskRepositoryProvider).emptyBin();
+      } else if (_tabController.index == 1) {
+        await ref.read(eventRepositoryProvider).emptyBin();
       } else {
         await ref
             .read(notesRepositoryProvider)
@@ -103,7 +111,8 @@ class _BinScreenState extends ConsumerState<BinScreen>
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(text: 'Tasks'),
+            Tab(text: 'To-dos'),
+            Tab(text: 'Events'),
             Tab(text: 'Notes'),
           ],
         ),
@@ -119,7 +128,7 @@ class _BinScreenState extends ConsumerState<BinScreen>
           ? const Center(child: CircularProgressIndicator())
           : TabBarView(
               controller: _tabController,
-              children: [_buildTaskList(), _buildNoteList()],
+              children: [_buildTaskList(), _buildEventList(), _buildNoteList()],
             ),
     );
   }
@@ -154,6 +163,53 @@ class _BinScreenState extends ConsumerState<BinScreen>
                   await ref
                       .read(taskRepositoryProvider)
                       .permanentlyDeleteTask(task.id);
+                  _loadData();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEventList() {
+    if (_deletedEvents.isEmpty) {
+      return const Center(child: Text('No deleted events'));
+    }
+    return ListView.builder(
+      itemCount: _deletedEvents.length,
+      itemBuilder: (context, index) {
+        final event = _deletedEvents[index];
+        final timeText = event.isAllDay
+            ? 'All day'
+            : '${DateFormat('MMM d, HH:mm').format(event.startDateTime)} – ${DateFormat('HH:mm').format(event.endDateTime)}';
+        return ListTile(
+          leading: const Icon(Icons.event),
+          title: Text(
+            event.text,
+            style: const TextStyle(decoration: TextDecoration.lineThrough),
+          ),
+          subtitle: Text(timeText),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ExpressiveIconButton(
+                icon: const Icon(Icons.restore),
+                onPressed: () async {
+                  await ref
+                      .read(eventRepositoryProvider)
+                      .restoreEvent(event.id);
+                  _loadData();
+                  final _ = ref.refresh(eventsProvider);
+                },
+              ),
+              ExpressiveIconButton(
+                icon: const Icon(Icons.delete_forever, color: Colors.red),
+                onPressed: () async {
+                  await ref
+                      .read(eventRepositoryProvider)
+                      .permanentlyDeleteEvent(event.id);
                   _loadData();
                 },
               ),
