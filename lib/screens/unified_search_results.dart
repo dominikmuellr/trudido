@@ -17,7 +17,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:intl/intl.dart';
+
 import '../models/todo.dart';
+import '../models/event.dart' as app_event;
 import '../providers/filter_providers.dart';
 import '../providers/settings_search_provider.dart';
 import '../controllers/task_controller.dart';
@@ -35,6 +38,8 @@ class UnifiedSearchResults extends ConsumerWidget {
   final void Function({DateTime? initialDate}) onAddTask;
   final void Function(Todo task) onEditTask;
   final void Function(Todo task) onDeleteTask;
+  final void Function(app_event.Event event) onEditEvent;
+  final void Function(app_event.Event event) onDeleteEvent;
   final void Function(String noteId) onEditNote;
   final void Function(String noteId) onToggleNotePin;
   final void Function(String noteId, String noteTitle) onDeleteNote;
@@ -47,6 +52,8 @@ class UnifiedSearchResults extends ConsumerWidget {
     required this.onAddTask,
     required this.onEditTask,
     required this.onDeleteTask,
+    required this.onEditEvent,
+    required this.onDeleteEvent,
     required this.onEditNote,
     required this.onToggleNotePin,
     required this.onDeleteNote,
@@ -58,12 +65,14 @@ class UnifiedSearchResults extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final searchQuery = ref.watch(searchQueryProvider);
     final filteredTasks = ref.watch(filteredTasksProvider);
+    final filteredEvents = ref.watch(filteredEventsProvider);
     final filteredNotesAsync = ref.watch(filteredNotesProvider);
     final filteredSettings = ref.watch(filteredSettingsProvider);
     final filteredFoldersAsync = ref.watch(filteredFoldersProvider);
     final filteredNoteFoldersAsync = ref.watch(filteredNoteFoldersProvider);
     final searchDate = ref.watch(searchDateProvider);
     final tasksForDate = ref.watch(tasksForSearchDateProvider);
+    final eventsForDate = ref.watch(eventsForSearchDateProvider);
 
     return SingleChildScrollView(
       child: Column(
@@ -74,13 +83,23 @@ class UnifiedSearchResults extends ConsumerWidget {
 
           // Date search results
           if (searchDate != null)
-            _buildDateSearchResults(context, ref, searchDate, tasksForDate),
+            _buildDateSearchResults(
+              context,
+              ref,
+              searchDate,
+              tasksForDate,
+              eventsForDate,
+            ),
 
           // Regular search results (only show if not a date search)
           if (searchDate == null) ...[
             // Tasks section
             if (searchQuery.isNotEmpty && filteredTasks.isNotEmpty)
               _buildTasksSection(context, ref, filteredTasks, searchQuery),
+
+            // Events section
+            if (searchQuery.isNotEmpty && filteredEvents.isNotEmpty)
+              _buildEventsSection(context, ref, filteredEvents, searchQuery),
 
             // Notes section
             if (searchQuery.isNotEmpty)
@@ -103,6 +122,7 @@ class UnifiedSearchResults extends ConsumerWidget {
           if (searchDate == null &&
               searchQuery.isNotEmpty &&
               filteredTasks.isEmpty &&
+              filteredEvents.isEmpty &&
               filteredSettings.isEmpty &&
               (filteredNotesAsync.value?.isEmpty ?? true) &&
               (filteredFoldersAsync.value?.where((f) => !f.isVault).isEmpty ??
@@ -137,7 +157,7 @@ class UnifiedSearchResults extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Find tasks, notes, folders, and settings\nOr search by date (e.g., 25.12.2024)',
+              'Find tasks, events, notes, folders, and settings\nOr search by date (e.g., 25.12.2024)',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -185,6 +205,7 @@ class UnifiedSearchResults extends ConsumerWidget {
     WidgetRef ref,
     DateTime searchDate,
     List<Todo> tasksForDate,
+    List<app_event.Event> eventsForDate,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,6 +267,26 @@ class UnifiedSearchResults extends ConsumerWidget {
             ),
           ),
         ] else ...[
+          const SizedBox(height: 8),
+        ],
+
+        // Events on this date
+        if (eventsForDate.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Text(
+              'Events on this date (${eventsForDate.length})',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+          ...eventsForDate.map(
+            (event) => _buildEventListTile(context, ref, event),
+          ),
+        ],
+
+        if (tasksForDate.isEmpty && eventsForDate.isEmpty) ...[
           Padding(
             padding: const EdgeInsets.all(32),
             child: Center(
@@ -258,7 +299,7 @@ class UnifiedSearchResults extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'No tasks scheduled for this date',
+                    'Nothing scheduled for this date',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -307,6 +348,70 @@ class UnifiedSearchResults extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildEventsSection(
+    BuildContext context,
+    WidgetRef ref,
+    List<app_event.Event> filteredEvents,
+    String searchQuery,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text(
+            'Events (${filteredEvents.length})',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+        ...filteredEvents.map(
+          (event) => _buildEventListTile(context, ref, event),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEventListTile(
+    BuildContext context,
+    WidgetRef ref,
+    app_event.Event event,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final timeFormat = DateFormat('HH:mm');
+    final dateFormat = DateFormat('MMM d');
+
+    final timeText = event.isAllDay
+        ? 'All day'
+        : '${timeFormat.format(event.startDateTime)} – ${timeFormat.format(event.endDateTime)}';
+    final dateText = event.isMultiDay
+        ? '${dateFormat.format(event.startDateTime)} – ${dateFormat.format(event.endDateTime)}'
+        : dateFormat.format(event.startDateTime);
+
+    return ListTile(
+      leading: Icon(Icons.event, color: colorScheme.tertiary),
+      title: Text(
+        event.text,
+        style: TextStyle(
+          decoration: event.isCompleted ? TextDecoration.lineThrough : null,
+        ),
+      ),
+      subtitle: Text(
+        event.location != null && event.location!.isNotEmpty
+            ? '$dateText · $timeText · ${event.location}'
+            : '$dateText · $timeText',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      onTap: () => onEditEvent(event),
+      trailing: IconButton(
+        icon: Icon(Icons.delete_outline, color: colorScheme.error, size: 20),
+        onPressed: () => onDeleteEvent(event),
+      ),
     );
   }
 
@@ -482,7 +587,7 @@ class UnifiedSearchResults extends ConsumerWidget {
     ref.read(settingsSearchQueryProvider.notifier).update('');
     ref.read(folderSearchQueryProvider.notifier).update('');
     ref.read(selectedFolderProvider.notifier).update(folderId);
-    ref.read(currentTabProvider.notifier).setTab(0);
+    ref.read(currentTabProvider.notifier).setTab(1);
   }
 
   void _navigateToNoteFolder(WidgetRef ref, String folderId) {
@@ -494,6 +599,6 @@ class UnifiedSearchResults extends ConsumerWidget {
     ref.read(folderSearchQueryProvider.notifier).update('');
     ref.read(noteFolderSearchQueryProvider.notifier).update('');
     ref.read(selectedNoteFolderProvider.notifier).update(folderId);
-    ref.read(currentTabProvider.notifier).setTab(1);
+    ref.read(currentTabProvider.notifier).setTab(3);
   }
 }

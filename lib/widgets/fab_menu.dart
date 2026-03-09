@@ -118,34 +118,8 @@ class _FabMenuState extends ConsumerState<FabMenu>
 
   List<_MenuItem> _getMenuItems(WidgetRef ref) {
     final currentTab = ref.watch(currentTabProvider);
-    if (currentTab == 0) {
-      // Tasks Tab - show global search (excludes vaults)
-      return [
-        _MenuItem(
-          icon: Icons.add_task,
-          label: 'New To-do',
-          onTap: widget.onAddTask,
-        ),
-        if (widget.onAddEvent != null)
-          _MenuItem(
-            icon: Icons.event,
-            label: 'New Event',
-            onTap: widget.onAddEvent!,
-          ),
-        if (widget.onAddFromTemplate != null)
-          _MenuItem(
-            icon: Icons.dashboard_customize_outlined,
-            label: 'From Template',
-            onTap: widget.onAddFromTemplate!,
-          ),
-        if (widget.onSearch != null)
-          _MenuItem(
-            icon: Icons.search,
-            label: 'Search',
-            onTap: widget.onSearch!,
-          ),
-      ];
-    } else {
+
+    if (currentTab == 3) {
       // Notes Tab - check if we're in a vault
       final selectedFolderId = ref.watch(selectedNoteFolderProvider);
       final foldersAsync = ref.watch(noteFoldersProvider);
@@ -157,13 +131,11 @@ class _FabMenuState extends ConsumerState<FabMenu>
       final isInVault = selectedFolder != null && selectedFolder.isVault;
 
       if (isInVault) {
-        // Inside a vault - show vault-specific menu with vault-scoped search
         return [
           _MenuItem(
             icon: Icons.note_add_outlined,
             label: 'New Vault Note',
-            onTap: widget
-                .onAddNote, // Use onAddNote since we're already in the vault
+            onTap: widget.onAddNote,
           ),
           if (widget.onLockVault != null)
             _MenuItem(
@@ -179,7 +151,6 @@ class _FabMenuState extends ConsumerState<FabMenu>
             ),
         ];
       } else {
-        // Not in a vault - show normal menu with global search (excludes vaults)
         return [
           _MenuItem(
             icon: Icons.note_add_outlined,
@@ -201,6 +172,75 @@ class _FabMenuState extends ConsumerState<FabMenu>
         ];
       }
     }
+
+    if (currentTab == 2) {
+      // Events Tab
+      return [
+        if (widget.onAddEvent != null)
+          _MenuItem(
+            icon: Icons.event,
+            label: 'New Event',
+            onTap: widget.onAddEvent!,
+          ),
+        if (widget.onSearch != null)
+          _MenuItem(
+            icon: Icons.search,
+            label: 'Search',
+            onTap: widget.onSearch!,
+          ),
+      ];
+    }
+
+    if (currentTab == 0) {
+      // Overview tab: broad creation shortcuts
+      return [
+        _MenuItem(
+          icon: Icons.add_task,
+          label: 'New To-do',
+          onTap: widget.onAddTask,
+        ),
+        if (widget.onAddEvent != null)
+          _MenuItem(
+            icon: Icons.event,
+            label: 'New Event',
+            onTap: widget.onAddEvent!,
+          ),
+        _MenuItem(
+          icon: Icons.note_add_outlined,
+          label: 'New Note',
+          onTap: widget.onAddNote,
+        ),
+        if (widget.onCreateVaultNote != null)
+          _MenuItem(
+            icon: Icons.lock_outlined,
+            label: 'New Vault Note',
+            onTap: widget.onCreateVaultNote!,
+          ),
+        if (widget.onSearch != null)
+          _MenuItem(
+            icon: Icons.search,
+            label: 'Search',
+            onTap: widget.onSearch!,
+          ),
+      ];
+    }
+
+    // Todo tab (1): focused creation shortcuts
+    return [
+      _MenuItem(
+        icon: Icons.add_task,
+        label: 'New To-do',
+        onTap: widget.onAddTask,
+      ),
+      if (widget.onAddEvent != null)
+        _MenuItem(
+          icon: Icons.event,
+          label: 'New Event',
+          onTap: widget.onAddEvent!,
+        ),
+      if (widget.onSearch != null)
+        _MenuItem(icon: Icons.search, label: 'Search', onTap: widget.onSearch!),
+    ];
   }
 
   @override

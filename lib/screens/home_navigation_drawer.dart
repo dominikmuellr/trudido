@@ -153,14 +153,16 @@ class _HomeNavigationDrawerState extends ConsumerState<HomeNavigationDrawer> {
 
             // Folders section
             Expanded(
-              child: widget.currentTab == 0
+              child: widget.currentTab == 1
                   ? _TaskFoldersList(
                       onClearVaultSelection: widget.onClearVaultSelection,
                     )
-                  : _NoteFoldersList(
+                  : widget.currentTab == 3
+                  ? _NoteFoldersList(
                       onVaultSetup: widget.onVaultSetup,
                       onCreateNoteFolder: widget.onCreateNoteFolder,
-                    ),
+                    )
+                  : const SizedBox.shrink(),
             ),
 
             // Common actions section
@@ -689,40 +691,41 @@ class _DrawerActions extends ConsumerWidget {
     return Column(
       children: [
         // Calendar section (only for Tasks tab)
-        if (currentTab == 0)
+        if (currentTab == 1)
           _CompactCalendar(
             isExpanded: isCalendarExpanded,
             onToggle: onCalendarToggle,
           ),
 
-        // Manage Folders action
-        ListTile(
-          dense: true,
-          visualDensity: VisualDensity.compact,
-          leading: Icon(
-            Icons.folder_special_outlined,
-            size: 20,
-            color: colorScheme.onSurfaceVariant,
+        // Manage Folders action (only for tabs that have folders)
+        if (currentTab == 1 || currentTab == 3)
+          ListTile(
+            dense: true,
+            visualDensity: VisualDensity.compact,
+            leading: Icon(
+              Icons.folder_special_outlined,
+              size: 20,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            title: Text('Manage Folders', style: theme.textTheme.bodyMedium),
+            onTap: () {
+              Navigator.of(context).pop();
+              onClearVaultSelection();
+              if (currentTab == 1) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const FolderManagementScreen(),
+                  ),
+                );
+              } else {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const NotesFolderManagementScreen(),
+                  ),
+                );
+              }
+            },
           ),
-          title: Text('Manage Folders', style: theme.textTheme.bodyMedium),
-          onTap: () {
-            Navigator.of(context).pop();
-            onClearVaultSelection();
-            if (currentTab == 0) {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const FolderManagementScreen(),
-                ),
-              );
-            } else {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const NotesFolderManagementScreen(),
-                ),
-              );
-            }
-          },
-        ),
 
         // Bin (hidden when enableBin is false)
         if (preferences.enableBin)
@@ -780,7 +783,13 @@ class _BinListTile extends ConsumerWidget {
         color: colorScheme.onSurfaceVariant,
       ),
       title: Text(
-        isVault ? 'Vault Bin' : (currentTab == 0 ? 'Tasks Bin' : 'Notes Bin'),
+        isVault
+            ? 'Vault Bin'
+            : (currentTab == 1
+                  ? 'Tasks Bin'
+                  : currentTab == 3
+                  ? 'Notes Bin'
+                  : 'Bin'),
         style: theme.textTheme.bodyMedium,
       ),
       onTap: () {

@@ -220,8 +220,12 @@ class _DefaultTabSheet extends ConsumerWidget {
 
   IconData _getTabIcon(String tabId) {
     switch (tabId) {
-      case 'tasks':
+      case 'overview':
+        return Icons.dashboard_outlined;
+      case 'todo':
         return Icons.check_circle_outline;
+      case 'events':
+        return Icons.event_outlined;
       case 'notes':
         return Icons.notes_outlined;
       default:

@@ -94,7 +94,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
         preferences.useBlackTheme &&
         Theme.of(context).brightness == Brightness.dark;
 
-    if (isSearchMode && (currentTab == 0 || currentTab == 1)) {
+    if (isSearchMode && currentTab <= 3) {
       return _buildSearchAppBar(context, isAmoledBlack);
     }
 
@@ -196,7 +196,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
               ),
             ),
       // Title: App name or selection count
-      title: multiMode && currentTab == 0
+      title: multiMode && currentTab == 1
           ? Text(
               '${selectedIds.length} selected',
               style: TextStyle(
@@ -221,7 +221,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
       // Actions: avatar button and delete button in multi-select mode
       actions: [
         // Delete button in multi-select mode
-        if (currentTab == 0 && multiMode)
+        if (currentTab == 1 && multiMode)
           ExpressiveIconButton(
             icon: Icon(
               Icons.delete_outline,
@@ -351,7 +351,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
                       ),
                     ),
                     // View toggle for Notes tab
-                    if (currentTab == 1)
+                    if (currentTab == 3)
                       Consumer(
                         builder: (context, ref, _) {
                           final viewMode = ref.watch(notesViewModeProvider);
@@ -393,10 +393,12 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
 
   /// Builds greeting widget for AppBar based on current tab
   Widget _buildGreeting(BuildContext context, int currentTab) {
-    if (currentTab == 0) {
+    if (currentTab == 1) {
       return _buildTasksGreeting(context);
-    } else {
+    } else if (currentTab == 3) {
       return _buildNotesGreeting(context);
+    } else {
+      return _buildTasksGreeting(context);
     }
   }
 

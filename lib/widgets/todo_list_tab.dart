@@ -42,20 +42,13 @@ class TodoListTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final itemFilter = ref.watch(calendarItemFilterProvider);
-    final filteredTodos = itemFilter == 'events_only'
-        ? <Todo>[]
-        : ref.watch(filteredTasksProvider);
-    final events = itemFilter == 'tasks_only'
-        ? <app_event.Event>[]
-        : ref.watch(filteredEventsProvider);
+    final filteredTodos = ref.watch(filteredTasksProvider);
+    final events = <app_event.Event>[];
     // Optimize: only rebuild when viewType changes
     final viewType = ref.watch(taskViewTypeProvider.select((type) => type));
 
     return Column(
       children: [
-        // Item type toggle (All / To-dos / Events)
-        _buildItemTypeToggle(context, ref),
         // Hide filters in calendar view
         if (viewType != TaskViewType.calendar) const FilterChips(),
         Expanded(
@@ -196,43 +189,6 @@ class TodoListTab extends ConsumerWidget {
             child: const Text('Move to Bin'),
           ),
         ],
-      ),
-    );
-  }
-
-  /// Build the All / To-dos / Events segmented toggle
-  Widget _buildItemTypeToggle(BuildContext context, WidgetRef ref) {
-    final current = ref.watch(calendarItemFilterProvider);
-    final spacing = ref.watch(adaptiveSpacingProvider);
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: spacing.s16,
-        vertical: spacing.s8,
-      ),
-      child: SegmentedButton<String>(
-        segments: const [
-          ButtonSegment(value: 'all', label: Text('All')),
-          ButtonSegment(value: 'tasks_only', label: Text('To-dos')),
-          ButtonSegment(value: 'events_only', label: Text('Events')),
-        ],
-        selected: {current},
-        onSelectionChanged: (newSelection) {
-          ref
-              .read(calendarItemFilterProvider.notifier)
-              .update(newSelection.first);
-        },
-        style: ButtonStyle(
-          visualDensity: VisualDensity.compact,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          backgroundColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-              return colorScheme.secondaryContainer;
-            }
-            return null;
-          }),
-        ),
       ),
     );
   }

@@ -304,7 +304,9 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
             border: Border.all(
               color: isSelected
                   ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                  : Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.3),
               width: isSelected ? 2 : 1,
             ),
             borderRadius: SpacingBorderRadius.sm,
@@ -363,8 +365,12 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
 
   IconData _getTabIcon(String tabId) {
     switch (tabId) {
-      case 'tasks':
+      case 'overview':
+        return Icons.dashboard;
+      case 'todo':
         return Icons.checklist;
+      case 'events':
+        return Icons.event;
       case 'notes':
         return Icons.description;
       default:
@@ -374,8 +380,12 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
 
   String _getTabDescription(String tabId) {
     switch (tabId) {
-      case 'tasks':
+      case 'overview':
+        return 'See a summary of todos, events and notes';
+      case 'todo':
         return 'Manage your to-do items and tasks';
+      case 'events':
+        return 'View your calendar and upcoming events';
       case 'notes':
         return 'Write and organize your notes';
       default:

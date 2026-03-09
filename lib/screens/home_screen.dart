@@ -27,6 +27,8 @@ import '../services/widget_service.dart';
 import '../repositories/note_folder_repository.dart';
 import '../widgets/todo_list_tab.dart';
 import '../widgets/fab_menu.dart';
+import 'overview_tab.dart';
+import 'events_tab.dart';
 import '../main.dart'
     show widgetTaskCreationRequestProvider, widgetTaskCreationDateProvider;
 import 'notes_screen.dart';
@@ -153,13 +155,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     ref.listen<int>(widgetTaskCreationRequestProvider, (previous, next) {
       if (previous != null && next > previous) {
-        ref.read(currentTabProvider.notifier).setTab(0);
+        ref.read(currentTabProvider.notifier).setTab(1);
         final date = ref.read(widgetTaskCreationDateProvider);
         showAddTaskDialog(initialDate: date);
       }
     });
 
-    final tabs = [const TodoListTab(), const NotesScreen()];
+    final tabs = [
+      const OverviewTab(),
+      const TodoListTab(),
+      const EventsTab(),
+      const NotesScreen(),
+    ];
 
     final screenWidth = MediaQuery.of(context).size.width;
     final useNavigationRail = screenWidth >= 600;
@@ -244,7 +251,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     final previousTab = ref.read(currentTabProvider);
 
                     // Security: Clear vault folder selection when leaving Notes tab
-                    if (previousTab == 1 && index != 1) {
+                    if (previousTab == 3 && index != 3) {
                       clearVaultSelectionIfNeeded();
                     }
 
@@ -267,23 +274,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   destinations: [
                     NavigationRailDestination(
                       icon: NavigationRailIcon(
-                        icon: Icons.checklist_outlined,
+                        icon: Icons.dashboard_outlined,
                         tabIndex: 0,
                       ),
                       selectedIcon: NavigationRailIcon(
-                        icon: Icons.checklist,
+                        icon: Icons.dashboard,
                         tabIndex: 0,
                       ),
-                      label: const Text('Tasks'),
+                      label: const Text('Overview'),
+                    ),
+                    NavigationRailDestination(
+                      icon: NavigationRailIcon(
+                        icon: Icons.checklist_outlined,
+                        tabIndex: 1,
+                      ),
+                      selectedIcon: NavigationRailIcon(
+                        icon: Icons.checklist,
+                        tabIndex: 1,
+                      ),
+                      label: const Text('Todo'),
+                    ),
+                    NavigationRailDestination(
+                      icon: NavigationRailIcon(
+                        icon: Icons.event_outlined,
+                        tabIndex: 2,
+                      ),
+                      selectedIcon: NavigationRailIcon(
+                        icon: Icons.event,
+                        tabIndex: 2,
+                      ),
+                      label: const Text('Events'),
                     ),
                     NavigationRailDestination(
                       icon: NavigationRailIcon(
                         icon: Icons.note_outlined,
-                        tabIndex: 1,
+                        tabIndex: 3,
                       ),
                       selectedIcon: NavigationRailIcon(
                         icon: Icons.note,
-                        tabIndex: 1,
+                        tabIndex: 3,
                       ),
                       label: const Text('Notes'),
                     ),
@@ -307,6 +336,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             onAddTask: showAddTaskDialog,
                             onEditTask: showEditTaskDialog,
                             onDeleteTask: deleteTaskWithConfirmation,
+                            onEditEvent: showEditEventDialog,
+                            onDeleteEvent: deleteEventWithConfirmation,
                             onEditNote: editNoteInSearch,
                             onToggleNotePin: toggleNotePin,
                             onDeleteNote: deleteNoteInSearch,
@@ -379,6 +410,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         onAddTask: showAddTaskDialog,
                         onEditTask: showEditTaskDialog,
                         onDeleteTask: deleteTaskWithConfirmation,
+                        onEditEvent: showEditEventDialog,
+                        onDeleteEvent: deleteEventWithConfirmation,
                         onEditNote: editNoteInSearch,
                         onToggleNotePin: toggleNotePin,
                         onDeleteNote: deleteNoteInSearch,
@@ -439,7 +472,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       onSearch: triggerSearch,
                     ),
                   ),
-                  if (currentTab == 0 && !fabMenuExpanded)
+                  if ((currentTab == 1 || currentTab == 2) && !fabMenuExpanded)
                     Positioned(
                       right:
                           20, // Offset to center-align with FAB (FAB is larger)

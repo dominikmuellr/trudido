@@ -66,7 +66,7 @@ class HomeNavigationBar extends ConsumerWidget {
         }
 
         // Security: Clear vault folder selection when leaving Notes tab
-        if (previousTab == 1 && index != 1) {
+        if (previousTab == 3 && index != 3) {
           onClearVaultSelection();
         }
 
@@ -85,13 +85,23 @@ class HomeNavigationBar extends ConsumerWidget {
       },
       destinations: [
         NavigationDestination(
-          icon: _NavigationIcon(icon: Icons.checklist_outlined, tabIndex: 0),
-          selectedIcon: _NavigationIcon(icon: Icons.checklist, tabIndex: 0),
-          label: 'Tasks',
+          icon: _NavigationIcon(icon: Icons.dashboard_outlined, tabIndex: 0),
+          selectedIcon: _NavigationIcon(icon: Icons.dashboard, tabIndex: 0),
+          label: 'Overview',
         ),
         NavigationDestination(
-          icon: _NavigationIcon(icon: Icons.note_outlined, tabIndex: 1),
-          selectedIcon: _NavigationIcon(icon: Icons.note, tabIndex: 1),
+          icon: _NavigationIcon(icon: Icons.checklist_outlined, tabIndex: 1),
+          selectedIcon: _NavigationIcon(icon: Icons.checklist, tabIndex: 1),
+          label: 'Todo',
+        ),
+        NavigationDestination(
+          icon: _NavigationIcon(icon: Icons.event_outlined, tabIndex: 2),
+          selectedIcon: _NavigationIcon(icon: Icons.event, tabIndex: 2),
+          label: 'Events',
+        ),
+        NavigationDestination(
+          icon: _NavigationIcon(icon: Icons.note_outlined, tabIndex: 3),
+          selectedIcon: _NavigationIcon(icon: Icons.note, tabIndex: 3),
           label: 'Notes',
         ),
       ],
@@ -111,14 +121,17 @@ class _NavigationIcon extends ConsumerWidget {
     // Get counts for badges
     int? badgeCount;
 
-    if (tabIndex == 0) {
-      // Tasks tab - show overdue count
+    if (tabIndex == 1) {
+      // Todo tab - show overdue count
       final taskStats = ref.watch(taskStatisticsProvider);
       if (taskStats.overdue > 0) {
         badgeCount = taskStats.overdue;
       }
-    } else if (tabIndex == 1) {
-      // Notes tab - could show unread count (if implemented)
+    } else if (tabIndex == 2) {
+      // Events tab - could show today's event count
+      badgeCount = null;
+    } else if (tabIndex == 3) {
+      // Notes tab
       badgeCount = null;
     }
 
@@ -169,7 +182,7 @@ class QuickInputBottomArea extends ConsumerWidget {
         ? folders.where((f) => f.id == selectedFolderId).firstOrNull
         : null;
     final isVaultContext = folder != null && folder.isVault;
-    final isNotesTab = currentTab == 1;
+    final isNotesTab = currentTab == 3;
 
     // Background color that matches NavigationBar
     final bgColor = theme.brightness == Brightness.dark
@@ -197,7 +210,7 @@ class QuickInputBottomArea extends ConsumerWidget {
             ),
             const SizedBox(width: 8),
             // Side button: Calendar switcher for Tasks, Create Note FAB for Notes
-            if (currentTab == 0)
+            if (currentTab == 1)
               // Tasks tab: Calendar/List switcher
               ExpressiveFloatingActionButton.small(
                 heroTag: 'view_toggle_quick',
@@ -251,7 +264,7 @@ class NavigationRailIcon extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     int? badgeCount;
 
-    if (tabIndex == 0) {
+    if (tabIndex == 1) {
       final taskStats = ref.watch(taskStatisticsProvider);
       if (taskStats.overdue > 0) {
         badgeCount = taskStats.overdue;

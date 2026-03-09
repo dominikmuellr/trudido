@@ -23,11 +23,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// tab with proper error handling and fallback behavior.
 class DefaultTabService {
   static const String _defaultTabKey = 'user_default_starting_tab';
-  static const String _defaultFallback = 'tasks'; // Default to tasks tab
+  static const String _defaultFallback = 'overview';
   static const String _hideNavKey = 'hide_bottom_navigation';
 
-  /// Available tab options that match your app's navigation structure
-  static const Map<String, int> tabIndices = {'tasks': 0, 'notes': 1};
+  /// Available tab options that match the app's navigation structure.
+  /// Order: Overview, Todo, Events, Notes.
+  static const Map<String, int> tabIndices = {
+    'overview': 0,
+    'todo': 1,
+    'events': 2,
+    'notes': 3,
+  };
+
+  /// Legacy tab IDs saved before the 4-tab split.
+  /// Old 'tasks' maps to 'overview'; 'notes' stays as 'notes'.
+  static const Map<String, String> _legacyMigration = {'tasks': 'overview'};
 
   // Simple in-memory cache to avoid first-frame flicker
   static String? _cachedTabId;
@@ -42,10 +52,18 @@ class DefaultTabService {
       final prefs = await SharedPreferences.getInstance();
       final savedTab = prefs.getString(_defaultTabKey);
 
-      if (savedTab != null && tabIndices.containsKey(savedTab)) {
-        _cachedTabId = savedTab;
-        _cachedTabIndex = tabIndices[savedTab];
-        return savedTab;
+      if (savedTab != null) {
+        // Migrate legacy values transparently
+        final migrated = _legacyMigration[savedTab] ?? savedTab;
+        if (tabIndices.containsKey(migrated)) {
+          // Persist the migrated value so we only migrate once
+          if (migrated != savedTab) {
+            await prefs.setString(_defaultTabKey, migrated);
+          }
+          _cachedTabId = migrated;
+          _cachedTabIndex = tabIndices[migrated];
+          return migrated;
+        }
       }
     } catch (e) {
       // If reading fails, fall back to default
@@ -65,8 +83,8 @@ class DefaultTabService {
     return _cachedTabIndex!; // Fallback to index 0 (tasks)
   }
 
-  /// Set the user's preferred default tab
-  /// tabId should be one of: 'tasks', 'notes'
+  /// Set the user's preferred default tab.
+  /// tabId should be one of: 'overview', 'todo', 'events', 'notes'.
   static Future<bool> setDefaultTab(String tabId) async {
     if (!tabIndices.containsKey(tabId)) {
       return false;
@@ -83,11 +101,15 @@ class DefaultTabService {
     }
   }
 
-  /// Get display name for tab ID
+  /// Get display name for tab ID.
   static String getTabDisplayName(String tabId) {
     switch (tabId) {
-      case 'tasks':
-        return 'Tasks';
+      case 'overview':
+        return 'Overview';
+      case 'todo':
+        return 'Todo';
+      case 'events':
+        return 'Events';
       case 'notes':
         return 'Notes';
       default:
