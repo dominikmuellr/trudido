@@ -28,7 +28,6 @@ import '../repositories/note_folder_repository.dart';
 import '../widgets/todo_list_tab.dart';
 import '../widgets/fab_menu.dart';
 import 'overview_tab.dart';
-import 'events_tab.dart';
 import '../main.dart'
     show widgetTaskCreationRequestProvider, widgetTaskCreationDateProvider;
 import 'notes_screen.dart';
@@ -164,7 +163,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final tabs = [
       const OverviewTab(),
       const TodoListTab(),
-      const EventsTab(),
       const NotesScreen(),
     ];
 
@@ -251,7 +249,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     final previousTab = ref.read(currentTabProvider);
 
                     // Security: Clear vault folder selection when leaving Notes tab
-                    if (previousTab == 3 && index != 3) {
+                    if (previousTab == 2 && index != 2) {
                       clearVaultSelectionIfNeeded();
                     }
 
@@ -292,27 +290,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         icon: Icons.checklist,
                         tabIndex: 1,
                       ),
-                      label: const Text('Todo'),
-                    ),
-                    NavigationRailDestination(
-                      icon: NavigationRailIcon(
-                        icon: Icons.event_outlined,
-                        tabIndex: 2,
-                      ),
-                      selectedIcon: NavigationRailIcon(
-                        icon: Icons.event,
-                        tabIndex: 2,
-                      ),
-                      label: const Text('Events'),
+                      label: const Text('Tasks'),
                     ),
                     NavigationRailDestination(
                       icon: NavigationRailIcon(
                         icon: Icons.note_outlined,
-                        tabIndex: 3,
+                        tabIndex: 2,
                       ),
                       selectedIcon: NavigationRailIcon(
                         icon: Icons.note,
-                        tabIndex: 3,
+                        tabIndex: 2,
                       ),
                       label: const Text('Notes'),
                     ),
@@ -472,7 +459,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       onSearch: triggerSearch,
                     ),
                   ),
-                  if ((currentTab == 1 || currentTab == 2) && !fabMenuExpanded)
+                  if ((currentTab == 1) && !fabMenuExpanded)
                     Positioned(
                       right:
                           20, // Offset to center-align with FAB (FAB is larger)

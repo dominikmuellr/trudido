@@ -28,6 +28,7 @@ import 'app_providers.dart';
 import '../services/folder_provider.dart';
 import '../widgets/calendar_view.dart';
 import '../utils/state_notifiers.dart';
+import '../services/storage_service.dart';
 
 // Filter state providers
 final searchQueryProvider = stateProvider<String>('');
@@ -41,6 +42,30 @@ final dueTodayFilterProvider = stateProvider<bool>(false);
 /// Secondary sort keys for multi-sort. Primary sort is sortByProvider.
 /// Example: ['alphabetical'] means sort by primary first, then alphabetical.
 final secondarySortKeysProvider = stateProvider<List<String>>([]);
+
+/// Filter for task list tab: show 'all', 'tasks_only', or 'events_only'
+final listItemTypeFilterProvider = stateProvider<String>('all');
+
+/// Overview drawer configurable modules (3 slots).
+/// Each slot is a module type: 'task_folders', 'note_folders', or 'none'.
+class OverviewDrawerModulesNotifier extends Notifier<List<String>> {
+  @override
+  List<String> build() {
+    return StorageService.getOverviewDrawerModules();
+  }
+
+  void setModule(int index, String moduleType) {
+    final modules = [...state];
+    modules[index] = moduleType;
+    state = modules;
+    StorageService.setOverviewDrawerModules(modules);
+  }
+}
+
+final overviewDrawerModulesProvider =
+    NotifierProvider<OverviewDrawerModulesNotifier, List<String>>(
+      OverviewDrawerModulesNotifier.new,
+    );
 
 // View state providers
 enum TaskViewType { list, calendar }
@@ -252,8 +277,9 @@ final filteredEventsProvider = Provider<List<Event>>((ref) {
   final selectedFolder = ref.watch(selectedFolderProvider);
 
   var filtered = events.where((event) {
-    if (selectedFolder != null && event.folderId != selectedFolder)
+    if (selectedFolder != null && event.folderId != selectedFolder) {
       return false;
+    }
     if (!showCompleted && event.isCompleted) return false;
     return true;
   }).toList();

@@ -157,12 +157,12 @@ class _HomeNavigationDrawerState extends ConsumerState<HomeNavigationDrawer> {
                   ? _TaskFoldersList(
                       onClearVaultSelection: widget.onClearVaultSelection,
                     )
-                  : widget.currentTab == 3
+                  : widget.currentTab == 2
                   ? _NoteFoldersList(
                       onVaultSetup: widget.onVaultSetup,
                       onCreateNoteFolder: widget.onCreateNoteFolder,
                     )
-                  : const SizedBox.shrink(),
+                  : const _OverviewModules(),
             ),
 
             // Common actions section
@@ -668,6 +668,162 @@ class _NoteFoldersList extends ConsumerWidget {
   }
 }
 
+/// Configurable module slots for the Overview tab drawer.
+class _OverviewModules extends ConsumerWidget {
+  const _OverviewModules();
+
+  static const _moduleLabels = {'calendar': 'Calendar', 'none': 'Empty'};
+
+  static const _moduleIcons = {
+    'calendar': Icons.calendar_month,
+    'none': Icons.add,
+  };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final modules = ref.watch(overviewDrawerModulesProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        for (int i = 0; i < modules.length; i++)
+          if (modules[i] == 'none')
+            _buildEmptySlot(context, ref, i, theme, colorScheme)
+          else
+            _buildModuleSlot(context, ref, i, modules[i], theme, colorScheme),
+      ],
+    );
+  }
+
+  Widget _buildModuleSlot(
+    BuildContext context,
+    WidgetRef ref,
+    int index,
+    String moduleType,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Module header with remove button
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Row(
+            children: [
+              Icon(
+                _moduleIcons[moduleType] ?? Icons.widgets,
+                size: 16,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _moduleLabels[moduleType] ?? moduleType,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () {
+                  ref
+                      .read(overviewDrawerModulesProvider.notifier)
+                      .setModule(index, 'none');
+                },
+                child: Icon(
+                  Icons.close,
+                  size: 16,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Module content
+        _buildModuleContent(context, ref, moduleType),
+      ],
+    );
+  }
+
+  Widget _buildModuleContent(
+    BuildContext context,
+    WidgetRef ref,
+    String moduleType,
+  ) {
+    switch (moduleType) {
+      case 'calendar':
+        return const _InlineCalendar();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildEmptySlot(
+    BuildContext context,
+    WidgetRef ref,
+    int index,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
+    return InkWell(
+      onTap: () => _showModulePicker(context, ref, index),
+      child: Container(
+        height: 48,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+          border: Border.all(color: colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.add,
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showModulePicker(BuildContext context, WidgetRef ref, int index) {
+    final colorScheme = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Choose Module',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            for (final entry in _moduleLabels.entries)
+              if (entry.key != 'none')
+                ListTile(
+                  leading: Icon(
+                    _moduleIcons[entry.key],
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  title: Text(entry.value),
+                  onTap: () {
+                    ref
+                        .read(overviewDrawerModulesProvider.notifier)
+                        .setModule(index, entry.key);
+                    Navigator.pop(context);
+                  },
+                ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Drawer actions section (calendar, manage folders, bin, settings).
 class _DrawerActions extends ConsumerWidget {
   final int currentTab;
@@ -698,7 +854,7 @@ class _DrawerActions extends ConsumerWidget {
           ),
 
         // Manage Folders action (only for tabs that have folders)
-        if (currentTab == 1 || currentTab == 3)
+        if (currentTab == 1 || currentTab == 2)
           ListTile(
             dense: true,
             visualDensity: VisualDensity.compact,
@@ -787,7 +943,7 @@ class _BinListTile extends ConsumerWidget {
             ? 'Vault Bin'
             : (currentTab == 1
                   ? 'Tasks Bin'
-                  : currentTab == 3
+                  : currentTab == 2
                   ? 'Notes Bin'
                   : 'Bin'),
         style: theme.textTheme.bodyMedium,
@@ -810,6 +966,255 @@ class _BinListTile extends ConsumerWidget {
           );
         }
       },
+    );
+  }
+}
+
+/// Always-visible calendar module for the overview drawer.
+class _InlineCalendar extends ConsumerWidget {
+  const _InlineCalendar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final selectedDate = ref.watch(selectedCalendarDateProvider);
+    final tasks = ref.watch(filteredTasksProvider);
+    final preferences = ref.watch(preferencesStateProvider);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          borderRadius: SpacingBorderRadius.md,
+        ),
+        child: TableCalendar<Todo>(
+          firstDay: DateTime.utc(2020, 1, 1),
+          lastDay: DateTime.utc(2030, 12, 31),
+          focusedDay: selectedDate ?? DateTime.now(),
+          selectedDayPredicate: (day) => isSameDay(selectedDate, day),
+          calendarFormat: CalendarFormat.month,
+          startingDayOfWeek: WeekStartUtils.toTableCalendarDay(
+            preferences.firstDayOfWeek,
+          ),
+          eventLoader: (day) {
+            return tasks.where((task) {
+              if (task.dueDate == null) return false;
+              final taskDate = DateTime(
+                task.dueDate!.year,
+                task.dueDate!.month,
+                task.dueDate!.day,
+              );
+              final checkDate = DateTime(day.year, day.month, day.day);
+              return taskDate.isAtSameMomentAs(checkDate);
+            }).toList();
+          },
+          headerStyle: HeaderStyle(
+            formatButtonVisible: false,
+            titleCentered: true,
+            titleTextStyle: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: colorScheme.onSurface,
+            ),
+            leftChevronIcon: Icon(
+              Icons.chevron_left,
+              size: 20,
+              color: colorScheme.onSurface,
+            ),
+            rightChevronIcon: Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: colorScheme.onSurface,
+            ),
+          ),
+          daysOfWeekStyle: DaysOfWeekStyle(
+            weekdayStyle: TextStyle(
+              fontSize: 11,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            weekendStyle: TextStyle(
+              fontSize: 11,
+              color: colorScheme.error.withValues(alpha: 0.7),
+            ),
+          ),
+          calendarStyle: CalendarStyle(
+            cellMargin: const EdgeInsets.all(2),
+            cellPadding: const EdgeInsets.all(0),
+            todayDecoration: const BoxDecoration(),
+            todayTextStyle: TextStyle(
+              fontSize: 12,
+              color: colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+            selectedDecoration: const BoxDecoration(),
+            selectedTextStyle: TextStyle(
+              fontSize: 12,
+              color: colorScheme.onSurface,
+            ),
+            defaultTextStyle: TextStyle(
+              fontSize: 12,
+              color: colorScheme.onSurface,
+            ),
+            weekendTextStyle: TextStyle(fontSize: 12, color: colorScheme.error),
+            outsideTextStyle: TextStyle(
+              fontSize: 12,
+              color: colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+          ),
+          calendarBuilders: CalendarBuilders<Todo>(
+            todayBuilder: (context, day, focusedDay) {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${day.day}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Container(
+                    height: 1.5,
+                    width: 14,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary,
+                      borderRadius: BorderRadius.circular(0.75),
+                    ),
+                  ),
+                ],
+              );
+            },
+            selectedBuilder: (context, day, focusedDay) {
+              final now = DateTime.now();
+              final isToday =
+                  day.year == now.year &&
+                  day.month == now.month &&
+                  day.day == now.day;
+
+              if (isToday) {
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${day.day}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Container(
+                      height: 1.5,
+                      width: 14,
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary,
+                        borderRadius: BorderRadius.circular(0.75),
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return null;
+            },
+            markerBuilder: (context, day, events) {
+              if (events.isEmpty) return const SizedBox.shrink();
+
+              final sortedEvents = events.toList()
+                ..sort((a, b) {
+                  final aHasColor = a.sourceCalendarColor != null;
+                  final bHasColor = b.sourceCalendarColor != null;
+                  if (aHasColor != bHasColor) return aHasColor ? -1 : 1;
+                  const priorityOrder = {
+                    'high': 0,
+                    'medium': 1,
+                    'low': 2,
+                    'none': 3,
+                  };
+                  final aPriority =
+                      priorityOrder[a.priority.toLowerCase()] ?? 4;
+                  final bPriority =
+                      priorityOrder[b.priority.toLowerCase()] ?? 4;
+                  return aPriority.compareTo(bPriority);
+                });
+
+              const maxBars = 2;
+              final bars = sortedEvents.take(maxBars).toList();
+              final extra = sortedEvents.length - bars.length;
+
+              return Positioned(
+                top: 2,
+                bottom: 2,
+                left: 2,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (var event in bars)
+                      Container(
+                        margin: const EdgeInsets.symmetric(vertical: 0.5),
+                        width: 3,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: event.sourceCalendarColor != null
+                              ? Color(event.sourceCalendarColor!)
+                              : getColorForPriority(
+                                  event.priority,
+                                  colorScheme,
+                                ),
+                          borderRadius: BorderRadius.circular(1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (extra > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 1),
+                        child: Text(
+                          '+$extra',
+                          style: TextStyle(
+                            fontSize: 6,
+                            color: theme.textTheme.bodySmall?.color,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+          onDaySelected: (selectedDay, focusedDay) {
+            ref
+                .read(selectedCalendarDateProvider.notifier)
+                .update(
+                  DateTime(
+                    selectedDay.year,
+                    selectedDay.month,
+                    selectedDay.day,
+                  ),
+                );
+            ref
+                .read(taskViewTypeProvider.notifier)
+                .update(TaskViewType.calendar);
+            Navigator.of(context).pop();
+          },
+          onPageChanged: (focusedDay) {
+            ref
+                .read(selectedCalendarDateProvider.notifier)
+                .update(
+                  DateTime(focusedDay.year, focusedDay.month, focusedDay.day),
+                );
+          },
+        ),
+      ),
     );
   }
 }

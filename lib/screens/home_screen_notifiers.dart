@@ -62,8 +62,8 @@ class CurrentTabNotifier extends Notifier<int> {
     final previousTab = state;
     state = index;
 
-    // Apply default notes folder when switching to Notes tab (tab 3)
-    if (index == 3 && previousTab != 3) {
+    // Apply default notes folder when switching to Notes tab (tab 2)
+    if (index == 2 && previousTab != 2) {
       _applyDefaultNotesFolder();
     }
   }

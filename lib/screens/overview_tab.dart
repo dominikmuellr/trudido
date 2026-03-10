@@ -365,7 +365,7 @@ class _LatestNoteSection extends ConsumerWidget {
         _SectionHeader(
           title: 'Latest Note',
           icon: Icons.note,
-          onSeeAll: () => ref.read(currentTabProvider.notifier).setTab(3),
+          onSeeAll: () => ref.read(currentTabProvider.notifier).setTab(2),
         ),
         SizedBox(height: spacing.s8),
         noteAsync.when(
@@ -386,7 +386,7 @@ class _LatestNoteSection extends ConsumerWidget {
               onDelete: () {},
               onDeleteConfirmed: () {},
               isInVault: false,
-              isGridView: false,
+              isGridView: true,
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),

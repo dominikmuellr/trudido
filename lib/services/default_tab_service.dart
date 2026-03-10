@@ -27,17 +27,19 @@ class DefaultTabService {
   static const String _hideNavKey = 'hide_bottom_navigation';
 
   /// Available tab options that match the app's navigation structure.
-  /// Order: Overview, Todo, Events, Notes.
+  /// Order: Overview, Tasks, Notes.
   static const Map<String, int> tabIndices = {
     'overview': 0,
-    'todo': 1,
-    'events': 2,
-    'notes': 3,
+    'tasks': 1,
+    'notes': 2,
   };
 
-  /// Legacy tab IDs saved before the 4-tab split.
-  /// Old 'tasks' maps to 'overview'; 'notes' stays as 'notes'.
-  static const Map<String, String> _legacyMigration = {'tasks': 'overview'};
+  /// Legacy tab IDs saved before the 3-tab layout.
+  /// Old 'todo' and 'events' map to 'tasks'.
+  static const Map<String, String> _legacyMigration = {
+    'todo': 'tasks',
+    'events': 'tasks',
+  };
 
   // Simple in-memory cache to avoid first-frame flicker
   static String? _cachedTabId;
@@ -75,7 +77,7 @@ class DefaultTabService {
   }
 
   /// Get the default tab as an index for NavigationBar
-  /// Returns the index (0-3) corresponding to the user's preference
+  /// Returns the index (0-2) corresponding to the user's preference
   static Future<int> getDefaultTabIndex() async {
     if (_cachedTabIndex != null) return _cachedTabIndex!;
     final tabId = await getDefaultTab();
@@ -84,7 +86,7 @@ class DefaultTabService {
   }
 
   /// Set the user's preferred default tab.
-  /// tabId should be one of: 'overview', 'todo', 'events', 'notes'.
+  /// tabId should be one of: 'overview', 'tasks', 'notes'.
   static Future<bool> setDefaultTab(String tabId) async {
     if (!tabIndices.containsKey(tabId)) {
       return false;

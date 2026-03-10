@@ -119,7 +119,7 @@ class _FabMenuState extends ConsumerState<FabMenu>
   List<_MenuItem> _getMenuItems(WidgetRef ref) {
     final currentTab = ref.watch(currentTabProvider);
 
-    if (currentTab == 3) {
+    if (currentTab == 2) {
       // Notes Tab - check if we're in a vault
       final selectedFolderId = ref.watch(selectedNoteFolderProvider);
       final foldersAsync = ref.watch(noteFoldersProvider);

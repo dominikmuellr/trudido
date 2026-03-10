@@ -367,10 +367,8 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
     switch (tabId) {
       case 'overview':
         return Icons.dashboard;
-      case 'todo':
+      case 'tasks':
         return Icons.checklist;
-      case 'events':
-        return Icons.event;
       case 'notes':
         return Icons.description;
       default:
@@ -382,10 +380,8 @@ class DefaultTabSettingsScreen extends ConsumerWidget {
     switch (tabId) {
       case 'overview':
         return 'See a summary of todos, events and notes';
-      case 'todo':
-        return 'Manage your to-do items and tasks';
-      case 'events':
-        return 'View your calendar and upcoming events';
+      case 'tasks':
+        return 'Manage your to-do items, events and calendar';
       case 'notes':
         return 'Write and organize your notes';
       default:

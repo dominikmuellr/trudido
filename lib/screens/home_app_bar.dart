@@ -94,7 +94,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
         preferences.useBlackTheme &&
         Theme.of(context).brightness == Brightness.dark;
 
-    if (isSearchMode && currentTab <= 3) {
+    if (isSearchMode && currentTab <= 2) {
       return _buildSearchAppBar(context, isAmoledBlack);
     }
 
@@ -351,7 +351,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
                       ),
                     ),
                     // View toggle for Notes tab
-                    if (currentTab == 3)
+                    if (currentTab == 2)
                       Consumer(
                         builder: (context, ref, _) {
                           final viewMode = ref.watch(notesViewModeProvider);
@@ -395,7 +395,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
   Widget _buildGreeting(BuildContext context, int currentTab) {
     if (currentTab == 1) {
       return _buildTasksGreeting(context);
-    } else if (currentTab == 3) {
+    } else if (currentTab == 2) {
       return _buildNotesGreeting(context);
     } else {
       return _buildTasksGreeting(context);

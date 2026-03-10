@@ -509,10 +509,8 @@ class _DefaultTabSheet extends ConsumerWidget {
     switch (tabId) {
       case 'overview':
         return Icons.dashboard_outlined;
-      case 'todo':
-        return Icons.check_circle_outline;
-      case 'events':
-        return Icons.event_outlined;
+      case 'tasks':
+        return Icons.checklist;
       case 'notes':
         return Icons.notes_outlined;
       default:

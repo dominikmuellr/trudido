@@ -28,6 +28,7 @@ import '../providers/filter_providers.dart';
 import '../providers/app_providers.dart';
 import '../providers/clock.dart';
 import '../providers/holiday_providers.dart';
+import '../services/folder_provider.dart';
 import '../utils/week_start_utils.dart';
 import '../utils/date_formatters.dart';
 import 'hybrid_todo_item.dart';
@@ -618,12 +619,22 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
       case 'high':
         return colorScheme.error;
       case 'medium':
-        return Colors.orange;
+        return colorScheme.secondary;
       case 'low':
-        return Colors.blue;
-      default:
         return colorScheme.tertiary;
+      default:
+        return colorScheme.outline;
     }
+  }
+
+  /// Resolve event marker color: folder color > event color > tertiary
+  Color _getEventMarkerColor(app_event.Event event, ColorScheme colorScheme) {
+    if (event.folderId != null) {
+      final folder = ref.watch(folderByIdProvider(event.folderId!));
+      if (folder != null) return Color(folder.color);
+    }
+    if (event.color != null) return Color(event.color!);
+    return colorScheme.tertiary;
   }
 
   /// Check if a recurring task should appear on a specific date
@@ -765,9 +776,9 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     }).toList();
   }
 
-  /// Get task count indicators for calendar markers
-  Map<DateTime, List<Todo>> _getTasksGroupedByDay() {
-    final Map<DateTime, List<Todo>> taskMap = {};
+  /// Get task and event count indicators for calendar markers
+  Map<DateTime, List<Object>> _getItemsGroupedByDay() {
+    final Map<DateTime, List<Object>> itemMap = {};
 
     // Get the visible date range from the calendar
     final startOfMonth = DateTime(_focusedDay.year, _focusedDay.month, 1);
@@ -791,8 +802,8 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
           date = date.add(const Duration(days: 1))
         ) {
           if (_shouldRecurringTaskAppearOnDate(task, date)) {
-            taskMap[date] = taskMap[date] ?? [];
-            taskMap[date]!.add(task);
+            itemMap[date] = itemMap[date] ?? [];
+            itemMap[date]!.add(task);
           }
         }
       } else if (task.startDate != null) {
@@ -813,8 +824,8 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
           !date.isAfter(endDate);
           date = date.add(const Duration(days: 1))
         ) {
-          taskMap[date] = taskMap[date] ?? [];
-          taskMap[date]!.add(task);
+          itemMap[date] = itemMap[date] ?? [];
+          itemMap[date]!.add(task);
         }
       } else {
         // Single-day task
@@ -823,12 +834,36 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
           task.dueDate!.month,
           task.dueDate!.day,
         );
-        taskMap[taskDate] = taskMap[taskDate] ?? [];
-        taskMap[taskDate]!.add(task);
+        itemMap[taskDate] = itemMap[taskDate] ?? [];
+        itemMap[taskDate]!.add(task);
       }
     }
 
-    return taskMap;
+    // Add events - multi-day events appear on all days they span
+    for (final event in widget.events) {
+      if (event.isDeleted) continue;
+      final startDate = DateTime(
+        event.startDateTime.year,
+        event.startDateTime.month,
+        event.startDateTime.day,
+      );
+      final endDate = DateTime(
+        event.endDateTime.year,
+        event.endDateTime.month,
+        event.endDateTime.day,
+      );
+
+      for (
+        DateTime date = startDate;
+        !date.isAfter(endDate);
+        date = date.add(const Duration(days: 1))
+      ) {
+        itemMap[date] = itemMap[date] ?? [];
+        itemMap[date]!.add(event);
+      }
+    }
+
+    return itemMap;
   }
 
   @override
@@ -881,7 +916,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                       return _buildDayTimetable(context, colorScheme);
                     }
 
-                    return TableCalendar<Todo>(
+                    return TableCalendar<Object>(
                       key: ValueKey(
                         'calendar_${_focusedDay.month}_${_focusedDay.year}',
                       ),
@@ -921,7 +956,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                         );
                       },
                       eventLoader: (day) =>
-                          _getTasksGroupedByDay()[DateTime(
+                          _getItemsGroupedByDay()[DateTime(
                             day.year,
                             day.month,
                             day.day,
@@ -989,7 +1024,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                         ),
                       ),
 
-                      calendarBuilders: CalendarBuilders<Todo>(
+                      calendarBuilders: CalendarBuilders<Object>(
                         // Custom today builder with underline
                         todayBuilder: (context, day, focusedDay) {
                           final isSelected = isSameDay(_selectedDay, day);
@@ -1104,49 +1139,61 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                           );
                         },
                         // Custom marker builder - left bars style
-                        markerBuilder: (context, day, events) {
-                          // Filter out imported events if toggle is off
-                          final visibleEvents = showImported
-                              ? events
-                              : events
-                                    .where((e) => e.sourceCalendarColor == null)
+                        markerBuilder: (context, day, items) {
+                          // Filter out imported tasks if toggle is off
+                          final visibleItems = showImported
+                              ? items
+                              : items
+                                    .where(
+                                      (e) =>
+                                          e is! Todo ||
+                                          e.sourceCalendarColor == null,
+                                    )
                                     .toList();
 
-                          if (visibleEvents.isEmpty) {
+                          if (visibleItems.isEmpty) {
                             return const SizedBox.shrink();
                           }
 
-                          // Sort events: tasks with calendar colors first, then by priority
-                          final sortedEvents = visibleEvents.toList()
+                          // Sort: tasks with calendar colors first, then by priority, events last
+                          final sortedItems = visibleItems.toList()
                             ..sort((a, b) {
-                              // First sort by whether they have a calendar color
-                              final aHasColor = a.sourceCalendarColor != null;
-                              final bHasColor = b.sourceCalendarColor != null;
-                              if (aHasColor != bHasColor) {
-                                return aHasColor ? -1 : 1;
+                              // Events always after tasks
+                              if (a is app_event.Event && b is! app_event.Event)
+                                return 1;
+                              if (a is! app_event.Event && b is app_event.Event)
+                                return -1;
+                              if (a is Todo && b is Todo) {
+                                final aHasColor = a.sourceCalendarColor != null;
+                                final bHasColor = b.sourceCalendarColor != null;
+                                if (aHasColor != bHasColor) {
+                                  return aHasColor ? -1 : 1;
+                                }
+                                const priorityOrder = {
+                                  'high': 0,
+                                  'medium': 1,
+                                  'low': 2,
+                                  'none': 3,
+                                };
+                                final aPriority =
+                                    priorityOrder[a.priority.toLowerCase()] ??
+                                    4;
+                                final bPriority =
+                                    priorityOrder[b.priority.toLowerCase()] ??
+                                    4;
+                                return aPriority.compareTo(bPriority);
                               }
-                              // Then by priority
-                              const priorityOrder = {
-                                'high': 0,
-                                'medium': 1,
-                                'low': 2,
-                                'none': 3,
-                              };
-                              final aPriority =
-                                  priorityOrder[a.priority.toLowerCase()] ?? 4;
-                              final bPriority =
-                                  priorityOrder[b.priority.toLowerCase()] ?? 4;
-                              return aPriority.compareTo(bPriority);
+                              return 0;
                             });
 
-                          const maxBars = 2;
-                          final bars = sortedEvents.take(maxBars).toList();
-                          final extra = sortedEvents.length - bars.length;
+                          const maxBars = 3;
+                          final bars = sortedItems.take(maxBars).toList();
+                          final extra = sortedItems.length - bars.length;
 
                           return Stack(
                             children: [
-                              // Task bars on the left
-                              if (events.isNotEmpty)
+                              // Item bars on the left
+                              if (items.isNotEmpty)
                                 Positioned(
                                   top: 4,
                                   bottom: 4,
@@ -1155,25 +1202,32 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                                     mainAxisSize: MainAxisSize.min,
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      for (var event in bars)
+                                      for (var item in bars)
                                         Container(
                                           margin: const EdgeInsets.symmetric(
                                             vertical: 1,
                                           ),
                                           width: 4,
-                                          height: 8,
+                                          height: item is app_event.Event
+                                              ? 6
+                                              : 8,
                                           decoration: BoxDecoration(
-                                            // Use calendar color if available, otherwise priority color
-                                            color:
-                                                event.sourceCalendarColor !=
-                                                    null
-                                                ? Color(
-                                                    event.sourceCalendarColor!,
-                                                  )
-                                                : _getColorForPriority(
-                                                    event.priority,
+                                            color: item is app_event.Event
+                                                ? _getEventMarkerColor(
+                                                    item,
                                                     colorScheme,
-                                                  ),
+                                                  )
+                                                : item is Todo
+                                                ? (item.sourceCalendarColor !=
+                                                          null
+                                                      ? Color(
+                                                          item.sourceCalendarColor!,
+                                                        )
+                                                      : _getColorForPriority(
+                                                          item.priority,
+                                                          colorScheme,
+                                                        ))
+                                                : colorScheme.outline,
                                             borderRadius: BorderRadius.circular(
                                               2,
                                             ),

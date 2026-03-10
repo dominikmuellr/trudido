@@ -599,6 +599,6 @@ class UnifiedSearchResults extends ConsumerWidget {
     ref.read(folderSearchQueryProvider.notifier).update('');
     ref.read(noteFolderSearchQueryProvider.notifier).update('');
     ref.read(selectedNoteFolderProvider.notifier).update(folderId);
-    ref.read(currentTabProvider.notifier).setTab(3);
+    ref.read(currentTabProvider.notifier).setTab(2);
   }
 }

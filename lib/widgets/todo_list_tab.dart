@@ -26,6 +26,7 @@ import '../providers/clock.dart';
 import '../providers/holiday_providers.dart';
 import '../controllers/task_controller.dart';
 import '../controllers/event_controller.dart';
+import '../services/folder_provider.dart';
 import '../widgets/hybrid_todo_item.dart';
 import '../widgets/calendar_view.dart';
 import '../widgets/filter_chips.dart';
@@ -42,8 +43,13 @@ class TodoListTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final filteredTodos = ref.watch(filteredTasksProvider);
-    final events = <app_event.Event>[];
+    final itemTypeFilter = ref.watch(listItemTypeFilterProvider);
+    final filteredTodos = itemTypeFilter == 'events_only'
+        ? <Todo>[]
+        : ref.watch(filteredTasksProvider);
+    final events = itemTypeFilter == 'tasks_only'
+        ? <app_event.Event>[]
+        : ref.watch(filteredEventsProvider);
     // Optimize: only rebuild when viewType changes
     final viewType = ref.watch(taskViewTypeProvider.select((type) => type));
 
@@ -193,7 +199,7 @@ class TodoListTab extends ConsumerWidget {
     );
   }
 
-  /// Build grouped list with TODAY, TOMORROW, UPCOMING sections
+  /// Build grouped list with TODAY, ANYTIME, SCHEDULED sections
   Widget _buildGroupedList(
     BuildContext context,
     WidgetRef ref,
@@ -203,6 +209,7 @@ class TodoListTab extends ConsumerWidget {
     final now = ref.watch(clockProvider).now();
     final today = DateTime(now.year, now.month, now.day);
     final tomorrow = today.add(const Duration(days: 1));
+    final endOfWeek = today.add(Duration(days: 7 - today.weekday));
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -212,17 +219,23 @@ class TodoListTab extends ConsumerWidget {
         ? ref.watch(visibleHolidaysProvider)
         : <Holiday>[];
 
-    // Group items by time period
-    final overdueItems = <dynamic>[];
-    final todayItems = <dynamic>[];
-    final tomorrowItems = <dynamic>[];
-    final upcomingItems = <dynamic>[];
-    final noDateItems = <dynamic>[];
+    // === TODAY: overdue todos + today's todos + today's events ===
+    final todayTodos = <Todo>[];
+    final todayEvents = <app_event.Event>[];
+    final todayHolidays = <Holiday>[];
 
-    // Add tasks to groups
+    // === ANYTIME: no-date todos + future todos (todos only) ===
+    final anytimeTodos = <Todo>[];
+
+    // === SCHEDULED: future events grouped by time period (events only) ===
+    final scheduledTomorrow = <dynamic>[];
+    final scheduledThisWeek = <dynamic>[];
+    final scheduledLater = <dynamic>[];
+
+    // Categorize tasks
     for (final task in tasks) {
       if (task.dueDate == null) {
-        noDateItems.add(task);
+        anytimeTodos.add(task);
         continue;
       }
       final taskDate = DateTime(
@@ -231,81 +244,109 @@ class TodoListTab extends ConsumerWidget {
         task.dueDate!.day,
       );
 
-      if (taskDate.isBefore(today)) {
-        overdueItems.add(task);
-      } else if (taskDate.isAtSameMomentAs(today)) {
-        todayItems.add(task);
-      } else if (taskDate.isAtSameMomentAs(tomorrow)) {
-        tomorrowItems.add(task);
-      } else if (taskDate.isAfter(tomorrow)) {
-        upcomingItems.add(task);
+      if (taskDate.isBefore(today) || taskDate.isAtSameMomentAs(today)) {
+        // Overdue or due today → TODAY section
+        todayTodos.add(task);
+      } else {
+        // Future todos → ANYTIME section
+        anytimeTodos.add(task);
       }
     }
 
-    // Add holidays to groups
-    for (final holiday in allHolidays) {
-      final holidayDate = DateTime(
-        holiday.date.year,
-        holiday.date.month,
-        holiday.date.day,
-      );
-
-      if (holiday.occursOn(today)) {
-        todayItems.add(holiday);
-      } else if (holiday.occursOn(tomorrow)) {
-        tomorrowItems.add(holiday);
-      } else if (holidayDate.isAfter(tomorrow)) {
-        upcomingItems.add(holiday);
-      }
-    }
-
-    // Add events to groups
+    // Categorize events
     for (final event in events) {
-      final eventDate = DateTime(
-        event.startDateTime.year,
-        event.startDateTime.month,
-        event.startDateTime.day,
-      );
-
-      if (event.hasEnded && eventDate.isBefore(today)) {
-        overdueItems.add(event);
-      } else if (eventDate.isAtSameMomentAs(today) || event.occursOn(today)) {
-        todayItems.add(event);
-      } else if (eventDate.isAtSameMomentAs(tomorrow) ||
-          event.occursOn(tomorrow)) {
-        tomorrowItems.add(event);
-      } else if (eventDate.isAfter(tomorrow)) {
-        upcomingItems.add(event);
+      // Multi-day events appear in TODAY as long as any day spans today
+      if (event.occursOn(today)) {
+        todayEvents.add(event);
+      } else if (event.hasEnded) {
+        // Ended event that doesn't occur today — skip (already past)
+      } else if (event.occursOn(tomorrow)) {
+        scheduledTomorrow.add(event);
+      } else {
+        final eventDate = DateTime(
+          event.startDateTime.year,
+          event.startDateTime.month,
+          event.startDateTime.day,
+        );
+        if (eventDate.isAfter(tomorrow) && !eventDate.isAfter(endOfWeek)) {
+          scheduledThisWeek.add(event);
+        } else if (eventDate.isAfter(endOfWeek)) {
+          scheduledLater.add(event);
+        }
       }
     }
 
-    // Only re-sort by time if using default or date-based sort
-    // Otherwise preserve the user's selected sort order from filteredTasksProvider
-    final sortBy = ref.watch(sortByProvider);
-    final shouldSortByTime = sortBy == 'default' || sortBy == 'date_due';
-
-    if (shouldSortByTime) {
-      DateTime sortTime(dynamic a) {
-        if (a is Todo) return a.dueDate!;
-        if (a is app_event.Event) return a.startDateTime;
-        return (a as Holiday).date;
+    // Categorize holidays
+    for (final holiday in allHolidays) {
+      if (holiday.occursOn(today)) {
+        todayHolidays.add(holiday);
+      } else if (holiday.occursOn(tomorrow)) {
+        scheduledTomorrow.add(holiday);
+      } else {
+        final holidayDate = DateTime(
+          holiday.date.year,
+          holiday.date.month,
+          holiday.date.day,
+        );
+        if (holidayDate.isAfter(tomorrow) && !holidayDate.isAfter(endOfWeek)) {
+          scheduledThisWeek.add(holiday);
+        } else if (holidayDate.isAfter(endOfWeek)) {
+          scheduledLater.add(holiday);
+        }
       }
-
-      // Sort each group by date/time
-      overdueItems.sort((a, b) => sortTime(a).compareTo(sortTime(b)));
-      todayItems.sort((a, b) => sortTime(a).compareTo(sortTime(b)));
-      tomorrowItems.sort((a, b) => sortTime(a).compareTo(sortTime(b)));
-      upcomingItems.sort((a, b) => sortTime(a).compareTo(sortTime(b)));
     }
-    // else: keep the order from filteredTasksProvider which already applied the user's sort
 
-    // Check if all groups are empty
+    // Sort within sections
+    // TODAY: all-day events first, then by start time, then todos by due date
+    todayEvents.sort((a, b) {
+      if (a.isAllDay && !b.isAllDay) return -1;
+      if (!a.isAllDay && b.isAllDay) return 1;
+      return a.startDateTime.compareTo(b.startDateTime);
+    });
+    todayTodos.sort((a, b) {
+      if (a.dueDate == null && b.dueDate == null) return 0;
+      if (a.dueDate == null) return 1;
+      if (b.dueDate == null) return -1;
+      return a.dueDate!.compareTo(b.dueDate!);
+    });
+    // ANYTIME: no-date first, then future by due date
+    anytimeTodos.sort((a, b) {
+      if (a.dueDate == null && b.dueDate == null) return 0;
+      if (a.dueDate == null) return -1;
+      if (b.dueDate == null) return 1;
+      return a.dueDate!.compareTo(b.dueDate!);
+    });
+
+    // SCHEDULED: all-day events first, then chronological
+    int scheduledCompare(dynamic a, dynamic b) {
+      final aIsAllDay = a is app_event.Event && a.isAllDay;
+      final bIsAllDay = b is app_event.Event && b.isAllDay;
+      if (aIsAllDay && !bIsAllDay) return -1;
+      if (!aIsAllDay && bIsAllDay) return 1;
+      final aTime = a is app_event.Event
+          ? a.startDateTime
+          : (a as Holiday).date;
+      final bTime = b is app_event.Event
+          ? b.startDateTime
+          : (b as Holiday).date;
+      return aTime.compareTo(bTime);
+    }
+
+    scheduledTomorrow.sort(scheduledCompare);
+    scheduledThisWeek.sort(scheduledCompare);
+    scheduledLater.sort(scheduledCompare);
+
+    // Check if all sections are empty
+    final hasTodaySection =
+        todayTodos.isNotEmpty ||
+        todayEvents.isNotEmpty ||
+        todayHolidays.isNotEmpty;
+    final hasScheduledSection =
+        scheduledTomorrow.isNotEmpty ||
+        scheduledThisWeek.isNotEmpty ||
+        scheduledLater.isNotEmpty;
     final isEmpty =
-        overdueItems.isEmpty &&
-        todayItems.isEmpty &&
-        tomorrowItems.isEmpty &&
-        upcomingItems.isEmpty &&
-        noDateItems.isEmpty;
+        !hasTodaySection && anytimeTodos.isEmpty && !hasScheduledSection;
 
     if (isEmpty) {
       return _buildEmptyState(
@@ -321,70 +362,139 @@ class TodoListTab extends ConsumerWidget {
       physics: const BouncingScrollPhysics(),
       padding: spacing.insets16,
       children: [
-        // OVERDUE section
-        if (overdueItems.isNotEmpty) ...[
-          _buildSectionHeader(context, ref, 'OVERDUE', colorScheme),
-          ...overdueItems.map(
-            (item) => _buildListItem(context, ref, item, theme, colorScheme),
-          ),
-          SizedBox(height: spacing.s16),
-        ],
-
         // TODAY section
-        if (todayItems.isNotEmpty) ...[
-          _buildSectionHeader(context, ref, 'TODAY', colorScheme),
-          ...todayItems.map(
-            (item) => _buildListItem(context, ref, item, theme, colorScheme),
+        if (hasTodaySection) ...[
+          _buildSectionHeader(
+            context,
+            ref,
+            'TODAY',
+            Icons.push_pin_outlined,
+            colorScheme.primary,
+          ),
+          // Today's holidays
+          ...todayHolidays.map(
+            (holiday) => RepaintBoundary(
+              child: _buildHolidayCard(
+                context,
+                ref,
+                holiday,
+                theme,
+                colorScheme,
+              ),
+            ),
+          ),
+          // Today's events as compact one-liners
+          ...todayEvents.map(
+            (event) => RepaintBoundary(
+              child: _buildCompactEventCard(
+                context,
+                ref,
+                event,
+                theme,
+                colorScheme,
+              ),
+            ),
+          ),
+          // Today's todos (including overdue)
+          ...todayTodos.map(
+            (todo) => _buildListItem(context, ref, todo, theme, colorScheme),
           ),
           SizedBox(height: spacing.s16),
         ],
 
-        // TOMORROW section
-        if (tomorrowItems.isNotEmpty) ...[
-          _buildSectionHeader(context, ref, 'TOMORROW', colorScheme),
-          ...tomorrowItems.map(
-            (item) => _buildListItem(context, ref, item, theme, colorScheme),
+        // ANYTIME section
+        if (anytimeTodos.isNotEmpty) ...[
+          _buildSectionHeader(
+            context,
+            ref,
+            'ANYTIME',
+            Icons.all_inbox_outlined,
+            colorScheme.onSurfaceVariant,
+          ),
+          ...anytimeTodos.map(
+            (todo) => _buildListItem(context, ref, todo, theme, colorScheme),
           ),
           SizedBox(height: spacing.s16),
         ],
 
-        // UPCOMING section
-        if (upcomingItems.isNotEmpty) ...[
-          _buildSectionHeader(context, ref, 'UPCOMING', colorScheme),
-          ...upcomingItems.map(
-            (item) => _buildListItem(context, ref, item, theme, colorScheme),
+        // SCHEDULED section
+        if (hasScheduledSection) ...[
+          _buildSectionHeader(
+            context,
+            ref,
+            'SCHEDULED',
+            Icons.calendar_month_outlined,
+            colorScheme.tertiary,
           ),
-          SizedBox(height: spacing.s16),
-        ],
-
-        // NO DATE section
-        if (noDateItems.isNotEmpty) ...[
-          _buildSectionHeader(context, ref, 'NO DATE', colorScheme),
-          ...noDateItems.map(
-            (item) => _buildListItem(context, ref, item, theme, colorScheme),
-          ),
+          // Tomorrow sub-group
+          if (scheduledTomorrow.isNotEmpty) ...[
+            _buildSubHeader(context, ref, 'Tomorrow'),
+            ...scheduledTomorrow.map(
+              (item) => _buildListItem(context, ref, item, theme, colorScheme),
+            ),
+          ],
+          // This Week sub-group
+          if (scheduledThisWeek.isNotEmpty) ...[
+            _buildSubHeader(context, ref, 'This Week'),
+            ...scheduledThisWeek.map(
+              (item) => _buildListItem(context, ref, item, theme, colorScheme),
+            ),
+          ],
+          // Later sub-group
+          if (scheduledLater.isNotEmpty) ...[
+            _buildSubHeader(context, ref, 'Later'),
+            ...scheduledLater.map(
+              (item) => _buildListItem(context, ref, item, theme, colorScheme),
+            ),
+          ],
           SizedBox(height: spacing.s16),
         ],
       ],
     );
   }
 
-  /// Build section header
+  /// Build section header with icon and color
   Widget _buildSectionHeader(
     BuildContext context,
     WidgetRef ref,
     String title,
-    ColorScheme colorScheme,
+    IconData icon,
+    Color color,
   ) {
     final spacing = ref.watch(adaptiveSpacingProvider);
     return Padding(
       padding: EdgeInsets.symmetric(vertical: spacing.s8),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          SizedBox(width: spacing.s8),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build sub-header for SCHEDULED time groups
+  Widget _buildSubHeader(BuildContext context, WidgetRef ref, String title) {
+    final spacing = ref.watch(adaptiveSpacingProvider);
+    return Padding(
+      padding: EdgeInsets.only(
+        top: spacing.s8,
+        bottom: spacing.s4,
+        left: spacing.s4,
+      ),
       child: Text(
         title,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: colorScheme.primary,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -549,6 +659,153 @@ class TodoListTab extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// Build compact event card for TODAY section – one-liner with time + title
+  /// Resolve event dot color: folder color > event color > tertiary
+  Color _getEventDotColor(
+    WidgetRef ref,
+    app_event.Event event,
+    ColorScheme colorScheme,
+  ) {
+    if (event.folderId != null) {
+      final folder = ref.watch(folderByIdProvider(event.folderId!));
+      if (folder != null) return Color(folder.color);
+    }
+    if (event.color != null) return Color(event.color!);
+    return colorScheme.tertiary;
+  }
+
+  Widget _buildCompactEventCard(
+    BuildContext context,
+    WidgetRef ref,
+    app_event.Event event,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
+    final spacing = ref.watch(adaptiveSpacingProvider);
+    final preferences = ref.watch(preferencesStateProvider);
+    final dotColor = _getEventDotColor(ref, event, colorScheme);
+    final timeFormat = DateFormat('HH:mm');
+    final dateFormat = DateFormat('MMM d');
+    final String timeText;
+    if (event.isMultiDay) {
+      timeText =
+          '${dateFormat.format(event.startDateTime)} – ${dateFormat.format(event.endDateTime)}';
+    } else if (event.isAllDay) {
+      timeText = 'All day';
+    } else {
+      timeText = timeFormat.format(event.startDateTime);
+    }
+
+    final cardContent = Padding(
+      padding: EdgeInsets.symmetric(vertical: spacing.s2),
+      child: InkWell(
+        onTap: () => _showEditEventDialog(context, ref, event),
+        borderRadius: SpacingBorderRadius.sm,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: spacing.s12,
+            vertical: spacing.s8,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: dotColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              SizedBox(width: spacing.s8),
+              Flexible(
+                flex: 0,
+                child: Text(
+                  timeText,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              SizedBox(width: spacing.s8),
+              Expanded(
+                child: Text(
+                  event.text,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (event.location != null && event.location!.isNotEmpty)
+                Padding(
+                  padding: EdgeInsets.only(left: spacing.s8),
+                  child: Icon(
+                    Icons.location_on_outlined,
+                    size: 14,
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return Dismissible(
+      key: ValueKey('compact_event_${event.id}'),
+      direction: DismissDirection.horizontal,
+      confirmDismiss: (direction) async {
+        final action = direction == DismissDirection.startToEnd
+            ? preferences.swipeRightAction
+            : preferences.swipeLeftAction;
+
+        if (action == 'delete') {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Move to Bin'),
+              content: Text('Move "${event.text}" to bin?'),
+              actions: [
+                ExpressiveTextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                ExpressiveTextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Move to Bin'),
+                ),
+              ],
+            ),
+          );
+
+          if (confirmed == true) {
+            ref.read(eventControllerProvider.notifier).delete(event.id);
+            return true;
+          }
+          return false;
+        }
+        return false;
+      },
+      background: _buildSwipeBackground(
+        context,
+        ref,
+        DismissDirection.startToEnd,
+        preferences.swipeRightAction,
+        colorScheme,
+      ),
+      secondaryBackground: _buildSwipeBackground(
+        context,
+        ref,
+        DismissDirection.endToStart,
+        preferences.swipeLeftAction,
+        colorScheme,
+      ),
+      child: cardContent,
     );
   }
 
@@ -785,21 +1042,7 @@ class TodoListTab extends ConsumerWidget {
         color: Colors.red,
         borderRadius: SpacingBorderRadius.md,
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.delete, color: Colors.white, size: 28),
-          SizedBox(height: spacing.s4),
-          const Text(
-            'DELETE',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
+      child: const Icon(Icons.delete, color: Colors.white, size: 24),
     );
   }
 }

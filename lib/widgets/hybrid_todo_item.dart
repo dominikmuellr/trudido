@@ -240,18 +240,18 @@ class HybridTodoItem extends ConsumerWidget {
 
     switch (todo.priority) {
       case 'high':
-        chipColor = colorScheme.errorContainer;
-        textColor = colorScheme.onErrorContainer;
+        chipColor = colorScheme.error;
+        textColor = colorScheme.onError;
         icon = Icons.keyboard_arrow_up;
         break;
       case 'low':
-        chipColor = colorScheme.tertiaryContainer;
-        textColor = colorScheme.onTertiaryContainer;
+        chipColor = colorScheme.tertiary;
+        textColor = colorScheme.onTertiary;
         icon = Icons.keyboard_arrow_down;
         break;
       default: // medium
-        chipColor = colorScheme.secondaryContainer;
-        textColor = colorScheme.onSecondaryContainer;
+        chipColor = colorScheme.secondary;
+        textColor = colorScheme.onSecondary;
         icon = Icons.remove;
     }
 

@@ -70,8 +70,8 @@ class _QuickInputBarState extends ConsumerState<QuickInputBar> {
   QuickInputContext _getInputContext() {
     final currentTab = ref.watch(currentTabProvider);
 
-    // Tab 1 = Todo, Tab 3 = Notes
-    if (currentTab == 0 || currentTab == 1 || currentTab == 2) {
+    // Tab 0 = Overview, Tab 1 = Tasks, Tab 2 = Notes
+    if (currentTab == 0 || currentTab == 1) {
       return QuickInputContext.tasks;
     }
 

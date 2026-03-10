@@ -1038,6 +1038,18 @@ Happy note-taking! ✨''',
     return _prefs?.getBool('show_completed_tasks') ?? true;
   }
 
+  // Overview drawer modules (list of module type strings)
+  static Future<void> setOverviewDrawerModules(List<String> modules) async {
+    await _ensurePrefs();
+    await _prefs!.setStringList('overview_drawer_modules', modules);
+  }
+
+  static List<String> getOverviewDrawerModules() {
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getStringList('overview_drawer_modules') ??
+        ['calendar', 'none', 'none'];
+  }
+
   // AMOLED / pure black dark theme preference
   static Future<void> setUseBlackTheme(bool value) async {
     await _ensurePrefs();
