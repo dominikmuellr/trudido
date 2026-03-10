@@ -1050,6 +1050,44 @@ Happy note-taking! ✨''',
         ['calendar', 'none', 'none'];
   }
 
+  // Per-tab drawer module (single module slot for Tasks/Notes tabs)
+  static Future<void> setTabDrawerModule(int tab, String moduleType) async {
+    await _ensurePrefs();
+    await _prefs!.setString('tab_drawer_module_$tab', moduleType);
+  }
+
+  static String getTabDrawerModule(int tab) {
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getString('tab_drawer_module_$tab') ?? 'none';
+  }
+
+  // Overview section order
+  static Future<void> setOverviewSectionOrder(List<String> order) async {
+    await _ensurePrefs();
+    await _prefs!.setStringList('overview_section_order', order);
+  }
+
+  static List<String> getOverviewSectionOrder() {
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getStringList('overview_section_order') ??
+        ['progress', 'pinned_note', 'todos', 'events', 'latest_notes'];
+  }
+
+  // Pinned overview note ID
+  static Future<void> setPinnedOverviewNoteId(String? noteId) async {
+    await _ensurePrefs();
+    if (noteId == null) {
+      await _prefs!.remove('pinned_overview_note_id');
+    } else {
+      await _prefs!.setString('pinned_overview_note_id', noteId);
+    }
+  }
+
+  static String? getPinnedOverviewNoteId() {
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getString('pinned_overview_note_id');
+  }
+
   // AMOLED / pure black dark theme preference
   static Future<void> setUseBlackTheme(bool value) async {
     await _ensurePrefs();

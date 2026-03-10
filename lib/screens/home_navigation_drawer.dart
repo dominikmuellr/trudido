@@ -16,10 +16,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../models/todo.dart';
 import '../models/note_folder.dart';
+import '../models/event.dart' as app_event;
 import '../providers/app_providers.dart';
 import '../providers/filter_providers.dart';
 import '../controllers/notes_controller.dart';
@@ -156,11 +158,17 @@ class _HomeNavigationDrawerState extends ConsumerState<HomeNavigationDrawer> {
               child: widget.currentTab == 1
                   ? _TaskFoldersList(
                       onClearVaultSelection: widget.onClearVaultSelection,
+                      headerWidget: _TabModuleSlot(
+                        provider: tasksDrawerModuleProvider,
+                      ),
                     )
                   : widget.currentTab == 2
                   ? _NoteFoldersList(
                       onVaultSetup: widget.onVaultSetup,
                       onCreateNoteFolder: widget.onCreateNoteFolder,
+                      headerWidget: _TabModuleSlot(
+                        provider: notesDrawerModuleProvider,
+                      ),
                     )
                   : const _OverviewModules(),
             ),
@@ -228,8 +236,12 @@ class _ThemeCycleIcon extends ConsumerWidget {
 /// Task folders list widget.
 class _TaskFoldersList extends ConsumerWidget {
   final VoidCallback onClearVaultSelection;
+  final Widget? headerWidget;
 
-  const _TaskFoldersList({required this.onClearVaultSelection});
+  const _TaskFoldersList({
+    required this.onClearVaultSelection,
+    this.headerWidget,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -240,14 +252,23 @@ class _TaskFoldersList extends ConsumerWidget {
 
     return foldersAsync.when(
       data: (folders) {
+        final hasHeader = headerWidget != null;
+        final offset = hasHeader ? 1 : 0;
         // Use ListView.builder for better performance with many folders
         return ListView.builder(
           padding: SpacingEdgeInsets.insetsV8,
           itemCount:
-              folders.length + 2, // +1 for "All Tasks", +1 for "Create Folder"
+              folders.length +
+              2 +
+              offset, // +1 optional header, +1 "All Tasks", +1 "Create Folder"
           itemBuilder: (context, index) {
+            // Optional module header
+            if (hasHeader && index == 0) {
+              return headerWidget!;
+            }
+            final i = index - offset;
             // "All Tasks" option
-            if (index == 0) {
+            if (i == 0) {
               return RepaintBoundary(
                 child: ListTile(
                   dense: true,
@@ -286,7 +307,7 @@ class _TaskFoldersList extends ConsumerWidget {
             }
 
             // "Create Folder" option
-            if (index == folders.length + 1) {
+            if (i == folders.length + 1) {
               return Column(
                 children: [
                   SpacingGap.gapV8,
@@ -318,7 +339,7 @@ class _TaskFoldersList extends ConsumerWidget {
             }
 
             // Individual folders
-            final folder = folders[index - 1];
+            final folder = folders[i - 1];
             final isSelected = selectedFolderId == folder.id;
             return RepaintBoundary(
               child: ListTile(
@@ -374,10 +395,12 @@ class _TaskFoldersList extends ConsumerWidget {
 class _NoteFoldersList extends ConsumerWidget {
   final Future<bool> Function(BuildContext, NoteFolder) onVaultSetup;
   final VoidCallback onCreateNoteFolder;
+  final Widget? headerWidget;
 
   const _NoteFoldersList({
     required this.onVaultSetup,
     required this.onCreateNoteFolder,
+    this.headerWidget,
   });
 
   @override
@@ -395,6 +418,8 @@ class _NoteFoldersList extends ConsumerWidget {
         return ListView(
           padding: SpacingEdgeInsets.insetsV8,
           children: [
+            // Optional module header
+            if (headerWidget != null) headerWidget!,
             // "All Notes" option
             ListTile(
               dense: true,
@@ -668,15 +693,185 @@ class _NoteFoldersList extends ConsumerWidget {
   }
 }
 
+/// Single configurable module slot for Tasks/Notes tab drawers.
+class _TabModuleSlot extends ConsumerWidget {
+  final NotifierProvider<TabDrawerModuleNotifier, String> provider;
+
+  const _TabModuleSlot({required this.provider});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final moduleType = ref.watch(provider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    if (moduleType == 'none') {
+      return _buildEmptySlot(context, ref, theme, colorScheme);
+    }
+    if (moduleType == 'hidden') {
+      return _buildHiddenSlot(context, ref, colorScheme);
+    }
+    return _buildModuleSlot(context, ref, moduleType, theme, colorScheme);
+  }
+
+  Widget _buildModuleSlot(
+    BuildContext context,
+    WidgetRef ref,
+    String moduleType,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          onTap: () => _showModulePicker(context, ref),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                Icon(
+                  _OverviewModules._moduleIcons[moduleType] ?? Icons.widgets,
+                  size: 16,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _OverviewModules._moduleLabels[moduleType] ?? moduleType,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () {
+                    ref.read(provider.notifier).setModule('none');
+                  },
+                  child: Icon(
+                    Icons.close,
+                    size: 16,
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        _buildModuleContent(moduleType),
+      ],
+    );
+  }
+
+  Widget _buildModuleContent(String moduleType) {
+    switch (moduleType) {
+      case 'calendar':
+        return const _InlineCalendar();
+      case 'daily_agenda':
+        return const _DailyAgenda();
+      case 'today_date':
+        return const _TodayDate();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildEmptySlot(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
+    return InkWell(
+      onTap: () => _showModulePicker(context, ref),
+      child: Container(
+        height: 48,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+          border: Border.all(color: colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.add,
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHiddenSlot(
+    BuildContext context,
+    WidgetRef ref,
+    ColorScheme colorScheme,
+  ) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: IconButton(
+        icon: Icon(
+          Icons.add,
+          size: 14,
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
+        ),
+        padding: const EdgeInsets.fromLTRB(0, 2, 16, 2),
+        constraints: const BoxConstraints(),
+        visualDensity: VisualDensity.compact,
+        onPressed: () => _showModulePicker(context, ref),
+      ),
+    );
+  }
+
+  void _showModulePicker(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Choose Module',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            for (final entry in _OverviewModules._moduleLabels.entries)
+              ListTile(
+                leading: Icon(
+                  _OverviewModules._moduleIcons[entry.key],
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                title: Text(entry.value),
+                onTap: () {
+                  ref.read(provider.notifier).setModule(entry.key);
+                  Navigator.pop(context);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Configurable module slots for the Overview tab drawer.
 class _OverviewModules extends ConsumerWidget {
   const _OverviewModules();
 
-  static const _moduleLabels = {'calendar': 'Calendar', 'none': 'Empty'};
+  static const _moduleLabels = {
+    'calendar': 'Calendar',
+    'daily_agenda': 'Daily Agenda',
+    'today_date': 'Today\'s Date',
+    'hidden': 'Empty',
+  };
 
   static const _moduleIcons = {
     'calendar': Icons.calendar_month,
-    'none': Icons.add,
+    'daily_agenda': Icons.today,
+    'today_date': Icons.event_note,
+    'hidden': Icons.visibility_off_outlined,
   };
 
   @override
@@ -691,6 +886,8 @@ class _OverviewModules extends ConsumerWidget {
         for (int i = 0; i < modules.length; i++)
           if (modules[i] == 'none')
             _buildEmptySlot(context, ref, i, theme, colorScheme)
+          else if (modules[i] == 'hidden')
+            _buildHiddenSlot(context, ref, i, colorScheme)
           else
             _buildModuleSlot(context, ref, i, modules[i], theme, colorScheme),
       ],
@@ -708,38 +905,41 @@ class _OverviewModules extends ConsumerWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Module header with remove button
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: Row(
-            children: [
-              Icon(
-                _moduleIcons[moduleType] ?? Icons.widgets,
-                size: 16,
-                color: colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                _moduleLabels[moduleType] ?? moduleType,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () {
-                  ref
-                      .read(overviewDrawerModulesProvider.notifier)
-                      .setModule(index, 'none');
-                },
-                child: Icon(
-                  Icons.close,
+        // Module header — tap to change, × to remove
+        InkWell(
+          onTap: () => _showModulePicker(context, ref, index),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                Icon(
+                  _moduleIcons[moduleType] ?? Icons.widgets,
                   size: 16,
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  color: colorScheme.onSurfaceVariant,
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Text(
+                  _moduleLabels[moduleType] ?? moduleType,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () {
+                    ref
+                        .read(overviewDrawerModulesProvider.notifier)
+                        .setModule(index, 'none');
+                  },
+                  child: Icon(
+                    Icons.close,
+                    size: 16,
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         // Module content
@@ -756,6 +956,10 @@ class _OverviewModules extends ConsumerWidget {
     switch (moduleType) {
       case 'calendar':
         return const _InlineCalendar();
+      case 'daily_agenda':
+        return const _DailyAgenda();
+      case 'today_date':
+        return const _TodayDate();
       default:
         return const SizedBox.shrink();
     }
@@ -787,6 +991,28 @@ class _OverviewModules extends ConsumerWidget {
     );
   }
 
+  Widget _buildHiddenSlot(
+    BuildContext context,
+    WidgetRef ref,
+    int index,
+    ColorScheme colorScheme,
+  ) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: IconButton(
+        icon: Icon(
+          Icons.add,
+          size: 14,
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
+        ),
+        padding: const EdgeInsets.fromLTRB(0, 2, 16, 2),
+        constraints: const BoxConstraints(),
+        visualDensity: VisualDensity.compact,
+        onPressed: () => _showModulePicker(context, ref, index),
+      ),
+    );
+  }
+
   void _showModulePicker(BuildContext context, WidgetRef ref, int index) {
     final colorScheme = Theme.of(context).colorScheme;
     showModalBottomSheet(
@@ -803,20 +1029,19 @@ class _OverviewModules extends ConsumerWidget {
               ),
             ),
             for (final entry in _moduleLabels.entries)
-              if (entry.key != 'none')
-                ListTile(
-                  leading: Icon(
-                    _moduleIcons[entry.key],
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  title: Text(entry.value),
-                  onTap: () {
-                    ref
-                        .read(overviewDrawerModulesProvider.notifier)
-                        .setModule(index, entry.key);
-                    Navigator.pop(context);
-                  },
+              ListTile(
+                leading: Icon(
+                  _moduleIcons[entry.key],
+                  color: colorScheme.onSurfaceVariant,
                 ),
+                title: Text(entry.value),
+                onTap: () {
+                  ref
+                      .read(overviewDrawerModulesProvider.notifier)
+                      .setModule(index, entry.key);
+                  Navigator.pop(context);
+                },
+              ),
           ],
         ),
       ),
@@ -843,11 +1068,12 @@ class _DrawerActions extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final preferences = ref.watch(preferencesStateProvider);
+    final tasksDrawerModule = ref.watch(tasksDrawerModuleProvider);
 
     return Column(
       children: [
-        // Calendar section (only for Tasks tab)
-        if (currentTab == 1)
+        // Calendar section (only for Tasks tab, hidden when calendar module is active)
+        if (currentTab == 1 && tasksDrawerModule != 'calendar')
           _CompactCalendar(
             isExpanded: isCalendarExpanded,
             onToggle: onCalendarToggle,
@@ -971,45 +1197,103 @@ class _BinListTile extends ConsumerWidget {
 }
 
 /// Always-visible calendar module for the overview drawer.
-class _InlineCalendar extends ConsumerWidget {
+/// Each instance manages its own focused month independently.
+class _InlineCalendar extends ConsumerStatefulWidget {
   const _InlineCalendar();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_InlineCalendar> createState() => _InlineCalendarState();
+}
+
+class _InlineCalendarState extends ConsumerState<_InlineCalendar> {
+  late DateTime _focusedDay;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusedDay = DateTime.now();
+  }
+
+  Color _eventColor(app_event.Event event, ColorScheme colorScheme) {
+    if (event.folderId != null) {
+      final folder = ref.watch(folderByIdProvider(event.folderId!));
+      if (folder != null) return Color(folder.color);
+    }
+    if (event.color != null) return Color(event.color!);
+    return colorScheme.tertiary;
+  }
+
+  Map<DateTime, List<Object>> _buildItemMap(
+    List<Todo> tasks,
+    List<app_event.Event> events,
+  ) {
+    final Map<DateTime, List<Object>> itemMap = {};
+
+    for (final task in tasks) {
+      if (task.dueDate == null) continue;
+      final date = DateTime(
+        task.dueDate!.year,
+        task.dueDate!.month,
+        task.dueDate!.day,
+      );
+      itemMap[date] = itemMap[date] ?? [];
+      itemMap[date]!.add(task);
+    }
+
+    for (final event in events) {
+      if (event.isDeleted) continue;
+      final start = DateTime(
+        event.startDateTime.year,
+        event.startDateTime.month,
+        event.startDateTime.day,
+      );
+      final end = DateTime(
+        event.endDateTime.year,
+        event.endDateTime.month,
+        event.endDateTime.day,
+      );
+      for (
+        DateTime d = start;
+        !d.isAfter(end);
+        d = d.add(const Duration(days: 1))
+      ) {
+        itemMap[d] = itemMap[d] ?? [];
+        itemMap[d]!.add(event);
+      }
+    }
+
+    return itemMap;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final selectedDate = ref.watch(selectedCalendarDateProvider);
     final tasks = ref.watch(filteredTasksProvider);
+    final events = ref.watch(filteredEventsProvider);
     final preferences = ref.watch(preferencesStateProvider);
+    final itemMap = _buildItemMap(tasks, events);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
       child: Container(
+        clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
           borderRadius: SpacingBorderRadius.md,
         ),
-        child: TableCalendar<Todo>(
+        child: TableCalendar<Object>(
           firstDay: DateTime.utc(2020, 1, 1),
           lastDay: DateTime.utc(2030, 12, 31),
-          focusedDay: selectedDate ?? DateTime.now(),
+          focusedDay: _focusedDay,
           selectedDayPredicate: (day) => isSameDay(selectedDate, day),
           calendarFormat: CalendarFormat.month,
           startingDayOfWeek: WeekStartUtils.toTableCalendarDay(
             preferences.firstDayOfWeek,
           ),
-          eventLoader: (day) {
-            return tasks.where((task) {
-              if (task.dueDate == null) return false;
-              final taskDate = DateTime(
-                task.dueDate!.year,
-                task.dueDate!.month,
-                task.dueDate!.day,
-              );
-              final checkDate = DateTime(day.year, day.month, day.day);
-              return taskDate.isAtSameMomentAs(checkDate);
-            }).toList();
-          },
+          eventLoader: (day) =>
+              itemMap[DateTime(day.year, day.month, day.day)] ?? [],
           headerStyle: HeaderStyle(
             formatButtonVisible: false,
             titleCentered: true,
@@ -1063,40 +1347,18 @@ class _InlineCalendar extends ConsumerWidget {
               color: colorScheme.onSurface.withValues(alpha: 0.3),
             ),
           ),
-          calendarBuilders: CalendarBuilders<Todo>(
+          calendarBuilders: CalendarBuilders<Object>(
             todayBuilder: (context, day, focusedDay) {
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '${day.day}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Container(
-                    height: 1.5,
-                    width: 14,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary,
-                      borderRadius: BorderRadius.circular(0.75),
-                    ),
-                  ),
-                ],
-              );
-            },
-            selectedBuilder: (context, day, focusedDay) {
-              final now = DateTime.now();
-              final isToday =
-                  day.year == now.year &&
-                  day.month == now.month &&
-                  day.day == now.day;
-
-              if (isToday) {
-                return Column(
+              final isSelected = isSameDay(selectedDate, day);
+              return Container(
+                margin: const EdgeInsets.all(4),
+                decoration: isSelected
+                    ? BoxDecoration(
+                        color: colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      )
+                    : null,
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
@@ -1117,34 +1379,55 @@ class _InlineCalendar extends ConsumerWidget {
                       ),
                     ),
                   ],
-                );
-              }
-              return null;
+                ),
+              );
             },
-            markerBuilder: (context, day, events) {
-              if (events.isEmpty) return const SizedBox.shrink();
+            selectedBuilder: (context, day, focusedDay) {
+              final now = DateTime.now();
+              final isToday =
+                  day.year == now.year &&
+                  day.month == now.month &&
+                  day.day == now.day;
+              // Today is handled by todayBuilder; only handle non-today selected
+              if (isToday) return null;
+              return Container(
+                margin: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    '${day.day}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              );
+            },
+            markerBuilder: (context, day, items) {
+              if (items.isEmpty) return const SizedBox.shrink();
 
-              final sortedEvents = events.toList()
+              // Sort: todos first by priority, events after
+              final sorted = items.toList()
                 ..sort((a, b) {
-                  final aHasColor = a.sourceCalendarColor != null;
-                  final bHasColor = b.sourceCalendarColor != null;
-                  if (aHasColor != bHasColor) return aHasColor ? -1 : 1;
-                  const priorityOrder = {
-                    'high': 0,
-                    'medium': 1,
-                    'low': 2,
-                    'none': 3,
-                  };
-                  final aPriority =
-                      priorityOrder[a.priority.toLowerCase()] ?? 4;
-                  final bPriority =
-                      priorityOrder[b.priority.toLowerCase()] ?? 4;
-                  return aPriority.compareTo(bPriority);
+                  if (a is app_event.Event && b is! app_event.Event) return 1;
+                  if (a is! app_event.Event && b is app_event.Event) return -1;
+                  if (a is Todo && b is Todo) {
+                    const order = {'high': 0, 'medium': 1, 'low': 2, 'none': 3};
+                    return (order[a.priority.toLowerCase()] ?? 4).compareTo(
+                      order[b.priority.toLowerCase()] ?? 4,
+                    );
+                  }
+                  return 0;
                 });
 
-              const maxBars = 2;
-              final bars = sortedEvents.take(maxBars).toList();
-              final extra = sortedEvents.length - bars.length;
+              const maxBars = 3;
+              final bars = sorted.take(maxBars).toList();
+              final extra = sorted.length - bars.length;
 
               return Positioned(
                 top: 2,
@@ -1154,36 +1437,31 @@ class _InlineCalendar extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    for (var event in bars)
+                    for (final item in bars)
                       Container(
                         margin: const EdgeInsets.symmetric(vertical: 0.5),
                         width: 3,
-                        height: 6,
+                        height: item is app_event.Event ? 5 : 7,
                         decoration: BoxDecoration(
-                          color: event.sourceCalendarColor != null
-                              ? Color(event.sourceCalendarColor!)
-                              : getColorForPriority(
-                                  event.priority,
-                                  colorScheme,
-                                ),
+                          color: item is app_event.Event
+                              ? _eventColor(item, colorScheme)
+                              : item is Todo
+                              ? (item.sourceCalendarColor != null
+                                    ? Color(item.sourceCalendarColor!)
+                                    : getColorForPriority(
+                                        item.priority,
+                                        colorScheme,
+                                      ))
+                              : colorScheme.outline,
                           borderRadius: BorderRadius.circular(1.5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.06),
-                              blurRadius: 1,
-                            ),
-                          ],
                         ),
                       ),
                     if (extra > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 1),
-                        child: Text(
-                          '+$extra',
-                          style: TextStyle(
-                            fontSize: 6,
-                            color: theme.textTheme.bodySmall?.color,
-                          ),
+                      Text(
+                        '+$extra',
+                        style: TextStyle(
+                          fontSize: 6,
+                          color: theme.textTheme.bodySmall?.color,
                         ),
                       ),
                   ],
@@ -1192,6 +1470,7 @@ class _InlineCalendar extends ConsumerWidget {
             },
           ),
           onDaySelected: (selectedDay, focusedDay) {
+            setState(() => _focusedDay = focusedDay);
             ref
                 .read(selectedCalendarDateProvider.notifier)
                 .update(
@@ -1201,19 +1480,254 @@ class _InlineCalendar extends ConsumerWidget {
                     selectedDay.day,
                   ),
                 );
-            ref
-                .read(taskViewTypeProvider.notifier)
-                .update(TaskViewType.calendar);
-            Navigator.of(context).pop();
           },
           onPageChanged: (focusedDay) {
-            ref
-                .read(selectedCalendarDateProvider.notifier)
-                .update(
-                  DateTime(focusedDay.year, focusedDay.month, focusedDay.day),
-                );
+            setState(() => _focusedDay = focusedDay);
           },
         ),
+      ),
+    );
+  }
+}
+
+/// Today's date module: displays the current date in European format.
+class _TodayDate extends StatelessWidget {
+  const _TodayDate();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final now = DateTime.now();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          borderRadius: SpacingBorderRadius.md,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              DateFormat('EEEE').format(now),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              DateFormat('dd.MM.yyyy').format(now),
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Daily agenda module: shows today's tasks and events in a compact list.
+class _DailyAgenda extends ConsumerWidget {
+  const _DailyAgenda();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final tasks = ref.watch(filteredTasksProvider);
+    final events = ref.watch(filteredEventsProvider);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final timeFormat = DateFormat('HH:mm');
+
+    // Today's tasks: due today or overdue
+    final todayTasks = tasks.where((t) {
+      if (t.dueDate == null) return false;
+      final d = DateTime(t.dueDate!.year, t.dueDate!.month, t.dueDate!.day);
+      return !d.isAfter(today) && !t.isCompleted;
+    }).toList();
+
+    // Today's events: occurring today
+    final todayEvents =
+        events.where((e) {
+          if (e.isDeleted) return false;
+          return e.occursOn(today);
+        }).toList()..sort((a, b) {
+          if (a.isAllDay && !b.isAllDay) return -1;
+          if (!a.isAllDay && b.isAllDay) return 1;
+          return a.startDateTime.compareTo(b.startDateTime);
+        });
+
+    final hasItems = todayTasks.isNotEmpty || todayEvents.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          borderRadius: SpacingBorderRadius.md,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Date header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+              child: Text(
+                DateFormat('EEEE, MMM d').format(today),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            if (!hasItems)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                child: Text(
+                  'Nothing scheduled',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            // Events
+            for (final event in todayEvents)
+              _buildEventRow(
+                context,
+                event,
+                theme,
+                colorScheme,
+                ref,
+                timeFormat,
+              ),
+            // Tasks
+            for (final task in todayTasks)
+              _buildTaskRow(context, task, theme, colorScheme),
+            if (hasItems) const SizedBox(height: 4),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEventRow(
+    BuildContext context,
+    app_event.Event event,
+    ThemeData theme,
+    ColorScheme colorScheme,
+    WidgetRef ref,
+    DateFormat timeFormat,
+  ) {
+    Color eventColor = colorScheme.tertiary;
+    if (event.folderId != null) {
+      final folder = ref.watch(folderByIdProvider(event.folderId!));
+      if (folder != null) eventColor = Color(folder.color);
+    } else if (event.color != null) {
+      eventColor = Color(event.color!);
+    }
+    final timeText = event.isAllDay
+        ? 'All day'
+        : timeFormat.format(event.startDateTime);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 16,
+            decoration: BoxDecoration(
+              color: eventColor,
+              borderRadius: BorderRadius.circular(1.5),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            timeText,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+              fontSize: 10,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              event.text,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurface,
+                fontSize: 11,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTaskRow(
+    BuildContext context,
+    Todo task,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
+    final isOverdue =
+        task.dueDate != null &&
+        DateTime(
+          task.dueDate!.year,
+          task.dueDate!.month,
+          task.dueDate!.day,
+        ).isBefore(
+          DateTime(
+            DateTime.now().year,
+            DateTime.now().month,
+            DateTime.now().day,
+          ),
+        );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: Row(
+        children: [
+          Icon(
+            Icons.circle_outlined,
+            size: 14,
+            color: getColorForPriority(task.priority, colorScheme),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              task.text,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isOverdue ? colorScheme.error : colorScheme.onSurface,
+                fontSize: 11,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (isOverdue)
+            Text(
+              'Overdue',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: colorScheme.error,
+                fontSize: 9,
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -1232,7 +1746,52 @@ class _CompactCalendar extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
     final selectedDate = ref.watch(selectedCalendarDateProvider);
     final tasks = ref.watch(filteredTasksProvider);
+    final events = ref.watch(filteredEventsProvider);
     final preferences = ref.watch(preferencesStateProvider);
+    final allFolders = ref.watch(folderNotifierProvider).value ?? [];
+    final folderColorMap = {for (final f in allFolders) f.id: Color(f.color)};
+
+    // Build combined item map for todos and events
+    final Map<DateTime, List<Object>> itemMap = {};
+    for (final task in tasks) {
+      if (task.dueDate == null) continue;
+      final date = DateTime(
+        task.dueDate!.year,
+        task.dueDate!.month,
+        task.dueDate!.day,
+      );
+      itemMap[date] = itemMap[date] ?? [];
+      itemMap[date]!.add(task);
+    }
+    for (final event in events) {
+      if (event.isDeleted) continue;
+      final start = DateTime(
+        event.startDateTime.year,
+        event.startDateTime.month,
+        event.startDateTime.day,
+      );
+      final end = DateTime(
+        event.endDateTime.year,
+        event.endDateTime.month,
+        event.endDateTime.day,
+      );
+      for (
+        DateTime d = start;
+        !d.isAfter(end);
+        d = d.add(const Duration(days: 1))
+      ) {
+        itemMap[d] = itemMap[d] ?? [];
+        itemMap[d]!.add(event);
+      }
+    }
+
+    Color eventColor(app_event.Event event) {
+      if (event.folderId != null) {
+        return folderColorMap[event.folderId!] ?? colorScheme.tertiary;
+      }
+      if (event.color != null) return Color(event.color!);
+      return colorScheme.tertiary;
+    }
 
     return Column(
       children: [
@@ -1258,13 +1817,14 @@ class _CompactCalendar extends ConsumerWidget {
           secondChild: Padding(
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
             child: Container(
+              clipBehavior: Clip.hardEdge,
               decoration: BoxDecoration(
                 color: colorScheme.surfaceContainerHighest.withValues(
                   alpha: 0.3,
                 ),
                 borderRadius: SpacingBorderRadius.md,
               ),
-              child: TableCalendar<Todo>(
+              child: TableCalendar<Object>(
                 firstDay: DateTime.utc(2020, 1, 1),
                 lastDay: DateTime.utc(2030, 12, 31),
                 focusedDay: selectedDate ?? DateTime.now(),
@@ -1273,18 +1833,8 @@ class _CompactCalendar extends ConsumerWidget {
                 startingDayOfWeek: WeekStartUtils.toTableCalendarDay(
                   preferences.firstDayOfWeek,
                 ),
-                eventLoader: (day) {
-                  return tasks.where((task) {
-                    if (task.dueDate == null) return false;
-                    final taskDate = DateTime(
-                      task.dueDate!.year,
-                      task.dueDate!.month,
-                      task.dueDate!.day,
-                    );
-                    final checkDate = DateTime(day.year, day.month, day.day);
-                    return taskDate.isAtSameMomentAs(checkDate);
-                  }).toList();
-                },
+                eventLoader: (day) =>
+                    itemMap[DateTime(day.year, day.month, day.day)] ?? [],
                 headerStyle: HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
@@ -1341,40 +1891,18 @@ class _CompactCalendar extends ConsumerWidget {
                     color: colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                 ),
-                calendarBuilders: CalendarBuilders<Todo>(
+                calendarBuilders: CalendarBuilders<Object>(
                   todayBuilder: (context, day, focusedDay) {
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '${day.day}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Container(
-                          height: 1.5,
-                          width: 14,
-                          decoration: BoxDecoration(
-                            color: colorScheme.primary,
-                            borderRadius: BorderRadius.circular(0.75),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                  selectedBuilder: (context, day, focusedDay) {
-                    final now = DateTime.now();
-                    final isToday =
-                        day.year == now.year &&
-                        day.month == now.month &&
-                        day.day == now.day;
-
-                    if (isToday) {
-                      return Column(
+                    final isSelected = isSameDay(selectedDate, day);
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: isSelected
+                          ? BoxDecoration(
+                              color: colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(8),
+                            )
+                          : null,
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
@@ -1395,36 +1923,61 @@ class _CompactCalendar extends ConsumerWidget {
                             ),
                           ),
                         ],
-                      );
-                    }
-                    return null;
+                      ),
+                    );
                   },
-                  markerBuilder: (context, day, events) {
-                    if (events.isEmpty) return const SizedBox.shrink();
+                  selectedBuilder: (context, day, focusedDay) {
+                    final now = DateTime.now();
+                    final isToday =
+                        day.year == now.year &&
+                        day.month == now.month &&
+                        day.day == now.day;
+                    if (isToday) return null;
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  markerBuilder: (context, day, items) {
+                    if (items.isEmpty) return const SizedBox.shrink();
 
-                    final sortedEvents = events.toList()
+                    final sorted = items.toList()
                       ..sort((a, b) {
-                        final aHasColor = a.sourceCalendarColor != null;
-                        final bHasColor = b.sourceCalendarColor != null;
-                        if (aHasColor != bHasColor) {
-                          return aHasColor ? -1 : 1;
+                        if (a is app_event.Event && b is! app_event.Event) {
+                          return 1;
                         }
-                        const priorityOrder = {
-                          'high': 0,
-                          'medium': 1,
-                          'low': 2,
-                          'none': 3,
-                        };
-                        final aPriority =
-                            priorityOrder[a.priority.toLowerCase()] ?? 4;
-                        final bPriority =
-                            priorityOrder[b.priority.toLowerCase()] ?? 4;
-                        return aPriority.compareTo(bPriority);
+                        if (a is! app_event.Event && b is app_event.Event) {
+                          return -1;
+                        }
+                        if (a is Todo && b is Todo) {
+                          const order = {
+                            'high': 0,
+                            'medium': 1,
+                            'low': 2,
+                            'none': 3,
+                          };
+                          return (order[a.priority.toLowerCase()] ?? 4)
+                              .compareTo(order[b.priority.toLowerCase()] ?? 4);
+                        }
+                        return 0;
                       });
 
-                    const maxBars = 2;
-                    final bars = sortedEvents.take(maxBars).toList();
-                    final extra = sortedEvents.length - bars.length;
+                    const maxBars = 3;
+                    final bars = sorted.take(maxBars).toList();
+                    final extra = sorted.length - bars.length;
 
                     return Positioned(
                       top: 2,
@@ -1434,36 +1987,31 @@ class _CompactCalendar extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          for (var event in bars)
+                          for (final item in bars)
                             Container(
                               margin: const EdgeInsets.symmetric(vertical: 0.5),
                               width: 3,
-                              height: 6,
+                              height: item is app_event.Event ? 5 : 7,
                               decoration: BoxDecoration(
-                                color: event.sourceCalendarColor != null
-                                    ? Color(event.sourceCalendarColor!)
-                                    : getColorForPriority(
-                                        event.priority,
-                                        colorScheme,
-                                      ),
+                                color: item is app_event.Event
+                                    ? eventColor(item)
+                                    : item is Todo
+                                    ? (item.sourceCalendarColor != null
+                                          ? Color(item.sourceCalendarColor!)
+                                          : getColorForPriority(
+                                              item.priority,
+                                              colorScheme,
+                                            ))
+                                    : colorScheme.outline,
                                 borderRadius: BorderRadius.circular(1.5),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.06),
-                                    blurRadius: 1,
-                                  ),
-                                ],
                               ),
                             ),
                           if (extra > 0)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 1),
-                              child: Text(
-                                '+$extra',
-                                style: TextStyle(
-                                  fontSize: 6,
-                                  color: theme.textTheme.bodySmall?.color,
-                                ),
+                            Text(
+                              '+$extra',
+                              style: TextStyle(
+                                fontSize: 6,
+                                color: theme.textTheme.bodySmall?.color,
                               ),
                             ),
                         ],

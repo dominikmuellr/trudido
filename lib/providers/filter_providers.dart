@@ -67,6 +67,73 @@ final overviewDrawerModulesProvider =
       OverviewDrawerModulesNotifier.new,
     );
 
+/// Per-tab drawer module (single module slot for Tasks/Notes tabs).
+class TabDrawerModuleNotifier extends Notifier<String> {
+  final int tab;
+  TabDrawerModuleNotifier(this.tab);
+
+  @override
+  String build() {
+    return StorageService.getTabDrawerModule(tab);
+  }
+
+  void setModule(String moduleType) {
+    state = moduleType;
+    StorageService.setTabDrawerModule(tab, moduleType);
+  }
+}
+
+final tasksDrawerModuleProvider =
+    NotifierProvider<TabDrawerModuleNotifier, String>(
+      () => TabDrawerModuleNotifier(1),
+    );
+
+final notesDrawerModuleProvider =
+    NotifierProvider<TabDrawerModuleNotifier, String>(
+      () => TabDrawerModuleNotifier(2),
+    );
+
+/// Overview section order (drag-and-drop configurable).
+class OverviewSectionOrderNotifier extends Notifier<List<String>> {
+  @override
+  List<String> build() {
+    return StorageService.getOverviewSectionOrder();
+  }
+
+  void reorder(List<String> newOrder) {
+    state = newOrder;
+    StorageService.setOverviewSectionOrder(newOrder);
+  }
+}
+
+final overviewSectionOrderProvider =
+    NotifierProvider<OverviewSectionOrderNotifier, List<String>>(
+      OverviewSectionOrderNotifier.new,
+    );
+
+/// Pinned overview note ID.
+class PinnedOverviewNoteNotifier extends Notifier<String?> {
+  @override
+  String? build() {
+    return StorageService.getPinnedOverviewNoteId();
+  }
+
+  void pin(String noteId) {
+    state = noteId;
+    StorageService.setPinnedOverviewNoteId(noteId);
+  }
+
+  void unpin() {
+    state = null;
+    StorageService.setPinnedOverviewNoteId(null);
+  }
+}
+
+final pinnedOverviewNoteProvider =
+    NotifierProvider<PinnedOverviewNoteNotifier, String?>(
+      PinnedOverviewNoteNotifier.new,
+    );
+
 // View state providers
 enum TaskViewType { list, calendar }
 

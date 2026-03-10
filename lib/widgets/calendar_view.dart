@@ -1159,10 +1159,14 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                           final sortedItems = visibleItems.toList()
                             ..sort((a, b) {
                               // Events always after tasks
-                              if (a is app_event.Event && b is! app_event.Event)
+                              if (a is app_event.Event &&
+                                  b is! app_event.Event) {
                                 return 1;
-                              if (a is! app_event.Event && b is app_event.Event)
+                              }
+                              if (a is! app_event.Event &&
+                                  b is app_event.Event) {
                                 return -1;
+                              }
                               if (a is Todo && b is Todo) {
                                 final aHasColor = a.sourceCalendarColor != null;
                                 final bHasColor = b.sourceCalendarColor != null;

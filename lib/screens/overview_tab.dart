@@ -21,6 +21,7 @@ import 'package:intl/intl.dart';
 import '../controllers/task_controller.dart';
 import '../controllers/event_controller.dart';
 import '../providers/app_providers.dart';
+import '../providers/filter_providers.dart';
 import '../repositories/notes_repository.dart';
 import '../models/todo.dart';
 import '../models/event.dart' as app_event;
@@ -55,38 +56,146 @@ final overviewEventsProvider = Provider<List<app_event.Event>>((ref) {
   return upcoming.take(5).toList();
 });
 
-/// The single most recently updated note (first from the sorted notes list).
-final overviewLatestNoteProvider = Provider<AsyncValue<Note?>>((ref) {
+/// The 2 most recently updated notes.
+final overviewLatestNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
   return ref.watch(notesProvider).whenData((notes) {
-    if (notes.isEmpty) return null;
-    return notes.first;
+    if (notes.isEmpty) return [];
+    return notes.take(2).toList();
+  });
+});
+
+/// The pinned overview note.
+final overviewPinnedNoteProvider = Provider<AsyncValue<Note?>>((ref) {
+  final pinnedId = ref.watch(pinnedOverviewNoteProvider);
+  if (pinnedId == null) return const AsyncValue.data(null);
+  return ref.watch(notesProvider).whenData((notes) {
+    return notes.where((n) => n.id == pinnedId).firstOrNull;
   });
 });
 
 class OverviewTab extends ConsumerWidget {
   const OverviewTab({super.key});
 
+  static const _sectionLabels = {
+    'progress': 'Task Progress',
+    'pinned_note': 'Pinned Note',
+    'todos': 'Pending Todos',
+    'events': 'Upcoming Events',
+    'latest_notes': 'Latest Notes',
+  };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final spacing = ref.watch(adaptiveSpacingProvider);
+    final sectionOrder = ref.watch(overviewSectionOrderProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return ListView(
       physics: const BouncingScrollPhysics(),
       padding: spacing.insets16,
       children: [
-        // Progress card
-        _ProgressSection(),
-        SizedBox(height: spacing.s16),
-        // Pending todos
-        _TodosSection(),
-        SizedBox(height: spacing.s16),
-        // Upcoming events
-        _EventsSection(),
-        SizedBox(height: spacing.s16),
-        // Latest note
-        _LatestNoteSection(),
-        SizedBox(height: spacing.s16),
+        for (final section in sectionOrder) ...[
+          _buildSection(section),
+          SizedBox(height: spacing.s16),
+        ],
+        // Config button at the bottom
+        Center(
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: IconButton.filledTonal(
+              icon: const Icon(Icons.tune, size: 16),
+              padding: EdgeInsets.zero,
+              style: IconButton.styleFrom(
+                backgroundColor: colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.5,
+                ),
+              ),
+              onPressed: () =>
+                  _showSectionOrderDialog(context, ref, sectionOrder),
+            ),
+          ),
+        ),
+        SizedBox(height: spacing.s8),
       ],
+    );
+  }
+
+  Widget _buildSection(String section) {
+    switch (section) {
+      case 'progress':
+        return _ProgressSection();
+      case 'pinned_note':
+        return _PinnedNoteSection();
+      case 'todos':
+        return _TodosSection();
+      case 'events':
+        return _EventsSection();
+      case 'latest_notes':
+        return _LatestNotesSection();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  void _showSectionOrderDialog(
+    BuildContext context,
+    WidgetRef ref,
+    List<String> currentOrder,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final order = [...currentOrder];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'Reorder Sections',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+                ReorderableListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: order.length,
+                  onReorder: (oldIndex, newIndex) {
+                    setState(() {
+                      if (newIndex > oldIndex) newIndex--;
+                      final item = order.removeAt(oldIndex);
+                      order.insert(newIndex, item);
+                    });
+                    ref.read(overviewSectionOrderProvider.notifier).reorder([
+                      ...order,
+                    ]);
+                  },
+                  itemBuilder: (context, index) {
+                    final section = order[index];
+                    return ListTile(
+                      key: ValueKey(section),
+                      leading: Icon(
+                        Icons.drag_handle,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      title: Text(_sectionLabels[section] ?? section),
+                      dense: true,
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -351,29 +460,35 @@ class _EventsSection extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Latest Note
+// Pinned Note
 // ---------------------------------------------------------------------------
-class _LatestNoteSection extends ConsumerWidget {
+class _PinnedNoteSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final noteAsync = ref.watch(overviewLatestNoteProvider);
+    final noteAsync = ref.watch(overviewPinnedNoteProvider);
     final spacing = ref.watch(adaptiveSpacingProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeader(
-          title: 'Latest Note',
-          icon: Icons.note,
-          onSeeAll: () => ref.read(currentTabProvider.notifier).setTab(2),
-        ),
-        SizedBox(height: spacing.s8),
-        noteAsync.when(
-          data: (note) {
-            if (note == null) {
-              return _EmptyCard(icon: Icons.note_add, message: 'No notes yet');
-            }
-            return NotePreviewCard(
+    return noteAsync.when(
+      data: (note) {
+        if (note == null) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SectionHeader(
+              title: 'Pinned Note',
+              icon: Icons.push_pin,
+              onSeeAll: () {},
+              trailing: IconButton(
+                icon: const Icon(Icons.close, size: 16),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                visualDensity: VisualDensity.compact,
+                onPressed: () =>
+                    ref.read(pinnedOverviewNoteProvider.notifier).unpin(),
+              ),
+            ),
+            SizedBox(height: spacing.s8),
+            NotePreviewCard(
               note: note,
               onTap: () {
                 Navigator.of(context).push(
@@ -387,6 +502,69 @@ class _LatestNoteSection extends ConsumerWidget {
               onDeleteConfirmed: () {},
               isInVault: false,
               isGridView: true,
+            ),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Latest Notes (2 side-by-side)
+// ---------------------------------------------------------------------------
+class _LatestNotesSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notesAsync = ref.watch(overviewLatestNotesProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: 'Latest Notes',
+          icon: Icons.note,
+          onSeeAll: () => ref.read(currentTabProvider.notifier).setTab(2),
+        ),
+        SizedBox(height: spacing.s8),
+        notesAsync.when(
+          data: (notes) {
+            if (notes.isEmpty) {
+              return _EmptyCard(icon: Icons.note_add, message: 'No notes yet');
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (int i = 0; i < 2; i++) ...[
+                  if (i > 0) SizedBox(width: spacing.s8),
+                  Expanded(
+                    child: i < notes.length
+                        ? NotePreviewCard(
+                            note: notes[i],
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => QuillNoteEditorScreen(
+                                    noteId: notes[i].id,
+                                  ),
+                                ),
+                              );
+                            },
+                            onPin: () => ref
+                                .read(pinnedOverviewNoteProvider.notifier)
+                                .pin(notes[i].id),
+                            onDelete: () {},
+                            onDeleteConfirmed: () {},
+                            isInVault: false,
+                            isGridView: true,
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ],
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -405,11 +583,13 @@ class _SectionHeader extends ConsumerWidget {
   final String title;
   final IconData icon;
   final VoidCallback onSeeAll;
+  final Widget? trailing;
 
   const _SectionHeader({
     required this.title,
     required this.icon,
     required this.onSeeAll,
+    this.trailing,
   });
 
   @override
@@ -427,15 +607,18 @@ class _SectionHeader extends ConsumerWidget {
           ),
         ),
         const Spacer(),
-        ExpressiveTextButton(
-          onPressed: onSeeAll,
-          child: Text(
-            'See all',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: colorScheme.primary,
+        if (trailing != null)
+          trailing!
+        else
+          ExpressiveTextButton(
+            onPressed: onSeeAll,
+            child: Text(
+              'See all',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: colorScheme.primary,
+              ),
             ),
           ),
-        ),
       ],
     );
   }
