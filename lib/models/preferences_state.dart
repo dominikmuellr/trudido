@@ -81,6 +81,8 @@ class PreferencesState {
   _floatingToolbarDragHintShown; // Whether the drag-to-detach hint was shown
   bool get floatingToolbarDragHintShown =>
       _floatingToolbarDragHintShown ?? false;
+  final bool? _hideNavLabels; // Hide labels under navigation bar icons
+  bool get hideNavLabels => _hideNavLabels ?? false;
 
   const PreferencesState({
     required this.themeMode,
@@ -121,7 +123,9 @@ class PreferencesState {
     double? floatingToolbarY,
     bool? floatingToolbarExpanded,
     bool? floatingToolbarDragHintShown,
+    bool? hideNavLabels,
   }) : _lineHeightMultiplier = lineHeightMultiplier,
+       _hideNavLabels = hideNavLabels,
        _paragraphSpacing = paragraphSpacing,
        _blackoutRecents = blackoutRecents,
        _autoOpenKeyboardInNotes = autoOpenKeyboardInNotes,
@@ -174,6 +178,7 @@ class PreferencesState {
     double? floatingToolbarY,
     bool? floatingToolbarExpanded,
     bool? floatingToolbarDragHintShown,
+    bool? hideNavLabels,
   }) => PreferencesState(
     themeMode: themeMode ?? this.themeMode,
     useDynamicColor: useDynamicColor ?? this.useDynamicColor,
@@ -219,6 +224,7 @@ class PreferencesState {
         floatingToolbarExpanded ?? this.floatingToolbarExpanded,
     floatingToolbarDragHintShown:
         floatingToolbarDragHintShown ?? this.floatingToolbarDragHintShown,
+    hideNavLabels: hideNavLabels ?? this.hideNavLabels,
   );
 
   static const defaultState = PreferencesState(

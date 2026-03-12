@@ -158,17 +158,11 @@ class _HomeNavigationDrawerState extends ConsumerState<HomeNavigationDrawer> {
               child: widget.currentTab == 1
                   ? _TaskFoldersList(
                       onClearVaultSelection: widget.onClearVaultSelection,
-                      headerWidget: _TabModuleSlot(
-                        provider: tasksDrawerModuleProvider,
-                      ),
                     )
                   : widget.currentTab == 2
                   ? _NoteFoldersList(
                       onVaultSetup: widget.onVaultSetup,
                       onCreateNoteFolder: widget.onCreateNoteFolder,
-                      headerWidget: _TabModuleSlot(
-                        provider: notesDrawerModuleProvider,
-                      ),
                     )
                   : const _OverviewModules(),
             ),
@@ -236,12 +230,8 @@ class _ThemeCycleIcon extends ConsumerWidget {
 /// Task folders list widget.
 class _TaskFoldersList extends ConsumerWidget {
   final VoidCallback onClearVaultSelection;
-  final Widget? headerWidget;
 
-  const _TaskFoldersList({
-    required this.onClearVaultSelection,
-    this.headerWidget,
-  });
+  const _TaskFoldersList({required this.onClearVaultSelection});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -252,21 +242,12 @@ class _TaskFoldersList extends ConsumerWidget {
 
     return foldersAsync.when(
       data: (folders) {
-        final hasHeader = headerWidget != null;
-        final offset = hasHeader ? 1 : 0;
         // Use ListView.builder for better performance with many folders
         return ListView.builder(
           padding: SpacingEdgeInsets.insetsV8,
-          itemCount:
-              folders.length +
-              2 +
-              offset, // +1 optional header, +1 "All Tasks", +1 "Create Folder"
+          itemCount: folders.length + 2, // +1 "All Tasks", +1 "Create Folder"
           itemBuilder: (context, index) {
-            // Optional module header
-            if (hasHeader && index == 0) {
-              return headerWidget!;
-            }
-            final i = index - offset;
+            final i = index;
             // "All Tasks" option
             if (i == 0) {
               return RepaintBoundary(
@@ -395,12 +376,10 @@ class _TaskFoldersList extends ConsumerWidget {
 class _NoteFoldersList extends ConsumerWidget {
   final Future<bool> Function(BuildContext, NoteFolder) onVaultSetup;
   final VoidCallback onCreateNoteFolder;
-  final Widget? headerWidget;
 
   const _NoteFoldersList({
     required this.onVaultSetup,
     required this.onCreateNoteFolder,
-    this.headerWidget,
   });
 
   @override
@@ -418,8 +397,6 @@ class _NoteFoldersList extends ConsumerWidget {
         return ListView(
           padding: SpacingEdgeInsets.insetsV8,
           children: [
-            // Optional module header
-            if (headerWidget != null) headerWidget!,
             // "All Notes" option
             ListTile(
               dense: true,
@@ -687,169 +664,6 @@ class _NoteFoldersList extends ConsumerWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Single configurable module slot for Tasks/Notes tab drawers.
-class _TabModuleSlot extends ConsumerWidget {
-  final NotifierProvider<TabDrawerModuleNotifier, String> provider;
-
-  const _TabModuleSlot({required this.provider});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final moduleType = ref.watch(provider);
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    if (moduleType == 'none') {
-      return _buildEmptySlot(context, ref, theme, colorScheme);
-    }
-    if (moduleType == 'hidden') {
-      return _buildHiddenSlot(context, ref, colorScheme);
-    }
-    return _buildModuleSlot(context, ref, moduleType, theme, colorScheme);
-  }
-
-  Widget _buildModuleSlot(
-    BuildContext context,
-    WidgetRef ref,
-    String moduleType,
-    ThemeData theme,
-    ColorScheme colorScheme,
-  ) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        InkWell(
-          onTap: () => _showModulePicker(context, ref),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Row(
-              children: [
-                Icon(
-                  _OverviewModules._moduleIcons[moduleType] ?? Icons.widgets,
-                  size: 16,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _OverviewModules._moduleLabels[moduleType] ?? moduleType,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: () {
-                    ref.read(provider.notifier).setModule('none');
-                  },
-                  child: Icon(
-                    Icons.close,
-                    size: 16,
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        _buildModuleContent(moduleType),
-      ],
-    );
-  }
-
-  Widget _buildModuleContent(String moduleType) {
-    switch (moduleType) {
-      case 'calendar':
-        return const _InlineCalendar();
-      case 'daily_agenda':
-        return const _DailyAgenda();
-      case 'today_date':
-        return const _TodayDate();
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-
-  Widget _buildEmptySlot(
-    BuildContext context,
-    WidgetRef ref,
-    ThemeData theme,
-    ColorScheme colorScheme,
-  ) {
-    return InkWell(
-      onTap: () => _showModulePicker(context, ref),
-      child: Container(
-        height: 48,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        decoration: BoxDecoration(
-          border: Border.all(color: colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Center(
-          child: Icon(
-            Icons.add,
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHiddenSlot(
-    BuildContext context,
-    WidgetRef ref,
-    ColorScheme colorScheme,
-  ) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: IconButton(
-        icon: Icon(
-          Icons.add,
-          size: 14,
-          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
-        ),
-        padding: const EdgeInsets.fromLTRB(0, 2, 16, 2),
-        constraints: const BoxConstraints(),
-        visualDensity: VisualDensity.compact,
-        onPressed: () => _showModulePicker(context, ref),
-      ),
-    );
-  }
-
-  void _showModulePicker(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Choose Module',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            for (final entry in _OverviewModules._moduleLabels.entries)
-              ListTile(
-                leading: Icon(
-                  _OverviewModules._moduleIcons[entry.key],
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                title: Text(entry.value),
-                onTap: () {
-                  ref.read(provider.notifier).setModule(entry.key);
-                  Navigator.pop(context);
-                },
-              ),
-          ],
         ),
       ),
     );

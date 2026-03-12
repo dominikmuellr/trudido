@@ -47,8 +47,14 @@ class HomeNavigationBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final hapticsEnabled = ref.watch(preferencesStateProvider).hapticsEnabled;
+    final prefs = ref.watch(preferencesStateProvider);
+    final hapticsEnabled = prefs.hapticsEnabled;
+    final hideNavLabels = prefs.hideNavLabels;
     return NavigationBar(
+      height: hideNavLabels ? 60 : null,
+      labelBehavior: hideNavLabels
+          ? NavigationDestinationLabelBehavior.alwaysHide
+          : NavigationDestinationLabelBehavior.alwaysShow,
       backgroundColor: Theme.of(context).brightness == Brightness.dark
           ? null // Use default in dark mode
           : Theme.of(context).colorScheme.surfaceContainerLow,
@@ -85,8 +91,8 @@ class HomeNavigationBar extends ConsumerWidget {
       },
       destinations: [
         NavigationDestination(
-          icon: _NavigationIcon(icon: Icons.dashboard_outlined, tabIndex: 0),
-          selectedIcon: _NavigationIcon(icon: Icons.dashboard, tabIndex: 0),
+          icon: _NavigationIcon(icon: Icons.home_outlined, tabIndex: 0),
+          selectedIcon: _NavigationIcon(icon: Icons.home, tabIndex: 0),
           label: 'Overview',
         ),
         NavigationDestination(

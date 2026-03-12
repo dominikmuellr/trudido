@@ -373,9 +373,11 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
 
     switch (route) {
       case 'personalization':
+        ref.read(recentSettingsProvider.notifier).record('personalization');
         AnimatedNavigation.push(context, const PersonalizationScreen());
         break;
       case 'notifications':
+        ref.read(recentSettingsProvider.notifier).record('notifications');
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => const ComprehensiveNotificationSettings(),
@@ -383,16 +385,19 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
         );
         break;
       case 'app_lock':
+        ref.read(recentSettingsProvider.notifier).record('app_lock');
         Navigator.of(context).push(
           MaterialPageRoute(builder: (context) => const AppLockSettingsPage()),
         );
         break;
       case 'data_management':
+        ref.read(recentSettingsProvider.notifier).record('data_management');
         Navigator.of(context).push(
           MaterialPageRoute(builder: (context) => const DataManagementScreen()),
         );
         break;
       case 'about':
+        ref.read(recentSettingsProvider.notifier).record('about');
         Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (context) => const AboutScreen()));
@@ -401,6 +406,7 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
         AnimatedNavigation.push(context, const SettingsScreen());
         break;
       case 'experimental':
+        ref.read(recentSettingsProvider.notifier).record('experimental');
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => const ExperimentalSettingsScreen(),

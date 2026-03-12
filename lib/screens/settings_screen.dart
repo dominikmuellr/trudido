@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/flavor_config.dart';
 import '../providers/app_providers.dart';
+import '../providers/filter_providers.dart';
 import '../utils/responsive_size.dart';
 import 'about_screen.dart';
 import 'personalization_screen.dart';
@@ -178,6 +179,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       subtitle: const Text('Profile, colors, layout, and visual preferences'),
       trailing: ScaledIcon(Icons.arrow_forward_ios),
       onTap: () {
+        ref.read(recentSettingsProvider.notifier).record('personalization');
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => const PersonalizationScreen(),
@@ -194,6 +196,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       subtitle: const Text('Permissions, settings, and reliability'),
       trailing: ScaledIcon(Icons.arrow_forward_ios),
       onTap: () {
+        ref.read(recentSettingsProvider.notifier).record('notifications');
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => const ComprehensiveNotificationSettings(),
@@ -210,6 +213,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       subtitle: const Text('Protect app with PIN or fingerprint'),
       trailing: ScaledIcon(Icons.arrow_forward_ios),
       onTap: () {
+        ref.read(recentSettingsProvider.notifier).record('app_lock');
         Navigator.of(context).push(
           MaterialPageRoute(builder: (context) => const AppLockSettingsPage()),
         );
@@ -224,6 +228,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       subtitle: const Text('Calendar sync, import, backup, and data'),
       trailing: ScaledIcon(Icons.arrow_forward_ios),
       onTap: () {
+        ref.read(recentSettingsProvider.notifier).record('data_management');
         Navigator.of(context).push(
           MaterialPageRoute(builder: (context) => const DataManagementScreen()),
         );
@@ -238,6 +243,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       subtitle: const Text('App license, package licenses and repository'),
       trailing: ScaledIcon(Icons.arrow_forward_ios),
       onTap: () {
+        ref.read(recentSettingsProvider.notifier).record('about');
         Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (context) => const AboutScreen()));
@@ -262,6 +268,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       subtitle: const Text('Try new and experimental features'),
       trailing: ScaledIcon(Icons.arrow_forward_ios),
       onTap: () {
+        ref.read(recentSettingsProvider.notifier).record('experimental');
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => const ExperimentalSettingsScreen(),

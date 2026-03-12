@@ -32,6 +32,19 @@ import '../screens/home_screen_notifiers.dart';
 import '../screens/task_editor_screen.dart';
 import '../screens/event_editor_screen.dart';
 import '../screens/quill_note_editor_screen.dart';
+import '../screens/personalization_screen.dart';
+import '../screens/comprehensive_notification_settings.dart';
+import '../screens/app_lock_settings_page.dart';
+import '../screens/data_management_screen.dart';
+import '../screens/about_screen.dart';
+import '../screens/experimental_settings_screen.dart';
+import '../screens/defaults_settings_screen.dart';
+import '../screens/font_size_settings_screen.dart';
+import '../screens/custom_theme_list_screen.dart';
+import '../screens/calendar_sync_settings_screen.dart';
+import '../screens/holiday_calendar_settings_screen.dart';
+import '../screens/backup_settings_page.dart';
+import '../screens/bin_settings_screen.dart';
 import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
 
@@ -82,22 +95,25 @@ class OverviewTab extends ConsumerWidget {
     'todos': 'Pending Todos',
     'events': 'Upcoming Events',
     'latest_notes': 'Latest Notes',
+    'recent_settings': 'Quick Settings',
   };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final spacing = ref.watch(adaptiveSpacingProvider);
     final sectionOrder = ref.watch(overviewSectionOrderProvider);
+    final hiddenSections = ref.watch(overviewHiddenSectionsProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return ListView(
       physics: const BouncingScrollPhysics(),
       padding: spacing.insets16,
       children: [
-        for (final section in sectionOrder) ...[
-          _buildSection(section),
-          SizedBox(height: spacing.s16),
-        ],
+        for (final section in sectionOrder)
+          if (!hiddenSections.contains(section)) ...[
+            _buildSection(section),
+            SizedBox(height: spacing.s16),
+          ],
         // Config button at the bottom
         Center(
           child: SizedBox(
@@ -133,6 +149,8 @@ class OverviewTab extends ConsumerWidget {
         return _EventsSection();
       case 'latest_notes':
         return _LatestNotesSection();
+      case 'recent_settings':
+        return _RecentSettingsSection();
       default:
         return const SizedBox.shrink();
     }
@@ -146,55 +164,84 @@ class OverviewTab extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final order = [...currentOrder];
+    // Use local copy of hidden state so setState drives the UI immediately
+    var hidden = ref.read(overviewHiddenSectionsProvider);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    'Reorder Sections',
-                    style: theme.textTheme.titleMedium,
+        builder: (context, setState) {
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      'Customize Sections',
+                      style: theme.textTheme.titleMedium,
+                    ),
                   ),
-                ),
-                ReorderableListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: order.length,
-                  onReorder: (oldIndex, newIndex) {
-                    setState(() {
-                      if (newIndex > oldIndex) newIndex--;
-                      final item = order.removeAt(oldIndex);
-                      order.insert(newIndex, item);
-                    });
-                    ref.read(overviewSectionOrderProvider.notifier).reorder([
-                      ...order,
-                    ]);
-                  },
-                  itemBuilder: (context, index) {
-                    final section = order[index];
-                    return ListTile(
-                      key: ValueKey(section),
-                      leading: Icon(
-                        Icons.drag_handle,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      title: Text(_sectionLabels[section] ?? section),
-                      dense: true,
-                    );
-                  },
-                ),
-              ],
+                  ReorderableListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: order.length,
+                    onReorder: (oldIndex, newIndex) {
+                      setState(() {
+                        if (newIndex > oldIndex) newIndex--;
+                        final item = order.removeAt(oldIndex);
+                        order.insert(newIndex, item);
+                      });
+                      ref.read(overviewSectionOrderProvider.notifier).reorder([
+                        ...order,
+                      ]);
+                    },
+                    itemBuilder: (context, index) {
+                      final section = order[index];
+                      final isVisible = !hidden.contains(section);
+                      return ListTile(
+                        key: ValueKey(section),
+                        leading: Icon(
+                          Icons.drag_indicator,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        title: Text(
+                          _sectionLabels[section] ?? section,
+                          style: TextStyle(
+                            color: isVisible
+                                ? colorScheme.onSurface
+                                : colorScheme.onSurface.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        dense: true,
+                        trailing: Switch(
+                          value: isVisible,
+                          onChanged: (_) {
+                            setState(() {
+                              final next = {...hidden};
+                              if (next.contains(section)) {
+                                next.remove(section);
+                              } else {
+                                next.add(section);
+                              }
+                              hidden = next;
+                            });
+                            ref
+                                .read(overviewHiddenSectionsProvider.notifier)
+                                .toggle(section);
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -210,6 +257,54 @@ class _ProgressSection extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final spacing = ref.watch(adaptiveSpacingProvider);
+
+    if (stats.total == 0) return const SizedBox.shrink();
+
+    final isComplete = stats.completionRate >= 1.0;
+
+    // Compact "all done" banner when 100% complete
+    if (isComplete) {
+      return Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: SpacingBorderRadius.lg),
+        color: colorScheme.secondaryContainer.withValues(alpha: 0.5),
+        child: ExpressiveInkWell(
+          borderRadius: SpacingBorderRadius.lg,
+          onTap: () => ref.read(currentTabProvider.notifier).setTab(1),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: colorScheme.secondary,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'All ${stats.total} tasks done!',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSecondaryContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (stats.streakDays > 0)
+                  Text(
+                    '${stats.streakDays}d streak 🔥',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSecondaryContainer.withValues(
+                        alpha: 0.8,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Card(
       elevation: 0,
@@ -362,7 +457,7 @@ class _EventsSection extends ConsumerWidget {
         _SectionHeader(
           title: 'Upcoming Events',
           icon: Icons.event,
-          onSeeAll: () => ref.read(currentTabProvider.notifier).setTab(2),
+          onSeeAll: () => ref.read(currentTabProvider.notifier).setTab(1),
         ),
         SizedBox(height: spacing.s8),
         if (events.isEmpty)
@@ -571,6 +666,142 @@ class _LatestNotesSection extends ConsumerWidget {
           error: (_, _) =>
               _EmptyCard(icon: Icons.warning, message: 'Error loading notes'),
         ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Recent Settings
+// ---------------------------------------------------------------------------
+class _RecentSettingsSection extends ConsumerWidget {
+  static const _icons = <String, IconData>{
+    'personalization': Icons.palette_outlined,
+    'notifications': Icons.notifications_outlined,
+    'app_lock': Icons.lock_outline,
+    'data_management': Icons.storage_outlined,
+    'defaults': Icons.tune_outlined,
+    'about': Icons.info_outline,
+    'experimental': Icons.science_outlined,
+    'custom_theme': Icons.style_outlined,
+    'font_size': Icons.text_fields_outlined,
+    'calendar_sync': Icons.calendar_today_outlined,
+    'holiday_calendar': Icons.event_outlined,
+    'backup': Icons.backup_outlined,
+    'bin': Icons.delete_outline,
+  };
+
+  static const _labels = <String, String>{
+    'personalization': 'Personalization',
+    'notifications': 'Notifications',
+    'app_lock': 'App Lock',
+    'data_management': 'Data Management',
+    'defaults': 'Defaults',
+    'about': 'About',
+    'experimental': 'Experimental',
+    'custom_theme': 'Custom Theme',
+    'font_size': 'Font Size',
+    'calendar_sync': 'Calendar Sync',
+    'holiday_calendar': 'Import Calendar',
+    'backup': 'Backup & Data',
+    'bin': 'Bin Settings',
+  };
+
+  void _navigateTo(BuildContext context, WidgetRef ref, String key) {
+    ref.read(recentSettingsProvider.notifier).record(key);
+    Widget? screen;
+    switch (key) {
+      case 'personalization':
+        screen = const PersonalizationScreen();
+        break;
+      case 'notifications':
+        screen = const ComprehensiveNotificationSettings();
+        break;
+      case 'app_lock':
+        screen = const AppLockSettingsPage();
+        break;
+      case 'data_management':
+        screen = const DataManagementScreen();
+        break;
+      case 'defaults':
+        screen = const DefaultsSettingsScreen();
+        break;
+      case 'about':
+        screen = const AboutScreen();
+        break;
+      case 'experimental':
+        screen = const ExperimentalSettingsScreen();
+        break;
+      case 'custom_theme':
+        screen = const CustomThemeListScreen();
+        break;
+      case 'font_size':
+        screen = const FontSizeSettingsScreen();
+        break;
+      case 'calendar_sync':
+        screen = const CalendarSyncSettingsScreen();
+        break;
+      case 'holiday_calendar':
+        screen = const HolidayCalendarSettingsScreen();
+        break;
+      case 'backup':
+        screen = const BackupSettingsPage();
+        break;
+      case 'bin':
+        screen = const BinSettingsScreen();
+        break;
+    }
+    if (screen != null && context.mounted) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen!));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recent = ref.watch(recentSettingsProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+    final spacing = ref.watch(adaptiveSpacingProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: 'Quick Settings',
+          icon: Icons.settings_outlined,
+          onSeeAll: () {},
+          trailing: const SizedBox.shrink(),
+        ),
+        SizedBox(height: spacing.s8),
+        if (recent.isEmpty)
+          Text(
+            'Recently visited settings will appear here.',
+            style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+          )
+        else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: recent.map((key) {
+                final icon = _icons[key];
+                final label = _labels[key];
+                if (icon == null || label == null)
+                  return const SizedBox.shrink();
+                return Padding(
+                  padding: EdgeInsets.only(right: spacing.s8),
+                  child: ActionChip(
+                    avatar: Icon(icon, size: 16, color: colorScheme.primary),
+                    label: Text(label),
+                    onPressed: () => _navigateTo(context, ref, key),
+                    backgroundColor: colorScheme.surfaceContainerLow,
+                    side: BorderSide(
+                      color: colorScheme.outlineVariant,
+                      width: 0.5,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
       ],
     );
   }

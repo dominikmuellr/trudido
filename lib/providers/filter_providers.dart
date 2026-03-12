@@ -97,7 +97,14 @@ final notesDrawerModuleProvider =
 class OverviewSectionOrderNotifier extends Notifier<List<String>> {
   @override
   List<String> build() {
-    return StorageService.getOverviewSectionOrder();
+    final stored = StorageService.getOverviewSectionOrder();
+    // Migrate: add 'recent_settings' if not yet present
+    if (!stored.contains('recent_settings')) {
+      final updated = [...stored, 'recent_settings'];
+      StorageService.setOverviewSectionOrder(updated);
+      return updated;
+    }
+    return stored;
   }
 
   void reorder(List<String> newOrder) {
@@ -109,6 +116,47 @@ class OverviewSectionOrderNotifier extends Notifier<List<String>> {
 final overviewSectionOrderProvider =
     NotifierProvider<OverviewSectionOrderNotifier, List<String>>(
       OverviewSectionOrderNotifier.new,
+    );
+
+/// Overview hidden sections (sections excluded from display).
+class OverviewHiddenSectionsNotifier extends Notifier<Set<String>> {
+  @override
+  Set<String> build() {
+    return StorageService.getOverviewHiddenSections();
+  }
+
+  void toggle(String section) {
+    final next = {...state};
+    if (next.contains(section)) {
+      next.remove(section);
+    } else {
+      next.add(section);
+    }
+    state = next;
+    StorageService.setOverviewHiddenSections(next);
+  }
+}
+
+final overviewHiddenSectionsProvider =
+    NotifierProvider<OverviewHiddenSectionsNotifier, Set<String>>(
+      OverviewHiddenSectionsNotifier.new,
+    );
+
+/// Recently visited settings screens (keys, most recent first, max 3).
+class RecentSettingsNotifier extends Notifier<List<String>> {
+  @override
+  List<String> build() => StorageService.getRecentSettings();
+
+  void record(String key) {
+    final next = [key, ...state.where((k) => k != key)].take(3).toList();
+    state = next;
+    StorageService.setRecentSettings(next);
+  }
+}
+
+final recentSettingsProvider =
+    NotifierProvider<RecentSettingsNotifier, List<String>>(
+      RecentSettingsNotifier.new,
     );
 
 /// Pinned overview note ID.

@@ -23,6 +23,7 @@ import 'holiday_calendar_settings_screen.dart';
 import 'backup_settings_page.dart';
 import 'bin_settings_screen.dart';
 import '../widgets/common/common.dart';
+import '../providers/filter_providers.dart';
 
 class DataManagementScreen extends ConsumerWidget {
   const DataManagementScreen({super.key});
@@ -48,6 +49,7 @@ class DataManagementScreen extends ConsumerWidget {
             subtitle: const Text('Sync tasks with Android/DAVx5 calendar'),
             trailing: ScaledIcon(Icons.arrow_forward_ios),
             onTap: () {
+              ref.read(recentSettingsProvider.notifier).record('calendar_sync');
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => const CalendarSyncSettingsScreen(),
@@ -61,6 +63,9 @@ class DataManagementScreen extends ConsumerWidget {
             subtitle: const Text('Import from .ics files'),
             trailing: ScaledIcon(Icons.arrow_forward_ios),
             onTap: () {
+              ref
+                  .read(recentSettingsProvider.notifier)
+                  .record('holiday_calendar');
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => const HolidayCalendarSettingsScreen(),
@@ -74,6 +79,7 @@ class DataManagementScreen extends ConsumerWidget {
             subtitle: const Text('Export, import and automatic backups'),
             trailing: ScaledIcon(Icons.arrow_forward_ios),
             onTap: () {
+              ref.read(recentSettingsProvider.notifier).record('backup');
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => const BackupSettingsPage(),
@@ -87,6 +93,7 @@ class DataManagementScreen extends ConsumerWidget {
             subtitle: const Text('Enable or disable the bin, set auto-delete'),
             trailing: ScaledIcon(Icons.arrow_forward_ios),
             onTap: () {
+              ref.read(recentSettingsProvider.notifier).record('bin');
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => const BinSettingsScreen(),

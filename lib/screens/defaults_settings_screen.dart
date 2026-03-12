@@ -92,6 +92,7 @@ class DefaultsSettingsScreen extends ConsumerWidget {
           const _GreetingLanguageSelector(),
           const _ContrastLevelSelector(),
           const _CompactModeSelector(),
+          const _NavLabelsSelector(),
           const _SwipeActionsSelector(),
           const _BlackoutRecentsSelector(),
           spacing.gapV16,
@@ -1082,6 +1083,31 @@ class _ContrastLevelSheet extends ConsumerWidget {
           SizedBox(height: spacing.s16),
         ],
       ),
+    );
+  }
+}
+
+// ============================================================================
+// Nav Labels Selector
+// ============================================================================
+
+class _NavLabelsSelector extends ConsumerWidget {
+  const _NavLabelsSelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final preferences = ref.watch(preferencesStateProvider);
+    final controller = ref.read(preferencesControllerProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
+
+    return SwitchListTile.adaptive(
+      contentPadding: spacing.listTileInsets,
+      visualDensity: spacing.listTileDensity,
+      secondary: const Icon(Icons.label_off_outlined),
+      title: const Text('Hide Navigation Labels'),
+      subtitle: const Text('Show only icons in the bottom navigation bar'),
+      value: preferences.hideNavLabels,
+      onChanged: (_) => controller.toggleHideNavLabels(),
     );
   }
 }

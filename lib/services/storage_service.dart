@@ -1073,6 +1073,28 @@ Happy note-taking! ✨''',
         ['progress', 'pinned_note', 'todos', 'events', 'latest_notes'];
   }
 
+  // Overview hidden sections
+  static Future<void> setOverviewHiddenSections(Set<String> hidden) async {
+    await _ensurePrefs();
+    await _prefs!.setStringList('overview_hidden_sections', hidden.toList());
+  }
+
+  static Set<String> getOverviewHiddenSections() {
+    if (_prefs == null) kickOffPrefsInit();
+    return (_prefs?.getStringList('overview_hidden_sections') ?? []).toSet();
+  }
+
+  // Recently visited settings screens (keys, most recent first, max 3)
+  static Future<void> setRecentSettings(List<String> keys) async {
+    await _ensurePrefs();
+    await _prefs!.setStringList('recent_settings', keys);
+  }
+
+  static List<String> getRecentSettings() {
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getStringList('recent_settings') ?? [];
+  }
+
   // Pinned overview note ID
   static Future<void> setPinnedOverviewNoteId(String? noteId) async {
     await _ensurePrefs();
