@@ -17,7 +17,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/note.dart';
-import '../repositories/notes_repository.dart';
+import '../providers/notes_providers.dart';
 import '../repositories/note_folder_repository.dart';
 import '../utils/date_search_parser.dart';
 import '../utils/state_notifiers.dart';

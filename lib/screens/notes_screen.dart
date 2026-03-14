@@ -20,6 +20,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../models/note.dart';
 import '../controllers/notes_controller.dart';
+import '../providers/notes_providers.dart';
 import '../repositories/notes_repository.dart';
 import '../repositories/note_folder_repository.dart';
 import '../services/vault_auth_service.dart';

@@ -16,8 +16,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/note.dart';
 import '../providers/app_providers.dart';
-import '../repositories/notes_repository.dart';
+import '../providers/notes_providers.dart';
 import '../utils/date_search_parser.dart';
 import '../utils/mention_parser.dart';
 
@@ -152,7 +153,7 @@ class MentionAutocompletePopup {
 
     // Search notes
     final notesAsync = ref.read(notesProvider);
-    final notes = notesAsync.value ?? [];
+    final notes = notesAsync.value ?? const <Note>[];
     final activeNotes = notes.where((n) => !n.isDeleted).toList();
 
     if (query.isEmpty) {

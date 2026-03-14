@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/note.dart';
 import '../repositories/notes_repository.dart';
+import '../providers/notes_providers.dart';
 import '../repositories/note_folder_repository.dart';
 import '../widgets/common/common.dart';
 

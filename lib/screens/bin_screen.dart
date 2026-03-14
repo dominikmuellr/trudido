@@ -6,6 +6,7 @@ import '../models/todo.dart';
 import '../models/event.dart' as app_event;
 import '../models/note.dart';
 import '../providers/app_providers.dart';
+import '../providers/notes_providers.dart';
 import '../repositories/notes_repository.dart';
 import '../repositories/note_folder_repository.dart';
 import '../widgets/common/common.dart';

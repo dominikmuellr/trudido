@@ -1,5 +1,7 @@
 # Flutter / Dart / Pub
 # See https://github.com/flutter/flutter/blob/main/.gitignore for reference
+.rooignore
+.roo/
 .dart_tool/
 .pub/
 .packages

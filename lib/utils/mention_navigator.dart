@@ -19,7 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/todo.dart';
 import '../models/note.dart';
 import '../providers/app_providers.dart';
-import '../repositories/notes_repository.dart';
+import '../providers/notes_providers.dart';
 import '../controllers/task_controller.dart';
 import '../utils/mention_parser.dart';
 import '../screens/task_editor_screen.dart';

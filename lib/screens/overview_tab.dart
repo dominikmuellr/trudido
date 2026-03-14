@@ -22,7 +22,8 @@ import '../controllers/task_controller.dart';
 import '../controllers/event_controller.dart';
 import '../providers/app_providers.dart';
 import '../providers/filter_providers.dart';
-import '../repositories/notes_repository.dart';
+import '../providers/notes_providers.dart';
+import '../repositories/note_folder_repository.dart';
 import '../models/todo.dart';
 import '../models/event.dart' as app_event;
 import '../models/note.dart';
@@ -69,11 +70,28 @@ final overviewEventsProvider = Provider<List<app_event.Event>>((ref) {
   return upcoming.take(5).toList();
 });
 
-/// The 2 most recently updated notes.
+/// The 2 most recently updated notes (excluding vault notes).
 final overviewLatestNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
-  return ref.watch(notesProvider).whenData((notes) {
+  final notesAsync = ref.watch(notesProvider);
+  final foldersAsync = ref.watch(noteFoldersProvider);
+
+  return notesAsync.whenData((notes) {
     if (notes.isEmpty) return [];
-    return notes.take(2).toList();
+
+    // Get vault folder IDs for filtering
+    final vaultFolderIds =
+        foldersAsync.value
+            ?.where((folder) => folder.isVault)
+            .map((folder) => folder.id)
+            .toSet() ??
+        const {};
+
+    // Filter out notes that belong to vault folders
+    final nonVaultNotes = notes.where((note) {
+      return note.folderId == null || !vaultFolderIds.contains(note.folderId);
+    }).toList();
+
+    return nonVaultNotes.take(2).toList();
   });
 });
 
@@ -784,8 +802,9 @@ class _RecentSettingsSection extends ConsumerWidget {
               children: recent.map((key) {
                 final icon = _icons[key];
                 final label = _labels[key];
-                if (icon == null || label == null)
+                if (icon == null || label == null) {
                   return const SizedBox.shrink();
+                }
                 return Padding(
                   padding: EdgeInsets.only(right: spacing.s8),
                   child: ActionChip(
