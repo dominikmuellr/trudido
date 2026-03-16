@@ -148,6 +148,9 @@ class PreferencesController {
   Future<void> toggleHideNavLabels() =>
       _update(hideNavLabels: !state.hideNavLabels);
 
+  Future<void> toggleShowOverviewTab() =>
+      _update(showOverviewTab: !state.showOverviewTab);
+
   Future<void> dismissBatteryOptimizationReminder() =>
       _update(dismissedBatteryOptimizationReminder: true);
 
@@ -205,6 +208,7 @@ class PreferencesController {
     bool? floatingToolbarExpanded,
     bool? floatingToolbarDragHintShown,
     bool? hideNavLabels,
+    bool? showOverviewTab,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -244,6 +248,7 @@ class PreferencesController {
       floatingToolbarExpanded: floatingToolbarExpanded,
       floatingToolbarDragHintShown: floatingToolbarDragHintShown,
       hideNavLabels: hideNavLabels,
+      showOverviewTab: showOverviewTab,
     );
     ref.read(preferencesStateProvider.notifier).update(updated);
   }

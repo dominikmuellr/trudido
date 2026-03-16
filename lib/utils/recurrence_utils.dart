@@ -98,6 +98,29 @@ class RecurrenceUtils {
         }
         break;
 
+      case 'yearly':
+        final interval = todo.repeatInterval ?? 1;
+        // Add years until we find a date after now
+        nextDate = currentDue;
+        while (nextDate.isBefore(now) || _isSameDay(nextDate, now)) {
+          final newYear = nextDate.year + interval;
+
+          // Handle edge case: if day doesn't exist in target month, use last day
+          final daysInMonth = DateTime(newYear, nextDate.month + 1, 0).day;
+          final actualDay = nextDate.day > daysInMonth
+              ? daysInMonth
+              : nextDate.day;
+
+          nextDate = DateTime(
+            newYear,
+            nextDate.month,
+            actualDay,
+            nextDate.hour,
+            nextDate.minute,
+          );
+        }
+        break;
+
       case 'custom':
         // Custom logic already handled by other cases with intervals and days
         return null;
@@ -170,6 +193,26 @@ class RecurrenceUtils {
                     DateTime(targetDate.year, targetDate.month + 1, 0).day &&
                 startDate.day > targetDate.day);
 
+      case 'yearly':
+        final interval = todo.repeatInterval ?? 1;
+        final yearsDiff = targetDate.year - startDate.year;
+
+        // Check if we're in the correct year interval
+        if (yearsDiff < 0 || yearsDiff % interval != 0) return false;
+
+        // Check if month and day match (or handle last day of month)
+        final daysInMonth = DateTime(
+          targetDate.year,
+          targetDate.month + 1,
+          0,
+        ).day;
+        final actualStartDay = startDate.day > daysInMonth
+            ? daysInMonth
+            : startDate.day;
+
+        return targetDate.month == startDate.month &&
+            targetDate.day == actualStartDay;
+
       default:
         return false;
     }
@@ -217,6 +260,14 @@ class RecurrenceUtils {
           description = 'Every month';
         } else {
           description = 'Every $interval months';
+        }
+        break;
+
+      case 'yearly':
+        if (interval == 1) {
+          description = 'Every year';
+        } else {
+          description = 'Every $interval years';
         }
         break;
 

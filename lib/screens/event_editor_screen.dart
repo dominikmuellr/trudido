@@ -499,6 +499,9 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
       case 'monthly':
         if (_repeatInterval == 1) return 'Repeats monthly';
         return 'Repeats every $_repeatInterval months';
+      case 'yearly':
+        if (_repeatInterval == 1) return 'Repeats yearly';
+        return 'Repeats every $_repeatInterval years';
       case 'custom':
         return 'Custom repeat';
       default:
@@ -1031,6 +1034,12 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                         'monthly',
                         'Monthly',
                         Icons.calendar_month,
+                        setModalState,
+                      ),
+                      _buildRepeatOption(
+                        'yearly',
+                        'Yearly',
+                        Icons.calendar_today,
                         setModalState,
                       ),
                       _buildRepeatOption(

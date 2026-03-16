@@ -50,6 +50,16 @@ class HomeNavigationBar extends ConsumerWidget {
     final prefs = ref.watch(preferencesStateProvider);
     final hapticsEnabled = prefs.hapticsEnabled;
     final hideNavLabels = prefs.hideNavLabels;
+    final showOverviewTab = prefs.showOverviewTab;
+
+    // When Overview is hidden, displayed indices are shifted down by 1.
+    int toActual(int displayed) => showOverviewTab ? displayed : displayed + 1;
+    int toDisplayed(int actual) => showOverviewTab ? actual : actual - 1;
+
+    // Safety: if Overview is hidden but currentTab is still 0 (before guard fires),
+    // clamp to 1 (Tasks) to avoid invalid selectedIndex
+    final safeTab = !showOverviewTab && currentTab == 0 ? 1 : currentTab;
+
     return NavigationBar(
       height: hideNavLabels ? 60 : null,
       labelBehavior: hideNavLabels
@@ -58,8 +68,9 @@ class HomeNavigationBar extends ConsumerWidget {
       backgroundColor: Theme.of(context).brightness == Brightness.dark
           ? null // Use default in dark mode
           : Theme.of(context).colorScheme.surfaceContainerLow,
-      selectedIndex: currentTab,
-      onDestinationSelected: (index) {
+      selectedIndex: toDisplayed(safeTab),
+      onDestinationSelected: (displayed) {
+        final index = toActual(displayed);
         // Trigger haptic feedback on tab change
         ExpressiveHaptics.lightTap(enabled: hapticsEnabled);
 
@@ -90,11 +101,12 @@ class HomeNavigationBar extends ConsumerWidget {
         }
       },
       destinations: [
-        NavigationDestination(
-          icon: _NavigationIcon(icon: Icons.home_outlined, tabIndex: 0),
-          selectedIcon: _NavigationIcon(icon: Icons.home, tabIndex: 0),
-          label: 'Overview',
-        ),
+        if (showOverviewTab)
+          NavigationDestination(
+            icon: _NavigationIcon(icon: Icons.home_outlined, tabIndex: 0),
+            selectedIcon: _NavigationIcon(icon: Icons.home, tabIndex: 0),
+            label: 'Overview',
+          ),
         NavigationDestination(
           icon: _NavigationIcon(icon: Icons.checklist_outlined, tabIndex: 1),
           selectedIcon: _NavigationIcon(icon: Icons.checklist, tabIndex: 1),

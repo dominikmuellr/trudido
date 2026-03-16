@@ -58,7 +58,7 @@ class Todo extends HiveObject {
   DateTime? startDate; // Optional start for multi-day span (end = dueDate)
 
   @HiveField(13, defaultValue: 'none')
-  String repeatType; // 'none', 'daily', 'weekly', 'monthly', 'custom'
+  String repeatType; // 'none', 'daily', 'weekly', 'monthly', 'yearly', 'custom'
 
   @HiveField(14)
   int? repeatInterval; // e.g., every 2 days/weeks/months (for custom)

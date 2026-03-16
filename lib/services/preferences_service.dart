@@ -214,6 +214,7 @@ class PreferencesService {
         'floating_toolbar_drag_hint_shown',
       ),
       hideNavLabels: p.getBool('hide_nav_labels'),
+      showOverviewTab: p.getBool('show_overview_tab'),
     );
   }
 
@@ -280,6 +281,7 @@ class PreferencesService {
     bool? floatingToolbarExpanded,
     bool? floatingToolbarDragHintShown,
     bool? hideNavLabels,
+    bool? showOverviewTab,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -397,6 +399,9 @@ class PreferencesService {
       }
       if (hideNavLabels != null) {
         await p.setBool('hide_nav_labels', hideNavLabels);
+      }
+      if (showOverviewTab != null) {
+        await p.setBool('show_overview_tab', showOverviewTab);
       }
       _hydrate();
       return _cache;

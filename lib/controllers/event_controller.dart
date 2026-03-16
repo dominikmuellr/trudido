@@ -161,6 +161,25 @@ class EventController extends Notifier<AsyncValue<void>> {
         );
         break;
 
+      case 'yearly':
+        final interval = event.repeatInterval ?? 1;
+        final newYear = currentStart.year + interval;
+
+        // Handle edge case: if day doesn't exist in target month, use last day
+        final daysInMonth = DateTime(newYear, currentStart.month + 1, 0).day;
+        final actualDay = currentStart.day > daysInMonth
+            ? daysInMonth
+            : currentStart.day;
+
+        nextDate = DateTime(
+          newYear,
+          currentStart.month,
+          actualDay,
+          currentStart.hour,
+          currentStart.minute,
+        );
+        break;
+
       case 'custom':
         if (event.repeatDays != null && event.repeatDays!.isNotEmpty) {
           final interval = event.repeatInterval ?? 1;

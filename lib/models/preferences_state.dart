@@ -83,6 +83,9 @@ class PreferencesState {
       _floatingToolbarDragHintShown ?? false;
   final bool? _hideNavLabels; // Hide labels under navigation bar icons
   bool get hideNavLabels => _hideNavLabels ?? false;
+  final bool?
+  _showOverviewTab; // Whether the Overview tab is shown in navigation
+  bool get showOverviewTab => _showOverviewTab ?? true;
 
   const PreferencesState({
     required this.themeMode,
@@ -124,8 +127,10 @@ class PreferencesState {
     bool? floatingToolbarExpanded,
     bool? floatingToolbarDragHintShown,
     bool? hideNavLabels,
+    bool? showOverviewTab,
   }) : _lineHeightMultiplier = lineHeightMultiplier,
        _hideNavLabels = hideNavLabels,
+       _showOverviewTab = showOverviewTab,
        _paragraphSpacing = paragraphSpacing,
        _blackoutRecents = blackoutRecents,
        _autoOpenKeyboardInNotes = autoOpenKeyboardInNotes,
@@ -179,6 +184,7 @@ class PreferencesState {
     bool? floatingToolbarExpanded,
     bool? floatingToolbarDragHintShown,
     bool? hideNavLabels,
+    bool? showOverviewTab,
   }) => PreferencesState(
     themeMode: themeMode ?? this.themeMode,
     useDynamicColor: useDynamicColor ?? this.useDynamicColor,
@@ -225,6 +231,7 @@ class PreferencesState {
     floatingToolbarDragHintShown:
         floatingToolbarDragHintShown ?? this.floatingToolbarDragHintShown,
     hideNavLabels: hideNavLabels ?? this.hideNavLabels,
+    showOverviewTab: showOverviewTab ?? this.showOverviewTab,
   );
 
   static const defaultState = PreferencesState(

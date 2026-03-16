@@ -23,6 +23,7 @@ import '../providers/settings_search_provider.dart';
 import '../controllers/notes_controller.dart';
 import '../providers/app_providers.dart';
 import '../services/folder_provider.dart';
+import '../services/default_tab_service.dart';
 import '../services/widget_service.dart';
 import '../repositories/note_folder_repository.dart';
 import '../widgets/todo_list_tab.dart';
@@ -90,6 +91,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
 
     _triggerGreetingAnimation();
+    // Guard: if Overview tab is hidden but current tab is 0 at startup, switch away.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkInitialTab());
+  }
+
+  Future<void> _checkInitialTab() async {
+    if (!mounted) return;
+    final prefs = ref.read(preferencesStateProvider);
+    if (!prefs.showOverviewTab && ref.read(currentTabProvider) == 0) {
+      final fallback = await DefaultTabService.getDefaultTabIndex();
+      final target = fallback == 0 ? 1 : fallback;
+      if (mounted) ref.read(currentTabProvider.notifier).setTab(target);
+    }
   }
 
   Future<void> _updateWidgetOnStartup() async {
@@ -151,6 +164,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final preferences = ref.watch(preferencesStateProvider);
     final hideBottomNav = preferences.hideBottomNavigation;
     final useQuickInputBar = preferences.useQuickInputBar;
+
+    // Guard: if Overview tab is hidden and user is on it, switch to default tab.
+    ref.listen(preferencesStateProvider, (previous, next) {
+      if (previous != null &&
+          previous.showOverviewTab &&
+          !next.showOverviewTab &&
+          ref.read(currentTabProvider) == 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          final fallback = await DefaultTabService.getDefaultTabIndex();
+          final target = fallback == 0 ? 1 : fallback;
+          if (mounted) ref.read(currentTabProvider.notifier).setTab(target);
+        });
+      }
+    });
 
     ref.listen<int>(widgetTaskCreationRequestProvider, (previous, next) {
       if (previous != null && next > previous) {
@@ -235,6 +262,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     bool useQuickInputBar,
   ) {
     final fabMenuExpanded = ref.watch(fabMenuExpandedProvider);
+    final showOverviewTab = ref.watch(preferencesStateProvider).showOverviewTab;
 
     if (useNavigationRail && !hideBottomNav) {
       return Stack(
@@ -244,8 +272,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               children: [
                 // Material 3 NavigationRail
                 NavigationRail(
-                  selectedIndex: currentTab,
-                  onDestinationSelected: (index) {
+                  selectedIndex: showOverviewTab
+                      ? currentTab
+                      : (currentTab == 0 ? 0 : currentTab - 1),
+                  onDestinationSelected: (displayed) {
+                    final index = showOverviewTab ? displayed : displayed + 1;
                     final previousTab = ref.read(currentTabProvider);
 
                     // Security: Clear vault folder selection when leaving Notes tab
@@ -270,17 +301,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   },
                   labelType: NavigationRailLabelType.all,
                   destinations: [
-                    NavigationRailDestination(
-                      icon: NavigationRailIcon(
-                        icon: Icons.dashboard_outlined,
-                        tabIndex: 0,
+                    if (showOverviewTab)
+                      NavigationRailDestination(
+                        icon: NavigationRailIcon(
+                          icon: Icons.dashboard_outlined,
+                          tabIndex: 0,
+                        ),
+                        selectedIcon: NavigationRailIcon(
+                          icon: Icons.dashboard,
+                          tabIndex: 0,
+                        ),
+                        label: const Text('Overview'),
                       ),
-                      selectedIcon: NavigationRailIcon(
-                        icon: Icons.dashboard,
-                        tabIndex: 0,
-                      ),
-                      label: const Text('Overview'),
-                    ),
                     NavigationRailDestination(
                       icon: NavigationRailIcon(
                         icon: Icons.checklist_outlined,

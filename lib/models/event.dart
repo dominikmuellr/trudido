@@ -61,7 +61,7 @@ class Event extends HiveObject {
   List<int> reminderOffsetsMinutes;
 
   @HiveField(12, defaultValue: 'none')
-  String repeatType; // 'none', 'daily', 'weekly', 'monthly', 'custom'
+  String repeatType; // 'none', 'daily', 'weekly', 'monthly', 'yearly', 'custom'
 
   @HiveField(13)
   int? repeatInterval;

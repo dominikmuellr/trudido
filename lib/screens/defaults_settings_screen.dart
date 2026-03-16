@@ -84,6 +84,7 @@ class DefaultsSettingsScreen extends ConsumerWidget {
       body: ListView(
         children: [
           spacing.gapV8,
+          const _OverviewTabSelector(),
           const _DefaultTabSelector(),
           const _DefaultViewSelector(),
           const _DefaultNotesFolderSelector(),
@@ -98,6 +99,31 @@ class DefaultsSettingsScreen extends ConsumerWidget {
           spacing.gapV16,
         ],
       ),
+    );
+  }
+}
+
+// ============================================================================
+// Overview Tab Selector
+// ============================================================================
+
+class _OverviewTabSelector extends ConsumerWidget {
+  const _OverviewTabSelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final preferences = ref.watch(preferencesStateProvider);
+    final controller = ref.read(preferencesControllerProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
+
+    return SwitchListTile(
+      contentPadding: spacing.listTileInsets,
+      visualDensity: spacing.listTileDensity,
+      secondary: const Icon(Icons.home_outlined),
+      title: const Text('Show Overview Tab'),
+      subtitle: const Text('Display the Overview tab in the navigation bar'),
+      value: preferences.showOverviewTab,
+      onChanged: (_) => controller.toggleShowOverviewTab(),
     );
   }
 }
@@ -170,9 +196,9 @@ class _DefaultTabSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final tabs = DefaultTabService.getAllTabs();
-    final hideBottomNav = ref
-        .watch(preferencesStateProvider)
-        .hideBottomNavigation;
+    final prefs = ref.watch(preferencesStateProvider);
+    final hideBottomNav = prefs.hideBottomNavigation;
+    final showOverviewTab = prefs.showOverviewTab;
     final spacing = ref.watch(adaptiveSpacingProvider);
 
     Widget buildOption(String tabId, String tabName, IconData icon) {
@@ -195,9 +221,15 @@ class _DefaultTabSheet extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(height: 4),
-          ...tabs.entries.map((entry) {
-            return buildOption(entry.key, entry.value, _getTabIcon(entry.key));
-          }),
+          ...tabs.entries
+              .where((e) => showOverviewTab || e.key != 'overview')
+              .map((entry) {
+                return buildOption(
+                  entry.key,
+                  entry.value,
+                  _getTabIcon(entry.key),
+                );
+              }),
           const Divider(height: 12),
           SwitchListTile.adaptive(
             contentPadding: spacing.insetsH16,

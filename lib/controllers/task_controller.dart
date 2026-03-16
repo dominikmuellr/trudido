@@ -187,6 +187,25 @@ class TaskController extends Notifier<AsyncValue<void>> {
         );
         break;
 
+      case 'yearly':
+        final interval = todo.repeatInterval ?? 1;
+        final newYear = currentDue.year + interval;
+
+        // Handle edge case: if day doesn't exist in target month, use last day
+        final daysInMonth = DateTime(newYear, currentDue.month + 1, 0).day;
+        final actualDay = currentDue.day > daysInMonth
+            ? daysInMonth
+            : currentDue.day;
+
+        nextDate = DateTime(
+          newYear,
+          currentDue.month,
+          actualDay,
+          currentDue.hour,
+          currentDue.minute,
+        );
+        break;
+
       case 'custom':
         // For custom with specific days (weekly pattern)
         if (todo.repeatDays != null && todo.repeatDays!.isNotEmpty) {
