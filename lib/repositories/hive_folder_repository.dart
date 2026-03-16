@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:hive/hive.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/folder.dart';
 import '../repositories/folder_repository.dart';
 import '../services/storage_service.dart';
@@ -22,7 +23,25 @@ import '../services/storage_service.dart';
 /// Concrete implementation of FolderRepository using Hive for local storage
 class HiveFolderRepository implements FolderRepository {
   static const String _foldersBoxName = 'folders';
+  static const String _deletedDefaultFolderNamesKey =
+      'deleted_default_folder_names';
   Box<Folder>? _foldersBox;
+
+  /// Returns the set of default-folder names the user has intentionally deleted
+  /// or renamed, so they are not auto-recreated on next app start.
+  Future<Set<String>> _getDeletedDefaultFolderNames() async {
+    final prefs = await SharedPreferences.getInstance();
+    return (prefs.getStringList(_deletedDefaultFolderNamesKey) ?? []).toSet();
+  }
+
+  /// Persists [name] so that [_createDefaultFoldersIfNeeded] skips it.
+  Future<void> _markDefaultFolderAsDeleted(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    final existing = (prefs.getStringList(_deletedDefaultFolderNamesKey) ?? [])
+        .toSet();
+    existing.add(name.toLowerCase());
+    await prefs.setStringList(_deletedDefaultFolderNamesKey, existing.toList());
+  }
 
   /// Initialize the repository with Hive boxes
   Future<void> init() async {
@@ -52,6 +71,14 @@ class HiveFolderRepository implements FolderRepository {
   @override
   Future<void> updateFolder(Folder folder) async {
     if (_foldersBox == null) await init();
+    // If a default folder is being renamed, mark the old name so it won't
+    // be auto-recreated on the next app start.
+    final existing = _foldersBox!.get(folder.id);
+    if (existing != null &&
+        existing.isDefault &&
+        existing.name.toLowerCase() != folder.name.trim().toLowerCase()) {
+      await _markDefaultFolderAsDeleted(existing.name);
+    }
     final updatedFolder = folder.copyWith(updatedAt: DateTime.now());
     await _foldersBox!.put(folder.id, updatedFolder);
   }
@@ -59,6 +86,12 @@ class HiveFolderRepository implements FolderRepository {
   @override
   Future<void> deleteFolder(String id) async {
     if (_foldersBox == null) await init();
+    // If deleting a default folder, remember its name so it won't be
+    // auto-recreated the next time the app starts.
+    final folder = _foldersBox!.get(id);
+    if (folder != null && folder.isDefault) {
+      await _markDefaultFolderAsDeleted(folder.name);
+    }
     // Ensure todos storage ready
     await StorageService.waitTodosReady();
     final todos = await StorageService.getAllTodosAsync();
@@ -182,6 +215,7 @@ class HiveFolderRepository implements FolderRepository {
 
   /// Create default folders if none exist
   Future<void> _createDefaultFoldersIfNeeded() async {
+    final deletedNames = await _getDeletedDefaultFolderNames();
     final existing = _foldersBox!.values.toList();
     final existingNames = existing.map((f) => f.name.toLowerCase()).toSet();
     Future<void> ensure(
@@ -191,6 +225,8 @@ class HiveFolderRepository implements FolderRepository {
       String icon,
       int order,
     ) async {
+      // Skip folders the user has deliberately deleted or renamed.
+      if (deletedNames.contains(name.toLowerCase())) return;
       if (existingNames.contains(name.toLowerCase())) return;
       // Recheck after potential race
       final latestNames = _foldersBox!.values

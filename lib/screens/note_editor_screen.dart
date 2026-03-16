@@ -261,6 +261,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     _contentController.insertMention(mentionLink, range.start, range.end);
     _contentController.addListener(_onContentChanged);
     _contentController.addListener(_onMentionCheck);
+    _onContentChanged();
   }
 
   @override

@@ -19,6 +19,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'dart:convert';
 import '../models/note.dart';
 import '../utils/smart_markdown_helper.dart';
+import '../utils/markdown_to_quill_converter.dart';
 import '../utils/todo_txt_converter.dart';
 import '../utils/mention_parser.dart';
 import '../utils/mention_navigator.dart';
@@ -202,46 +203,45 @@ class _NotePreviewScreenState extends ConsumerState<NotePreviewScreen> {
             if (isTodoTxt)
               _buildTodoTxtPreview()
             else if (_isQuillFormat && _quillController != null)
-              // Render Quill content with read-only editor
-              quill.QuillEditor(
-                controller: _quillController!,
-                scrollController: ScrollController(),
-                focusNode: FocusNode(),
-                config: quill.QuillEditorConfig(
-                  readOnlyMouseCursor: SystemMouseCursors.text,
-                  padding: EdgeInsets.zero,
-                  customStyles: quill.DefaultStyles(
-                    paragraph: quill.DefaultTextBlockStyle(
-                      TextStyle(
-                        fontSize: 16,
-                        color: Theme.of(context).colorScheme.onSurface,
-                        height: _currentNote.lineHeightMultiplier,
-                      ),
-                      quill.HorizontalSpacing(0, 0),
-                      quill.VerticalSpacing(
-                        _currentNote.paragraphSpacing,
-                        _currentNote.paragraphSpacing,
-                      ),
-                      quill.VerticalSpacing(0, 0),
-                      null,
-                    ),
-                    lists: quill.DefaultListBlockStyle(
-                      TextStyle(
-                        fontSize: 16,
-                        color: Theme.of(context).colorScheme.onSurface,
-                        height: _currentNote.lineHeightMultiplier,
-                      ),
-                      quill.HorizontalSpacing(0, 0),
-                      quill.VerticalSpacing(
-                        _currentNote.paragraphSpacing,
-                        _currentNote.paragraphSpacing,
-                      ),
-                      quill.VerticalSpacing(0, 0),
-                      null,
-                      null,
-                    ),
+              // Render Quill content through MarkdownBody so that markdown
+              // syntax typed directly in the editor is properly rendered.
+              MarkdownBody(
+                data: _convertMentionsForMarkdown(
+                  MarkdownToQuillConverter.documentToMarkdown(
+                    _quillController!.document,
                   ),
                 ),
+                selectable: true,
+                onTapLink: (text, href, title) {
+                  if (href != null && href.startsWith('mention:')) {
+                    final parts = href.substring('mention:'.length).split(':');
+                    if (parts.length >= 2) {
+                      final type = parts[0];
+                      final id = parts.sublist(1).join(':');
+                      MentionNavigator.navigateToMention(
+                        context,
+                        ref,
+                        MentionLink(
+                          title: text.replaceFirst('\u2060@', ''),
+                          type: type,
+                          id: id,
+                          start: 0,
+                          end: 0,
+                        ),
+                      );
+                    }
+                  }
+                },
+                styleSheet: SmartMarkdownHelper.createStyleSheet(context)
+                    .copyWith(
+                      p: Theme.of(context).textTheme.bodyLarge,
+                      listBullet: Theme.of(context).textTheme.bodyLarge,
+                      code: AppTheme.getCodeTextStyle(context).copyWith(
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                      ),
+                    ),
               )
             else if (_getCleanContentWithoutTitleAndSubtitle(
               _currentNote.content,

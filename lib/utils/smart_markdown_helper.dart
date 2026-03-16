@@ -113,11 +113,7 @@ class SmartMarkdownHelper {
       codeblockPadding: const EdgeInsets.all(20),
 
       // Links
-      a: TextStyle(
-        color: _getSyntaxColor(context, 'string'),
-        decoration: TextDecoration.underline,
-        decorationColor: _getSyntaxColor(context, 'string'),
-      ),
+      a: TextStyle(color: colorScheme.primary),
 
       // Lists
       listBullet: TextStyle(
@@ -243,6 +239,10 @@ class SmartMarkdownHelper {
       return const Color(0xFF1E1E1E); // VS Code dark editor background
     }
   }
+
+  /// Returns the color used for mention/link text in the preview mode.
+  static Color getLinkColor(BuildContext context) =>
+      Theme.of(context).colorScheme.primary;
 
   /// Get VS Code-style syntax highlighting colors
   static Color _getSyntaxColor(BuildContext context, String type) {

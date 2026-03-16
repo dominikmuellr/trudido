@@ -44,6 +44,7 @@ class MentionLink {
 
   bool get isTask => type == 'task';
   bool get isNote => type == 'note';
+  bool get isEvent => type == 'event';
 
   /// The full raw mention string as stored in text
   String get raw => '@[$title]($type:$id)';
@@ -64,7 +65,7 @@ class MentionLink {
 class MentionParser {
   /// Regex to match mention links: @[title](type:id)
   static final RegExp mentionPattern = RegExp(
-    r'@\[([^\]]+)\]\((task|note):([a-zA-Z0-9\-]+)\)',
+    r'@\[([^\]]+)\]\((task|note|event):([a-zA-Z0-9\-]+)\)',
   );
 
   /// Regex to detect the start of a mention being typed: @ followed by text
@@ -102,6 +103,13 @@ class MentionParser {
     ).where((m) => m.isNote).map((m) => m.id).toSet();
   }
 
+  /// Extracts all unique event IDs mentioned in the text.
+  static Set<String> extractEventIds(String text) {
+    return extractMentions(
+      text,
+    ).where((m) => m.isEvent).map((m) => m.id).toSet();
+  }
+
   /// Creates a mention string for a task.
   static String createTaskMention(String id, String title) {
     // Sanitize title: remove brackets that would break the format
@@ -113,6 +121,12 @@ class MentionParser {
   static String createNoteMention(String id, String title) {
     final safeTitle = title.replaceAll('[', '(').replaceAll(']', ')');
     return '@[$safeTitle](note:$id)';
+  }
+
+  /// Creates a mention string for an event.
+  static String createEventMention(String id, String title) {
+    final safeTitle = title.replaceAll('[', '(').replaceAll(']', ')');
+    return '@[$safeTitle](event:$id)';
   }
 
   /// Detects if the user is currently typing a mention trigger (@).

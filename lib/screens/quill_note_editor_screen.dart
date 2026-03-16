@@ -16,6 +16,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_quill/quill_delta.dart';
@@ -30,6 +31,7 @@ import '../repositories/notes_repository.dart';
 import '../repositories/note_folder_repository.dart';
 import '../services/note_export_service.dart';
 import '../utils/markdown_to_quill_converter.dart';
+import '../utils/smart_markdown_helper.dart';
 import '../services/media_service.dart';
 import '../widgets/media_embed_builder.dart';
 import '../widgets/link_embed_builder.dart';
@@ -1166,6 +1168,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         );
         _quillController.addListener(_onControllerChange);
         _prevMentionRanges = _findQuillMentionRanges();
+        _onContentChanged();
       }
     } catch (e) {
       debugPrint('Error inserting mention: $e');
@@ -1926,6 +1929,16 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     }
   }
 
+  /// Converts raw mention patterns to markdown links for clickable rendering.
+  /// Transforms `@[Title](type:id)` → `[@Title](mention:type:id)`
+  String _convertMentionsForMarkdown(String text) {
+    return text.replaceAllMapped(
+      MentionParser.mentionPattern,
+      (match) =>
+          '[\u2060@${match.group(1)}](mention:${match.group(2)}:${match.group(3)})',
+    );
+  }
+
   Future<void> _openLink(String url) async {
     // Handle mention links
     if (url.startsWith('mention:')) {
@@ -2584,209 +2597,263 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                       itemId: _originalNote!.id,
                       itemType: 'note',
                     ),
-                  // Quill editor
+                  // Quill editor / markdown preview
                   Expanded(
-                    child: Stack(
-                      children: [
-                        RepaintBoundary(
-                          child: Listener(
-                            onPointerUp: (_) {
-                              _quillTapPending = true;
-                            },
-                            child: quill.QuillEditor(
-                              focusNode: _focusNode,
-                              scrollController: _scrollController,
-                              controller: _quillController,
-                              config: quill.QuillEditorConfig(
-                                showCursor: !_isReadMode,
-                                enableInteractiveSelection: !_isReadMode,
-                                onLaunchUrl: (url) {
-                                  // Flutter Quill prepends https:// to
-                                  // URLs it considers invalid (like mention:)
-                                  // so strip that prefix before handling.
-                                  final cleanUrl =
-                                      url.startsWith('https://mention:')
-                                      ? url.substring('https://'.length)
-                                      : url;
-                                  _openLink(cleanUrl);
-                                },
-                                linkActionPickerDelegate:
-                                    (context, link, node) async {
-                                      // Handle mention links (including
-                                      // https:// prefix added by Quill)
-                                      final cleanLink =
-                                          link.startsWith('https://mention:')
-                                          ? link.substring('https://'.length)
-                                          : link;
-                                      if (cleanLink.startsWith('mention:')) {
-                                        _openLink(cleanLink);
-                                        return quill.LinkMenuAction.none;
-                                      }
-                                      return quill
-                                          .defaultLinkActionPickerDelegate(
-                                            context,
-                                            cleanLink,
-                                            node,
-                                          );
-                                    },
-                                // Apply strikethrough to checked list items purely
-                                // visually — no document mutation, no re-entrance.
-                                textSpanBuilder:
-                                    (
-                                      context,
-                                      node,
-                                      nodeOffset,
-                                      text,
-                                      style,
-                                      recognizer,
-                                    ) {
-                                      TextStyle effectiveStyle =
-                                          style ?? const TextStyle();
-                                      if (node
-                                              .parent
-                                              ?.style
-                                              .attributes['list']
-                                              ?.value ==
-                                          'checked') {
-                                        final existing =
-                                            effectiveStyle.decoration;
-                                        effectiveStyle = effectiveStyle
-                                            .copyWith(
-                                              decoration: existing == null
-                                                  ? TextDecoration.lineThrough
-                                                  : TextDecoration.combine([
-                                                      existing,
-                                                      TextDecoration
-                                                          .lineThrough,
-                                                    ]),
-                                            );
-                                      }
-                                      return TextSpan(
-                                        text: text,
-                                        style: effectiveStyle,
-                                        recognizer: recognizer,
-                                        mouseCursor: recognizer != null
-                                            ? SystemMouseCursors.click
-                                            : null,
-                                      );
-                                    },
-                                customStyles: quill.DefaultStyles(
-                                  link: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                    fontWeight: FontWeight.w600,
-                                    decoration: TextDecoration.none,
-                                    backgroundColor: Theme.of(context)
-                                        .colorScheme
-                                        .primaryContainer
-                                        .withValues(alpha: 0.4),
-                                  ),
-                                  paragraph: quill.DefaultTextBlockStyle(
-                                    TextStyle(
-                                      fontSize: 16,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface,
-                                      height:
-                                          _originalNote?.lineHeightMultiplier ??
-                                          1.5,
-                                    ),
-                                    quill.HorizontalSpacing(0, 0),
-                                    quill.VerticalSpacing(
-                                      _originalNote?.paragraphSpacing ?? 8.0,
-                                      _originalNote?.paragraphSpacing ?? 8.0,
-                                    ),
-                                    quill.VerticalSpacing(0, 0),
-                                    null,
-                                  ),
-                                  lists: quill.DefaultListBlockStyle(
-                                    TextStyle(
-                                      fontSize: 16,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface,
-                                      height:
-                                          _originalNote?.lineHeightMultiplier ??
-                                          1.5,
-                                    ),
-                                    quill.HorizontalSpacing(0, 0),
-                                    // No inter-block spacing for lists —
-                                    // flutter_quill splits checked/unchecked items
-                                    // into separate blocks, so any spacing here
-                                    // creates visible gaps when toggling checkboxes.
-                                    quill.VerticalSpacing(0, 0),
-                                    quill.VerticalSpacing(0, 0),
-                                    null,
-                                    null,
+                    child: _isReadMode
+                        ? SingleChildScrollView(
+                            controller: _scrollController,
+                            padding: EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              top: 16,
+                              bottom:
+                                  math.max(
+                                    MediaQuery.of(context).viewInsets.bottom,
+                                    MediaQuery.of(context).viewPadding.bottom,
+                                  ) +
+                                  16,
+                            ),
+                            child: SelectionArea(
+                              child: MarkdownBody(
+                                data: _convertMentionsForMarkdown(
+                                  MarkdownToQuillConverter.documentToMarkdown(
+                                    _quillController.document,
                                   ),
                                 ),
-                                embedBuilders: [
-                                  MediaEmbedBuilder(),
-                                  LinkEmbedBuilder(),
-                                ],
-                                padding: EdgeInsets.only(
+                                selectable: false,
+                                styleSheet:
+                                    SmartMarkdownHelper.createStyleSheet(
+                                      context,
+                                    ),
+                                onTapLink: (text, href, title) {
+                                  if (href != null) _openLink(href);
+                                },
+                              ),
+                            ),
+                          )
+                        : Stack(
+                            children: [
+                              RepaintBoundary(
+                                child: Listener(
+                                  onPointerUp: (_) {
+                                    _quillTapPending = true;
+                                  },
+                                  child: quill.QuillEditor(
+                                    focusNode: _focusNode,
+                                    scrollController: _scrollController,
+                                    controller: _quillController,
+                                    config: quill.QuillEditorConfig(
+                                      showCursor: !_isReadMode,
+                                      enableInteractiveSelection: !_isReadMode,
+                                      onLaunchUrl: (url) {
+                                        // Flutter Quill prepends https:// to
+                                        // URLs it considers invalid (like mention:)
+                                        // so strip that prefix before handling.
+                                        final cleanUrl =
+                                            url.startsWith('https://mention:')
+                                            ? url.substring('https://'.length)
+                                            : url;
+                                        _openLink(cleanUrl);
+                                      },
+                                      linkActionPickerDelegate:
+                                          (context, link, node) async {
+                                            // Handle mention links (including
+                                            // https:// prefix added by Quill)
+                                            final cleanLink =
+                                                link.startsWith(
+                                                  'https://mention:',
+                                                )
+                                                ? link.substring(
+                                                    'https://'.length,
+                                                  )
+                                                : link;
+                                            if (cleanLink.startsWith(
+                                              'mention:',
+                                            )) {
+                                              _openLink(cleanLink);
+                                              return quill.LinkMenuAction.none;
+                                            }
+                                            return quill
+                                                .defaultLinkActionPickerDelegate(
+                                                  context,
+                                                  cleanLink,
+                                                  node,
+                                                );
+                                          },
+                                      // Apply strikethrough to checked list items purely
+                                      // visually — no document mutation, no re-entrance.
+                                      textSpanBuilder:
+                                          (
+                                            context,
+                                            node,
+                                            nodeOffset,
+                                            text,
+                                            style,
+                                            recognizer,
+                                          ) {
+                                            TextStyle effectiveStyle =
+                                                style ?? const TextStyle();
+                                            if (node
+                                                    .parent
+                                                    ?.style
+                                                    .attributes['list']
+                                                    ?.value ==
+                                                'checked') {
+                                              final existing =
+                                                  effectiveStyle.decoration;
+                                              effectiveStyle = effectiveStyle
+                                                  .copyWith(
+                                                    decoration: existing == null
+                                                        ? TextDecoration
+                                                              .lineThrough
+                                                        : TextDecoration.combine(
+                                                            [
+                                                              existing,
+                                                              TextDecoration
+                                                                  .lineThrough,
+                                                            ],
+                                                          ),
+                                                  );
+                                            }
+                                            return TextSpan(
+                                              text: text,
+                                              style: effectiveStyle,
+                                              recognizer: recognizer,
+                                              mouseCursor: recognizer != null
+                                                  ? SystemMouseCursors.click
+                                                  : null,
+                                            );
+                                          },
+                                      customStyles: quill.DefaultStyles(
+                                        link: TextStyle(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          fontWeight: FontWeight.w600,
+                                          decoration: TextDecoration.none,
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .primaryContainer
+                                              .withValues(alpha: 0.4),
+                                        ),
+                                        paragraph: quill.DefaultTextBlockStyle(
+                                          TextStyle(
+                                            fontSize: 16,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                            height:
+                                                _originalNote
+                                                    ?.lineHeightMultiplier ??
+                                                1.5,
+                                          ),
+                                          quill.HorizontalSpacing(0, 0),
+                                          quill.VerticalSpacing(
+                                            _originalNote?.paragraphSpacing ??
+                                                8.0,
+                                            _originalNote?.paragraphSpacing ??
+                                                8.0,
+                                          ),
+                                          quill.VerticalSpacing(0, 0),
+                                          null,
+                                        ),
+                                        lists: quill.DefaultListBlockStyle(
+                                          TextStyle(
+                                            fontSize: 16,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                            height:
+                                                _originalNote
+                                                    ?.lineHeightMultiplier ??
+                                                1.5,
+                                          ),
+                                          quill.HorizontalSpacing(0, 0),
+                                          // No inter-block spacing for lists —
+                                          // flutter_quill splits checked/unchecked items
+                                          // into separate blocks, so any spacing here
+                                          // creates visible gaps when toggling checkboxes.
+                                          quill.VerticalSpacing(0, 0),
+                                          quill.VerticalSpacing(0, 0),
+                                          null,
+                                          null,
+                                        ),
+                                      ),
+                                      embedBuilders: [
+                                        MediaEmbedBuilder(),
+                                        LinkEmbedBuilder(),
+                                      ],
+                                      padding: EdgeInsets.only(
+                                        left: 16,
+                                        right: 16,
+                                        top: 16,
+                                        bottom:
+                                            math.max(
+                                              MediaQuery.of(
+                                                context,
+                                              ).viewInsets.bottom,
+                                              MediaQuery.of(
+                                                context,
+                                              ).viewPadding.bottom,
+                                            ) +
+                                            16,
+                                      ),
+                                      placeholder: _showPlaceholder
+                                          ? 'Type "/" for media, "@" to link tasks or notes'
+                                          : null,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Slash command menu - positioned at cursor height
+                              if (_showSlashMenu)
+                                Positioned(
                                   left: 16,
                                   right: 16,
-                                  top: 16,
-                                  bottom:
-                                      math.max(
-                                        MediaQuery.of(
-                                          context,
-                                        ).viewInsets.bottom,
-                                        MediaQuery.of(
-                                          context,
-                                        ).viewPadding.bottom,
-                                      ) +
-                                      16,
+                                  top: _slashMenuTop,
+                                  child: SlashCommandMenu(
+                                    onInsertImage: () =>
+                                        _insertSlashCommand('image'),
+                                    onInsertVideo: () =>
+                                        _insertSlashCommand('video'),
+                                    onInsertVoice: () =>
+                                        _insertSlashCommand('voice'),
+                                    onInsertLink: () =>
+                                        _insertSlashCommand('link'),
+                                    onInsertCode: () =>
+                                        _insertSlashCommand('code'),
+                                  ),
                                 ),
-                                placeholder: _showPlaceholder
-                                    ? 'Type "/" for media, "@" to link tasks or notes'
-                                    : null,
+                              // Floating history controls - visible when feature enabled
+                              Consumer(
+                                builder: (context, ref, _) {
+                                  final preferences = ref.watch(
+                                    preferencesStateProvider,
+                                  );
+                                  if (!preferences.enableNoteHistory) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return Positioned(
+                                    left: 16,
+                                    bottom:
+                                        MediaQuery.of(
+                                              context,
+                                            ).viewInsets.bottom >
+                                            0
+                                        ? 8
+                                        : 16,
+                                    child: FloatingHistoryControls(
+                                      noteId:
+                                          _originalNote?.id ?? widget.noteId,
+                                      onUndo: _handleUndo,
+                                      onRedo: _handleRedo,
+                                      onShowHistory: _showNoteHistory,
+                                    ),
+                                  );
+                                },
                               ),
-                            ),
+                            ],
                           ),
-                        ),
-                        // Slash command menu - positioned at cursor height
-                        if (_showSlashMenu)
-                          Positioned(
-                            left: 16,
-                            right: 16,
-                            top: _slashMenuTop,
-                            child: SlashCommandMenu(
-                              onInsertImage: () => _insertSlashCommand('image'),
-                              onInsertVideo: () => _insertSlashCommand('video'),
-                              onInsertVoice: () => _insertSlashCommand('voice'),
-                              onInsertLink: () => _insertSlashCommand('link'),
-                              onInsertCode: () => _insertSlashCommand('code'),
-                            ),
-                          ),
-                        // Floating history controls - visible when feature enabled
-                        Consumer(
-                          builder: (context, ref, _) {
-                            final preferences = ref.watch(
-                              preferencesStateProvider,
-                            );
-                            if (!preferences.enableNoteHistory) {
-                              return const SizedBox.shrink();
-                            }
-                            return Positioned(
-                              left: 16,
-                              bottom:
-                                  MediaQuery.of(context).viewInsets.bottom > 0
-                                  ? 8
-                                  : 16,
-                              child: FloatingHistoryControls(
-                                noteId: _originalNote?.id ?? widget.noteId,
-                                onUndo: _handleUndo,
-                                onRedo: _handleRedo,
-                                onShowHistory: _showNoteHistory,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
                   ),
                 ],
               ),
@@ -2878,8 +2945,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     final handleContext = _dragHandleKey.currentContext;
     if (handleContext == null) return const SizedBox.shrink();
     final handleBox = handleContext.findRenderObject() as RenderBox?;
-    if (handleBox == null || !handleBox.attached)
+    if (handleBox == null || !handleBox.attached) {
       return const SizedBox.shrink();
+    }
     final stackBox = context.findRenderObject() as RenderBox?;
     if (stackBox == null) return const SizedBox.shrink();
 

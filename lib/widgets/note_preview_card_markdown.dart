@@ -27,6 +27,8 @@ import '../providers/app_providers.dart';
 import '../services/theme_service.dart';
 import '../utils/date_formatters.dart';
 import '../utils/markdown_inline_patterns.dart';
+import '../utils/mention_parser.dart';
+import '../utils/smart_markdown_helper.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import '../widgets/common/common.dart';
 import '../theme/spacing_tokens.dart';
@@ -184,6 +186,47 @@ class NotePreviewCard extends ConsumerWidget {
     return note.content;
   }
 
+  /// Expands a text string into a list of [InlineSpan]s with mention links
+  /// styled to match the note preview/view mode.
+  List<InlineSpan> _expandMentions(
+    String text,
+    TextStyle? style,
+    BuildContext context,
+  ) {
+    final mentions = MentionParser.extractMentions(text);
+    if (mentions.isEmpty) {
+      return [TextSpan(text: text, style: style)];
+    }
+
+    final mentionColor = SmartMarkdownHelper.getLinkColor(context);
+    final spans = <InlineSpan>[];
+    int lastEnd = 0;
+
+    for (final mention in mentions) {
+      if (mention.start > lastEnd) {
+        spans.add(
+          TextSpan(text: text.substring(lastEnd, mention.start), style: style),
+        );
+      }
+      spans.add(
+        TextSpan(
+          text: '@${mention.title}',
+          style: style?.copyWith(
+            color: mentionColor,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+      lastEnd = mention.end;
+    }
+
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(text: text.substring(lastEnd), style: style));
+    }
+
+    return spans;
+  }
+
   /// Converts Quill Delta JSON to formatted TextSpan
   TextSpan _quillToTextSpan(
     BuildContext context,
@@ -253,7 +296,7 @@ class NotePreviewCard extends ConsumerWidget {
                   }
                 }
 
-                spans.add(TextSpan(text: remainingText, style: style));
+                spans.addAll(_expandMentions(remainingText, style, context));
               }
               continue;
             } else if (text.trim().isNotEmpty) {
@@ -438,9 +481,25 @@ class NotePreviewCard extends ConsumerWidget {
                 fontWeight: FontWeight.bold,
               );
             }
+
+            // Quill-format mentions: @Title with link="mention:type:id"
+            final link = attributes['link'];
+            if (link is String && link.startsWith('mention:')) {
+              final mentionColor = SmartMarkdownHelper.getLinkColor(context);
+              spans.add(
+                TextSpan(
+                  text: text,
+                  style: style.copyWith(
+                    color: mentionColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              );
+              continue;
+            }
           }
 
-          spans.add(TextSpan(text: text, style: style));
+          spans.addAll(_expandMentions(text, style, context));
         }
       }
 
@@ -962,7 +1021,7 @@ class NotePreviewCard extends ConsumerWidget {
     // Handle numbered lists - keep as is
     // They already look good: 1. item, 2. item
 
-    List<TextSpan> spans = [];
+    List<InlineSpan> spans = [];
     int currentIndex = 0;
 
     final filteredMatches = MarkdownInlinePatterns.findNonOverlappingMatches(
@@ -977,10 +1036,11 @@ class NotePreviewCard extends ConsumerWidget {
 
       // Add text before the match
       if (match.start > currentIndex) {
-        spans.add(
-          TextSpan(
-            text: text.substring(currentIndex, match.start),
-            style: baseStyle,
+        spans.addAll(
+          _expandMentions(
+            text.substring(currentIndex, match.start),
+            baseStyle,
+            context,
           ),
         );
       }
@@ -1026,18 +1086,20 @@ class NotePreviewCard extends ConsumerWidget {
           break;
       }
 
-      spans.add(TextSpan(text: matchText, style: style));
+      spans.addAll(_expandMentions(matchText, style, context));
       currentIndex = match.end;
     }
 
     // Add remaining text
     if (currentIndex < text.length) {
-      spans.add(TextSpan(text: text.substring(currentIndex), style: baseStyle));
+      spans.addAll(
+        _expandMentions(text.substring(currentIndex), baseStyle, context),
+      );
     }
 
     // If no formatting was found, return simple text span
     if (spans.isEmpty) {
-      return TextSpan(text: text, style: baseStyle);
+      return TextSpan(children: _expandMentions(text, baseStyle, context));
     }
 
     return TextSpan(children: spans);

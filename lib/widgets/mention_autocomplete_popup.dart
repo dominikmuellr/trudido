@@ -151,6 +151,50 @@ class MentionAutocompletePopup {
       }
     }
 
+    // Search events
+    final allEvents = ref.read(eventsProvider);
+    final activeEvents = allEvents
+        .where((e) => !e.isDeleted && !e.isCompleted)
+        .toList();
+
+    if (query.isEmpty) {
+      // Show recent events (up to 5)
+      for (final event in activeEvents.take(5)) {
+        if (event.id == excludeId) continue;
+        results.add(
+          MentionSearchItem(
+            id: event.id,
+            title: event.text,
+            type: 'event',
+            subtitle:
+                '${event.startDateTime.day}/${event.startDateTime.month}/${event.startDateTime.year}',
+            icon: Icons.event_outlined,
+          ),
+        );
+      }
+    } else {
+      // Fuzzy search events
+      final matchingEvents = FuzzySearch.filter(
+        items: activeEvents,
+        query: query,
+        getText: (e) => e.text,
+        minSimilarity: 0.4,
+      );
+      for (final event in matchingEvents.take(5)) {
+        if (event.id == excludeId) continue;
+        results.add(
+          MentionSearchItem(
+            id: event.id,
+            title: event.text,
+            type: 'event',
+            subtitle:
+                '${event.startDateTime.day}/${event.startDateTime.month}/${event.startDateTime.year}',
+            icon: Icons.event_outlined,
+          ),
+        );
+      }
+    }
+
     // Search notes
     final notesAsync = ref.read(notesProvider);
     final notes = notesAsync.value ?? const <Note>[];
@@ -235,6 +279,7 @@ class _MentionPopupContent extends StatelessWidget {
 
     // Group items by type
     final tasks = items.where((i) => i.type == 'task').toList();
+    final events = items.where((i) => i.type == 'event').toList();
     final notes = items.where((i) => i.type == 'note').toList();
 
     return Material(
@@ -265,7 +310,7 @@ class _MentionPopupContent extends StatelessWidget {
                   Expanded(
                     child: Text(
                       query.isEmpty
-                          ? 'Link to a task or note'
+                          ? 'Link to a todo, event or note'
                           : 'Results for "@$query"',
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: colorScheme.onSurface.withValues(alpha: 0.8),
@@ -292,8 +337,16 @@ class _MentionPopupContent extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 children: [
                   if (tasks.isNotEmpty) ...[
-                    _buildSectionHeader(context, 'Tasks', Icons.task_alt),
+                    _buildSectionHeader(context, 'Todos', Icons.task_alt),
                     ...tasks.map((item) => _buildResultItem(context, item)),
+                  ],
+                  if (events.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      context,
+                      'Events',
+                      Icons.event_outlined,
+                    ),
+                    ...events.map((item) => _buildResultItem(context, item)),
                   ],
                   if (notes.isNotEmpty) ...[
                     _buildSectionHeader(
@@ -352,6 +405,8 @@ class _MentionPopupContent extends StatelessWidget {
               size: 20,
               color: item.type == 'task'
                   ? colorScheme.primary
+                  : item.type == 'event'
+                  ? colorScheme.secondary
                   : colorScheme.tertiary,
             ),
             const SizedBox(width: 12),
@@ -389,15 +444,23 @@ class _MentionPopupContent extends StatelessWidget {
                 color:
                     (item.type == 'task'
                             ? colorScheme.primaryContainer
+                            : item.type == 'event'
+                            ? colorScheme.secondaryContainer
                             : colorScheme.tertiaryContainer)
                         .withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                item.type == 'task' ? 'Task' : 'Note',
+                item.type == 'task'
+                    ? 'Todo'
+                    : item.type == 'event'
+                    ? 'Event'
+                    : 'Note',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: item.type == 'task'
                       ? colorScheme.primary
+                      : item.type == 'event'
+                      ? colorScheme.secondary
                       : colorScheme.tertiary,
                   fontWeight: FontWeight.w500,
                 ),

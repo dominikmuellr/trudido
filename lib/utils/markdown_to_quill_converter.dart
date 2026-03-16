@@ -134,82 +134,115 @@ class MarkdownToQuillConverter {
     }
   }
 
-  /// Convert Quill Document back to markdown (for export/backup)
+  /// Convert Quill Document back to markdown (for export/backup/preview).
+  ///
+  /// Quill Delta structure: each "block" (paragraph, header, list item, etc.)
+  /// is terminated by a `\n` op that carries the block-level attributes.
+  /// Inline formatting attributes live on the text ops BEFORE the newline.
+  /// Embed ops (images, videos, voice notes) have non-String data and are
+  /// skipped so they never produce garbage characters in the output.
   static String documentToMarkdown(Document document) {
-    final buffer = StringBuffer();
-    final ops = document.toDelta().toList();
+    final output = StringBuffer();
+    final lineBuffer = StringBuffer();
+    bool inCodeBlock = false;
 
-    for (var op in ops) {
-      if (op.isInsert) {
-        final text = op.data.toString();
-        final attrs = op.attributes;
+    void flushLine(Map<String, dynamic>? blockAttrs) {
+      final line = lineBuffer.toString();
+      lineBuffer.clear();
 
-        if (attrs == null || attrs.isEmpty) {
-          buffer.write(text);
-          continue;
+      // Code-block lines: accumulate under a single ``` fence
+      if (blockAttrs != null && blockAttrs['code-block'] == true) {
+        if (!inCodeBlock) {
+          output.write('```\n');
+          inCodeBlock = true;
         }
+        output.write('$line\n');
+        return;
+      }
 
-        if (attrs.containsKey('header')) {
-          final level = attrs['header'] as int;
-          buffer.write('${'#' * level} ${text.replaceAll('\n', '')}');
-          continue;
+      // Close open code fence when leaving code-block
+      if (inCodeBlock) {
+        output.write('```\n');
+        inCodeBlock = false;
+      }
+
+      if (blockAttrs != null) {
+        if (blockAttrs.containsKey('header')) {
+          final level = (blockAttrs['header'] as num?)?.toInt() ?? 1;
+          output.write('${'#' * level} $line\n');
+          return;
         }
-
-        if (attrs.containsKey('list')) {
-          final listType = attrs['list'];
-          final cleanText = text.replaceAll('\n', '');
-          if (listType == 'bullet') {
-            buffer.write('- $cleanText');
-          } else if (listType == 'ordered') {
-            buffer.write('1. $cleanText');
-          } else if (listType == 'checked') {
-            buffer.write('- [x] $cleanText');
-          } else if (listType == 'unchecked') {
-            buffer.write('- [ ] $cleanText');
+        if (blockAttrs.containsKey('list')) {
+          switch (blockAttrs['list']) {
+            case 'bullet':
+              output.write('- $line\n');
+            case 'ordered':
+              output.write('1. $line\n');
+            case 'checked':
+              output.write('- [x] $line\n');
+            default: // 'unchecked'
+              output.write('- [ ] $line\n');
           }
-          continue;
+          return;
         }
-
-        if (attrs.containsKey('blockquote')) {
-          buffer.write('> ${text.replaceAll('\n', '')}');
-          continue;
+        if (blockAttrs['blockquote'] == true) {
+          output.write('> $line\n');
+          return;
         }
+      }
 
-        if (attrs.containsKey('code-block')) {
-          buffer.write('```\n${text.replaceAll('\n', '')}\n```');
-          continue;
+      output.write('$line\n');
+    }
+
+    for (final op in document.toDelta().toList()) {
+      if (!op.isInsert) continue;
+      // Skip embed objects (images, videos, voice recordings, etc.)
+      if (op.data is! String) continue;
+
+      final text = op.data as String;
+      final attrs = op.attributes;
+
+      if (text == '\n') {
+        // This is the block terminator — flush the accumulated line
+        flushLine(attrs);
+      } else {
+        // Inline text op — apply inline formatting then buffer it
+        String formatted = text;
+        if (attrs != null && attrs.isNotEmpty) {
+          if (attrs['bold'] == true) formatted = '**$formatted**';
+          if (attrs['italic'] == true) formatted = '*$formatted*';
+          if (attrs['strike'] == true) formatted = '~~$formatted~~';
+          if (attrs['code'] == true) formatted = '`$formatted`';
+          if (attrs['underline'] == true) formatted = '<u>$formatted</u>';
+          if (attrs.containsKey('background')) formatted = '==$formatted==';
+          if (attrs.containsKey('link')) {
+            final url = attrs['link'] as String? ?? '';
+            if (url.startsWith('mention:')) {
+              // Re-encode as @[Title](type:id) so _convertMentionsForMarkdown
+              // can turn it into a tappable link in the preview.
+              final parts = url.substring('mention:'.length).split(':');
+              if (parts.length >= 2) {
+                final type = parts[0];
+                final id = parts.sublist(1).join(':');
+                final title = formatted.startsWith('@')
+                    ? formatted.substring(1)
+                    : formatted;
+                formatted = '@[$title]($type:$id)';
+              }
+            } else {
+              formatted = '[$formatted]($url)';
+            }
+          }
         }
-
-        String formattedText = text;
-
-        if (attrs.containsKey('bold') && attrs['bold'] == true) {
-          formattedText = '**$formattedText**';
-        }
-
-        if (attrs.containsKey('italic') && attrs['italic'] == true) {
-          formattedText = '*$formattedText*';
-        }
-
-        if (attrs.containsKey('strike') && attrs['strike'] == true) {
-          formattedText = '~~$formattedText~~';
-        }
-
-        if (attrs.containsKey('code') && attrs['code'] == true) {
-          formattedText = '`$formattedText`';
-        }
-
-        if (attrs.containsKey('underline') && attrs['underline'] == true) {
-          formattedText = '<u>$formattedText</u>';
-        }
-
-        if (attrs.containsKey('background')) {
-          formattedText = '==$formattedText==';
-        }
-
-        buffer.write(formattedText);
+        lineBuffer.write(formatted);
       }
     }
 
-    return buffer.toString();
+    // Close any still-open code fence
+    if (inCodeBlock) output.write('```\n');
+    // Flush any remaining text that had no trailing newline op
+    if (lineBuffer.isNotEmpty) output.write(lineBuffer.toString());
+
+    return output.toString();
   }
 }

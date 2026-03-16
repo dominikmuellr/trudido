@@ -18,11 +18,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/todo.dart';
 import '../models/note.dart';
+import '../models/event.dart';
 import '../providers/app_providers.dart';
 import '../providers/notes_providers.dart';
 import '../controllers/task_controller.dart';
+import '../controllers/event_controller.dart';
 import '../utils/mention_parser.dart';
 import '../screens/task_editor_screen.dart';
+import '../screens/event_editor_screen.dart';
 import '../screens/note_preview_screen.dart';
 import 'animated_navigation.dart';
 
@@ -39,6 +42,8 @@ class MentionNavigator {
   ) {
     if (mention.isTask) {
       _navigateToTask(context, ref, mention.id);
+    } else if (mention.isEvent) {
+      _navigateToEvent(context, ref, mention.id);
     } else if (mention.isNote) {
       _navigateToNote(context, ref, mention.id);
     }
@@ -73,6 +78,40 @@ class MentionNavigator {
         todo: task,
         onSave: (updatedTodo) {
           ref.read(taskControllerProvider.notifier).update(updatedTodo);
+        },
+      ),
+    );
+  }
+
+  static void _navigateToEvent(
+    BuildContext context,
+    WidgetRef ref,
+    String eventId,
+  ) {
+    final events = ref.read(eventsProvider);
+    final event = events.cast<Event?>().firstWhere(
+      (e) => e!.id == eventId,
+      orElse: () => null,
+    );
+
+    if (event == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Event not found or has been deleted'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
+    AnimatedNavigation.pushContainerTransform(
+      context,
+      EventEditorScreen(
+        event: event,
+        onSave: (updatedEvent) {
+          ref.read(eventControllerProvider.notifier).update(updatedEvent);
         },
       ),
     );
