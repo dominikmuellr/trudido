@@ -1070,7 +1070,15 @@ Happy note-taking! ✨''',
   static List<String> getOverviewSectionOrder() {
     if (_prefs == null) kickOffPrefsInit();
     return _prefs?.getStringList('overview_section_order') ??
-        ['progress', 'pinned_note', 'todos', 'events', 'latest_notes'];
+        [
+          'clock',
+          'greeting',
+          'folder_shortcuts',
+          'progress',
+          'todos',
+          'events',
+          'latest_notes',
+        ];
   }
 
   // Overview hidden sections

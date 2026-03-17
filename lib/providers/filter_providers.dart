@@ -97,13 +97,46 @@ final notesDrawerModuleProvider =
 class OverviewSectionOrderNotifier extends Notifier<List<String>> {
   @override
   List<String> build() {
-    final stored = StorageService.getOverviewSectionOrder();
+    var stored = StorageService.getOverviewSectionOrder();
+    var changed = false;
+    // Migrate: remove legacy 'pinned_note' section
+    if (stored.contains('pinned_note')) {
+      stored = stored.where((s) => s != 'pinned_note').toList();
+      changed = true;
+    }
     // Migrate: add 'recent_settings' if not yet present
     if (!stored.contains('recent_settings')) {
-      final updated = [...stored, 'recent_settings'];
-      StorageService.setOverviewSectionOrder(updated);
-      return updated;
+      stored = [...stored, 'recent_settings'];
+      changed = true;
     }
+    // Migrate: add 'greeting' to front if not yet present
+    if (!stored.contains('greeting')) {
+      stored = ['greeting', ...stored];
+      changed = true;
+    }
+    // Migrate: add 'folder_shortcuts' after greeting if not yet present
+    if (!stored.contains('folder_shortcuts')) {
+      final idx = stored.indexOf('greeting');
+      final insertAt = idx >= 0 ? idx + 1 : 1;
+      stored = [
+        ...stored.sublist(0, insertAt),
+        'folder_shortcuts',
+        ...stored.sublist(insertAt),
+      ];
+      changed = true;
+    }
+    // Migrate: add 'clock' before 'greeting' if not yet present
+    if (!stored.contains('clock')) {
+      final idx = stored.indexOf('greeting');
+      final insertAt = idx >= 0 ? idx : 0;
+      stored = [
+        ...stored.sublist(0, insertAt),
+        'clock',
+        ...stored.sublist(insertAt),
+      ];
+      changed = true;
+    }
+    if (changed) StorageService.setOverviewSectionOrder(stored);
     return stored;
   }
 

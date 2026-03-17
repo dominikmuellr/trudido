@@ -22,8 +22,6 @@ part 'note_history.g.dart';
 
 /// Represents a single edit history entry for a note's content field.
 /// Used for undo/redo functionality and browsing full edit history.
-/// Supports branching history via parentEntryId - when editing from a past
-/// version, a new branch is created while preserving the original timeline.
 @HiveType(typeId: 9)
 class NoteHistoryEntry extends HiveObject {
   @HiveField(0)
@@ -41,23 +39,12 @@ class NoteHistoryEntry extends HiveObject {
   @HiveField(4)
   DateTime timestamp;
 
-  /// ID of the parent history entry. Null for the first entry in a note's history.
-  /// When branching from a past version, this points to the restored entry.
-  @HiveField(5)
-  String? parentEntryId;
-
-  /// Optional label for this branch (e.g., "Main", "Alternative version")
-  @HiveField(6)
-  String? branchLabel;
-
   NoteHistoryEntry({
     String? id,
     required this.noteId,
     this.contentBefore,
     this.contentAfter,
     DateTime? timestamp,
-    this.parentEntryId,
-    this.branchLabel,
   }) : id = id ?? const Uuid().v4(),
        timestamp = timestamp ?? DateTime.now();
 
@@ -68,8 +55,6 @@ class NoteHistoryEntry extends HiveObject {
     String? contentBefore,
     String? contentAfter,
     DateTime? timestamp,
-    String? parentEntryId,
-    String? branchLabel,
   }) {
     return NoteHistoryEntry(
       id: id ?? this.id,
@@ -77,8 +62,6 @@ class NoteHistoryEntry extends HiveObject {
       contentBefore: contentBefore ?? this.contentBefore,
       contentAfter: contentAfter ?? this.contentAfter,
       timestamp: timestamp ?? this.timestamp,
-      parentEntryId: parentEntryId ?? this.parentEntryId,
-      branchLabel: branchLabel ?? this.branchLabel,
     );
   }
 
@@ -165,8 +148,6 @@ class NoteHistoryEntry extends HiveObject {
       'contentBefore': contentBefore,
       'contentAfter': contentAfter,
       'timestamp': timestamp.toIso8601String(),
-      'parentEntryId': parentEntryId,
-      'branchLabel': branchLabel,
     };
   }
 
@@ -177,13 +158,11 @@ class NoteHistoryEntry extends HiveObject {
       contentBefore: json['contentBefore'],
       contentAfter: json['contentAfter'],
       timestamp: DateTime.parse(json['timestamp']),
-      parentEntryId: json['parentEntryId'],
-      branchLabel: json['branchLabel'],
     );
   }
 
   @override
   String toString() {
-    return 'NoteHistoryEntry(id: $id, noteId: $noteId, parentEntryId: $parentEntryId, timestamp: $formattedTimestamp)';
+    return 'NoteHistoryEntry(id: $id, noteId: $noteId, timestamp: $formattedTimestamp)';
   }
 }

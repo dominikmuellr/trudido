@@ -25,6 +25,7 @@ import '../controllers/notes_controller.dart';
 import '../repositories/notes_repository.dart';
 import '../repositories/note_folder_repository.dart';
 import '../services/note_export_service.dart';
+import '../services/storage_service.dart';
 import '../providers/app_providers.dart';
 import '../providers/note_history_provider.dart';
 import '../utils/markdown_inline_patterns.dart';
@@ -1467,28 +1468,20 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
 
   void _handleUndo(WidgetRef ref) {
     if (widget.noteId == null) return;
-    final entry = ref
-        .read(noteHistoryStackProvider.notifier)
-        .undo(widget.noteId!);
-    if (entry != null) {
+    // Load history and preview the most recent entry
+    StorageService.getNoteHistoryForNote(widget.noteId!).then((history) {
+      if (!mounted || history.isEmpty) return;
+      final entry = history.first;
       setState(() {
         _contentController.setFromStorageText(entry.contentBefore ?? '');
         _hasUnsavedChanges = true;
       });
-    }
+    });
   }
 
   void _handleRedo(WidgetRef ref) {
-    if (widget.noteId == null) return;
-    final entry = ref
-        .read(noteHistoryStackProvider.notifier)
-        .redo(widget.noteId!);
-    if (entry != null) {
-      setState(() {
-        _contentController.setFromStorageText(entry.contentAfter ?? '');
-        _hasUnsavedChanges = true;
-      });
-    }
+    // For the markdown editor, redo is not supported (no live content cache)
+    // Users can use the history bottom sheet to restore any version
   }
 
   void _showNoteHistory() {
@@ -1505,7 +1498,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       context: context,
       noteId: widget.noteId!,
       noteTitle: title,
-      onRestore: (restoredContent) {
+      onRestore: (restoredContent, {required bool permanent}) {
         setState(() {
           _contentController.setFromStorageText(restoredContent ?? '');
           _hasUnsavedChanges = true;

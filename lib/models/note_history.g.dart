@@ -22,15 +22,16 @@ class NoteHistoryEntryAdapter extends TypeAdapter<NoteHistoryEntry> {
       contentBefore: fields[2] as String?,
       contentAfter: fields[3] as String?,
       timestamp: fields[4] as DateTime?,
-      parentEntryId: fields[5] as String?,
-      branchLabel: fields[6] as String?,
+      // fields[5] (parentEntryId) and fields[6] (branchLabel) are intentionally
+      // ignored - branching was removed. Old entries with these fields are
+      // read safely and the values discarded.
     );
   }
 
   @override
   void write(BinaryWriter writer, NoteHistoryEntry obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -40,11 +41,7 @@ class NoteHistoryEntryAdapter extends TypeAdapter<NoteHistoryEntry> {
       ..writeByte(3)
       ..write(obj.contentAfter)
       ..writeByte(4)
-      ..write(obj.timestamp)
-      ..writeByte(5)
-      ..write(obj.parentEntryId)
-      ..writeByte(6)
-      ..write(obj.branchLabel);
+      ..write(obj.timestamp);
   }
 
   @override

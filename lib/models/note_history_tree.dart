@@ -66,12 +66,7 @@ class HistoryTree {
       final entry = sortedEntries[i];
       final node = _nodeMap[entry.id]!;
 
-      if (entry.parentEntryId != null &&
-          _nodeMap.containsKey(entry.parentEntryId)) {
-        final parentNode = _nodeMap[entry.parentEntryId]!;
-        node.parent = parentNode;
-        parentNode.children.add(node);
-      } else if (i == 0) {
+      if (i == 0) {
         _roots.add(node);
       } else {
         final previousEntry = sortedEntries[i - 1];

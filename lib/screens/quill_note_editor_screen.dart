@@ -109,6 +109,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   // Flag to skip history recording during undo/redo operations
   bool _isRestoringFromHistory = false;
 
+  // Saved live content when previewing a past version (used by redo to return)
+  String? _savedLiveContent;
+
   // Slash menu
   bool _showSlashMenu = false;
   int _slashCommandStartIndex = -1;
@@ -1656,76 +1659,48 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     return Theme.of(context).colorScheme.onSurfaceVariant;
   }
 
-  // Handle undo operation - navigates back in history tree
+  // Handle undo operation - shows the most recent history entry as a preview
   void _handleUndo() {
     final noteId = _originalNote?.id ?? widget.noteId;
     if (noteId == null) return;
 
-    final tree = ref.read(historyTreeProvider(noteId));
-    if (tree == null) return;
-
-    // Get current content before navigating back (for live version save)
-    final currentContent = jsonEncode(
+    // Save current live content so redo can return to it
+    _savedLiveContent ??= jsonEncode(
       _quillController.document.toDelta().toJson(),
     );
 
-    final navigator = ref.read(noteHistoryNavigatorProvider.notifier);
-    final entryId = navigator.navigateBack(
-      noteId,
-      tree,
-      currentLiveContent: currentContent,
-    );
-
-    if (entryId != null) {
-      final entry = tree.getNode(entryId)?.entry;
-      if (entry != null && entry.contentBefore != null) {
+    // Get the most recent history entry and preview it
+    StorageService.getNoteHistoryForNote(noteId).then((history) {
+      if (!mounted || history.isEmpty) return;
+      final entry = history.first;
+      if (entry.contentBefore != null) {
         _isRestoringFromHistory = true;
+        ref
+            .read(noteHistoryNavigationProvider.notifier)
+            .setViewingEntry(noteId, entry.id);
         _restoreContentFromJson(entry.contentBefore!);
-        // Reset flag after the save completes
         Future.delayed(const Duration(milliseconds: 100), () {
           _isRestoringFromHistory = false;
         });
       }
-    }
+    });
   }
 
-  // Handle redo operation - navigates forward in history tree
+  // Handle redo operation - returns to the live version
   void _handleRedo() {
     final noteId = _originalNote?.id ?? widget.noteId;
     if (noteId == null) return;
 
-    final notifier = ref.read(noteHistoryStackProvider.notifier);
-    final navigator = ref.read(noteHistoryNavigatorProvider.notifier);
+    final liveContent = _savedLiveContent;
+    ref.read(noteHistoryNavigationProvider.notifier).resetToLive(noteId);
+    _savedLiveContent = null;
 
-    // Check if we're about to return to live version
-    final isReturningToLive =
-        navigator.isAtLiveVersion(noteId) == false &&
-        ref.read(noteHistoryNavigatorProvider)[noteId]?.forwardStack.isEmpty ==
-            true;
-
-    final tree = ref.read(historyTreeProvider(noteId));
-    final entryId = navigator.navigateForward(noteId);
-
-    if (entryId != null && tree != null) {
-      // Navigating to a specific history entry
-      final entry = tree.getNode(entryId)?.entry;
-      if (entry != null && entry.contentAfter != null) {
-        _isRestoringFromHistory = true;
-        _restoreContentFromJson(entry.contentAfter!);
-        Future.delayed(const Duration(milliseconds: 100), () {
-          _isRestoringFromHistory = false;
-        });
-      }
-    } else if (isReturningToLive) {
-      // Returning to live version - restore the saved live content
-      final liveContent = notifier.getLiveContent(noteId);
-      if (liveContent != null) {
-        _isRestoringFromHistory = true;
-        _restoreContentFromJson(liveContent);
-        Future.delayed(const Duration(milliseconds: 100), () {
-          _isRestoringFromHistory = false;
-        });
-      }
+    if (liveContent != null) {
+      _isRestoringFromHistory = true;
+      _restoreContentFromJson(liveContent);
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _isRestoringFromHistory = false;
+      });
     }
   }
 
@@ -1789,11 +1764,23 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       context: context,
       noteId: noteId,
       noteTitle: _originalNote?.title ?? 'Untitled',
-      onRestore: (content) {
+      onRestore: (content, {required bool permanent}) {
         if (content == null) return;
-        _isRestoringFromHistory = true;
+        _isRestoringFromHistory = !permanent;
+        if (!permanent) {
+          // Preview: track that we're viewing a past version
+          _savedLiveContent = jsonEncode(
+            _quillController.document.toDelta().toJson(),
+          );
+          ref
+              .read(noteHistoryNavigationProvider.notifier)
+              .setViewingEntry(noteId, '');
+        } else {
+          // Permanent restore: clear preview state
+          _savedLiveContent = null;
+          ref.read(noteHistoryNavigationProvider.notifier).resetToLive(noteId);
+        }
         _restoreContentFromJson(content);
-        // Reset flag after the save completes
         Future.delayed(const Duration(milliseconds: 100), () {
           _isRestoringFromHistory = false;
         });
@@ -2006,11 +1993,13 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     // Cancel any pending history record
     _historyRecordTimer?.cancel();
 
-    // Calculate content change size
-    final contentChange = (contentAfter.length - contentBefore.length).abs();
-
     // Initialize last recorded content if needed
     _lastRecordedContent ??= contentBefore;
+
+    // Calculate content change since the last HISTORY ENTRY (not last save)
+    // This ensures the 50-char threshold is cumulative across multiple small saves
+    final contentChange = (contentAfter.length - _lastRecordedContent!.length)
+        .abs();
 
     // Check if we should record immediately (large change or max interval exceeded)
     final now = DateTime.now();
@@ -2025,10 +2014,15 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     if (shouldRecordImmediately) {
       _recordHistoryEntry(noteId, contentAfter);
     } else {
-      // Schedule for later (after period of inactivity)
+      // Schedule for later (after period of inactivity).
+      // Re-read fresh content at fire time so the entry captures any additional
+      // edits that happened between the auto-save and the timer firing.
       _historyRecordTimer = Timer(_historyRecordDelay, () {
         if (mounted) {
-          _recordHistoryEntry(noteId, contentAfter);
+          final freshContent = jsonEncode(
+            _quillController.document.toDelta().toJson(),
+          );
+          _recordHistoryEntry(noteId, freshContent);
         }
       });
     }

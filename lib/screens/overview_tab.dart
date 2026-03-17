@@ -16,11 +16,20 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:intl/intl.dart';
 
 import '../controllers/task_controller.dart';
 import '../controllers/event_controller.dart';
+import '../controllers/notes_controller.dart';
 import '../providers/app_providers.dart';
+import '../models/folder.dart';
+import '../models/note_folder.dart';
+import '../services/folder_provider.dart';
+import '../screens/home_navigation_drawer.dart' show getIconDataFromName;
+import '../services/greeting_service.dart';
+import '../services/storage_service.dart';
+import '../widgets/greeting_header.dart' show userNameProvider;
 import '../providers/filter_providers.dart';
 import '../providers/notes_providers.dart';
 import '../repositories/note_folder_repository.dart';
@@ -48,6 +57,14 @@ import '../screens/backup_settings_page.dart';
 import '../screens/bin_settings_screen.dart';
 import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
+
+/// Live clock that emits the current time and refreshes every minute.
+final liveTimeProvider = StreamProvider<DateTime>((ref) async* {
+  yield DateTime.now();
+  await for (final _ in Stream.periodic(const Duration(minutes: 1))) {
+    yield DateTime.now();
+  }
+});
 
 /// Shows up to 5 incomplete todos sorted by due date (soonest first), then no-date.
 final overviewTodosProvider = Provider<List<Todo>>((ref) {
@@ -95,21 +112,62 @@ final overviewLatestNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
   });
 });
 
-/// The pinned overview note.
-final overviewPinnedNoteProvider = Provider<AsyncValue<Note?>>((ref) {
-  final pinnedId = ref.watch(pinnedOverviewNoteProvider);
-  if (pinnedId == null) return const AsyncValue.data(null);
-  return ref.watch(notesProvider).whenData((notes) {
-    return notes.where((n) => n.id == pinnedId).firstOrNull;
+/// Unified folder shortcut entry covering both task and note folders.
+enum _FolderType { task, notes }
+
+class _FolderShortcut {
+  final String id;
+  final String name;
+  final String? iconName;
+  final int? folderColor;
+  final DateTime updatedAt;
+  final _FolderType type;
+
+  const _FolderShortcut({
+    required this.id,
+    required this.name,
+    this.iconName,
+    this.folderColor,
+    required this.updatedAt,
+    required this.type,
   });
+
+  factory _FolderShortcut.fromTask(Folder f) => _FolderShortcut(
+    id: f.id,
+    name: f.name,
+    iconName: f.icon,
+    folderColor: f.color,
+    updatedAt: f.updatedAt,
+    type: _FolderType.task,
+  );
+
+  factory _FolderShortcut.fromNote(NoteFolder f) => _FolderShortcut(
+    id: f.id,
+    name: f.name,
+    updatedAt: f.updatedAt,
+    type: _FolderType.notes,
+  );
+}
+
+/// Top 3 most-recently-updated non-vault folders (task + note mixed).
+final overviewFolderShortcutsProvider = Provider<List<_FolderShortcut>>((ref) {
+  final taskFolders = ref.watch(folderNotifierProvider).value ?? [];
+  final noteFolders = ref.watch(noteFoldersProvider).value ?? [];
+  final shortcuts = [
+    ...taskFolders.where((f) => !f.isVault).map(_FolderShortcut.fromTask),
+    ...noteFolders.where((f) => !f.isVault).map(_FolderShortcut.fromNote),
+  ]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  return shortcuts.take(3).toList();
 });
 
 class OverviewTab extends ConsumerWidget {
   const OverviewTab({super.key});
 
   static const _sectionLabels = {
+    'clock': 'Clock',
+    'greeting': 'Greeting',
+    'folder_shortcuts': 'Folder Shortcuts',
     'progress': 'Task Progress',
-    'pinned_note': 'Pinned Note',
     'todos': 'Pending Todos',
     'events': 'Upcoming Events',
     'latest_notes': 'Latest Notes',
@@ -127,11 +185,20 @@ class OverviewTab extends ConsumerWidget {
       physics: const BouncingScrollPhysics(),
       padding: spacing.insets16,
       children: [
-        for (final section in sectionOrder)
-          if (!hiddenSections.contains(section)) ...[
-            _buildSection(section),
-            SizedBox(height: spacing.s16),
+        StaggeredGrid.count(
+          crossAxisCount: 2,
+          mainAxisSpacing: spacing.s16,
+          crossAxisSpacing: spacing.s16,
+          children: [
+            for (final section in sectionOrder)
+              if (!hiddenSections.contains(section))
+                StaggeredGridTile.fit(
+                  crossAxisCellCount: _crossAxisCount(section),
+                  child: _buildSection(section),
+                ),
           ],
+        ),
+        SizedBox(height: spacing.s16),
         // Config button at the bottom
         Center(
           child: SizedBox(
@@ -157,20 +224,33 @@ class OverviewTab extends ConsumerWidget {
 
   Widget _buildSection(String section) {
     switch (section) {
+      case 'clock':
+        return _ClockSection();
+      case 'greeting':
+        return _GreetingSection();
+      case 'folder_shortcuts':
+        return _BentoCard(child: _FolderShortcutsSection());
       case 'progress':
         return _ProgressSection();
-      case 'pinned_note':
-        return _PinnedNoteSection();
       case 'todos':
-        return _TodosSection();
+        return _BentoCard(child: _TodosSection());
       case 'events':
-        return _EventsSection();
+        return _BentoCard(child: _EventsSection());
       case 'latest_notes':
-        return _LatestNotesSection();
+        return _BentoCard(child: _LatestNotesSection());
       case 'recent_settings':
-        return _RecentSettingsSection();
+        return _BentoCard(child: _RecentSettingsSection());
       default:
         return const SizedBox.shrink();
+    }
+  }
+
+  int _crossAxisCount(String section) {
+    switch (section) {
+      case 'progress':
+        return 1;
+      default:
+        return 2;
     }
   }
 
@@ -261,6 +341,155 @@ class OverviewTab extends ConsumerWidget {
           );
         },
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Clock
+// ---------------------------------------------------------------------------
+class _ClockSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = ref.watch(liveTimeProvider).value ?? DateTime.now();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final spacing = ref.watch(adaptiveSpacingProvider);
+    final timeStr = DateFormat('HH:mm').format(now);
+
+    return Padding(
+      padding: EdgeInsets.only(top: spacing.s4, bottom: spacing.s4),
+      child: Text(
+        timeStr,
+        style: theme.textTheme.displayMedium?.copyWith(
+          fontWeight: FontWeight.w200,
+          color: colorScheme.primary,
+          letterSpacing: 2,
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Greeting
+// ---------------------------------------------------------------------------
+class _GreetingSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userName = ref.watch(userNameProvider);
+    final now = ref.watch(liveTimeProvider).value ?? DateTime.now();
+    final hour = now.hour;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final spacing = ref.watch(adaptiveSpacingProvider);
+    final preferences = ref.watch(preferencesStateProvider);
+    final languageIndex = preferences.greetingLanguage;
+
+    final greeting = GreetingService.getGreeting(
+      hour: hour,
+      languageIndex: languageIndex,
+      userName: userName,
+    );
+    final subtitle = GreetingService.getTasksSubtitle(
+      hour: hour,
+      languageIndex: languageIndex,
+    );
+
+    return GestureDetector(
+      onTap: () => _showNameDialog(context, ref, userName),
+      child: Padding(
+        padding: EdgeInsets.only(top: spacing.s4, bottom: spacing.s4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              greeting,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: colorScheme.primary,
+              ),
+            ),
+            SizedBox(height: spacing.s4),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showNameDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String currentName,
+  ) async {
+    final displayName =
+        (currentName == '_SKIP_NAME_' || currentName == '_CLEARED_NAME_')
+        ? ''
+        : currentName;
+
+    final savedName = await showDialog<String>(
+      context: context,
+      builder: (context) => _NameEditDialog(initialName: displayName),
+    );
+
+    if (savedName == null) return;
+    final stored = savedName.isEmpty ? '_CLEARED_NAME_' : savedName;
+    await StorageService.setUserName(stored);
+    if (context.mounted) ref.read(userNameProvider.notifier).update(stored);
+  }
+}
+
+/// Owns the TextEditingController so Flutter disposes it after the dismiss
+/// animation finishes (in State.dispose), not as soon as showDialog resolves.
+class _NameEditDialog extends StatefulWidget {
+  final String initialName;
+  const _NameEditDialog({required this.initialName});
+
+  @override
+  State<_NameEditDialog> createState() => _NameEditDialogState();
+}
+
+class _NameEditDialogState extends State<_NameEditDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialName);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() => Navigator.of(context).pop(_controller.text.trim());
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Your name'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: const InputDecoration(hintText: 'Enter your name'),
+        textCapitalization: TextCapitalization.words,
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        TextButton(onPressed: _submit, child: const Text('Save')),
+      ],
     );
   }
 }
@@ -573,59 +802,6 @@ class _EventsSection extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Pinned Note
-// ---------------------------------------------------------------------------
-class _PinnedNoteSection extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final noteAsync = ref.watch(overviewPinnedNoteProvider);
-    final spacing = ref.watch(adaptiveSpacingProvider);
-
-    return noteAsync.when(
-      data: (note) {
-        if (note == null) return const SizedBox.shrink();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _SectionHeader(
-              title: 'Pinned Note',
-              icon: Icons.push_pin,
-              onSeeAll: () {},
-              trailing: IconButton(
-                icon: const Icon(Icons.close, size: 16),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                visualDensity: VisualDensity.compact,
-                onPressed: () =>
-                    ref.read(pinnedOverviewNoteProvider.notifier).unpin(),
-              ),
-            ),
-            SizedBox(height: spacing.s8),
-            NotePreviewCard(
-              note: note,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => QuillNoteEditorScreen(noteId: note.id),
-                  ),
-                );
-              },
-              onPin: () {},
-              onDelete: () {},
-              onDeleteConfirmed: () {},
-              isInVault: false,
-              isGridView: true,
-            ),
-          ],
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Latest Notes (2 side-by-side)
 // ---------------------------------------------------------------------------
 class _LatestNotesSection extends ConsumerWidget {
@@ -666,9 +842,7 @@ class _LatestNotesSection extends ConsumerWidget {
                                 ),
                               );
                             },
-                            onPin: () => ref
-                                .read(pinnedOverviewNoteProvider.notifier)
-                                .pin(notes[i].id),
+                            onPin: null,
                             onDelete: () {},
                             onDeleteConfirmed: () {},
                             isInVault: false,
@@ -827,6 +1001,118 @@ class _RecentSettingsSection extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
+// Folder Shortcuts
+// ---------------------------------------------------------------------------
+class _FolderShortcutsSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final shortcuts = ref.watch(overviewFolderShortcutsProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: 'Folder Shortcuts',
+          icon: Icons.folder_outlined,
+          onSeeAll: () {},
+          trailing: const SizedBox.shrink(),
+        ),
+        SizedBox(height: spacing.s8),
+        if (shortcuts.isEmpty)
+          _EmptyCard(icon: Icons.folder_off_outlined, message: 'No folders yet')
+        else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final folder in shortcuts)
+                  Padding(
+                    padding: EdgeInsets.only(right: spacing.s8),
+                    child: _FolderShortcutChip(folder: folder),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _FolderShortcutChip extends ConsumerWidget {
+  final _FolderShortcut folder;
+  const _FolderShortcutChip({required this.folder});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final spacing = ref.watch(adaptiveSpacingProvider);
+
+    final iconData = folder.type == _FolderType.task
+        ? getIconDataFromName(folder.iconName)
+        : Icons.description_outlined;
+    final iconColor =
+        folder.type == _FolderType.task && folder.folderColor != null
+        ? Color(folder.folderColor!)
+        : colorScheme.primary;
+
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      color: colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(
+        borderRadius: SpacingBorderRadius.md,
+        side: BorderSide(color: colorScheme.outlineVariant, width: 0.5),
+      ),
+      child: ExpressiveInkWell(
+        borderRadius: SpacingBorderRadius.md,
+        onTap: () {
+          if (folder.type == _FolderType.task) {
+            ref.read(selectedFolderProvider.notifier).update(folder.id);
+            ref.read(currentTabProvider.notifier).setTab(1);
+          } else {
+            ref.read(selectedNoteFolderProvider.notifier).update(folder.id);
+            ref.read(currentTabProvider.notifier).setTab(2);
+          }
+        },
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: spacing.s16,
+            vertical: spacing.s8,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(iconData, size: 18, color: iconColor),
+              SizedBox(width: spacing.s8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    folder.name,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    folder.type == _FolderType.task ? 'Tasks' : 'Notes',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
 class _SectionHeader extends ConsumerWidget {
@@ -904,6 +1190,41 @@ class _EmptyCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Bento Card container
+// ---------------------------------------------------------------------------
+class _BentoCard extends StatelessWidget {
+  final Widget child;
+  const _BentoCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark
+        ? colorScheme.surfaceContainerLow
+        : Color.alphaBlend(
+            colorScheme.primary.withValues(alpha: 0.07),
+            colorScheme.surfaceContainerLow,
+          );
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      color: bgColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isDark
+              ? colorScheme.outlineVariant
+              : colorScheme.primary.withValues(alpha: 0.18),
+          width: 0.5,
+        ),
+      ),
+      child: Padding(padding: const EdgeInsets.all(16), child: child),
     );
   }
 }

@@ -205,6 +205,10 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
                 color: colorScheme.onSurface,
               ),
             )
+          : currentTab == 0
+          ? preferences.showSearchBar
+                ? _buildSimpleSearchBar(context)
+                : null
           : preferences.showSearchBar && widget.showSearchBar
           ? _buildAnimatedSearchBar(context, currentTab)
           : !preferences.showSearchBar || widget.greetingFadeAnimation == null
@@ -287,6 +291,52 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
       ref.read(selectedTodoIdsProvider.notifier).clear();
       ref.read(multiSelectModeProvider.notifier).update(false);
     }
+  }
+
+  /// Builds a static (non-animated) search bar for the overview tab
+  Widget _buildSimpleSearchBar(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return ExpressiveGestureDetector(
+      onTap: () => ref.read(searchModeProvider.notifier).update(true),
+      child: Container(
+        height: 48,
+        margin: const EdgeInsets.only(left: 4, right: 8, top: 4, bottom: 4),
+        padding: const EdgeInsets.only(left: 12, right: 12),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: colorScheme.outline.withValues(alpha: 0.1),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.shadow.withValues(alpha: 0.05),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.search, color: colorScheme.onSurfaceVariant, size: 24),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Search Trudido',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.normal,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Builds the animated search bar for the AppBar title

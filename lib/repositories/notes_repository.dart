@@ -17,7 +17,6 @@
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/note.dart';
-import '../models/note_history.dart';
 import '../services/storage_service.dart';
 import '../services/preferences_service.dart';
 import '../utils/encryption_helper.dart';
@@ -173,17 +172,6 @@ class NotesRepository {
 
     // Decrypt existing note first if it's in a vault
     final decryptedNote = await _decryptNoteIfNeeded(existingNote);
-
-    // Record history if content changed
-    final newContent = content ?? decryptedNote.content;
-    if (newContent != decryptedNote.content) {
-      final historyEntry = NoteHistoryEntry(
-        noteId: id,
-        contentBefore: decryptedNote.content,
-        contentAfter: newContent,
-      );
-      await StorageService.saveNoteHistoryEntry(historyEntry);
-    }
 
     final updatedNote = decryptedNote.copyWith(
       title: title ?? decryptedNote.title,

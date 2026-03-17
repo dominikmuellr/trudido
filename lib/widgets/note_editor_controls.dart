@@ -147,12 +147,9 @@ class FloatingHistoryControls extends ConsumerWidget {
         : false;
 
     // Check if viewing a past version (not at live)
-    final historyPosition = noteId != null
-        ? ref.watch(currentHistoryPositionProvider(noteId!))
-        : null;
-    final isViewingPast =
-        historyPosition != null && historyPosition.currentEntryId != null;
-    final isBranchingMode = historyPosition?.isBranchingMode ?? false;
+    final isViewingPast = noteId != null
+        ? ref.watch(isViewingPastProvider(noteId!))
+        : false;
 
     return Material(
       elevation: 4,
@@ -161,43 +158,28 @@ class FloatingHistoryControls extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: isBranchingMode
-              ? Theme.of(context).colorScheme.primaryContainer
-              : isViewingPast
+          color: isViewingPast
               ? Theme.of(context).colorScheme.tertiaryContainer
               : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(28),
           border: Border.all(
-            color: isBranchingMode
-                ? Theme.of(context).colorScheme.primary
-                : isViewingPast
+            color: isViewingPast
                 ? Theme.of(context).colorScheme.tertiary
-                : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
-            width: (isViewingPast || isBranchingMode) ? 2 : 1,
+                : Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+            width: isViewingPast ? 2 : 1,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // "Branching" indicator
-            if (isBranchingMode) ...[
-              _buildIndicator(
-                context,
-                icon: Icons.call_split,
-                label: 'New Branch',
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-              ),
-              _buildVerticalDivider(
-                context,
-                Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-              ),
-            ]
-            // "Viewing past" indicator (only if not branching)
-            else if (isViewingPast) ...[
+            // "Viewing past" indicator
+            if (isViewingPast) ...[
               _buildIndicator(
                 context,
                 icon: Icons.history,
-                label: 'Past',
+                label: 'Preview',
                 color: Theme.of(context).colorScheme.onTertiaryContainer,
               ),
               _buildVerticalDivider(
@@ -240,7 +222,9 @@ class FloatingHistoryControls extends ConsumerWidget {
             // Divider
             _buildVerticalDivider(
               context,
-              Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+              Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.5),
             ),
             // History button
             ExpressiveIconButton(
