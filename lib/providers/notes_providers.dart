@@ -18,6 +18,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/note.dart';
 import '../repositories/notes_repository.dart';
 
+const Object _providerSentinel = Object();
+
 /// Provider for the list of all notes
 /// Provider for the notes notifier
 final notesProvider = AsyncNotifierProvider<NotesNotifier, List<Note>>(() {
@@ -67,6 +69,7 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
     double? lineHeightMultiplier,
     double? paragraphSpacing,
     bool? lastReadMode,
+    Object? colorValue = _providerSentinel,
   }) async {
     final repository = ref.read(notesRepositoryProvider);
     final note = await repository.updateNote(
@@ -79,6 +82,7 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
       lineHeightMultiplier: lineHeightMultiplier,
       paragraphSpacing: paragraphSpacing,
       lastReadMode: lastReadMode,
+      colorValue: colorValue,
     );
     if (note != null) {
       await refresh();

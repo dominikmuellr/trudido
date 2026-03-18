@@ -30,13 +30,14 @@ class NoteAdapter extends TypeAdapter<Note> {
       paragraphSpacing: fields[10] == null ? 8.0 : fields[10] as double,
       lastReadMode: fields[11] == null ? false : fields[11] as bool,
       deletedAt: fields[12] as DateTime?,
+      colorValue: fields[13] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Note obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -62,7 +63,9 @@ class NoteAdapter extends TypeAdapter<Note> {
       ..writeByte(11)
       ..write(obj.lastReadMode)
       ..writeByte(12)
-      ..write(obj.deletedAt);
+      ..write(obj.deletedAt)
+      ..writeByte(13)
+      ..write(obj.colorValue);
   }
 
   @override

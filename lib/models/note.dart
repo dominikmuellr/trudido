@@ -60,6 +60,9 @@ class Note extends HiveObject {
   @HiveField(12)
   DateTime? deletedAt;
 
+  @HiveField(13)
+  int? colorValue; // ARGB color value for card background, null = default theme color
+
   Note({
     String? id,
     required this.title,
@@ -74,6 +77,7 @@ class Note extends HiveObject {
     this.paragraphSpacing = 8.0,
     this.lastReadMode = false,
     this.deletedAt,
+    this.colorValue,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
@@ -92,6 +96,7 @@ class Note extends HiveObject {
     double? paragraphSpacing,
     bool? lastReadMode,
     DateTime? deletedAt,
+    Object? colorValue = _sentinel,
   }) {
     return Note(
       id: id ?? this.id,
@@ -107,6 +112,9 @@ class Note extends HiveObject {
       paragraphSpacing: paragraphSpacing ?? this.paragraphSpacing,
       lastReadMode: lastReadMode ?? this.lastReadMode,
       deletedAt: deletedAt ?? this.deletedAt,
+      colorValue: colorValue == _sentinel
+          ? this.colorValue
+          : colorValue as int?,
     );
   }
 
@@ -139,6 +147,7 @@ class Note extends HiveObject {
       'lineHeightMultiplier': lineHeightMultiplier,
       'paragraphSpacing': paragraphSpacing,
       'lastReadMode': lastReadMode,
+      if (colorValue != null) 'colorValue': colorValue,
     };
   }
 
@@ -158,6 +167,10 @@ class Note extends HiveObject {
           (json['lineHeightMultiplier'] as num?)?.toDouble() ?? 1.5,
       paragraphSpacing: (json['paragraphSpacing'] as num?)?.toDouble() ?? 8.0,
       lastReadMode: json['lastReadMode'] as bool? ?? false,
+      colorValue: json['colorValue'] as int?,
     );
   }
 }
+
+// Sentinel object used by copyWith to distinguish null from "not provided"
+const Object _sentinel = Object();

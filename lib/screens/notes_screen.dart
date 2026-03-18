@@ -148,6 +148,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             onMoveToFolder: isInVault ? null : () => _moveNoteToFolder(note),
             showFormatIndicator: isAllNotesView,
             isGridView: true,
+            onColorChange: (color) => _setNoteColor(note.id, color),
           );
         },
       ),
@@ -194,6 +195,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               isInVault: isInVault,
               onMoveToFolder: isInVault ? null : () => _moveNoteToFolder(note),
               showFormatIndicator: isAllNotesView,
+              onColorChange: (color) => _setNoteColor(note.id, color),
             ),
           );
         },
@@ -281,6 +283,12 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
   Future<void> _togglePin(String noteId) async {
     await ref.read(notesControllerProvider.notifier).togglePin(noteId);
+  }
+
+  Future<void> _setNoteColor(String noteId, int? colorValue) async {
+    await ref
+        .read(notesProvider.notifier)
+        .updateNote(id: noteId, colorValue: colorValue);
   }
 
   Future<void> _deleteNoteConfirmed(String noteId) async {

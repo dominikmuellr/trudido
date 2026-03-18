@@ -179,6 +179,7 @@ class OverviewTab extends ConsumerWidget {
     final spacing = ref.watch(adaptiveSpacingProvider);
     final sectionOrder = ref.watch(overviewSectionOrderProvider);
     final hiddenSections = ref.watch(overviewHiddenSectionsProvider);
+    final taskStats = ref.watch(taskStatisticsProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return ListView(
@@ -191,7 +192,8 @@ class OverviewTab extends ConsumerWidget {
           crossAxisSpacing: spacing.s16,
           children: [
             for (final section in sectionOrder)
-              if (!hiddenSections.contains(section))
+              if (!hiddenSections.contains(section) &&
+                  !(section == 'progress' && taskStats.total == 0))
                 StaggeredGridTile.fit(
                   crossAxisCellCount: _crossAxisCount(section),
                   child: _buildSection(section),
@@ -355,7 +357,10 @@ class _ClockSection extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final spacing = ref.watch(adaptiveSpacingProvider);
-    final timeStr = DateFormat('HH:mm').format(now);
+    final preferences = ref.watch(preferencesStateProvider);
+    final systemUse24Hour = MediaQuery.of(context).alwaysUse24HourFormat;
+    final use24Hour = preferences.resolveUse24Hour(systemUse24Hour);
+    final timeStr = DateFormat(use24Hour ? 'HH:mm' : 'hh:mm a').format(now);
 
     return Padding(
       padding: EdgeInsets.only(top: spacing.s4, bottom: spacing.s4),
@@ -695,7 +700,10 @@ class _EventsSection extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final spacing = ref.watch(adaptiveSpacingProvider);
-    final timeFormat = DateFormat('HH:mm');
+    final preferences = ref.watch(preferencesStateProvider);
+    final systemUse24Hour = MediaQuery.of(context).alwaysUse24HourFormat;
+    final use24Hour = preferences.resolveUse24Hour(systemUse24Hour);
+    final timeFormat = DateFormat(use24Hour ? 'HH:mm' : 'hh:mm a');
     final dateFormat = DateFormat('MMM d');
 
     return Column(
@@ -1057,14 +1065,16 @@ class _FolderShortcutChip extends ConsumerWidget {
         ? Color(folder.folderColor!)
         : colorScheme.primary;
 
+    final chipColor = Color.alphaBlend(
+      iconColor.withValues(alpha: 0.12),
+      colorScheme.surfaceContainerLow,
+    );
+
     return Card(
       elevation: 0,
       margin: EdgeInsets.zero,
-      color: colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: SpacingBorderRadius.md,
-        side: BorderSide(color: colorScheme.outlineVariant, width: 0.5),
-      ),
+      color: chipColor,
+      shape: RoundedRectangleBorder(borderRadius: SpacingBorderRadius.md),
       child: ExpressiveInkWell(
         borderRadius: SpacingBorderRadius.md,
         onTap: () {

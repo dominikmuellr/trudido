@@ -64,6 +64,7 @@ class NotePreviewCard extends ConsumerWidget {
   showFormatIndicator; // Show .md/.txt indicator (only in All Notes view)
   final String? searchHighlight; // Search term to highlight
   final bool isGridView; // True when rendered inside the grid layout
+  final void Function(int? colorValue)? onColorChange; // Set custom card color
 
   const NotePreviewCard({
     super.key,
@@ -77,6 +78,7 @@ class NotePreviewCard extends ConsumerWidget {
     this.showFormatIndicator = false, // Default to hidden
     this.searchHighlight,
     this.isGridView = false,
+    this.onColorChange,
   });
 
   /// Checks if content is Quill JSON format
@@ -552,6 +554,24 @@ class NotePreviewCard extends ConsumerWidget {
                   onPin!();
                 },
               ),
+            // Card color picker
+            if (onColorChange != null)
+              ListTile(
+                leading: Icon(
+                  Icons.palette_outlined,
+                  color: _currentColorOption()?.colorForBrightness(
+                    Theme.of(context).brightness,
+                  ),
+                ),
+                title: const Text('Card color'),
+                subtitle: note.colorValue != null
+                    ? const Text('Tap to change or remove')
+                    : const Text('Tap to set a color'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showColorPicker(context);
+                },
+              ),
             // Move to folder option (only if not in vault)
             if (!isInVault && onMoveToFolder != null)
               ListTile(
@@ -576,6 +596,148 @@ class NotePreviewCard extends ConsumerWidget {
                 },
               ),
           ],
+        ),
+      ),
+    );
+  }
+
+  static const List<_NoteColorOption> _colorPalette = [
+    _NoteColorOption(index: null, label: 'Default'),
+    _NoteColorOption(
+      index: 1,
+      label: 'Yellow',
+      light: 0xFFFFF9C4,
+      dark: 0xFF3D3516,
+    ),
+    _NoteColorOption(
+      index: 2,
+      label: 'Green',
+      light: 0xFFDCEDC8,
+      dark: 0xFF1B3620,
+    ),
+    _NoteColorOption(
+      index: 3,
+      label: 'Blue',
+      light: 0xFFBBDEFB,
+      dark: 0xFF1A2E3F,
+    ),
+    _NoteColorOption(
+      index: 4,
+      label: 'Pink',
+      light: 0xFFF8BBD0,
+      dark: 0xFF3D1E2A,
+    ),
+    _NoteColorOption(
+      index: 5,
+      label: 'Purple',
+      light: 0xFFE1BEE7,
+      dark: 0xFF2D1B3A,
+    ),
+    _NoteColorOption(
+      index: 6,
+      label: 'Orange',
+      light: 0xFFFFCCBC,
+      dark: 0xFF3A2010,
+    ),
+    _NoteColorOption(
+      index: 7,
+      label: 'Teal',
+      light: 0xFFB2EBF2,
+      dark: 0xFF0D3035,
+    ),
+    _NoteColorOption(
+      index: 8,
+      label: 'Lime',
+      light: 0xFFF0F4C3,
+      dark: 0xFF252F12,
+    ),
+    _NoteColorOption(
+      index: 9,
+      label: 'Amber',
+      light: 0xFFFFECB3,
+      dark: 0xFF3A2D08,
+    ),
+  ];
+
+  _NoteColorOption? _currentColorOption() {
+    if (note.colorValue == null) return null;
+    for (final o in _colorPalette) {
+      if (o.index == note.colorValue) return o;
+    }
+    return null;
+  }
+
+  void _showColorPicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Card color', style: Theme.of(ctx).textTheme.titleMedium),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: _colorPalette.map((option) {
+                  final brightness = Theme.of(ctx).brightness;
+                  final isSelected = option.index == note.colorValue;
+                  final swatchColor =
+                      option.colorForBrightness(brightness) ??
+                      Theme.of(ctx).colorScheme.surfaceContainerHighest;
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      onColorChange!(option.index);
+                    },
+                    child: Tooltip(
+                      message: option.label,
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: swatchColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected
+                                ? Theme.of(ctx).colorScheme.primary
+                                : Theme.of(
+                                    ctx,
+                                  ).colorScheme.outline.withValues(alpha: 0.4),
+                            width: isSelected ? 3 : 1.5,
+                          ),
+                        ),
+                        child: option.index == null
+                            ? Icon(
+                                Icons.format_color_reset,
+                                size: 20,
+                                color: Theme.of(
+                                  ctx,
+                                ).colorScheme.onSurfaceVariant,
+                              )
+                            : isSelected
+                            ? Icon(
+                                Icons.check,
+                                size: 20,
+                                color: swatchColor.computeLuminance() > 0.4
+                                    ? Colors.black87
+                                    : Colors.white,
+                              )
+                            : null,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
@@ -830,9 +992,12 @@ class NotePreviewCard extends ConsumerWidget {
     required TextSpan bodySpan,
     required String formattedDate,
   }) {
-    final cardColor = Theme.of(context).brightness == Brightness.dark
-        ? Theme.of(context).colorScheme.surfaceContainerHighest
-        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08);
+    final brightness = Theme.of(context).brightness;
+    final cardColor =
+        _currentColorOption()?.colorForBrightness(brightness) ??
+        (brightness == Brightness.dark
+            ? Theme.of(context).colorScheme.surfaceContainerHighest
+            : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08));
 
     final mainCard = Card(
       margin: EdgeInsets.zero,
@@ -1571,5 +1736,25 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
         ],
       ),
     );
+  }
+}
+
+class _NoteColorOption {
+  final int? index; // null = default; 1–9 = color family
+  final String label;
+  final int? light; // ARGB for light mode
+  final int? dark; // ARGB for dark mode
+  const _NoteColorOption({
+    required this.index,
+    required this.label,
+    this.light,
+    this.dark,
+  });
+
+  /// Returns the colour to display for the given [brightness],
+  /// or null for the default option.
+  Color? colorForBrightness(Brightness brightness) {
+    if (index == null) return null;
+    return Color(brightness == Brightness.dark ? dark! : light!);
   }
 }

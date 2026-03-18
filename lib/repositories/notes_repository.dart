@@ -22,6 +22,8 @@ import '../services/preferences_service.dart';
 import '../utils/encryption_helper.dart';
 import '../repositories/note_folder_repository.dart';
 
+const Object _sentinel = Object();
+
 /// Repository for managing note data persistence using Hive storage
 class NotesRepository {
   final NoteFolderRepository _folderRepository;
@@ -166,6 +168,7 @@ class NotesRepository {
     double? lineHeightMultiplier,
     double? paragraphSpacing,
     bool? lastReadMode,
+    Object? colorValue = _sentinel,
   }) async {
     final existingNote = StorageService.getNote(id);
     if (existingNote == null) return null;
@@ -183,6 +186,9 @@ class NotesRepository {
           lineHeightMultiplier ?? decryptedNote.lineHeightMultiplier,
       paragraphSpacing: paragraphSpacing ?? decryptedNote.paragraphSpacing,
       lastReadMode: lastReadMode ?? decryptedNote.lastReadMode,
+      colorValue: colorValue == _sentinel
+          ? decryptedNote.colorValue
+          : colorValue as int?,
       updatedAt: DateTime.now(),
     );
 
