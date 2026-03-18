@@ -44,6 +44,7 @@ import 'widgets/system_permission_dialogs.dart';
 import 'widgets/app_lock_wrapper.dart';
 import 'screens/home_screen.dart';
 import 'widgets/common/common.dart';
+import 'widgets/changelog_dialog.dart';
 import 'utils/state_notifiers.dart';
 
 /// Provider to signal widget-triggered task creation request.
@@ -523,7 +524,27 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap>
         _ready = true;
       });
       _fadeCtrl.forward();
+      // Show changelog after first frame so the HomeScreen is visible.
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _maybeShowChangelog(),
+      );
     });
+  }
+
+  Future<void> _maybeShowChangelog() async {
+    final lastVersion = StorageService.getLastAppVersion();
+    if (lastVersion == kCurrentAppVersion) return;
+    // Version changed (or first install) – store new version first, then show.
+    await StorageService.setLastAppVersion(kCurrentAppVersion);
+    // Wait until navigator is ready.
+    for (var i = 0; i < 20; i++) {
+      if (NavigationService.navigatorKey.currentContext != null) break;
+      await Future.delayed(const Duration(milliseconds: 80));
+    }
+    if (!mounted) return;
+    final ctx = NavigationService.navigatorKey.currentContext;
+    if (ctx == null) return;
+    await showChangelogDialog(ctx);
   }
 
   void _openTaskCreation(int? dateMillis) {

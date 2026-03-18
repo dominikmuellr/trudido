@@ -19,6 +19,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
+import '../widgets/changelog_dialog.dart';
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
@@ -100,6 +101,17 @@ class _AboutScreenState extends State<AboutScreen> {
               color: cs.onSurfaceVariant,
             ),
             onTap: _openGitHub,
+          ),
+          ListTile(
+            leading: Icon(Icons.new_releases_outlined, color: cs.primary),
+            title: const Text('Changelog'),
+            subtitle: const Text('What\'s new in each version'),
+            trailing: Icon(
+              Icons.arrow_forward_ios,
+              size: 20,
+              color: cs.onSurfaceVariant,
+            ),
+            onTap: () => showChangelogDialog(context),
           ),
 
           // Licenses Section

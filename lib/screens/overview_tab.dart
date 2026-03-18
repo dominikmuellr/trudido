@@ -1197,32 +1197,41 @@ class _EmptyCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Bento Card container
 // ---------------------------------------------------------------------------
-class _BentoCard extends StatelessWidget {
+class _BentoCard extends ConsumerWidget {
   final Widget child;
   const _BentoCard({required this.child});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final preferences = ref.watch(preferencesStateProvider);
     final bgColor = isDark
         ? colorScheme.surfaceContainerLow
         : Color.alphaBlend(
             colorScheme.primary.withValues(alpha: 0.07),
             colorScheme.surfaceContainerLow,
           );
+
+    // Check if AMOLED black theme and monochrome color are both active
+    final isAmoledBlack = preferences.useBlackTheme && isDark;
+    final isMonochrome = preferences.accentColorSeed == 0xFF9E9E9E;
+    final shouldRemoveBorder = isAmoledBlack && isMonochrome;
+
     return Card(
       elevation: 0,
       margin: EdgeInsets.zero,
       color: bgColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isDark
-              ? colorScheme.outlineVariant
-              : colorScheme.primary.withValues(alpha: 0.18),
-          width: 0.5,
-        ),
+        side: shouldRemoveBorder
+            ? BorderSide.none
+            : BorderSide(
+                color: isDark
+                    ? colorScheme.outlineVariant
+                    : colorScheme.primary.withValues(alpha: 0.18),
+                width: 0.5,
+              ),
       ),
       child: Padding(padding: const EdgeInsets.all(16), child: child),
     );
