@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:trudido/utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
@@ -24,8 +25,10 @@ import '../providers/notes_providers.dart';
 import '../repositories/notes_repository.dart';
 import '../repositories/note_folder_repository.dart';
 import '../services/vault_auth_service.dart';
+import '../utils/note_colors.dart';
 import '../widgets/note_preview_card_markdown.dart';
 import '../widgets/notes_filter_chips.dart';
+import 'home_screen_notifiers.dart';
 import 'quill_note_editor_screen.dart';
 import '../providers/app_providers.dart';
 import '../widgets/common/common.dart';
@@ -88,6 +91,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
   Widget _buildBody(List<Note> notes, bool isAllNotesView) {
     final viewMode = ref.watch(notesViewModeProvider);
+    final isMultiSelect = ref.watch(notesMultiSelectModeProvider);
+    final selectedNoteIds = ref.watch(selectedNoteIdsProvider);
 
     return Column(
       children: [
@@ -99,6 +104,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               ? _buildGridView(notes, isAllNotesView)
               : _buildListView(notes, isAllNotesView),
         ),
+        if (isMultiSelect) _buildBulkActionBar(notes, selectedNoteIds),
       ],
     );
   }
@@ -106,6 +112,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   /// Build grid view (original MasonryGridView layout)
   Widget _buildGridView(List<Note> notes, bool isAllNotesView) {
     final spacing = ref.watch(adaptiveSpacingProvider);
+    final isMultiSelect = ref.watch(notesMultiSelectModeProvider);
+    final selectedNoteIds = ref.watch(selectedNoteIdsProvider);
     return NotificationListener<ScrollNotification>(
       onNotification: (scrollNotification) {
         // Detect pull-to-search gesture
@@ -149,6 +157,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             showFormatIndicator: isAllNotesView,
             isGridView: true,
             onColorChange: (color) => _setNoteColor(note.id, color),
+            selectable: isMultiSelect,
+            selected: selectedNoteIds.contains(note.id),
+            onSelectToggle: () => _onSelectToggle(note.id),
           );
         },
       ),
@@ -157,6 +168,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
   /// Build list view
   Widget _buildListView(List<Note> notes, bool isAllNotesView) {
+    final isMultiSelect = ref.watch(notesMultiSelectModeProvider);
+    final selectedNoteIds = ref.watch(selectedNoteIdsProvider);
     return NotificationListener<ScrollNotification>(
       onNotification: (scrollNotification) {
         // Detect pull-to-search gesture
@@ -196,6 +209,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               onMoveToFolder: isInVault ? null : () => _moveNoteToFolder(note),
               showFormatIndicator: isAllNotesView,
               onColorChange: (color) => _setNoteColor(note.id, color),
+              selectable: isMultiSelect,
+              selected: selectedNoteIds.contains(note.id),
+              onSelectToggle: () => _onSelectToggle(note.id),
             ),
           );
         },
@@ -240,6 +256,194 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       ),
     );
   }
+
+  // ─── Multi-select helpers ───────────────────────────────────────────────
+
+  void _onSelectToggle(String noteId) {
+    if (!ref.read(notesMultiSelectModeProvider)) {
+      ref.read(notesMultiSelectModeProvider.notifier).update(true);
+    }
+    ref.read(selectedNoteIdsProvider.notifier).toggle(noteId);
+    HapticFeedback.selectionClick();
+  }
+
+  void _exitMultiSelect() {
+    ref.read(notesMultiSelectModeProvider.notifier).update(false);
+    ref.read(selectedNoteIdsProvider.notifier).clear();
+  }
+
+  Widget _buildBulkActionBar(List<Note> notes, Set<String> selectedNoteIds) {
+    final cs = Theme.of(context).colorScheme;
+    final allSelected = selectedNoteIds.length == notes.length;
+
+    return Material(
+      elevation: 8,
+      color: cs.surfaceContainer,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: Row(
+            children: [
+              // Select all / deselect all
+              TextButton(
+                onPressed: () {
+                  if (allSelected) {
+                    ref.read(selectedNoteIdsProvider.notifier).clear();
+                  } else {
+                    ref
+                        .read(selectedNoteIdsProvider.notifier)
+                        .selectAll(notes.map((n) => n.id));
+                  }
+                },
+                child: Text(allSelected ? 'None' : 'All'),
+              ),
+              Text(
+                '${selectedNoteIds.length} selected',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelMedium?.copyWith(color: cs.onSurface),
+              ),
+              const Spacer(),
+              // Color picker
+              IconButton(
+                icon: Icon(
+                  Icons.palette_outlined,
+                  color: selectedNoteIds.isEmpty
+                      ? cs.onSurface.withValues(alpha: 0.3)
+                      : cs.primary,
+                ),
+                tooltip: 'Set color',
+                onPressed: selectedNoteIds.isEmpty
+                    ? null
+                    : () => _showBulkColorPicker(selectedNoteIds),
+              ),
+              // Delete
+              IconButton(
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: selectedNoteIds.isEmpty
+                      ? cs.onSurface.withValues(alpha: 0.3)
+                      : cs.error,
+                ),
+                tooltip: 'Move to Bin',
+                onPressed: selectedNoteIds.isEmpty
+                    ? null
+                    : () => _showBulkDeleteConfirmation(selectedNoteIds),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showBulkColorPicker(Set<String> selectedNoteIds) async {
+    int? pickedColor = await showModalBottomSheet<int?>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Set color for ${selectedNoteIds.length} notes',
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: kNoteColorPalette.map((option) {
+                  final brightness = Theme.of(ctx).brightness;
+                  final swatchColor =
+                      option.colorForBrightness(brightness) ??
+                      Theme.of(ctx).colorScheme.surfaceContainerHighest;
+                  return GestureDetector(
+                    onTap: () => Navigator.pop(ctx, option.index ?? -1),
+                    child: Tooltip(
+                      message: option.label,
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: swatchColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Theme.of(
+                              ctx,
+                            ).colorScheme.outline.withValues(alpha: 0.4),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: option.index == null
+                            ? Icon(
+                                Icons.format_color_reset,
+                                size: 20,
+                                color: Theme.of(
+                                  ctx,
+                                ).colorScheme.onSurfaceVariant,
+                              )
+                            : null,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // -1 sentinel = "Default" (clear color)
+    if (pickedColor == null || !mounted) return;
+    final colorValue = pickedColor == -1 ? null : pickedColor;
+    await ref
+        .read(notesControllerProvider.notifier)
+        .bulkSetColor(selectedNoteIds, colorValue);
+    _exitMultiSelect();
+  }
+
+  Future<void> _showBulkDeleteConfirmation(Set<String> selectedNoteIds) async {
+    final count = selectedNoteIds.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Move to Bin'),
+        content: Text(
+          'Move $count ${count == 1 ? 'note' : 'notes'} to bin? You can restore them later.',
+        ),
+        actions: [
+          ExpressiveTextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Move to Bin'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await ref
+          .read(notesControllerProvider.notifier)
+          .bulkDelete(selectedNoteIds);
+      _exitMultiSelect();
+    }
+  }
+
+  // ─── Existing methods ────────────────────────────────────────────────────
 
   void _editNote(String noteId) async {
     final note = await ref.read(notesRepositoryProvider).getNoteById(noteId);

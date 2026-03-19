@@ -25,6 +25,7 @@ import '../providers/clock.dart';
 import '../providers/app_providers.dart';
 import '../controllers/task_controller.dart';
 import '../controllers/notes_controller.dart';
+import '../controllers/event_controller.dart';
 import '../services/storage_service.dart';
 import '../services/greeting_service.dart';
 import '../services/folder_provider.dart';
@@ -169,6 +170,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
   ) {
     final multiMode = ref.watch(multiSelectModeProvider);
     final selectedIds = ref.watch(selectedTodoIdsProvider);
+    final selectedEventIds = ref.watch(selectedEventIdsProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final preferences = ref.watch(preferencesStateProvider);
 
@@ -184,6 +186,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
               onPressed: () {
                 ref.read(multiSelectModeProvider.notifier).update(false);
                 ref.read(selectedTodoIdsProvider.notifier).clear();
+                ref.read(selectedEventIdsProvider.notifier).clear();
               },
             )
           : Builder(
@@ -198,7 +201,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
       // Title: App name or selection count
       title: multiMode && currentTab == 1
           ? Text(
-              '${selectedIds.length} selected',
+              '${selectedIds.length + selectedEventIds.length} selected',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -229,17 +232,18 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
           ExpressiveIconButton(
             icon: Icon(
               Icons.delete_outline,
-              color: selectedIds.isEmpty
+              color: selectedIds.isEmpty && selectedEventIds.isEmpty
                   ? colorScheme.onSurface.withAlpha(100)
                   : colorScheme.error,
             ),
             tooltip: 'Delete',
-            onPressed: selectedIds.isEmpty
+            onPressed: selectedIds.isEmpty && selectedEventIds.isEmpty
                 ? null
                 : () => _showDeleteConfirmation(
                     context,
                     ref,
                     selectedIds,
+                    selectedEventIds,
                     colorScheme,
                   ),
           ),
@@ -261,14 +265,16 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
     BuildContext context,
     WidgetRef ref,
     Set<String> selectedIds,
+    Set<String> selectedEventIds,
     ColorScheme colorScheme,
   ) async {
+    final totalCount = selectedIds.length + selectedEventIds.length;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Move to Bin'),
         content: Text(
-          'Move ${selectedIds.length} selected ${selectedIds.length == 1 ? 'task' : 'tasks'} to bin? You can restore them later from the Bin.',
+          'Move $totalCount selected ${totalCount == 1 ? 'task' : 'tasks'} to bin? You can restore them later from the Bin.',
         ),
         actions: [
           ExpressiveTextButton(
@@ -287,8 +293,13 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
     );
     if (confirmed == true) {
       final controller = ref.read(taskControllerProvider.notifier);
-      await controller.bulkDelete(selectedIds);
+      if (selectedIds.isNotEmpty) await controller.bulkDelete(selectedIds);
+      if (selectedEventIds.isNotEmpty) {
+        final eventController = ref.read(eventControllerProvider.notifier);
+        await eventController.bulkDelete(selectedEventIds);
+      }
       ref.read(selectedTodoIdsProvider.notifier).clear();
+      ref.read(selectedEventIdsProvider.notifier).clear();
       ref.read(multiSelectModeProvider.notifier).update(false);
     }
   }

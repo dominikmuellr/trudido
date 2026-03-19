@@ -126,4 +126,22 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
     final repository = ref.read(notesRepositoryProvider);
     state = AsyncValue.data(await repository.searchNotes(query));
   }
+
+  /// Bulk deletes multiple notes by ID
+  Future<void> bulkDelete(Iterable<String> ids) async {
+    final repository = ref.read(notesRepositoryProvider);
+    for (final id in ids) {
+      await repository.deleteNote(id);
+    }
+    await refresh();
+  }
+
+  /// Sets the same card color on multiple notes
+  Future<void> bulkSetColor(Iterable<String> ids, int? colorValue) async {
+    final repository = ref.read(notesRepositoryProvider);
+    for (final id in ids) {
+      await repository.updateNote(id: id, colorValue: colorValue);
+    }
+    await refresh();
+  }
 }

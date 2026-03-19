@@ -52,6 +52,7 @@ class TodoListTab extends ConsumerWidget {
         : ref.watch(filteredEventsProvider);
     // Optimize: only rebuild when viewType changes
     final viewType = ref.watch(taskViewTypeProvider.select((type) => type));
+    final multiMode = ref.watch(multiSelectModeProvider);
 
     return Column(
       children: [
@@ -116,6 +117,9 @@ class TodoListTab extends ConsumerWidget {
             ),
           ),
         ),
+        // Bulk action bar shown when multi-select is active (not in calendar view)
+        if (multiMode && viewType != TaskViewType.calendar)
+          _buildBulkActionBar(context, ref, filteredTodos, events),
       ],
     );
   }
@@ -197,6 +201,120 @@ class TodoListTab extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Build bulk action bar for multi-select mode
+  Widget _buildBulkActionBar(
+    BuildContext context,
+    WidgetRef ref,
+    List<Todo> todos,
+    List<app_event.Event> events,
+  ) {
+    final cs = Theme.of(context).colorScheme;
+    final selectedTodoIds = ref.watch(selectedTodoIdsProvider);
+    final selectedEventIds = ref.watch(selectedEventIdsProvider);
+    final totalSelected = selectedTodoIds.length + selectedEventIds.length;
+    final totalItems = todos.length + events.length;
+    final allSelected = totalSelected == totalItems && totalItems > 0;
+
+    return Material(
+      elevation: 8,
+      color: cs.surfaceContainer,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: Row(
+            children: [
+              // Select all / none
+              TextButton(
+                onPressed: () {
+                  if (allSelected) {
+                    ref.read(selectedTodoIdsProvider.notifier).clear();
+                    ref.read(selectedEventIdsProvider.notifier).clear();
+                  } else {
+                    ref
+                        .read(selectedTodoIdsProvider.notifier)
+                        .selectAll(todos.map((t) => t.id));
+                    ref
+                        .read(selectedEventIdsProvider.notifier)
+                        .selectAll(events.map((e) => e.id));
+                  }
+                },
+                child: Text(allSelected ? 'None' : 'All'),
+              ),
+              Text(
+                '$totalSelected selected',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelMedium?.copyWith(color: cs.onSurface),
+              ),
+              const Spacer(),
+              // Delete
+              IconButton(
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: totalSelected == 0
+                      ? cs.onSurface.withValues(alpha: 0.3)
+                      : cs.error,
+                ),
+                tooltip: 'Move to Bin',
+                onPressed: totalSelected == 0
+                    ? null
+                    : () => _showTasksBulkDeleteConfirmation(
+                        context,
+                        ref,
+                        selectedTodoIds,
+                        selectedEventIds,
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showTasksBulkDeleteConfirmation(
+    BuildContext context,
+    WidgetRef ref,
+    Set<String> todoIds,
+    Set<String> eventIds,
+  ) async {
+    final count = todoIds.length + eventIds.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Move to Bin'),
+        content: Text(
+          'Move $count selected ${count == 1 ? 'item' : 'items'} to bin? You can restore them later.',
+        ),
+        actions: [
+          ExpressiveTextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Move to Bin'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      if (todoIds.isNotEmpty) {
+        await ref.read(taskControllerProvider.notifier).bulkDelete(todoIds);
+      }
+      if (eventIds.isNotEmpty) {
+        await ref.read(eventControllerProvider.notifier).bulkDelete(eventIds);
+      }
+      ref.read(selectedTodoIdsProvider.notifier).clear();
+      ref.read(selectedEventIdsProvider.notifier).clear();
+      ref.read(multiSelectModeProvider.notifier).update(false);
+    }
   }
 
   /// Build grouped list with TODAY, ANYTIME, SCHEDULED sections
@@ -545,8 +663,25 @@ class TodoListTab extends ConsumerWidget {
         child: _buildHolidayCard(context, ref, item, theme, colorScheme),
       );
     } else if (item is app_event.Event) {
+      final multiMode = ref.watch(multiSelectModeProvider);
+      final selectedEventIds = ref.watch(selectedEventIdsProvider);
       return RepaintBoundary(
-        child: _buildEventCard(context, ref, item, theme, colorScheme),
+        child: _buildEventCard(
+          context,
+          ref,
+          item,
+          theme,
+          colorScheme,
+          selectable: multiMode,
+          selected: selectedEventIds.contains(item.id),
+          onSelectToggle: () {
+            if (!ref.read(multiSelectModeProvider)) {
+              ref.read(multiSelectModeProvider.notifier).update(true);
+            }
+            ref.read(selectedEventIdsProvider.notifier).toggle(item.id);
+            HapticFeedback.selectionClick();
+          },
+        ),
       );
     }
     return const SizedBox.shrink();
@@ -702,63 +837,128 @@ class TodoListTab extends ConsumerWidget {
     final cardContent = Padding(
       padding: EdgeInsets.symmetric(vertical: spacing.s2),
       child: InkWell(
-        onTap: () => _showEditEventDialog(context, ref, event),
+        onTap: () {
+          final multiMode = ref.read(multiSelectModeProvider);
+          if (multiMode) {
+            if (!ref.read(multiSelectModeProvider)) {
+              ref.read(multiSelectModeProvider.notifier).update(true);
+            }
+            ref.read(selectedEventIdsProvider.notifier).toggle(event.id);
+            HapticFeedback.selectionClick();
+          } else {
+            _showEditEventDialog(context, ref, event);
+          }
+        },
+        onLongPress: () {
+          final multiMode = ref.read(multiSelectModeProvider);
+          if (!multiMode) {
+            ref.read(multiSelectModeProvider.notifier).update(true);
+          }
+          ref.read(selectedEventIdsProvider.notifier).toggle(event.id);
+          HapticFeedback.selectionClick();
+        },
         borderRadius: SpacingBorderRadius.sm,
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: spacing.s12,
-            vertical: spacing.s8,
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: dotColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              SizedBox(width: spacing.s8),
-              Flexible(
-                flex: 0,
-                child: Text(
-                  timeText,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              SizedBox(width: spacing.s8),
-              Expanded(
-                child: Text(
-                  event.text,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurface,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (event.location != null && event.location!.isNotEmpty)
+        child: Builder(
+          builder: (context) {
+            final multiMode = ref.watch(multiSelectModeProvider);
+            final selectedEventIds = ref.watch(selectedEventIdsProvider);
+            final isSelected = selectedEventIds.contains(event.id);
+            return Stack(
+              children: [
                 Padding(
-                  padding: EdgeInsets.only(left: spacing.s8),
-                  child: Icon(
-                    Icons.location_on_outlined,
-                    size: 14,
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: spacing.s12,
+                    vertical: spacing.s8,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: dotColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      SizedBox(width: spacing.s8),
+                      Flexible(
+                        flex: 0,
+                        child: Text(
+                          timeText,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: spacing.s8),
+                      Expanded(
+                        child: Text(
+                          event.text,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurface,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (event.location != null && event.location!.isNotEmpty)
+                        Padding(
+                          padding: EdgeInsets.only(left: spacing.s8),
+                          child: Icon(
+                            Icons.location_on_outlined,
+                            size: 14,
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.6,
+                            ),
+                          ),
+                        ),
+                      if (multiMode)
+                        Padding(
+                          padding: EdgeInsets.only(left: spacing.s8),
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 120),
+                            child: isSelected
+                                ? Icon(
+                                    Icons.check_circle,
+                                    key: const ValueKey('chk'),
+                                    size: 18,
+                                    color: colorScheme.primary,
+                                  )
+                                : Icon(
+                                    Icons.radio_button_unchecked,
+                                    key: const ValueKey('unchk'),
+                                    size: 18,
+                                    color: colorScheme.onSurfaceVariant
+                                        .withValues(alpha: 0.5),
+                                  ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-            ],
-          ),
+                if (multiMode && isSelected)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: SpacingBorderRadius.sm,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
 
+    final multiMode = ref.watch(multiSelectModeProvider);
     return Dismissible(
       key: ValueKey('compact_event_${event.id}'),
-      direction: DismissDirection.horizontal,
+      direction: multiMode
+          ? DismissDirection.none
+          : DismissDirection.horizontal,
       confirmDismiss: (direction) async {
         final action = direction == DismissDirection.startToEnd
             ? preferences.swipeRightAction
@@ -815,8 +1015,11 @@ class TodoListTab extends ConsumerWidget {
     WidgetRef ref,
     app_event.Event event,
     ThemeData theme,
-    ColorScheme colorScheme,
-  ) {
+    ColorScheme colorScheme, {
+    bool selectable = false,
+    bool selected = false,
+    VoidCallback? onSelectToggle,
+  }) {
     final spacing = ref.watch(adaptiveSpacingProvider);
     final eventColor = event.color != null
         ? Color(event.color!)
@@ -834,7 +1037,9 @@ class TodoListTab extends ConsumerWidget {
 
     return Dismissible(
       key: ValueKey('event_${event.id}'),
-      direction: DismissDirection.horizontal,
+      direction: selectable
+          ? DismissDirection.none
+          : DismissDirection.horizontal,
       confirmDismiss: (direction) async {
         final preferences = ref.read(preferencesStateProvider);
         final action = direction == DismissDirection.startToEnd
@@ -884,114 +1089,157 @@ class TodoListTab extends ConsumerWidget {
       ),
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: spacing.s2),
-        child: Card(
-          margin: EdgeInsets.symmetric(
-            horizontal: spacing.s8,
-            vertical: spacing.s4,
-          ),
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: SpacingBorderRadius.md),
-          clipBehavior: Clip.antiAlias,
-          color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
-          child: InkWell(
-            onTap: () => _showEditEventDialog(context, ref, event),
-            child: IntrinsicHeight(
-              child: Row(
-                children: [
-                  // Color strip on the left
-                  Container(width: 4, color: eventColor),
-                  SizedBox(width: spacing.s12),
-                  // Time column
-                  SizedBox(
-                    width: 56,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: spacing.s12),
-                      child: Text(
-                        timeText,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: colorScheme.onTertiaryContainer,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: spacing.s8),
-                  // Event details
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: spacing.s12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            event.text,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
+        child: Stack(
+          children: [
+            Card(
+              margin: EdgeInsets.symmetric(
+                horizontal: spacing.s8,
+                vertical: spacing.s4,
+              ),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: SpacingBorderRadius.md,
+              ),
+              clipBehavior: Clip.antiAlias,
+              color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
+              child: InkWell(
+                onTap: selectable
+                    ? onSelectToggle
+                    : () => _showEditEventDialog(context, ref, event),
+                onLongPress: selectable ? null : onSelectToggle,
+                child: IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      // Color strip on the left
+                      Container(width: 4, color: eventColor),
+                      SizedBox(width: spacing.s12),
+                      // Time column
+                      SizedBox(
+                        width: 56,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: spacing.s12),
+                          child: Text(
+                            timeText,
+                            style: theme.textTheme.labelMedium?.copyWith(
                               color: colorScheme.onTertiaryContainer,
-                              decoration: event.isCompleted
-                                  ? TextDecoration.lineThrough
-                                  : null,
+                              fontWeight: FontWeight.w600,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
                           ),
-                          if (dateText != null) ...[
-                            SizedBox(height: spacing.s2),
-                            Text(
-                              dateText,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onTertiaryContainer
-                                    .withValues(alpha: 0.7),
-                              ),
-                            ),
-                          ],
-                          if (event.location != null &&
-                              event.location!.isNotEmpty) ...[
-                            SizedBox(height: spacing.s2),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.location_on_outlined,
-                                  size: 14,
-                                  color: colorScheme.onTertiaryContainer
-                                      .withValues(alpha: 0.7),
+                        ),
+                      ),
+                      SizedBox(width: spacing.s8),
+                      // Event details
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: spacing.s12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                event.text,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onTertiaryContainer,
+                                  decoration: event.isCompleted
+                                      ? TextDecoration.lineThrough
+                                      : null,
                                 ),
-                                SizedBox(width: spacing.s4),
-                                Expanded(
-                                  child: Text(
-                                    event.location!,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: colorScheme.onTertiaryContainer
-                                          .withValues(alpha: 0.7),
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (dateText != null) ...[
+                                SizedBox(height: spacing.s2),
+                                Text(
+                                  dateText,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onTertiaryContainer
+                                        .withValues(alpha: 0.7),
                                   ),
                                 ),
                               ],
-                            ),
-                          ],
-                        ],
+                              if (event.location != null &&
+                                  event.location!.isNotEmpty) ...[
+                                SizedBox(height: spacing.s2),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.location_on_outlined,
+                                      size: 14,
+                                      color: colorScheme.onTertiaryContainer
+                                          .withValues(alpha: 0.7),
+                                    ),
+                                    SizedBox(width: spacing.s4),
+                                    Expanded(
+                                      child: Text(
+                                        event.location!,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: colorScheme
+                                                  .onTertiaryContainer
+                                                  .withValues(alpha: 0.7),
+                                            ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  // Event icon
-                  Padding(
-                    padding: EdgeInsets.only(right: spacing.s12),
-                    child: Icon(
-                      Icons.event,
-                      size: 20,
-                      color: colorScheme.onTertiaryContainer.withValues(
-                        alpha: 0.5,
+                      // Checkbox in select mode, otherwise event icon
+                      Padding(
+                        padding: EdgeInsets.only(right: spacing.s12),
+                        child: selectable
+                            ? AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 120),
+                                child: selected
+                                    ? Icon(
+                                        Icons.check_circle,
+                                        key: const ValueKey('chk'),
+                                        size: 20,
+                                        color: colorScheme.primary,
+                                      )
+                                    : Icon(
+                                        Icons.radio_button_unchecked,
+                                        key: const ValueKey('unchk'),
+                                        size: 20,
+                                        color: colorScheme.onSurfaceVariant
+                                            .withValues(alpha: 0.5),
+                                      ),
+                              )
+                            : Icon(
+                                Icons.event,
+                                size: 20,
+                                color: colorScheme.onTertiaryContainer
+                                    .withValues(alpha: 0.5),
+                              ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
+            // Selection highlight overlay
+            if (selectable && selected)
+              Positioned(
+                left: spacing.s8,
+                right: spacing.s8,
+                top: spacing.s4,
+                bottom: spacing.s4,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.15),
+                    borderRadius: SpacingBorderRadius.md,
+                    border: Border.all(color: colorScheme.primary, width: 2),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

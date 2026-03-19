@@ -22,9 +22,6 @@ class NoteHistoryEntryAdapter extends TypeAdapter<NoteHistoryEntry> {
       contentBefore: fields[2] as String?,
       contentAfter: fields[3] as String?,
       timestamp: fields[4] as DateTime?,
-      // fields[5] (parentEntryId) and fields[6] (branchLabel) are intentionally
-      // ignored - branching was removed. Old entries with these fields are
-      // read safely and the values discarded.
     );
   }
 

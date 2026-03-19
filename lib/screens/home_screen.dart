@@ -161,6 +161,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final isSearchMode = ref.watch(searchModeProvider);
     final selectedNoteFolderId = ref.watch(selectedNoteFolderProvider);
     final fabMenuExpanded = ref.watch(fabMenuExpandedProvider);
+    final notesMultiSelectMode = ref.watch(notesMultiSelectModeProvider);
+    final tasksMultiSelectMode = ref.watch(multiSelectModeProvider);
     final preferences = ref.watch(preferencesStateProvider);
     final hideBottomNav = preferences.hideBottomNavigation;
     final useQuickInputBar = preferences.useQuickInputBar;
@@ -187,6 +189,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
     });
 
+    // Exit multi-select modes when switching tabs
+    ref.listen<int>(currentTabProvider, (previous, next) {
+      if (previous == next) return;
+      if (ref.read(notesMultiSelectModeProvider)) {
+        ref.read(notesMultiSelectModeProvider.notifier).update(false);
+        ref.read(selectedNoteIdsProvider.notifier).clear();
+      }
+      if (ref.read(multiSelectModeProvider)) {
+        ref.read(multiSelectModeProvider.notifier).update(false);
+        ref.read(selectedTodoIdsProvider.notifier).clear();
+        ref.read(selectedEventIdsProvider.notifier).clear();
+      }
+    });
+
     final tabs = [
       const OverviewTab(),
       const TodoListTab(),
@@ -197,12 +213,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final useNavigationRail = screenWidth >= 600;
 
     return PopScope(
-      canPop: !isSearchMode && selectedNoteFolderId == null && !fabMenuExpanded,
+      canPop:
+          !isSearchMode &&
+          selectedNoteFolderId == null &&
+          !fabMenuExpanded &&
+          !notesMultiSelectMode &&
+          !tasksMultiSelectMode,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
         if (fabMenuExpanded) {
           ref.read(fabMenuExpandedProvider.notifier).update(false);
+          return;
+        }
+
+        if (notesMultiSelectMode) {
+          ref.read(notesMultiSelectModeProvider.notifier).update(false);
+          ref.read(selectedNoteIdsProvider.notifier).clear();
+          return;
+        }
+
+        if (tasksMultiSelectMode) {
+          ref.read(multiSelectModeProvider.notifier).update(false);
+          ref.read(selectedTodoIdsProvider.notifier).clear();
+          ref.read(selectedEventIdsProvider.notifier).clear();
           return;
         }
 

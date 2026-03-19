@@ -36,6 +36,45 @@ class SelectedTodoIdsNotifier extends Notifier<Set<String>> {
 
   /// Clear all selected todo IDs.
   void clear() => state = <String>{};
+
+  /// Select all given todo IDs.
+  void selectAll(Iterable<String> ids) => state = {...state, ...ids};
+}
+
+/// Manages the set of selected event IDs for bulk operations.
+class SelectedEventIdsNotifier extends Notifier<Set<String>> {
+  @override
+  Set<String> build() => <String>{};
+
+  void toggle(String id) {
+    if (state.contains(id)) {
+      state = {...state}..remove(id);
+    } else {
+      state = {...state, id};
+    }
+  }
+
+  void clear() => state = <String>{};
+
+  void selectAll(Iterable<String> ids) => state = {...state, ...ids};
+}
+
+/// Manages the set of selected note IDs for bulk operations.
+class SelectedNoteIdsNotifier extends Notifier<Set<String>> {
+  @override
+  Set<String> build() => <String>{};
+
+  void toggle(String id) {
+    if (state.contains(id)) {
+      state = {...state}..remove(id);
+    } else {
+      state = {...state, id};
+    }
+  }
+
+  void clear() => state = <String>{};
+
+  void selectAll(Iterable<String> ids) => state = {...state, ...ids};
 }
 
 /// Notifier for managing current tab state with default tab support.
@@ -86,12 +125,25 @@ class CurrentTabNotifier extends Notifier<int> {
   }
 }
 
-// Multi-select providers
+// Multi-select providers for tasks tab (todos + events share one mode toggle)
 final multiSelectModeProvider = stateProvider<bool>(false);
 
 final selectedTodoIdsProvider =
     NotifierProvider<SelectedTodoIdsNotifier, Set<String>>(
       SelectedTodoIdsNotifier.new,
+    );
+
+final selectedEventIdsProvider =
+    NotifierProvider<SelectedEventIdsNotifier, Set<String>>(
+      SelectedEventIdsNotifier.new,
+    );
+
+// Multi-select providers for notes tab
+final notesMultiSelectModeProvider = stateProvider<bool>(false);
+
+final selectedNoteIdsProvider =
+    NotifierProvider<SelectedNoteIdsNotifier, Set<String>>(
+      SelectedNoteIdsNotifier.new,
     );
 
 // Provider for tracking search mode state

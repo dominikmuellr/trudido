@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../utils/responsive_size.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -66,6 +67,10 @@ class NotePreviewCard extends ConsumerWidget {
   final String? searchHighlight; // Search term to highlight
   final bool isGridView; // True when rendered inside the grid layout
   final void Function(int? colorValue)? onColorChange; // Set custom card color
+  final bool selectable; // Whether multi-select mode is active
+  final bool selected; // Whether this card is currently selected
+  final VoidCallback?
+  onSelectToggle; // Called on long-press to enter/toggle selection
 
   const NotePreviewCard({
     super.key,
@@ -80,6 +85,9 @@ class NotePreviewCard extends ConsumerWidget {
     this.searchHighlight,
     this.isGridView = false,
     this.onColorChange,
+    this.selectable = false,
+    this.selected = false,
+    this.onSelectToggle,
   });
 
   /// Checks if content is Quill JSON format
@@ -766,6 +774,9 @@ class NotePreviewCard extends ConsumerWidget {
       key: ValueKey(
         'dismissible_${note.id}',
       ), // Use ValueKey for better tracking
+      direction: selectable
+          ? DismissDirection.none
+          : DismissDirection.horizontal,
       // Background for startToEnd (user swiped right)
       background: actionStart == 'none'
           ? Container()
@@ -906,19 +917,71 @@ class NotePreviewCard extends ConsumerWidget {
         // The deletion should already be completed by the time this is called
       },
       child: ExpressiveGestureDetector(
-        onTap: onTap,
-        onLongPress: () {
-          // Show context menu on long press
-          _showContextMenu(context);
-        },
-        child: _buildCard(
-          context: context,
-          spacing: spacing,
-          titleSpan: titleSpan,
-          subtitle: subtitle,
-          isTodoTxt: isTodoTxt,
-          bodySpan: bodySpan,
-          formattedDate: formattedDate,
+        onTap: selectable ? onSelectToggle : onTap,
+        onLongPress: selectable
+            ? null
+            : onSelectToggle != null
+            ? () {
+                HapticFeedback.selectionClick();
+                onSelectToggle!();
+              }
+            : () => _showContextMenu(context),
+        child: Stack(
+          children: [
+            _buildCard(
+              context: context,
+              spacing: spacing,
+              titleSpan: titleSpan,
+              subtitle: subtitle,
+              isTodoTxt: isTodoTxt,
+              bodySpan: bodySpan,
+              formattedDate: formattedDate,
+            ),
+            // Selection overlay
+            if (selectable)
+              Positioned.fill(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.18)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                    border: selected
+                        ? Border.all(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 2,
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+            if (selectable)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 120),
+                  child: selected
+                      ? Icon(
+                          Icons.check_circle,
+                          key: const ValueKey('checked'),
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 22,
+                        )
+                      : Icon(
+                          Icons.radio_button_unchecked,
+                          key: const ValueKey('unchecked'),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                          size: 22,
+                        ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -1306,9 +1369,13 @@ class NotePreviewCard extends ConsumerWidget {
             buffer.write(insert);
           } else if (insert is Map && insert.containsKey('custom')) {
             try {
-              final parsed = jsonDecode(insert['custom'] as String) as Map<String, dynamic>;
+              final parsed =
+                  jsonDecode(insert['custom'] as String)
+                      as Map<String, dynamic>;
               if (parsed.containsKey('table')) {
-                final tableData = jsonDecode(parsed['table'] as String) as Map<String, dynamic>;
+                final tableData =
+                    jsonDecode(parsed['table'] as String)
+                        as Map<String, dynamic>;
                 final rawCells = tableData['cells'] as List;
                 for (final row in rawCells) {
                   for (final cell in (row as List)) {
@@ -1352,7 +1419,9 @@ class NotePreviewCard extends ConsumerWidget {
 
   /// Builds a compact mini-table widget for the note preview card.
   Widget _buildTablePreview(
-      BuildContext context, Map<String, dynamic> tableData) {
+    BuildContext context,
+    Map<String, dynamic> tableData,
+  ) {
     final theme = Theme.of(context);
     final rows = tableData['rows'] as int;
     final cols = tableData['cols'] as int;
@@ -1362,8 +1431,7 @@ class NotePreviewCard extends ConsumerWidget {
     final extraRows = rows - previewRows;
     final extraCols = cols - previewCols;
     final borderColor = theme.colorScheme.outlineVariant;
-    final headerBg =
-        theme.colorScheme.primaryContainer.withValues(alpha: 0.35);
+    final headerBg = theme.colorScheme.primaryContainer.withValues(alpha: 0.35);
     final moreStyle = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
       fontStyle: FontStyle.italic,
@@ -1391,8 +1459,9 @@ class NotePreviewCard extends ConsumerWidget {
                         decoration: BoxDecoration(
                           color: isHeader
                               ? headerBg
-                              : theme.colorScheme.surface
-                                  .withValues(alpha: 0.5),
+                              : theme.colorScheme.surface.withValues(
+                                  alpha: 0.5,
+                                ),
                           border: Border(
                             right: c < previewCols - 1
                                 ? BorderSide(color: borderColor, width: 0.5)
@@ -1403,12 +1472,15 @@ class NotePreviewCard extends ConsumerWidget {
                           ),
                         ),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 4),
+                          horizontal: 6,
+                          vertical: 4,
+                        ),
                         child: Text(
                           (rawCells[r][c] as String).trim(),
                           style: isHeader
-                              ? theme.textTheme.bodySmall
-                                  ?.copyWith(fontWeight: FontWeight.w600)
+                              ? theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                )
                               : theme.textTheme.bodySmall,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
