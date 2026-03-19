@@ -360,37 +360,83 @@ class StorageService {
 
   static Future<void> _initializeDefaultNote() async {
     final welcomeNote = Note(
-      title: 'Welcome to Notes',
-      content:
-          '''# Welcome to Notes!\n\nCreate rich, beautiful notes with our powerful editor. You can:\n\n## Quick Formatting
-- Use the **toolbar** for visual formatting
-- Or type **markdown shortcuts** (# for headers, ** for bold, * for italic)
-- Press **/** to add media, voice recordings, links, and code blocks
+      title: 'Welcome',
+      content: '''# Heading 1
+## Heading 2
+### Heading 3
 
-## Media Support
-📸 Add photos from gallery or camera
-🎥 Embed videos
-🎤 Record voice notes
-🔗 Insert links
+---
 
-## Markdown Shortcuts
-Type these and press space:
-- # → Heading 1
-- ## → Heading 2  
-- - → Bullet list
-- 1. → Numbered list
-- [ ] → Checkbox
-- > → Block quote
+**Bold text**, *italic text*, <u>underlined text</u>, ~~strikethrough text~~, and ==highlighted text==.
 
-## Rich Formatting
-- **Bold**, *Italic*, Underline, ~~Strikethrough~~
-- Different font sizes and colors
-- Code blocks and inline code
-- Lists, checkboxes, and quotes
+---
 
-**Tap the + button to create your first note!**
+## Lists
 
-Happy note-taking! ✨''',
+- Bullet item one
+- Bullet item two
+- Bullet item three
+
+1. Numbered item one
+2. Numbered item two
+3. Numbered item three
+
+---
+
+## Checkboxes
+
+- [ ] Task to do
+- [ ] Another pending task
+- [x] Completed task
+- [x] Another completed task
+
+---
+
+## Quote
+
+> This is a block quote. Use it to highlight important thoughts or citations.
+
+---
+
+## Code
+
+Inline `code snippet` inside a sentence.
+
+```
+// Code block
+function greet(name) {
+  return "Hello, " + name + "!";
+}
+```
+
+---
+
+## Link
+
+[Visit example.com](https://example.com)
+
+---
+
+## Table
+
+| Feature       | Syntax         | Example            |
+|---------------|----------------|--------------------|
+| Bold          | `**text**`     | **bold**           |
+| Italic        | `*text*`       | *italic*           |
+| Highlight     | `==text==`     | ==highlight==      |
+| Checkbox      | `- [ ] task`   | - [ ] task         |
+| Code          | `` `code` ``   | `code`             |
+
+---
+
+## Media
+
+Use the **toolbar** or type **/** to insert:
+- 📸 Photos from gallery or camera
+- 🎥 Videos
+- 🎤 Voice recordings
+- 🔗 Links
+''',
     );
     await _notesBox!.put(welcomeNote.id, welcomeNote);
   }

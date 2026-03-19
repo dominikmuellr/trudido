@@ -32,6 +32,7 @@ import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'quill_note_editor_screen.dart';
 import '../widgets/backlinks_section.dart';
 import '../widgets/common/common.dart';
+import '../utils/note_colors.dart';
 
 /// Full-screen note preview that renders complete markdown
 ///
@@ -112,7 +113,15 @@ class _NotePreviewScreenState extends ConsumerState<NotePreviewScreen> {
         _currentNote.todoTxtContent!.isNotEmpty;
 
     return Scaffold(
+      backgroundColor: resolveNoteEditorColor(
+        _currentNote.colorValue,
+        Theme.of(context).brightness,
+      ),
       appBar: AppBar(
+        backgroundColor: resolveNoteEditorColor(
+          _currentNote.colorValue,
+          Theme.of(context).brightness,
+        ),
         actions: [
           // Sort button for todo.txt notes
           if (isTodoTxt)

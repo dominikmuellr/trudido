@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import 'dart:convert';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/quill_delta.dart';
 import 'markdown_inline_patterns.dart';
@@ -196,8 +197,42 @@ class MarkdownToQuillConverter {
 
     for (final op in document.toDelta().toList()) {
       if (!op.isInsert) continue;
-      // Skip embed objects (images, videos, voice recordings, etc.)
-      if (op.data is! String) continue;
+      // Handle non-string embeds: convert table embeds to Markdown, skip others.
+      if (op.data is! String) {
+        if (op.data is Map) {
+          final map = op.data as Map;
+          if (map.containsKey('custom')) {
+            try {
+              final customData =
+                  jsonDecode(map['custom'] as String) as Map<String, dynamic>;
+              final tableDataString = customData['table'] as String?;
+              if (tableDataString != null) {
+                final tableData =
+                    jsonDecode(tableDataString) as Map<String, dynamic>;
+                final rows = tableData['rows'] as int;
+                final cols = tableData['cols'] as int;
+                final rawCells = tableData['cells'] as List;
+                final cells = List.generate(
+                  rows,
+                  (r) => List.generate(
+                    cols,
+                    (c) => (rawCells[r][c] as String).replaceAll('|', '\\|'),
+                  ),
+                );
+                // Header row
+                output.write('| ${cells[0].join(' | ')} |\n');
+                // Separator row
+                output.write('|${List.filled(cols, ' --- ').join('|')}|\n');
+                // Data rows
+                for (int r = 1; r < rows; r++) {
+                  output.write('| ${cells[r].join(' | ')} |\n');
+                }
+              }
+            } catch (_) {}
+          }
+        }
+        continue;
+      }
 
       final text = op.data as String;
       final attrs = op.attributes;

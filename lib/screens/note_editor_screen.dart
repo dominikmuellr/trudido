@@ -36,6 +36,7 @@ import '../utils/mention_parser.dart';
 import '../utils/mention_navigator.dart';
 import '../widgets/note_history_bottom_sheet.dart';
 import '../widgets/common/common.dart';
+import '../utils/note_colors.dart';
 
 /// Screen for creating and editing markdown notes
 class NoteEditorScreen extends ConsumerStatefulWidget {
@@ -291,7 +292,15 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       },
       child: Scaffold(
         resizeToAvoidBottomInset: true,
+        backgroundColor: resolveNoteEditorColor(
+          _originalNote?.colorValue,
+          Theme.of(context).brightness,
+        ),
         appBar: AppBar(
+          backgroundColor: resolveNoteEditorColor(
+            _originalNote?.colorValue,
+            Theme.of(context).brightness,
+          ),
           title: Text(_isEditing ? 'Edit Note' : 'New Note'),
           actions: [
             if (_saveStatus.isNotEmpty)

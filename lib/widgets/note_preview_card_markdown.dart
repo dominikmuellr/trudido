@@ -28,6 +28,7 @@ import '../services/theme_service.dart';
 import '../utils/date_formatters.dart';
 import '../utils/markdown_inline_patterns.dart';
 import '../utils/mention_parser.dart';
+import '../utils/note_colors.dart';
 import '../utils/smart_markdown_helper.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import '../widgets/common/common.dart';
@@ -601,70 +602,10 @@ class NotePreviewCard extends ConsumerWidget {
     );
   }
 
-  static const List<_NoteColorOption> _colorPalette = [
-    _NoteColorOption(index: null, label: 'Default'),
-    _NoteColorOption(
-      index: 1,
-      label: 'Yellow',
-      light: 0xFFFFF9C4,
-      dark: 0xFF3D3516,
-    ),
-    _NoteColorOption(
-      index: 2,
-      label: 'Green',
-      light: 0xFFDCEDC8,
-      dark: 0xFF1B3620,
-    ),
-    _NoteColorOption(
-      index: 3,
-      label: 'Blue',
-      light: 0xFFBBDEFB,
-      dark: 0xFF1A2E3F,
-    ),
-    _NoteColorOption(
-      index: 4,
-      label: 'Pink',
-      light: 0xFFF8BBD0,
-      dark: 0xFF3D1E2A,
-    ),
-    _NoteColorOption(
-      index: 5,
-      label: 'Purple',
-      light: 0xFFE1BEE7,
-      dark: 0xFF2D1B3A,
-    ),
-    _NoteColorOption(
-      index: 6,
-      label: 'Orange',
-      light: 0xFFFFCCBC,
-      dark: 0xFF3A2010,
-    ),
-    _NoteColorOption(
-      index: 7,
-      label: 'Teal',
-      light: 0xFFB2EBF2,
-      dark: 0xFF0D3035,
-    ),
-    _NoteColorOption(
-      index: 8,
-      label: 'Lime',
-      light: 0xFFF0F4C3,
-      dark: 0xFF252F12,
-    ),
-    _NoteColorOption(
-      index: 9,
-      label: 'Amber',
-      light: 0xFFFFECB3,
-      dark: 0xFF3A2D08,
-    ),
-  ];
+  static List<NoteColorOption> get _colorPalette => kNoteColorPalette;
 
-  _NoteColorOption? _currentColorOption() {
-    if (note.colorValue == null) return null;
-    for (final o in _colorPalette) {
-      if (o.index == note.colorValue) return o;
-    }
-    return null;
+  NoteColorOption? _currentColorOption() {
+    return noteColorOptionFor(note.colorValue);
   }
 
   void _showColorPicker(BuildContext context) {
@@ -1064,6 +1005,18 @@ class NotePreviewCard extends ConsumerWidget {
                 ),
               ],
 
+              // Table preview for Quill notes with embedded tables
+              Builder(
+                builder: (context) {
+                  final tableData = _extractFirstTableData();
+                  if (tableData == null) return const SizedBox.shrink();
+                  return Padding(
+                    padding: EdgeInsets.only(top: spacing.s8),
+                    child: _buildTablePreview(context, tableData),
+                  );
+                },
+              ),
+
               // Expanded image banner
               Builder(
                 builder: (context) {
@@ -1321,7 +1274,20 @@ class NotePreviewCard extends ConsumerWidget {
         if (trimmedLine.startsWith('### ') || trimmedLine.startsWith('#### ')) {
           trimmedLine = trimmedLine.replaceFirst(RegExp(r'^#+\s*'), '');
         }
-        contentOnlyLines.add(trimmedLine);
+        // Handle table rows: skip separator rows, extract cell text from data rows
+        if (trimmedLine.startsWith('|')) {
+          if (RegExp(r'^\|[\s\-:|]+\|?$').hasMatch(trimmedLine)) {
+            continue; // Skip separator rows like |---|---|
+          }
+          final cells = trimmedLine
+              .split('|')
+              .map((cell) => cell.trim())
+              .where((cell) => cell.isNotEmpty)
+              .join(' · ');
+          if (cells.isNotEmpty) contentOnlyLines.add(cells);
+        } else {
+          contentOnlyLines.add(trimmedLine);
+        }
       }
     }
 
@@ -1338,6 +1304,20 @@ class NotePreviewCard extends ConsumerWidget {
           final insert = op['insert'];
           if (insert is String) {
             buffer.write(insert);
+          } else if (insert is Map && insert.containsKey('custom')) {
+            try {
+              final parsed = jsonDecode(insert['custom'] as String) as Map<String, dynamic>;
+              if (parsed.containsKey('table')) {
+                final tableData = jsonDecode(parsed['table'] as String) as Map<String, dynamic>;
+                final rawCells = tableData['cells'] as List;
+                for (final row in rawCells) {
+                  for (final cell in (row as List)) {
+                    final text = (cell as String).trim();
+                    if (text.isNotEmpty) buffer.write(' $text');
+                  }
+                }
+              }
+            } catch (_) {}
           }
         }
       }
@@ -1346,6 +1326,129 @@ class NotePreviewCard extends ConsumerWidget {
     } catch (e) {
       return note.content;
     }
+  }
+
+  /// Extracts the first table embed data from Quill JSON content.
+  Map<String, dynamic>? _extractFirstTableData() {
+    if (!_isQuillFormat()) return null;
+    try {
+      final List<dynamic> deltaJson = jsonDecode(note.content);
+      for (final op in deltaJson) {
+        if (op is! Map || !op.containsKey('insert')) continue;
+        final insert = op['insert'];
+        if (insert is! Map || !insert.containsKey('custom')) continue;
+        try {
+          final parsed =
+              jsonDecode(insert['custom'] as String) as Map<String, dynamic>;
+          if (parsed.containsKey('table')) {
+            return jsonDecode(parsed['table'] as String)
+                as Map<String, dynamic>;
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Builds a compact mini-table widget for the note preview card.
+  Widget _buildTablePreview(
+      BuildContext context, Map<String, dynamic> tableData) {
+    final theme = Theme.of(context);
+    final rows = tableData['rows'] as int;
+    final cols = tableData['cols'] as int;
+    final rawCells = tableData['cells'] as List;
+    final previewRows = rows > 3 ? 3 : rows;
+    final previewCols = cols > 3 ? 3 : cols;
+    final extraRows = rows - previewRows;
+    final extraCols = cols - previewCols;
+    final borderColor = theme.colorScheme.outlineVariant;
+    final headerBg =
+        theme.colorScheme.primaryContainer.withValues(alpha: 0.35);
+    final moreStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontStyle: FontStyle.italic,
+      fontSize: 11,
+    );
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ...List.generate(previewRows, (r) {
+            final isHeader = r == 0;
+            return IntrinsicHeight(
+              child: Row(
+                children: [
+                  ...List.generate(previewCols, (c) {
+                    return Expanded(
+                      child: Container(
+                        constraints: const BoxConstraints(minHeight: 28),
+                        decoration: BoxDecoration(
+                          color: isHeader
+                              ? headerBg
+                              : theme.colorScheme.surface
+                                  .withValues(alpha: 0.5),
+                          border: Border(
+                            right: c < previewCols - 1
+                                ? BorderSide(color: borderColor, width: 0.5)
+                                : BorderSide.none,
+                            bottom: r < previewRows - 1
+                                ? BorderSide(color: borderColor, width: 0.5)
+                                : BorderSide.none,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 4),
+                        child: Text(
+                          (rawCells[r][c] as String).trim(),
+                          style: isHeader
+                              ? theme.textTheme.bodySmall
+                                  ?.copyWith(fontWeight: FontWeight.w600)
+                              : theme.textTheme.bodySmall,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    );
+                  }),
+                  if (extraCols > 0)
+                    Container(
+                      width: 28,
+                      constraints: const BoxConstraints(minHeight: 28),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          left: BorderSide(color: borderColor, width: 0.5),
+                          bottom: r < previewRows - 1
+                              ? BorderSide(color: borderColor, width: 0.5)
+                              : BorderSide.none,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: r == 0
+                          ? Text('+$extraCols', style: moreStyle)
+                          : const SizedBox.shrink(),
+                    ),
+                ],
+              ),
+            );
+          }),
+          if (extraRows > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Text(
+                '+$extraRows more row${extraRows == 1 ? '' : 's'}',
+                style: moreStyle,
+                textAlign: TextAlign.center,
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   /// Builds a preview of todo.txt tasks (max 2 tasks shown)
@@ -1736,25 +1839,5 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
         ],
       ),
     );
-  }
-}
-
-class _NoteColorOption {
-  final int? index; // null = default; 1–9 = color family
-  final String label;
-  final int? light; // ARGB for light mode
-  final int? dark; // ARGB for dark mode
-  const _NoteColorOption({
-    required this.index,
-    required this.label,
-    this.light,
-    this.dark,
-  });
-
-  /// Returns the colour to display for the given [brightness],
-  /// or null for the default option.
-  Color? colorForBrightness(Brightness brightness) {
-    if (index == null) return null;
-    return Color(brightness == Brightness.dark ? dark! : light!);
   }
 }

@@ -120,6 +120,28 @@ class SmartMarkdownHelper {
         color: _getSyntaxColor(context, 'keyword'),
         fontWeight: FontWeight.bold,
       ),
+
+      // Tables — match the styled table embed in the editor
+      tableColumnWidth: const IntrinsicColumnWidth(),
+      tableBorder: TableBorder.all(
+        color: colorScheme.outlineVariant,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      tableHead: TextStyle(
+        fontWeight: FontWeight.w600,
+        color: colorScheme.onSurface,
+        fontSize: theme.textTheme.bodyMedium?.fontSize ?? 14,
+      ),
+      tableBody: TextStyle(
+        color: colorScheme.onSurface,
+        fontSize: theme.textTheme.bodyMedium?.fontSize ?? 14,
+      ),
+      tableCellsPadding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 6,
+      ),
+      tableCellsDecoration: BoxDecoration(color: colorScheme.surface),
+      tableHeadAlign: TextAlign.start,
     );
   }
 
@@ -181,6 +203,25 @@ class SmartMarkdownHelper {
         color: _getCodeTextColor(context),
         fontSize: theme.textTheme.bodySmall?.fontSize ?? 12,
       ),
+
+      // Tables — compact version of the styled table embed
+      tableColumnWidth: const IntrinsicColumnWidth(),
+      tableBorder: TableBorder.all(
+        color: colorScheme.outlineVariant,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      tableHead: TextStyle(
+        fontWeight: FontWeight.w600,
+        color: colorScheme.onSurface,
+        fontSize: theme.textTheme.bodySmall?.fontSize ?? 12,
+      ),
+      tableBody: TextStyle(
+        color: colorScheme.onSurface,
+        fontSize: theme.textTheme.bodySmall?.fontSize ?? 12,
+      ),
+      tableCellsPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      tableCellsDecoration: BoxDecoration(color: colorScheme.surface),
+      tableHeadAlign: TextAlign.start,
     );
   }
 

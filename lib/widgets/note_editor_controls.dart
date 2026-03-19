@@ -26,6 +26,7 @@ class SlashCommandMenu extends StatelessWidget {
   final VoidCallback onInsertVoice;
   final VoidCallback onInsertLink;
   final VoidCallback onInsertCode;
+  final VoidCallback onInsertTable;
 
   const SlashCommandMenu({
     super.key,
@@ -34,6 +35,7 @@ class SlashCommandMenu extends StatelessWidget {
     required this.onInsertVoice,
     required this.onInsertLink,
     required this.onInsertCode,
+    required this.onInsertTable,
   });
 
   @override
@@ -79,6 +81,11 @@ class SlashCommandMenu extends StatelessWidget {
               icon: Icons.code,
               label: 'Code',
               onTap: onInsertCode,
+            ),
+            _SlashMenuItem(
+              icon: Icons.table_chart_outlined,
+              label: 'Table',
+              onTap: onInsertTable,
             ),
           ],
         ),
