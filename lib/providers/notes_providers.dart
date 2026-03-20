@@ -140,7 +140,11 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
   Future<void> bulkSetColor(Iterable<String> ids, int? colorValue) async {
     final repository = ref.read(notesRepositoryProvider);
     for (final id in ids) {
-      await repository.updateNote(id: id, colorValue: colorValue);
+      await repository.updateNote(
+        id: id,
+        colorValue: colorValue,
+        preserveUpdatedAt: true,
+      );
     }
     await refresh();
   }

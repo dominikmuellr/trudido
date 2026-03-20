@@ -248,12 +248,7 @@ class OverviewTab extends ConsumerWidget {
   }
 
   int _crossAxisCount(String section) {
-    switch (section) {
-      case 'progress':
-        return 1;
-      default:
-        return 2;
-    }
+    return 2;
   }
 
   void _showSectionOrderDialog(

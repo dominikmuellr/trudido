@@ -162,7 +162,11 @@ class StorageService {
       _notesCompleter ??= Completer<void>();
       try {
         _notesBox = await Hive.openBox<Note>(_notesBoxName);
-        if (_notesBox!.isEmpty) await _initializeDefaultNote();
+        if (_notesBox!.isEmpty) {
+          await _initializeDefaultNote();
+        } else {
+          await _migrateWelcomeNote();
+        }
         _notesCompleter?.complete();
       } catch (e) {
         if (enableLogging) {
@@ -358,52 +362,68 @@ class StorageService {
   // Getter for folder repository
   static HiveFolderRepository? get folderRepository => _folderRepository;
 
-  static Future<void> _initializeDefaultNote() async {
-    final welcomeNote = Note(
-      title: 'Welcome',
-      content: '''# Heading 1
-## Heading 2
-### Heading 3
+  /// Finds and replaces the welcome note if it hasn't been updated yet.
+  /// Uses a SharedPreferences key to ensure the migration only runs once.
+  static Future<void> _migrateWelcomeNote() async {
+    const versionKey = 'welcome_note_version';
+    const currentVersion = 2;
+    final storedVersion = _prefs?.getInt(versionKey) ?? 0;
+    if (storedVersion >= currentVersion) return;
+
+    // Find the welcome note by its old or current title
+    final box = _notesBox!;
+    Note? target;
+    for (final note in box.values) {
+      if (note.title == 'Welcome' || note.title == 'Welcome to Trudido') {
+        target = note;
+        break;
+      }
+    }
+
+    if (target != null) {
+      final updated = target.copyWith(
+        title: 'Welcome to Trudido',
+        content: '''# Welcome to Trudido
 
 ---
 
-**Bold text**, *italic text*, <u>underlined text</u>, ~~strikethrough text~~, and ==highlighted text==.
+## Text Formatting
+
+**Bold**, *italic*, <u>underline</u>, ~~strikethrough~~, and ==highlight==.
 
 ---
 
 ## Lists
 
-- Bullet item one
-- Bullet item two
-- Bullet item three
+- Capture ideas as bullet points
+- Organise and reorder freely
+- Nest items for structure
 
-1. Numbered item one
-2. Numbered item two
-3. Numbered item three
+1. First step
+2. Second step
+3. Third step
 
 ---
 
 ## Checkboxes
 
-- [ ] Task to do
-- [ ] Another pending task
-- [x] Completed task
-- [x] Another completed task
+- [ ] A task to complete
+- [ ] Another pending item
+- [x] Something already done
 
 ---
 
 ## Quote
 
-> This is a block quote. Use it to highlight important thoughts or citations.
+> Block quotes stand out for important thoughts or citations.
 
 ---
 
 ## Code
 
-Inline `code snippet` inside a sentence.
+Inline `code` works inside any sentence, or use a fenced block:
 
 ```
-// Code block
 function greet(name) {
   return "Hello, " + name + "!";
 }
@@ -411,31 +431,107 @@ function greet(name) {
 
 ---
 
-## Link
+## @Mentions
+
+Type **@** anywhere to search and link a task, event, or note inline. The linked item becomes tappable — tap it to jump directly to the referenced item.
+
+---
+
+## Links
 
 [Visit example.com](https://example.com)
 
 ---
 
-## Table
+## Tables & Media
 
-| Feature       | Syntax         | Example            |
-|---------------|----------------|--------------------|
-| Bold          | `**text**`     | **bold**           |
-| Italic        | `*text*`       | *italic*           |
-| Highlight     | `==text==`     | ==highlight==      |
-| Checkbox      | `- [ ] task`   | - [ ] task         |
-| Code          | `` `code` ``   | `code`             |
+Type **/** to open the insert menu:
+- 📊 **Table** — interactive grid you can tap to edit, add or remove rows and columns
+- 📸 **Photo** — from gallery or camera
+- 🎥 **Video**
+- 🎤 **Voice recording**
+- 🔗 **Link**
+- `</>` **Code block**
+''',
+      );
+      await box.put(target.id, updated);
+    }
+
+    await _prefs?.setInt(versionKey, currentVersion);
+  }
+
+  static Future<void> _initializeDefaultNote() async {
+    final welcomeNote = Note(
+      title: 'Welcome to Trudido',
+      content: '''# Welcome to Trudido
 
 ---
 
-## Media
+## Text Formatting
 
-Use the **toolbar** or type **/** to insert:
-- 📸 Photos from gallery or camera
-- 🎥 Videos
-- 🎤 Voice recordings
-- 🔗 Links
+**Bold**, *italic*, <u>underline</u>, ~~strikethrough~~, and ==highlight==.
+
+---
+
+## Lists
+
+- Capture ideas as bullet points
+- Organise and reorder freely
+- Nest items for structure
+
+1. First step
+2. Second step
+3. Third step
+
+---
+
+## Checkboxes
+
+- [ ] A task to complete
+- [ ] Another pending item
+- [x] Something already done
+
+---
+
+## Quote
+
+> Block quotes stand out for important thoughts or citations.
+
+---
+
+## Code
+
+Inline `code` works inside any sentence, or use a fenced block:
+
+```
+function greet(name) {
+  return "Hello, " + name + "!";
+}
+```
+
+---
+
+## @Mentions
+
+Type **@** anywhere to search and link a task, event, or note inline. The linked item becomes tappable — tap it to jump directly to the referenced item.
+
+---
+
+## Links
+
+[Visit example.com](https://example.com)
+
+---
+
+## Tables & Media
+
+Type **/** to open the insert menu:
+- 📊 **Table** — interactive grid you can tap to edit, add or remove rows and columns
+- 📸 **Photo** — from gallery or camera
+- 🎥 **Video**
+- 🎤 **Voice recording**
+- 🔗 **Link**
+- `</>` **Code block**
 ''',
     );
     await _notesBox!.put(welcomeNote.id, welcomeNote);

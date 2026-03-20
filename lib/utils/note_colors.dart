@@ -51,90 +51,90 @@ class NoteColorOption {
 }
 
 /// Shared colour palette – values derived from the M3 HCT tonal palette.
-/// Light card = tone 90  |  Dark card = tone 22
-/// Light editor= tone 96 |  Dark editor= tone 12
+/// Light card  = tone 90  |  Dark card   = tone 22
+/// Light editor = tone 96 |  Dark editor = tone 12
 const List<NoteColorOption> kNoteColorPalette = [
   NoteColorOption(index: null, label: 'Default'),
-  // Yellow  hue ~95
+  // Yellow  hue ~90
   NoteColorOption(
     index: 1,
     label: 'Yellow',
-    cardLight: 0xFFEEE0A0,
-    cardDark: 0xFF3A3100,
-    editorLight: 0xFFF9F6E2,
-    editorDark: 0xFF1D1900,
+    cardLight: 0xFFEEE8A9,
+    cardDark: 0xFF3C3400,
+    editorLight: 0xFFFAF8DC,
+    editorDark: 0xFF1F1C00,
   ),
-  // Green   hue ~140
+  // Green   hue ~155
   NoteColorOption(
     index: 2,
     label: 'Green',
-    cardLight: 0xFFC5E1A5,
-    cardDark: 0xFF183A08,
-    editorLight: 0xFFEBF5E3,
-    editorDark: 0xFF0B1E04,
+    cardLight: 0xFFB6F2B4,
+    cardDark: 0xFF003916,
+    editorLight: 0xFFEDFBED,
+    editorDark: 0xFF001E0A,
   ),
-  // Blue    hue ~220
+  // Blue    hue ~222
   NoteColorOption(
     index: 3,
     label: 'Blue',
-    cardLight: 0xFFAEC6E8,
-    cardDark: 0xFF003159,
-    editorLight: 0xFFE4EFF8,
-    editorDark: 0xFF001A2F,
+    cardLight: 0xFFDAE2FF,
+    cardDark: 0xFF0E1B58,
+    editorLight: 0xFFF1F4FF,
+    editorDark: 0xFF04092E,
   ),
-  // Pink    hue ~345
+  // Pink    hue ~349
   NoteColorOption(
     index: 4,
     label: 'Pink',
-    cardLight: 0xFFEDB6CA,
-    cardDark: 0xFF4A001E,
-    editorLight: 0xFFFAE7EF,
-    editorDark: 0xFF270010,
+    cardLight: 0xFFFFD8E4,
+    cardDark: 0xFF31111D,
+    editorLight: 0xFFFFF8FA,
+    editorDark: 0xFF1A000F,
   ),
-  // Purple  hue ~275
+  // Purple  hue ~280
   NoteColorOption(
     index: 5,
     label: 'Purple',
-    cardLight: 0xFFD3B8EC,
-    cardDark: 0xFF36005E,
-    editorLight: 0xFFF3EAF9,
-    editorDark: 0xFF1C0032,
+    cardLight: 0xFFEADDFF,
+    cardDark: 0xFF21005D,
+    editorLight: 0xFFFDF7FF,
+    editorDark: 0xFF110030,
   ),
-  // Orange  hue ~30
+  // Orange  hue ~35
   NoteColorOption(
     index: 6,
     label: 'Orange',
-    cardLight: 0xFFEFC18C,
-    cardDark: 0xFF4A1B00,
-    editorLight: 0xFFFAEDD8,
-    editorDark: 0xFF270E00,
+    cardLight: 0xFFFFDBC1,
+    cardDark: 0xFF4A1C00,
+    editorLight: 0xFFFFF7EE,
+    editorDark: 0xFF260E00,
   ),
-  // Teal    hue ~185
+  // Teal    hue ~195
   NoteColorOption(
     index: 7,
     label: 'Teal',
-    cardLight: 0xFFA4D7DF,
-    cardDark: 0xFF003035,
-    editorLight: 0xFFE4F5F7,
-    editorDark: 0xFF00191C,
+    cardLight: 0xFFBFECF0,
+    cardDark: 0xFF003739,
+    editorLight: 0xFFEEFAFB,
+    editorDark: 0xFF001B1D,
   ),
   // Lime    hue ~115
   NoteColorOption(
     index: 8,
     label: 'Lime',
-    cardLight: 0xFFCCDE88,
-    cardDark: 0xFF1D3000,
-    editorLight: 0xFFEFF5D8,
-    editorDark: 0xFF101900,
+    cardLight: 0xFFD5EDAF,
+    cardDark: 0xFF1A3800,
+    editorLight: 0xFFF3FBDE,
+    editorDark: 0xFF0C1E00,
   ),
-  // Amber   hue ~60
+  // Amber   hue ~65
   NoteColorOption(
     index: 9,
     label: 'Amber',
-    cardLight: 0xFFEBDF84,
-    cardDark: 0xFF343000,
-    editorLight: 0xFFF7F3D0,
-    editorDark: 0xFF1B1900,
+    cardLight: 0xFFF0E68C,
+    cardDark: 0xFF363100,
+    editorLight: 0xFFFAF6D8,
+    editorDark: 0xFF1C1900,
   ),
 ];
 
@@ -147,14 +147,40 @@ NoteColorOption? noteColorOptionFor(int? colorValue) {
   return null;
 }
 
+/// Returns true when [colorValue] is a raw ARGB custom colour (not a palette index).
+bool isCustomNoteColor(int? colorValue) {
+  if (colorValue == null) return false;
+  return noteColorOptionFor(colorValue) == null;
+}
+
 /// Convenience: resolves the card [Color] for a stored [colorValue] and
 /// the current [brightness]. Returns null when no custom colour is set.
+/// Raw ARGB custom colours are blended with white at 35 % in light mode
+/// so they appear as a light pastel (matching the tone of palette colours).
 Color? resolveNoteColor(int? colorValue, Brightness brightness) {
-  return noteColorOptionFor(colorValue)?.colorForBrightness(brightness);
+  if (colorValue == null) return null;
+  final option = noteColorOptionFor(colorValue);
+  if (option != null) return option.colorForBrightness(brightness);
+  // Raw ARGB custom colour: lighten for light mode, keep full colour for dark.
+  final base = Color(colorValue);
+  if (brightness == Brightness.light) {
+    return Color.alphaBlend(base.withValues(alpha: 0.35), Colors.white);
+  }
+  return base;
 }
 
 /// Convenience: resolves the subtle editor/toolbar [Color] for a stored
 /// [colorValue]. Returns null when no custom colour is set (uses theme default).
+/// Custom colours are blended with white at 15 % in light mode for a barely-there
+/// tint, or applied at 12 % opacity in dark mode.
 Color? resolveNoteEditorColor(int? colorValue, Brightness brightness) {
-  return noteColorOptionFor(colorValue)?.editorColorForBrightness(brightness);
+  if (colorValue == null) return null;
+  final option = noteColorOptionFor(colorValue);
+  if (option != null) return option.editorColorForBrightness(brightness);
+  // Raw ARGB custom colour → subtle tint for editor / toolbar.
+  final base = Color(colorValue);
+  if (brightness == Brightness.light) {
+    return Color.alphaBlend(base.withValues(alpha: 0.15), Colors.white);
+  }
+  return base.withValues(alpha: 0.12);
 }

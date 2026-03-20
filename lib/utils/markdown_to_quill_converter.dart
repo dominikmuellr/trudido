@@ -69,15 +69,17 @@ class MarkdownToQuillConverter {
       } else if (line.trim().startsWith('```')) {
         // Skip opening ```
         if (i + 1 < lines.length) {
-          final codeLines = <String>[];
-          i++; // Move to next line
+          i++; // Move to first code line
+          // Each line gets its own code-block terminator so Quill treats
+          // each as a proper code-block paragraph (not embedded \n in one op).
           while (i < lines.length && !lines[i].trim().startsWith('```')) {
-            codeLines.add(lines[i]);
+            if (lines[i].isNotEmpty) {
+              delta.insert(lines[i]);
+            }
+            delta.insert('\n', {'code-block': true});
             i++;
           }
-          final codeText = codeLines.join('\n');
-          delta.insert(codeText);
-          delta.insert('\n', {'code-block': true});
+          // 'i' now points to the closing ```; outer for-loop increments past it.
         }
       }
       // Regular line with inline formatting

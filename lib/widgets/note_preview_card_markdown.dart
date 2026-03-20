@@ -31,6 +31,7 @@ import '../utils/markdown_inline_patterns.dart';
 import '../utils/mention_parser.dart';
 import '../utils/note_colors.dart';
 import '../utils/smart_markdown_helper.dart';
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import '../widgets/common/common.dart';
 import '../theme/spacing_tokens.dart';
@@ -243,6 +244,7 @@ class NotePreviewCard extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref, {
     bool hideImages = false,
+    Color? onCardColor,
   }) {
     try {
       final json = jsonDecode(note.content) as List;
@@ -250,7 +252,7 @@ class NotePreviewCard extends ConsumerWidget {
       final List<InlineSpan> spans = [];
 
       final baseStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        color: onCardColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
         height: note.lineHeightMultiplier,
       );
 
@@ -568,7 +570,8 @@ class NotePreviewCard extends ConsumerWidget {
               ListTile(
                 leading: Icon(
                   Icons.palette_outlined,
-                  color: _currentColorOption()?.colorForBrightness(
+                  color: resolveNoteColor(
+                    note.colorValue,
                     Theme.of(context).brightness,
                   ),
                 ),
@@ -612,10 +615,6 @@ class NotePreviewCard extends ConsumerWidget {
 
   static List<NoteColorOption> get _colorPalette => kNoteColorPalette;
 
-  NoteColorOption? _currentColorOption() {
-    return noteColorOptionFor(note.colorValue);
-  }
-
   void _showColorPicker(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -634,55 +633,58 @@ class NotePreviewCard extends ConsumerWidget {
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: _colorPalette.map((option) {
-                  final brightness = Theme.of(ctx).brightness;
-                  final isSelected = option.index == note.colorValue;
-                  final swatchColor =
-                      option.colorForBrightness(brightness) ??
-                      Theme.of(ctx).colorScheme.surfaceContainerHighest;
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      onColorChange!(option.index);
-                    },
-                    child: Tooltip(
-                      message: option.label,
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: swatchColor,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected
-                                ? Theme.of(ctx).colorScheme.primary
-                                : Theme.of(
-                                    ctx,
-                                  ).colorScheme.outline.withValues(alpha: 0.4),
-                            width: isSelected ? 3 : 1.5,
+                children: [
+                  ..._colorPalette.map((option) {
+                    final brightness = Theme.of(ctx).brightness;
+                    final isSelected = option.index == note.colorValue;
+                    final swatchColor =
+                        option.colorForBrightness(brightness) ??
+                        Theme.of(ctx).colorScheme.surfaceContainerHighest;
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        onColorChange!(option.index);
+                      },
+                      child: Tooltip(
+                        message: option.label,
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: swatchColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected
+                                  ? Theme.of(ctx).colorScheme.primary
+                                  : Theme.of(ctx).colorScheme.outline
+                                        .withValues(alpha: 0.4),
+                              width: isSelected ? 3 : 1.5,
+                            ),
                           ),
+                          child: option.index == null
+                              ? Icon(
+                                  Icons.format_color_reset,
+                                  size: 20,
+                                  color: Theme.of(
+                                    ctx,
+                                  ).colorScheme.onSurfaceVariant,
+                                )
+                              : isSelected
+                              ? Icon(
+                                  Icons.check,
+                                  size: 20,
+                                  color: swatchColor.computeLuminance() > 0.4
+                                      ? Colors.black87
+                                      : Colors.white,
+                                )
+                              : null,
                         ),
-                        child: option.index == null
-                            ? Icon(
-                                Icons.format_color_reset,
-                                size: 20,
-                                color: Theme.of(
-                                  ctx,
-                                ).colorScheme.onSurfaceVariant,
-                              )
-                            : isSelected
-                            ? Icon(
-                                Icons.check,
-                                size: 20,
-                                color: swatchColor.computeLuminance() > 0.4
-                                    ? Colors.black87
-                                    : Colors.white,
-                              )
-                            : null,
                       ),
-                    ),
-                  );
-                }).toList(),
+                    );
+                  }),
+                  // Custom colour wheel swatch
+                  _buildCustomColorSwatch(ctx, context),
+                ],
               ),
               const SizedBox(height: 8),
             ],
@@ -690,6 +692,142 @@ class NotePreviewCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildCustomColorSwatch(BuildContext sheetCtx, BuildContext rootCtx) {
+    final hasCustom = isCustomNoteColor(note.colorValue);
+    final customColor = hasCustom ? Color(note.colorValue!) : null;
+    return GestureDetector(
+      onTap: () {
+        Navigator.pop(sheetCtx);
+        _showCustomColorPicker(rootCtx);
+      },
+      child: Tooltip(
+        message: 'Custom',
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: customColor,
+            shape: BoxShape.circle,
+            gradient: customColor == null
+                ? const SweepGradient(
+                    colors: [
+                      Color(0xFFFF0000),
+                      Color(0xFFFFFF00),
+                      Color(0xFF00FF00),
+                      Color(0xFF00FFFF),
+                      Color(0xFF0000FF),
+                      Color(0xFFFF00FF),
+                      Color(0xFFFF0000),
+                    ],
+                  )
+                : null,
+            border: Border.all(
+              color: hasCustom
+                  ? Theme.of(sheetCtx).colorScheme.primary
+                  : Theme.of(
+                      sheetCtx,
+                    ).colorScheme.outline.withValues(alpha: 0.4),
+              width: hasCustom ? 3 : 1.5,
+            ),
+          ),
+          child: hasCustom
+              ? Icon(
+                  Icons.check,
+                  size: 20,
+                  color: customColor!.computeLuminance() > 0.4
+                      ? Colors.black87
+                      : Colors.white,
+                )
+              : const Icon(
+                  Icons.colorize,
+                  size: 18,
+                  color: Colors.white,
+                  shadows: [Shadow(color: Colors.black38, blurRadius: 2)],
+                ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showCustomColorPicker(BuildContext context) async {
+    final hasCustom = isCustomNoteColor(note.colorValue);
+    Color pickedColor = hasCustom
+        ? Color(note.colorValue!)
+        : const Color(0xFFE8DEF8);
+    bool confirmed = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          final lum = pickedColor.computeLuminance();
+          final bool tooDark = lum < 0.06;
+          final bool tooBright = lum > 0.90;
+          final bool valid = !tooDark && !tooBright;
+          return AlertDialog(
+            title: const Text('Custom color'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ColorPicker(
+                    color: pickedColor,
+                    onColorChanged: (c) => setState(() => pickedColor = c),
+                    pickersEnabled: const {
+                      ColorPickerType.wheel: true,
+                      ColorPickerType.accent: false,
+                      ColorPickerType.primary: false,
+                      ColorPickerType.bw: false,
+                      ColorPickerType.custom: false,
+                      ColorPickerType.customSecondary: false,
+                    },
+                    enableOpacity: false,
+                    showColorCode: true,
+                    colorCodeHasColor: true,
+                    wheelDiameter: 280,
+                  ),
+                  if (!valid)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        tooDark
+                            ? 'Color is too dark — pick a lighter shade'
+                            : 'Color is too bright — pick a darker shade',
+                        style: TextStyle(
+                          color: Theme.of(ctx).colorScheme.error,
+                          fontSize: 12,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: valid
+                    ? () {
+                        confirmed = true;
+                        Navigator.pop(ctx);
+                      }
+                    : null,
+                child: const Text('Apply'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (confirmed) {
+      onColorChange!(pickedColor.toARGB32());
+    }
   }
 
   @override
@@ -713,14 +851,31 @@ class NotePreviewCard extends ConsumerWidget {
     // endToStart => user swiped left (maps to swipeLeftAction)
     final actionEnd = preferences.swipeLeftAction;
 
+    // Compute adaptive on-card text colors so text stays readable on any
+    // card background (palette or custom). Null when using theme default.
+    final _brightness = Theme.of(context).brightness;
+    final _cardBg = resolveNoteColor(note.colorValue, _brightness);
+    final Color? onCardColor = _cardBg != null
+        ? (_cardBg.computeLuminance() > 0.35
+              ? const Color(0xDD000000) // black87
+              : Colors.white)
+        : null;
+    final Color? onCardSecondary = _cardBg != null
+        ? (_cardBg.computeLuminance() > 0.35
+              ? const Color(0x8A000000) // black54
+              : const Color(0xB3FFFFFF)) // white70
+        : null;
+
     // Show title or placeholder for empty titles
     final titleSpan = note.title.isEmpty
         ? TextSpan(
             text: '(No title)',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              color:
+                  onCardSecondary ??
+                  Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               fontStyle: FontStyle.italic,
             ),
           )
@@ -738,6 +893,7 @@ class NotePreviewCard extends ConsumerWidget {
                   context,
                   ref,
                   isTitle: true,
+                  onCardColor: onCardColor,
                 ));
 
     // For Quill notes, render with formatting; for markdown, parse structure
@@ -750,17 +906,24 @@ class NotePreviewCard extends ConsumerWidget {
             contentText,
             context,
             Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color:
+                  onCardColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
               height: 1.4,
             ),
           )
         : (_isQuillFormat()
-              ? _quillToTextSpan(context, ref, hideImages: true)
+              ? _quillToTextSpan(
+                  context,
+                  ref,
+                  hideImages: true,
+                  onCardColor: onCardSecondary,
+                )
               : _parseMarkdownToTextSpan(
                   contentText,
                   context,
                   ref,
                   isTitle: false,
+                  onCardColor: onCardSecondary,
                 ));
 
     final formattedDate = _formatCompactDate(
@@ -936,6 +1099,8 @@ class NotePreviewCard extends ConsumerWidget {
               isTodoTxt: isTodoTxt,
               bodySpan: bodySpan,
               formattedDate: formattedDate,
+              onCardColor: onCardColor,
+              onCardSecondary: onCardSecondary,
             ),
             // Selection overlay
             if (selectable)
@@ -995,10 +1160,12 @@ class NotePreviewCard extends ConsumerWidget {
     required bool isTodoTxt,
     required TextSpan bodySpan,
     required String formattedDate,
+    Color? onCardColor,
+    Color? onCardSecondary,
   }) {
     final brightness = Theme.of(context).brightness;
     final cardColor =
-        _currentColorOption()?.colorForBrightness(brightness) ??
+        resolveNoteColor(note.colorValue, brightness) ??
         (brightness == Brightness.dark
             ? Theme.of(context).colorScheme.surfaceContainerHighest
             : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08));
@@ -1024,7 +1191,8 @@ class NotePreviewCard extends ConsumerWidget {
                     ScaledIcon(
                       Icons.push_pin,
                       size: 16,
-                      color: Theme.of(context).colorScheme.primary,
+                      color:
+                          onCardColor ?? Theme.of(context).colorScheme.primary,
                     ),
                     SizedBox(width: spacing.s8),
                   ],
@@ -1047,7 +1215,7 @@ class NotePreviewCard extends ConsumerWidget {
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
+                    color: onCardColor ?? Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 1,
@@ -1057,7 +1225,7 @@ class NotePreviewCard extends ConsumerWidget {
 
               // Body snippet - show todo.txt tasks or markdown content
               if (isTodoTxt)
-                ..._buildTodoTxtPreview(context)
+                ..._buildTodoTxtPreview(context, onCardColor: onCardSecondary)
               else if (!_isSpanEffectivelyEmpty(bodySpan)) ...[
                 SizedBox(height: subtitle.isNotEmpty ? spacing.s6 : spacing.s8),
                 RichText(
@@ -1112,14 +1280,18 @@ class NotePreviewCard extends ConsumerWidget {
                   ScaledIcon(
                     Icons.schedule,
                     size: 14,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    color:
+                        onCardSecondary ??
+                        Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   SizedBox(width: spacing.s4),
                   Flexible(
                     child: Text(
                       formattedDate,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color:
+                            onCardSecondary ??
+                            Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1158,6 +1330,7 @@ class NotePreviewCard extends ConsumerWidget {
     BuildContext context,
     WidgetRef? ref, {
     required bool isTitle,
+    Color? onCardColor,
   }) {
     if (text.isEmpty) return const TextSpan(text: '');
 
@@ -1165,10 +1338,11 @@ class NotePreviewCard extends ConsumerWidget {
         ? Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
             height: 1.2,
-            color: Theme.of(context).colorScheme.secondary,
+            color: onCardColor ?? Theme.of(context).colorScheme.secondary,
           )
         : Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            color:
+                onCardColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
             height: ref != null
                 ? ref.watch(preferencesStateProvider).lineHeightMultiplier
                 : 1.3,
@@ -1240,13 +1414,15 @@ class NotePreviewCard extends ConsumerWidget {
         case 'strikethrough':
           style = baseStyle?.copyWith(
             decoration: TextDecoration.lineThrough,
-            decorationColor: Theme.of(context).colorScheme.onSurfaceVariant,
+            decorationColor:
+                onCardColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
           );
           break;
         case 'underline':
           style = baseStyle?.copyWith(
             decoration: TextDecoration.underline,
-            decorationColor: Theme.of(context).colorScheme.onSurfaceVariant,
+            decorationColor:
+                onCardColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
           );
           break;
         case 'highlight':
@@ -1258,11 +1434,11 @@ class NotePreviewCard extends ConsumerWidget {
           );
           break;
         case 'code':
+          final codeColor =
+              onCardColor ?? Theme.of(context).colorScheme.onSurface;
           style = AppTheme.getCodeTextStyle(context).copyWith(
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest,
-            color: Theme.of(context).colorScheme.onSurface,
+            backgroundColor: codeColor.withValues(alpha: 0.12),
+            color: codeColor,
           );
           break;
       }
@@ -1524,7 +1700,10 @@ class NotePreviewCard extends ConsumerWidget {
   }
 
   /// Builds a preview of todo.txt tasks (max 2 tasks shown)
-  List<Widget> _buildTodoTxtPreview(BuildContext context) {
+  List<Widget> _buildTodoTxtPreview(
+    BuildContext context, {
+    Color? onCardColor,
+  }) {
     final todoContent = note.todoTxtContent ?? '';
     final lines = todoContent
         .split('\n')
@@ -1538,7 +1717,8 @@ class NotePreviewCard extends ConsumerWidget {
         Text(
           'No tasks yet',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            color:
+                onCardColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
             fontStyle: FontStyle.italic,
           ),
         ),
@@ -1547,12 +1727,19 @@ class NotePreviewCard extends ConsumerWidget {
 
     return [
       const SizedBox(height: 8),
-      ...lines.map((line) => _buildTodoTxtTaskPreview(context, line)),
+      ...lines.map(
+        (line) =>
+            _buildTodoTxtTaskPreview(context, line, onCardColor: onCardColor),
+      ),
     ];
   }
 
   /// Builds a compact preview of a single todo.txt task
-  Widget _buildTodoTxtTaskPreview(BuildContext context, String line) {
+  Widget _buildTodoTxtTaskPreview(
+    BuildContext context,
+    String line, {
+    Color? onCardColor,
+  }) {
     var remaining = line.trim();
     var isCompleted = false;
     String? priority;
@@ -1591,9 +1778,11 @@ class NotePreviewCard extends ConsumerWidget {
           Icon(
             isCompleted ? Icons.check_box : Icons.check_box_outline_blank,
             size: 16,
-            color: isCompleted
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.onSurfaceVariant,
+            color:
+                onCardColor ??
+                (isCompleted
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -1624,7 +1813,12 @@ class NotePreviewCard extends ConsumerWidget {
                   ),
                 ],
                 // Task text with inline chips for tags
-                ..._buildInlineTextWithChips(context, remaining, isCompleted),
+                ..._buildInlineTextWithChips(
+                  context,
+                  remaining,
+                  isCompleted,
+                  onCardColor: onCardColor,
+                ),
               ],
             ),
           ),
@@ -1637,8 +1831,9 @@ class NotePreviewCard extends ConsumerWidget {
   List<Widget> _buildInlineTextWithChips(
     BuildContext context,
     String text,
-    bool isCompleted,
-  ) {
+    bool isCompleted, {
+    Color? onCardColor,
+  }) {
     final widgets = <Widget>[];
     final words = text.split(' ');
 
@@ -1694,9 +1889,11 @@ class NotePreviewCard extends ConsumerWidget {
             word,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               decoration: isCompleted ? TextDecoration.lineThrough : null,
-              color: isCompleted
-                  ? Theme.of(context).colorScheme.onSurfaceVariant
-                  : null,
+              color:
+                  onCardColor ??
+                  (isCompleted
+                      ? Theme.of(context).colorScheme.onSurfaceVariant
+                      : null),
             ),
           ),
         );

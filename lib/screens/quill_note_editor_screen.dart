@@ -118,6 +118,10 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   bool _showSlashMenu = false;
   int _slashCommandStartIndex = -1;
   double _slashMenuTop = 100.0; // Default position
+
+  // Code-block escape detection ("double Enter on empty line to exit")
+  bool _wasAtEmptyCodeBlockLine = false;
+  int _prevDocLength = 0;
   int _previousLineCount = 0; // Track line count for deletion detection
 
   // Media service
@@ -219,6 +223,84 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     _handleMarkdownShortcuts();
     _onQuillMentionCheck();
     _updatePlaceholderCache();
+    _maybeEscapeCodeBlock();
+  }
+
+  /// Implements "double Enter on empty code-block line" to escape the block.
+  /// Tracks whether the previous controller state had the cursor on an empty
+  /// code-block line. If so, and the document grew by one character (a newline
+  /// was inserted) and the cursor is again on an empty code-block line, we
+  /// unformat the previous empty line (making it a plain paragraph) and delete
+  /// the newly created empty code-block line.
+  void _maybeEscapeCodeBlock() {
+    if (_isReadMode) return;
+
+    final currentLen = _quillController.document.length;
+    final docGrew = currentLen > _prevDocLength;
+    _prevDocLength = currentLen;
+
+    final sel = _quillController.selection;
+    if (!sel.isCollapsed) {
+      _wasAtEmptyCodeBlockLine = false;
+      return;
+    }
+
+    final cursorPos = sel.baseOffset;
+    final style = _quillController.getSelectionStyle();
+    final inCodeBlock = style.attributes.containsKey(
+      quill.Attribute.codeBlock.key,
+    );
+
+    // Find the start of the current line.
+    final text = _cachedPlainText;
+    var lineStart = cursorPos;
+    while (lineStart > 0 && text[lineStart - 1] != '\n') {
+      lineStart--;
+    }
+    final currentLineEmpty = cursorPos == lineStart;
+
+    if (_wasAtEmptyCodeBlockLine &&
+        docGrew &&
+        inCodeBlock &&
+        currentLineEmpty) {
+      // Pattern detected: user pressed Enter on an empty code-block line.
+      // Convert the previous empty code-block line to a plain paragraph and
+      // remove the newly created empty code-block line.
+      _wasAtEmptyCodeBlockLine = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final cur = _quillController.selection.baseOffset;
+        // 1. Unformat the previous line (its '\n' is at cur - 1).
+        if (cur > 0) {
+          _quillController.formatText(
+            cur - 1,
+            0,
+            quill.Attribute.clone(quill.Attribute.codeBlock, null),
+          );
+        }
+        // 2. Delete the current empty code-block line's terminating '\n',
+        //    unless it is the document's trailing newline.
+        final docText = _quillController.document.toPlainText();
+        if (cur < docText.length - 1) {
+          _quillController.replaceText(
+            cur,
+            1,
+            '',
+            TextSelection.collapsed(offset: cur > 0 ? cur - 1 : 0),
+          );
+        } else {
+          // Last line — just unformat it instead of deleting.
+          _quillController.formatText(
+            cur,
+            0,
+            quill.Attribute.clone(quill.Attribute.codeBlock, null),
+          );
+        }
+      });
+      return;
+    }
+
+    _wasAtEmptyCodeBlockLine = inCodeBlock && currentLineEmpty;
   }
 
   /// Focus change handler — defers setState to avoid mid-build updates.
@@ -2808,6 +2890,58 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                             );
                                           },
                                       customStyles: quill.DefaultStyles(
+                                        inlineCode: quill.InlineCodeStyle(
+                                          backgroundColor:
+                                              resolveNoteColor(
+                                                _originalNote?.colorValue,
+                                                Theme.of(context).brightness,
+                                              )?.withValues(alpha: 0.5) ??
+                                              Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.1),
+                                          radius: const Radius.circular(4),
+                                          style: TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontSize: 14,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        code: quill.DefaultTextBlockStyle(
+                                          TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontSize: 13,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                            height: 1.4,
+                                          ),
+                                          quill.HorizontalSpacing(0, 0),
+                                          quill.VerticalSpacing(8, 8),
+                                          quill.VerticalSpacing(0, 0),
+                                          BoxDecoration(
+                                            color:
+                                                resolveNoteColor(
+                                                  _originalNote?.colorValue,
+                                                  Theme.of(context).brightness,
+                                                )?.withValues(alpha: 0.4) ??
+                                                Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withValues(alpha: 0.08),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                            border: Border.all(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .outline
+                                                  .withValues(alpha: 0.15),
+                                            ),
+                                          ),
+                                        ),
                                         link: TextStyle(
                                           color: Theme.of(
                                             context,

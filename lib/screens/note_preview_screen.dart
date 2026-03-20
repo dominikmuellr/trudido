@@ -248,7 +248,8 @@ class _NotePreviewScreenState extends ConsumerState<NotePreviewScreen> {
                       code: AppTheme.getCodeTextStyle(context).copyWith(
                         backgroundColor: Theme.of(
                           context,
-                        ).colorScheme.surfaceContainerHighest,
+                        ).colorScheme.onSurface.withValues(alpha: 0.1),
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
               )
@@ -291,7 +292,8 @@ class _NotePreviewScreenState extends ConsumerState<NotePreviewScreen> {
                       code: AppTheme.getCodeTextStyle(context).copyWith(
                         backgroundColor: Theme.of(
                           context,
-                        ).colorScheme.surfaceContainerHighest,
+                        ).colorScheme.onSurface.withValues(alpha: 0.1),
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
               )

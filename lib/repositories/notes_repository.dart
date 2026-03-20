@@ -169,6 +169,7 @@ class NotesRepository {
     double? paragraphSpacing,
     bool? lastReadMode,
     Object? colorValue = _sentinel,
+    bool preserveUpdatedAt = false,
   }) async {
     final existingNote = StorageService.getNote(id);
     if (existingNote == null) return null;
@@ -189,7 +190,7 @@ class NotesRepository {
       colorValue: colorValue == _sentinel
           ? decryptedNote.colorValue
           : colorValue as int?,
-      updatedAt: DateTime.now(),
+      updatedAt: preserveUpdatedAt ? decryptedNote.updatedAt : DateTime.now(),
     );
 
     // Encrypt if vault folder

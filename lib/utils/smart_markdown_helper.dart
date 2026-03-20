@@ -242,30 +242,14 @@ class SmartMarkdownHelper {
     }
   }
 
-  /// Get VS Code-style background color for inline code
+  /// Get background color for inline code — adapts to any note background color.
   static Color _getCodeBackgroundColor(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-
-    if (brightness == Brightness.light) {
-      // Light theme: VS Code light grey
-      return const Color(0xFFF6F8FA); // GitHub-style light code background
-    } else {
-      // Dark theme: VS Code dark grey
-      return const Color(0xFF2D3748); // VS Code dark background
-    }
+    return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1);
   }
 
-  /// Get VS Code-style text color for inline code
+  /// Get text color for inline code.
   static Color _getCodeTextColor(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-
-    if (brightness == Brightness.light) {
-      // Light theme: darker text for better readability in code blocks
-      return const Color(0xFF24292E); // GitHub dark text
-    } else {
-      // Dark theme: VS Code light text
-      return const Color(0xFFD4D4D4); // VS Code light grey
-    }
+    return Theme.of(context).colorScheme.onSurface;
   }
 
   /// Get VS Code-style background color for code blocks

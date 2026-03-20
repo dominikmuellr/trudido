@@ -25,6 +25,7 @@ import '../providers/notes_providers.dart';
 import '../repositories/notes_repository.dart';
 import '../repositories/note_folder_repository.dart';
 import '../services/vault_auth_service.dart';
+import 'package:flex_color_picker/flex_color_picker.dart';
 import '../utils/note_colors.dart';
 import '../widgets/note_preview_card_markdown.dart';
 import '../widgets/notes_filter_chips.dart';
@@ -339,7 +340,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   }
 
   Future<void> _showBulkColorPicker(Set<String> selectedNoteIds) async {
-    int? pickedColor = await showModalBottomSheet<int?>(
+    // -1 = Default (clear), -2 = custom colour wheel
+    final result = await showModalBottomSheet<int?>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -359,21 +361,63 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: kNoteColorPalette.map((option) {
-                  final brightness = Theme.of(ctx).brightness;
-                  final swatchColor =
-                      option.colorForBrightness(brightness) ??
-                      Theme.of(ctx).colorScheme.surfaceContainerHighest;
-                  return GestureDetector(
-                    onTap: () => Navigator.pop(ctx, option.index ?? -1),
+                children: [
+                  ...kNoteColorPalette.map((option) {
+                    final brightness = Theme.of(ctx).brightness;
+                    final swatchColor =
+                        option.colorForBrightness(brightness) ??
+                        Theme.of(ctx).colorScheme.surfaceContainerHighest;
+                    return GestureDetector(
+                      onTap: () => Navigator.pop(ctx, option.index ?? -1),
+                      child: Tooltip(
+                        message: option.label,
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: swatchColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Theme.of(
+                                ctx,
+                              ).colorScheme.outline.withValues(alpha: 0.4),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: option.index == null
+                              ? Icon(
+                                  Icons.format_color_reset,
+                                  size: 20,
+                                  color: Theme.of(
+                                    ctx,
+                                  ).colorScheme.onSurfaceVariant,
+                                )
+                              : null,
+                        ),
+                      ),
+                    );
+                  }),
+                  // Custom colour wheel swatch
+                  GestureDetector(
+                    onTap: () => Navigator.pop(ctx, -2),
                     child: Tooltip(
-                      message: option.label,
+                      message: 'Custom',
                       child: Container(
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: swatchColor,
                           shape: BoxShape.circle,
+                          gradient: const SweepGradient(
+                            colors: [
+                              Color(0xFFFF0000),
+                              Color(0xFFFFFF00),
+                              Color(0xFF00FF00),
+                              Color(0xFF00FFFF),
+                              Color(0xFF0000FF),
+                              Color(0xFFFF00FF),
+                              Color(0xFFFF0000),
+                            ],
+                          ),
                           border: Border.all(
                             color: Theme.of(
                               ctx,
@@ -381,19 +425,18 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                             width: 1.5,
                           ),
                         ),
-                        child: option.index == null
-                            ? Icon(
-                                Icons.format_color_reset,
-                                size: 20,
-                                color: Theme.of(
-                                  ctx,
-                                ).colorScheme.onSurfaceVariant,
-                              )
-                            : null,
+                        child: const Icon(
+                          Icons.colorize,
+                          size: 18,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(color: Colors.black38, blurRadius: 2),
+                          ],
+                        ),
                       ),
                     ),
-                  );
-                }).toList(),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
             ],
@@ -402,12 +445,97 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       ),
     );
 
+    if (result == null || !mounted) return;
+
+    if (result == -2) {
+      // User wants a custom colour — show the wheel dialog.
+      await _showBulkCustomColorPicker(selectedNoteIds);
+      return;
+    }
+
     // -1 sentinel = "Default" (clear color)
-    if (pickedColor == null || !mounted) return;
-    final colorValue = pickedColor == -1 ? null : pickedColor;
+    final colorValue = result == -1 ? null : result;
     await ref
         .read(notesControllerProvider.notifier)
         .bulkSetColor(selectedNoteIds, colorValue);
+    _exitMultiSelect();
+  }
+
+  Future<void> _showBulkCustomColorPicker(Set<String> selectedNoteIds) async {
+    Color pickedColor = const Color(0xFFE8DEF8);
+    bool confirmed = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          final lum = pickedColor.computeLuminance();
+          final bool tooDark = lum < 0.06;
+          final bool tooBright = lum > 0.90;
+          final bool valid = !tooDark && !tooBright;
+          return AlertDialog(
+            title: const Text('Custom color'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ColorPicker(
+                    color: pickedColor,
+                    onColorChanged: (c) => setState(() => pickedColor = c),
+                    pickersEnabled: const {
+                      ColorPickerType.wheel: true,
+                      ColorPickerType.accent: false,
+                      ColorPickerType.primary: false,
+                      ColorPickerType.bw: false,
+                      ColorPickerType.custom: false,
+                      ColorPickerType.customSecondary: false,
+                    },
+                    enableOpacity: false,
+                    showColorCode: true,
+                    colorCodeHasColor: true,
+                    wheelDiameter: 280,
+                  ),
+                  if (!valid)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        tooDark
+                            ? 'Color is too dark — pick a lighter shade'
+                            : 'Color is too bright — pick a darker shade',
+                        style: TextStyle(
+                          color: Theme.of(ctx).colorScheme.error,
+                          fontSize: 12,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: valid
+                    ? () {
+                        confirmed = true;
+                        Navigator.pop(ctx);
+                      }
+                    : null,
+                child: const Text('Apply'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (!confirmed || !mounted) return;
+    await ref
+        .read(notesControllerProvider.notifier)
+        .bulkSetColor(selectedNoteIds, pickedColor.toARGB32());
     _exitMultiSelect();
   }
 
