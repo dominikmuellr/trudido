@@ -31,6 +31,8 @@ import '../utils/markdown_inline_patterns.dart';
 import '../utils/mention_parser.dart';
 import '../utils/note_colors.dart';
 import '../utils/smart_markdown_helper.dart';
+import '../utils/syntax_highlighter.dart';
+import '../utils/language_detector.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import '../widgets/common/common.dart';
@@ -272,7 +274,100 @@ class NotePreviewCard extends ConsumerWidget {
       }
       bool firstLineSkipped = false;
 
-      for (var op in migratedJson) {
+      // Pre-pass: forward scan to identify code block groups and build
+      // syntax-highlighted spans for each group.
+      // In Quill Delta, code-block is a LINE-LEVEL attribute on '\n' ops.
+      // Consecutive '\n' ops with code-block form a single logical block.
+      final Map<int, List<InlineSpan>> codeBlockGroupSpans = {};
+      final Set<int> codeBlockOpIndices = {};
+      {
+        final brightness = Theme.of(context).brightness;
+        int groupStart = -1;       // first op index of the current code block group
+        int lineBufferStart = -1;  // first op index of the current line's content
+        final codeText = StringBuffer();
+        String? groupLanguage;
+
+        void flushGroup() {
+          if (groupStart < 0) return;
+          final raw = codeText.toString();
+          final trimmed = raw.endsWith('\n') ? raw.substring(0, raw.length - 1) : raw;
+          final lang = groupLanguage ?? LanguageDetector.detectLanguage(trimmed);
+          final highlighted = CodeSyntaxHighlighter.highlightToSpans(
+            trimmed, lang, brightness,
+          );
+          final groupChildren = highlighted.children;
+          codeBlockGroupSpans[groupStart] = (groupChildren != null && groupChildren.isNotEmpty)
+              ? List<InlineSpan>.from(groupChildren)
+              : [highlighted];
+          groupStart = -1;
+          lineBufferStart = -1;
+          codeText.clear();
+          groupLanguage = null;
+        }
+
+        for (int si = 0; si < migratedJson.length; si++) {
+          final sop = migratedJson[si];
+          if (sop is! Map || !sop.containsKey('insert')) continue;
+          final sInsert = sop['insert'];
+
+          if (sInsert is! String) {
+            // Embed — flush any open code block
+            flushGroup();
+            lineBufferStart = -1;
+            continue;
+          }
+
+          if (sInsert != '\n' && !sInsert.contains('\n')) {
+            // Plain content op (no newline) — accumulate into current line buffer
+            if (lineBufferStart < 0) lineBufferStart = si;
+            continue;
+          }
+
+          if (sInsert == '\n') {
+            final sAttrs = sop['attributes'] as Map?;
+            final codeBlockAttr = sAttrs?['code-block'];
+
+            if (codeBlockAttr != null) {
+              // Code-block line terminator — open/extend the current group
+              if (groupStart < 0) {
+                groupStart = lineBufferStart >= 0 ? lineBufferStart : si;
+              }
+              // Mark content ops belonging to this line
+              if (lineBufferStart >= 0) {
+                for (int ci = lineBufferStart; ci < si; ci++) {
+                  final cop = migratedJson[ci];
+                  codeBlockOpIndices.add(ci);
+                  if (cop is Map && cop['insert'] is String) {
+                    codeText.write(cop['insert'] as String);
+                  }
+                }
+              }
+              codeBlockOpIndices.add(si); // the '\n' op itself
+              codeText.write('\n');
+              // Capture explicit language (first non-trivial value wins)
+              if (groupLanguage == null &&
+                  codeBlockAttr is String &&
+                  codeBlockAttr != 'true' &&
+                  codeBlockAttr.isNotEmpty) {
+                groupLanguage = codeBlockAttr;
+              }
+              lineBufferStart = -1;
+            } else {
+              // Normal line — flush any open code block
+              flushGroup();
+              lineBufferStart = -1;
+            }
+          } else {
+            // Text op that contains embedded '\n' (multi-line insert) — flush
+            flushGroup();
+            lineBufferStart = -1;
+          }
+        }
+        flushGroup(); // flush any trailing code block
+      }
+
+      for (int opIdx = 0; opIdx < migratedJson.length; opIdx++) {
+        final op = migratedJson[opIdx];
         if (op is Map && op.containsKey('insert')) {
           final insertValue = op['insert'];
 
@@ -510,6 +605,14 @@ class NotePreviewCard extends ConsumerWidget {
               );
               continue;
             }
+          }
+
+          // Skip ops that are part of a code block — handled by the pre-pass
+          if (codeBlockOpIndices.contains(opIdx)) {
+            if (codeBlockGroupSpans.containsKey(opIdx)) {
+              spans.addAll(codeBlockGroupSpans[opIdx]!);
+            }
+            continue;
           }
 
           spans.addAll(_expandMentions(text, style, context));
@@ -853,15 +956,15 @@ class NotePreviewCard extends ConsumerWidget {
 
     // Compute adaptive on-card text colors so text stays readable on any
     // card background (palette or custom). Null when using theme default.
-    final _brightness = Theme.of(context).brightness;
-    final _cardBg = resolveNoteColor(note.colorValue, _brightness);
-    final Color? onCardColor = _cardBg != null
-        ? (_cardBg.computeLuminance() > 0.35
+    final brightness = Theme.of(context).brightness;
+    final cardBg = resolveNoteColor(note.colorValue, brightness);
+    final Color? onCardColor = cardBg != null
+        ? (cardBg.computeLuminance() > 0.35
               ? const Color(0xDD000000) // black87
               : Colors.white)
         : null;
-    final Color? onCardSecondary = _cardBg != null
-        ? (_cardBg.computeLuminance() > 0.35
+    final Color? onCardSecondary = cardBg != null
+        ? (cardBg.computeLuminance() > 0.35
               ? const Color(0x8A000000) // black54
               : const Color(0xB3FFFFFF)) // white70
         : null;

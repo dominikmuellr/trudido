@@ -25,6 +25,7 @@ import '../utils/mention_parser.dart';
 import '../utils/mention_navigator.dart';
 import '../services/theme_service.dart';
 import '../services/vault_auth_service.dart';
+import '../widgets/code_block_markdown_builder.dart';
 import '../repositories/note_folder_repository.dart';
 import '../repositories/notes_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -214,88 +215,102 @@ class _NotePreviewScreenState extends ConsumerState<NotePreviewScreen> {
             else if (_isQuillFormat && _quillController != null)
               // Render Quill content through MarkdownBody so that markdown
               // syntax typed directly in the editor is properly rendered.
-              MarkdownBody(
-                data: _convertMentionsForMarkdown(
-                  MarkdownToQuillConverter.documentToMarkdown(
-                    _quillController!.document,
-                  ),
-                ),
-                selectable: true,
-                onTapLink: (text, href, title) {
-                  if (href != null && href.startsWith('mention:')) {
-                    final parts = href.substring('mention:'.length).split(':');
-                    if (parts.length >= 2) {
-                      final type = parts[0];
-                      final id = parts.sublist(1).join(':');
-                      MentionNavigator.navigateToMention(
-                        context,
-                        ref,
-                        MentionLink(
-                          title: text.replaceFirst('\u2060@', ''),
-                          type: type,
-                          id: id,
-                          start: 0,
-                          end: 0,
-                        ),
-                      );
-                    }
-                  }
-                },
-                styleSheet: SmartMarkdownHelper.createStyleSheet(context)
-                    .copyWith(
-                      p: Theme.of(context).textTheme.bodyLarge,
-                      listBullet: Theme.of(context).textTheme.bodyLarge,
-                      code: AppTheme.getCodeTextStyle(context).copyWith(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.1),
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
+              SelectionArea(
+                child: MarkdownBody(
+                  data: _convertMentionsForMarkdown(
+                    MarkdownToQuillConverter.documentToMarkdown(
+                      _quillController!.document,
                     ),
+                  ),
+                  selectable: false,
+                  builders: {'pre': CodeBlockMarkdownBuilder()},
+                  onTapLink: (text, href, title) {
+                    if (href != null && href.startsWith('mention:')) {
+                      final parts = href
+                          .substring('mention:'.length)
+                          .split(':');
+                      if (parts.length >= 2) {
+                        final type = parts[0];
+                        final id = parts.sublist(1).join(':');
+                        MentionNavigator.navigateToMention(
+                          context,
+                          ref,
+                          MentionLink(
+                            title: text.replaceFirst('\u2060@', ''),
+                            type: type,
+                            id: id,
+                            start: 0,
+                            end: 0,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  styleSheet: SmartMarkdownHelper.createStyleSheet(context)
+                      .copyWith(
+                        p: Theme.of(context).textTheme.bodyLarge,
+                        listBullet: Theme.of(context).textTheme.bodyLarge,
+                        code: AppTheme.getCodeTextStyle(context).copyWith(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.1),
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                ),
               )
             else if (_getCleanContentWithoutTitleAndSubtitle(
               _currentNote.content,
             ).isNotEmpty)
-              MarkdownBody(
-                data: _convertMentionsForMarkdown(
-                  _getCleanContentWithoutTitleAndSubtitle(_currentNote.content),
-                ),
-                selectable: true,
-                onTapLink: (text, href, title) {
-                  if (href != null && href.startsWith('mention:')) {
-                    final parts = href.substring('mention:'.length).split(':');
-                    if (parts.length >= 2) {
-                      final type = parts[0];
-                      final id = parts.sublist(1).join(':');
-                      MentionNavigator.navigateToMention(
-                        context,
-                        ref,
-                        MentionLink(
-                          title: text.replaceFirst('\u2060@', ''),
-                          type: type,
-                          id: id,
-                          start: 0,
-                          end: 0,
-                        ),
-                      );
-                    }
-                  }
-                },
-                styleSheet: SmartMarkdownHelper.createCompactStyleSheet(context)
-                    .copyWith(
-                      p: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge, // Larger body text
-                      listBullet: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge, // Larger list text
-                      code: AppTheme.getCodeTextStyle(context).copyWith(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.1),
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
+              SelectionArea(
+                child: MarkdownBody(
+                  data: _convertMentionsForMarkdown(
+                    _getCleanContentWithoutTitleAndSubtitle(
+                      _currentNote.content,
                     ),
+                  ),
+                  selectable: false,
+                  builders: {'pre': CodeBlockMarkdownBuilder()},
+                  onTapLink: (text, href, title) {
+                    if (href != null && href.startsWith('mention:')) {
+                      final parts = href
+                          .substring('mention:'.length)
+                          .split(':');
+                      if (parts.length >= 2) {
+                        final type = parts[0];
+                        final id = parts.sublist(1).join(':');
+                        MentionNavigator.navigateToMention(
+                          context,
+                          ref,
+                          MentionLink(
+                            title: text.replaceFirst('\u2060@', ''),
+                            type: type,
+                            id: id,
+                            start: 0,
+                            end: 0,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  styleSheet:
+                      SmartMarkdownHelper.createCompactStyleSheet(
+                        context,
+                      ).copyWith(
+                        p: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge, // Larger body text
+                        listBullet: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge, // Larger list text
+                        code: AppTheme.getCodeTextStyle(context).copyWith(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.1),
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                ),
               )
             else
               Center(

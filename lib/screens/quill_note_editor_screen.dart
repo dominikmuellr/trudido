@@ -40,6 +40,10 @@ import '../widgets/floating_note_toolbar.dart';
 import '../widgets/quill_toolbar_widgets.dart';
 import '../widgets/note_editor_dialogs.dart';
 import '../widgets/note_editor_controls.dart';
+import '../widgets/code_language_picker.dart';
+import '../widgets/code_block_markdown_builder.dart';
+import '../utils/syntax_highlighter.dart';
+import '../utils/language_detector.dart';
 import '../providers/app_providers.dart';
 import '../services/preferences_service.dart';
 import '../controllers/preferences_controller.dart';
@@ -168,6 +172,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   // Cached placeholder visibility (updated in listener, read in build)
   bool _showPlaceholder = true;
 
+  // Track whether cursor is currently inside a code block (for textCapitalization)
+  bool _cursorInCodeBlock = false;
+
   // Checkbox: Enter-key auto-uncheck subscription
   // (Visual strikethrough is applied via textSpanBuilder, not stored in the
   // document, so no document-mutation logic is needed here.)
@@ -224,6 +231,34 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     _onQuillMentionCheck();
     _updatePlaceholderCache();
     _maybeEscapeCodeBlock();
+    _updateCursorInCodeBlock();
+  }
+
+  /// Update [_cursorInCodeBlock] flag and trigger rebuild when it changes
+  /// so that [textCapitalization] switches between sentences / none.
+  bool _reconnectingInput = false;
+  void _updateCursorInCodeBlock() {
+    final style = _quillController.getSelectionStyle();
+    final inCode = style.attributes.containsKey(
+      quill.Attribute.codeBlock.key,
+    );
+    if (inCode != _cursorInCodeBlock) {
+      _cursorInCodeBlock = inCode;
+      if (mounted) {
+        setState(() {});
+        // Force text input reconnect so the new textCapitalization takes effect.
+        if (_focusNode.hasFocus && !_reconnectingInput) {
+          _reconnectingInput = true;
+          _focusNode.unfocus();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _focusNode.requestFocus();
+              _reconnectingInput = false;
+            }
+          });
+        }
+      }
+    }
   }
 
   /// Implements "double Enter on empty code-block line" to escape the block.
@@ -985,7 +1020,20 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
 
   void _insertCodeBlock() {
     final index = _quillController.selection.baseOffset;
-    _quillController.formatText(index, 0, quill.Attribute.codeBlock);
+    showDialog<String>(
+      context: context,
+      builder: (context) => const CodeLanguagePickerDialog(),
+    ).then((language) {
+      if (language == null || !mounted) return;
+      // Store language as the code-block attribute value.
+      // Quill internally checks containsKey('code-block'), not the value,
+      // so a string value works seamlessly.
+      final attr = quill.Attribute.clone(
+        quill.Attribute.codeBlock,
+        language == 'plaintext' ? true : language,
+      );
+      _quillController.formatText(index, 0, attr);
+    });
   }
 
   Future<void> _loadNote() async {
@@ -2786,6 +2834,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                   ),
                                 ),
                                 selectable: false,
+                                builders: {
+                                  'pre': CodeBlockMarkdownBuilder(),
+                                },
                                 styleSheet:
                                     SmartMarkdownHelper.createStyleSheet(
                                       context,
@@ -2810,6 +2861,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                     config: quill.QuillEditorConfig(
                                       showCursor: !_isReadMode,
                                       enableInteractiveSelection: !_isReadMode,
+                                      textCapitalization: _cursorInCodeBlock
+                                          ? TextCapitalization.none
+                                          : TextCapitalization.sentences,
                                       onLaunchUrl: (url) {
                                         // Flutter Quill prepends https:// to
                                         // URLs it considers invalid (like mention:)
@@ -2880,6 +2934,46 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                                           ),
                                                   );
                                             }
+                                            // Syntax-highlight code-block text in edit mode.
+                                            final codeBlockAttr = node
+                                                .parent
+                                                ?.style
+                                                .attributes[quill
+                                                    .Attribute
+                                                    .codeBlock
+                                                    .key];
+                                            if (codeBlockAttr != null) {
+                                              final lang =
+                                                  codeBlockAttr.value;
+                                              final language = (lang
+                                                          is String &&
+                                                      lang.isNotEmpty &&
+                                                      lang != 'true')
+                                                  ? lang
+                                                  : null;
+                                              final brightness =
+                                                  Theme.of(context)
+                                                      .brightness;
+                                              final highlighted =
+                                                  CodeSyntaxHighlighter
+                                                      .highlightToSpans(
+                                                        text,
+                                                        language,
+                                                        brightness,
+                                                      );
+                                              if (highlighted.children !=
+                                                      null &&
+                                                  highlighted
+                                                      .children!
+                                                      .isNotEmpty) {
+                                                return TextSpan(
+                                                  style: effectiveStyle,
+                                                  children:
+                                                      highlighted.children,
+                                                );
+                                              }
+                                            }
+
                                             return TextSpan(
                                               text: text,
                                               style: effectiveStyle,
@@ -3001,6 +3095,56 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                         LinkEmbedBuilder(),
                                         TableEmbedBuilder(),
                                       ],
+                                      customLeadingBlockBuilder:
+                                          (node, config) {
+                                            // Show language badge on first line
+                                            // of code blocks in the editor.
+                                            if (config.attribute.key !=
+                                                quill.Attribute.codeBlock.key) {
+                                              return null;
+                                            }
+                                            if (config.index != 1) return null;
+                                            final lang = config.attribute.value;
+                                            String? displayLang;
+                                            if (lang is String &&
+                                                lang.isNotEmpty &&
+                                                lang != 'plaintext') {
+                                              displayLang = lang;
+                                            } else {
+                                              // Auto-detect language from block content.
+                                              final block = node.parent;
+                                              if (block != null) {
+                                                final buf = StringBuffer();
+                                                for (final child
+                                                    in block.children) {
+                                                  buf.writeln(
+                                                    child.toPlainText(),
+                                                  );
+                                                }
+                                                final detected =
+                                                    LanguageDetector
+                                                        .detectLanguage(
+                                                          buf.toString(),
+                                                        );
+                                                if (detected != 'plaintext') {
+                                                  displayLang = detected;
+                                                }
+                                              }
+                                            }
+                                            if (displayLang == null) {
+                                              return null;
+                                            }
+                                            return Padding(
+                                              padding: const EdgeInsets.only(
+                                                left: 4,
+                                                top: 2,
+                                              ),
+                                              child: LanguageBadge(
+                                                language: displayLang,
+                                                fontSize: 9,
+                                              ),
+                                            );
+                                          },
                                       padding: EdgeInsets.only(
                                         left: 16,
                                         right: 16,

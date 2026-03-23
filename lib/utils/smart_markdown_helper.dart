@@ -17,6 +17,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../services/theme_service.dart';
+import 'syntax_highlighter.dart';
 
 /// Utility class for creating markdown stylesheets with smart blockquote colors and syntax highlighting
 class SmartMarkdownHelper {
@@ -402,6 +403,7 @@ class SmartMarkdownHelper {
     BuildContext context,
   ) {
     return (String text, String? language) {
+      final brightness = Theme.of(context).brightness;
       return Container(
         width: double.infinity,
         margin: const EdgeInsets.symmetric(vertical: 8),
@@ -419,7 +421,7 @@ class SmartMarkdownHelper {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Optional language label
+            // Language badge
             if (language != null && language.isNotEmpty) ...[
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -441,13 +443,12 @@ class SmartMarkdownHelper {
               ),
               const SizedBox(height: 8),
             ],
-            // Code content
-            SelectableText(
-              text,
-              style: AppTheme.getCodeTextStyle(context).copyWith(
-                fontSize: 13,
-                color: _getCodeTextColor(context),
-                height: 1.4,
+            // Syntax-highlighted code content
+            RichText(
+              text: CodeSyntaxHighlighter.highlightToSpans(
+                text,
+                language,
+                brightness,
               ),
             ),
           ],

@@ -124,6 +124,8 @@ dependencies:
   device_calendar_plus: ^0.3.3
   share_plus: ^12.0.1
   flex_color_picker: ^3.7.2
+  highlight: ^0.7.0
+  markdown: ^7.3.0
 
 dev_dependencies:
   flutter_test:

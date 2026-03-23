@@ -67,7 +67,16 @@ class MarkdownToQuillConverter {
         _insertInlineFormatting(delta, text);
         delta.insert('\n', {'blockquote': true});
       } else if (line.trim().startsWith('```')) {
-        // Skip opening ```
+        // Parse optional language identifier after opening ```
+        final openFence = line.trim();
+        final language = openFence.length > 3
+            ? openFence.substring(3).trim()
+            : '';
+        // Store language as the code-block attribute value when present,
+        // otherwise fall back to boolean true for plain code blocks.
+        final dynamic codeBlockValue =
+            language.isNotEmpty ? language : true;
+
         if (i + 1 < lines.length) {
           i++; // Move to first code line
           // Each line gets its own code-block terminator so Quill treats
@@ -76,7 +85,7 @@ class MarkdownToQuillConverter {
             if (lines[i].isNotEmpty) {
               delta.insert(lines[i]);
             }
-            delta.insert('\n', {'code-block': true});
+            delta.insert('\n', {'code-block': codeBlockValue});
             i++;
           }
           // 'i' now points to the closing ```; outer for-loop increments past it.
@@ -153,10 +162,14 @@ class MarkdownToQuillConverter {
       final line = lineBuffer.toString();
       lineBuffer.clear();
 
-      // Code-block lines: accumulate under a single ``` fence
-      if (blockAttrs != null && blockAttrs['code-block'] == true) {
+      // Code-block lines: accumulate under a single ``` fence.
+      // The value is either true (no language) or a language string.
+      if (blockAttrs != null && blockAttrs['code-block'] != null) {
         if (!inCodeBlock) {
-          output.write('```\n');
+          final lang = blockAttrs['code-block'];
+          final langSuffix =
+              (lang is String && lang.isNotEmpty) ? lang : '';
+          output.write('```$langSuffix\n');
           inCodeBlock = true;
         }
         output.write('$line\n');
