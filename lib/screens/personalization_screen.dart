@@ -1176,12 +1176,14 @@ String _getFontDisplayName(String fontFamily) {
       return 'Roboto';
     case 'opensans':
       return 'Open Sans';
+    case 'inter':
+      return 'Inter (Default)';
     case 'jetbrains':
       return 'JetBrains Mono';
     case 'lexend':
-      return 'Lexend (Default)';
+      return 'Lexend';
     default:
-      return 'Lexend (Default)';
+      return 'Inter (Default)';
   }
 }
 
@@ -1200,6 +1202,15 @@ void _showFontPicker(BuildContext context, WidgetRef ref) {
             'Choose Font',
             style: Theme.of(context).textTheme.titleLarge,
           ),
+        ),
+        _buildFontOption(
+          context,
+          controller,
+          currentFont,
+          'inter',
+          'Inter',
+          'Modern, geometric UI typeface',
+          Icons.text_fields,
         ),
         _buildFontOption(
           context,

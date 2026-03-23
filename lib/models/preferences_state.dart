@@ -261,7 +261,7 @@ class PreferencesState {
     defaultTaskView: 'list', // Default: list view
     defaultNotesFolderId: null, // Default: All Notes
     hapticsEnabled: true, // Default: haptic feedback enabled
-    fontFamily: 'lexend', // Default: Lexend font (optimized for readability)
+    fontFamily: 'inter', // Default: Inter font (modern, geometric UI typeface)
     timeFormat: 'system', // Default: auto-detect from device locale
     lineHeightMultiplier: 1.2,
     paragraphSpacing: 8.0,

@@ -227,6 +227,7 @@ class PreferencesService {
     switch (v) {
       case 'roboto':
       case 'opensans':
+      case 'inter':
       case 'jetbrains':
       case 'lexend':
         return v!;

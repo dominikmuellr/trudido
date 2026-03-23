@@ -175,6 +175,11 @@ flutter:
   # Variable fonts for customization and reduced APK size
   # Users can switch between fonts in Personalization settings
   fonts:
+    # Inter - Modern, geometric typeface designed for UI (860 KB)
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Variable.ttf
+
     # Open Sans - Clean, neutral (520 KB)
     - family: OpenSans
       fonts:

@@ -164,8 +164,7 @@ class AppTheme {
       case 'opensans':
         return 'OpenSans';
       case 'inter':
-      case 'atkinson':
-        return 'OpenSans';
+        return 'Inter';
       case 'jetbrains':
         return 'JetBrainsMono';
       case 'lexend':
