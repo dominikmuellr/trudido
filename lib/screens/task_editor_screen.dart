@@ -539,11 +539,6 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
                   ? colorScheme.primaryContainer
                   : colorScheme.surfaceContainerHighest,
               borderRadius: SpacingBorderRadius.md,
-              border: Border.all(
-                color: isSelected
-                    ? colorScheme.primary.withValues(alpha: 0.3)
-                    : colorScheme.outline.withValues(alpha: 0.2),
-              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

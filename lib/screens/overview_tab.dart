@@ -989,10 +989,7 @@ class _RecentSettingsSection extends ConsumerWidget {
                     label: Text(label),
                     onPressed: () => _navigateTo(context, ref, key),
                     backgroundColor: colorScheme.surfaceContainerLow,
-                    side: BorderSide(
-                      color: colorScheme.outlineVariant,
-                      width: 0.5,
-                    ),
+                    side: BorderSide.none,
                   ),
                 );
               }).toList(),

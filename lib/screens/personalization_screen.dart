@@ -1173,7 +1173,7 @@ class _AccentColorSheet extends StatelessWidget {
 String _getFontDisplayName(String fontFamily) {
   switch (fontFamily) {
     case 'roboto':
-      return 'Roboto (System)';
+      return 'Roboto';
     case 'opensans':
       return 'Open Sans';
     case 'jetbrains':
@@ -1207,7 +1207,7 @@ void _showFontPicker(BuildContext context, WidgetRef ref) {
           currentFont,
           'roboto',
           'Roboto',
-          'System default',
+          'Material default',
           Icons.android,
         ),
         _buildFontOption(

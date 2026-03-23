@@ -220,10 +220,9 @@ class _CustomThemeListScreenState extends ConsumerState<CustomThemeListScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isActive ? colorScheme.primary : colorScheme.outlineVariant,
-          width: isActive ? 2 : 1,
-        ),
+        side: isActive
+            ? BorderSide(color: colorScheme.primary, width: 2)
+            : BorderSide.none,
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),

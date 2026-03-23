@@ -239,9 +239,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   bool _reconnectingInput = false;
   void _updateCursorInCodeBlock() {
     final style = _quillController.getSelectionStyle();
-    final inCode = style.attributes.containsKey(
-      quill.Attribute.codeBlock.key,
-    );
+    final inCode = style.attributes.containsKey(quill.Attribute.codeBlock.key);
     if (inCode != _cursorInCodeBlock) {
       _cursorInCodeBlock = inCode;
       if (mounted) {
@@ -2834,9 +2832,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                   ),
                                 ),
                                 selectable: false,
-                                builders: {
-                                  'pre': CodeBlockMarkdownBuilder(),
-                                },
+                                builders: {'pre': CodeBlockMarkdownBuilder()},
                                 styleSheet:
                                     SmartMarkdownHelper.createStyleSheet(
                                       context,
@@ -2935,32 +2931,38 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                                   );
                                             }
                                             // Syntax-highlight code-block text in edit mode.
-                                            final codeBlockAttr = node
-                                                .parent
-                                                ?.style
-                                                .attributes[quill
+                                            final codeBlockAttr =
+                                                node
+                                                    .parent
+                                                    ?.style
+                                                    .attributes[quill
                                                     .Attribute
                                                     .codeBlock
                                                     .key];
                                             if (codeBlockAttr != null) {
-                                              final lang =
-                                                  codeBlockAttr.value;
-                                              final language = (lang
-                                                          is String &&
+                                              // Ensure monospace font is always applied
+                                              // regardless of whether Quill propagates
+                                              // the block-level text style to the leaf.
+                                              effectiveStyle = effectiveStyle
+                                                  .copyWith(
+                                                    fontFamily: 'monospace',
+                                                  );
+                                              final lang = codeBlockAttr.value;
+                                              final language =
+                                                  (lang is String &&
                                                       lang.isNotEmpty &&
                                                       lang != 'true')
                                                   ? lang
                                                   : null;
-                                              final brightness =
-                                                  Theme.of(context)
-                                                      .brightness;
+                                              final brightness = Theme.of(
+                                                context,
+                                              ).brightness;
                                               final highlighted =
-                                                  CodeSyntaxHighlighter
-                                                      .highlightToSpans(
-                                                        text,
-                                                        language,
-                                                        brightness,
-                                                      );
+                                                  CodeSyntaxHighlighter.highlightToSpans(
+                                                    text,
+                                                    language,
+                                                    brightness,
+                                                  );
                                               if (highlighted.children !=
                                                       null &&
                                                   highlighted
@@ -3095,56 +3097,52 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                         LinkEmbedBuilder(),
                                         TableEmbedBuilder(),
                                       ],
-                                      customLeadingBlockBuilder:
-                                          (node, config) {
-                                            // Show language badge on first line
-                                            // of code blocks in the editor.
-                                            if (config.attribute.key !=
-                                                quill.Attribute.codeBlock.key) {
-                                              return null;
+                                      customLeadingBlockBuilder: (node, config) {
+                                        // Show language badge on first line
+                                        // of code blocks in the editor.
+                                        if (config.attribute.key !=
+                                            quill.Attribute.codeBlock.key) {
+                                          return null;
+                                        }
+                                        if (config.index != 1) return null;
+                                        final lang = config.attribute.value;
+                                        String? displayLang;
+                                        if (lang is String &&
+                                            lang.isNotEmpty &&
+                                            lang != 'plaintext') {
+                                          displayLang = lang;
+                                        } else {
+                                          // Auto-detect language from block content.
+                                          final block = node.parent;
+                                          if (block != null) {
+                                            final buf = StringBuffer();
+                                            for (final child
+                                                in block.children) {
+                                              buf.writeln(child.toPlainText());
                                             }
-                                            if (config.index != 1) return null;
-                                            final lang = config.attribute.value;
-                                            String? displayLang;
-                                            if (lang is String &&
-                                                lang.isNotEmpty &&
-                                                lang != 'plaintext') {
-                                              displayLang = lang;
-                                            } else {
-                                              // Auto-detect language from block content.
-                                              final block = node.parent;
-                                              if (block != null) {
-                                                final buf = StringBuffer();
-                                                for (final child
-                                                    in block.children) {
-                                                  buf.writeln(
-                                                    child.toPlainText(),
-                                                  );
-                                                }
-                                                final detected =
-                                                    LanguageDetector
-                                                        .detectLanguage(
-                                                          buf.toString(),
-                                                        );
-                                                if (detected != 'plaintext') {
-                                                  displayLang = detected;
-                                                }
-                                              }
+                                            final detected =
+                                                LanguageDetector.detectLanguage(
+                                                  buf.toString(),
+                                                );
+                                            if (detected != 'plaintext') {
+                                              displayLang = detected;
                                             }
-                                            if (displayLang == null) {
-                                              return null;
-                                            }
-                                            return Padding(
-                                              padding: const EdgeInsets.only(
-                                                left: 4,
-                                                top: 2,
-                                              ),
-                                              child: LanguageBadge(
-                                                language: displayLang,
-                                                fontSize: 9,
-                                              ),
-                                            );
-                                          },
+                                          }
+                                        }
+                                        if (displayLang == null) {
+                                          return null;
+                                        }
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: 4,
+                                            top: 2,
+                                          ),
+                                          child: LanguageBadge(
+                                            language: displayLang,
+                                            fontSize: 9,
+                                          ),
+                                        );
+                                      },
                                       padding: EdgeInsets.only(
                                         left: 16,
                                         right: 16,

@@ -158,7 +158,7 @@ class AppTheme {
   static const Color lowPriority = Color(0xFF81C784);
 
   /// Maps user font preference to actual font family name
-  /// Returns null for system default (Roboto on Android)
+  /// Returns null for Flutter/Material default (Roboto on Android, SF on iOS)
   static String? _getFontFamily(String? preference) {
     switch (preference) {
       case 'opensans':
@@ -172,14 +172,14 @@ class AppTheme {
         return 'Lexend';
       case 'roboto':
       default:
-        return null; // null = use system default font (Roboto on Android)
+        return null; // null = use Flutter/Material default (Roboto on Android, SF on iOS)
     }
   }
 
   /// Creates a comprehensive text theme with customizable font family
   static TextTheme _buildTextTheme(Brightness brightness, String? fontFamily) {
     // Map font preference to actual font family name
-    // null or 'roboto' = use system default (Roboto on Android)
+    // null or 'roboto' = use Flutter/Material platform default
     final String? actualFontFamily = _getFontFamily(fontFamily);
 
     final baseTextTheme = brightness == Brightness.light
@@ -549,7 +549,7 @@ class AppTheme {
         labelStyle: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
         secondaryLabelStyle: TextStyle(fontSize: 12, color: scheme.onSurface),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        side: BorderSide(color: scheme.outlineVariant),
+        side: BorderSide.none,
         iconTheme: IconThemeData(color: scheme.onSurfaceVariant, size: 18),
       ),
       // Material 3 PopupMenu styling
@@ -780,7 +780,7 @@ class AppTheme {
         labelStyle: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
         secondaryLabelStyle: TextStyle(fontSize: 12, color: scheme.onSurface),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        side: BorderSide(color: scheme.outlineVariant),
+        side: BorderSide.none,
         iconTheme: IconThemeData(color: scheme.onSurfaceVariant, size: 18),
       ),
       // Material 3 PopupMenu styling

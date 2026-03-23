@@ -459,8 +459,9 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
 
   String _getEndDateLabel() {
     final now = ref.read(clockProvider).now();
-    if (_endDate == null || _endDate == _startDate)
+    if (_endDate == null || _endDate == _startDate) {
       return 'Same day (tap to set end date)';
+    }
     return 'End: ${DateFormatters.formatSmart(_endDate!, now: now, includeTime: false)}';
   }
 
@@ -543,11 +544,6 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                   ? colorScheme.primaryContainer
                   : colorScheme.surfaceContainerHighest,
               borderRadius: SpacingBorderRadius.md,
-              border: Border.all(
-                color: isSelected
-                    ? colorScheme.primary.withValues(alpha: 0.3)
-                    : colorScheme.outline.withValues(alpha: 0.2),
-              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

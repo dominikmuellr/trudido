@@ -295,10 +295,10 @@ class NotePreviewCard extends ConsumerWidget {
           final highlighted = CodeSyntaxHighlighter.highlightToSpans(
             trimmed, lang, brightness,
           );
-          final groupChildren = highlighted.children;
-          codeBlockGroupSpans[groupStart] = (groupChildren != null && groupChildren.isNotEmpty)
-              ? List<InlineSpan>.from(groupChildren)
-              : [highlighted];
+          // Always use the full highlighted TextSpan (not just its children)
+          // so that the monospace font and theme-correct default color
+          // (from baseStyle + _defaultColor) are preserved via style inheritance.
+          codeBlockGroupSpans[groupStart] = [highlighted];
           groupStart = -1;
           lineBufferStart = -1;
           codeText.clear();
