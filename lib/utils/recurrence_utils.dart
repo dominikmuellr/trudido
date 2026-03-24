@@ -122,8 +122,33 @@ class RecurrenceUtils {
         break;
 
       case 'custom':
-        // Custom logic already handled by other cases with intervals and days
-        return null;
+        if (todo.repeatDays != null && todo.repeatDays!.isNotEmpty) {
+          final interval = todo.repeatInterval ?? 1;
+          final sorted = List<int>.from(todo.repeatDays!)..sort();
+          nextDate = currentDue;
+          int attempts = 0;
+          while (attempts < 365) {
+            nextDate = nextDate.add(const Duration(days: 1));
+            if (sorted.contains(nextDate.weekday) && nextDate.isAfter(now)) {
+              if (interval == 1) {
+                break;
+              } else {
+                final weeksSinceStart =
+                    nextDate.difference(currentDue).inDays ~/ 7;
+                if (weeksSinceStart % interval == 0) {
+                  break;
+                }
+              }
+            }
+            attempts++;
+          }
+        } else {
+          final interval = todo.repeatInterval ?? 1;
+          while (nextDate.isBefore(now) || _isSameDay(nextDate, now)) {
+            nextDate = nextDate.add(Duration(days: interval));
+          }
+        }
+        break;
 
       default:
         return null;

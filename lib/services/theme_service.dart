@@ -189,34 +189,34 @@ class AppTheme {
     return baseTextTheme.copyWith(
       displayLarge: baseTextTheme.displayLarge?.copyWith(
         fontFamily: actualFontFamily,
-        fontWeight: FontWeight.w400,
+        fontWeight: FontWeight.w500,
         letterSpacing: -1.5,
       ),
       displayMedium: baseTextTheme.displayMedium?.copyWith(
         fontFamily: actualFontFamily,
-        fontWeight: FontWeight.w400,
+        fontWeight: FontWeight.w500,
         letterSpacing: -0.5,
       ),
       displaySmall: baseTextTheme.displaySmall?.copyWith(
         fontFamily: actualFontFamily,
-        fontWeight: FontWeight.w400,
+        fontWeight: FontWeight.w500,
       ),
       headlineLarge: baseTextTheme.headlineLarge?.copyWith(
         fontFamily: actualFontFamily,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         letterSpacing: 0.25,
       ),
       headlineMedium: baseTextTheme.headlineMedium?.copyWith(
         fontFamily: actualFontFamily,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
       ),
       headlineSmall: baseTextTheme.headlineSmall?.copyWith(
         fontFamily: actualFontFamily,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
       ),
       titleLarge: baseTextTheme.titleLarge?.copyWith(
         fontFamily: actualFontFamily,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         letterSpacing: 0.15,
       ),
       titleMedium: baseTextTheme.titleMedium?.copyWith(
@@ -315,17 +315,38 @@ class AppTheme {
     return hsl.withLightness(lightness).toColor();
   }
 
-  /// Enhance dark mode contrast by lightening surfaces and text
-  static ColorScheme _enhanceDarkContrast(ColorScheme darkScheme) {
+  /// Boost saturation of a color by a multiplier (clamped to 1.0).
+  static Color _boostSaturation(Color color, double factor) {
+    final hsl = HSLColor.fromColor(color);
+    return hsl
+        .withSaturation((hsl.saturation * factor).clamp(0.0, 1.0))
+        .toColor();
+  }
+
+  /// Enhance dark mode: lighten surfaces & text for contrast, boost surface
+  /// container saturation so the accent hue is clearly visible.
+  static ColorScheme _enhanceDarkExpressiveness(ColorScheme darkScheme) {
     return darkScheme.copyWith(
-      // Make surfaces slightly lighter for better contrast with background
-      surfaceContainerLowest: _lighten(darkScheme.surfaceContainerLowest, 0.05),
-      surfaceContainerLow: _lighten(darkScheme.surfaceContainerLow, 0.08),
-      surfaceContainer: _lighten(darkScheme.surfaceContainer, 0.08),
-      surfaceContainerHigh: _lighten(darkScheme.surfaceContainerHigh, 0.10),
-      surfaceContainerHighest: _lighten(
-        darkScheme.surfaceContainerHighest,
-        0.12,
+      // Lighten + boost saturation for visible hue-tinted surfaces
+      surfaceContainerLowest: _boostSaturation(
+        _lighten(darkScheme.surfaceContainerLowest, 0.05),
+        1.3,
+      ),
+      surfaceContainerLow: _boostSaturation(
+        _lighten(darkScheme.surfaceContainerLow, 0.08),
+        1.3,
+      ),
+      surfaceContainer: _boostSaturation(
+        _lighten(darkScheme.surfaceContainer, 0.08),
+        1.3,
+      ),
+      surfaceContainerHigh: _boostSaturation(
+        _lighten(darkScheme.surfaceContainerHigh, 0.10),
+        1.3,
+      ),
+      surfaceContainerHighest: _boostSaturation(
+        _lighten(darkScheme.surfaceContainerHighest, 0.12),
+        1.3,
       ),
       // Make text slightly brighter for better readability
       onSurface: _lighten(darkScheme.onSurface, 0.05),
@@ -365,7 +386,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         elevation:
             0, // Material 3 January 2026: use tone-based surfaces instead of elevation
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         color: scheme.surfaceContainerLow, // Material 3 elevated surface
       ),
       // Material 3 January 2026: FABs use Enhanced (secondary) container colors
@@ -379,32 +400,31 @@ class AppTheme {
         highlightElevation: 0,
       ),
       // Material 3 January 2026: Filled input fields (primary style)
-      // Removes hybrid filled+outlined pattern in favor of pure filled style
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: scheme.surfaceContainerHighest,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none, // Pure filled style - no outline
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: scheme.error, width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: scheme.error, width: 2),
         ),
         disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
         ),
         labelStyle: TextStyle(color: scheme.onSurfaceVariant),
@@ -423,7 +443,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ButtonStyle(
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           padding: const WidgetStatePropertyAll(
             EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -459,7 +479,7 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: ButtonStyle(
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           padding: const WidgetStatePropertyAll(
             EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -482,7 +502,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: ButtonStyle(
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           padding: const WidgetStatePropertyAll(
             EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -516,7 +536,7 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: ButtonStyle(
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           padding: const WidgetStatePropertyAll(
             EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -544,17 +564,20 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: scheme.surfaceContainerHighest,
-        selectedColor: scheme.primary.withValues(alpha: 0.25),
-        labelStyle: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
-        secondaryLabelStyle: TextStyle(fontSize: 12, color: scheme.onSurface),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        side: BorderSide.none,
+        selectedColor: scheme.primaryContainer,
+        labelStyle: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+        secondaryLabelStyle: TextStyle(
+          fontSize: 13,
+          color: scheme.onPrimaryContainer,
+        ),
+        shape: const StadiumBorder(),
+        side: BorderSide(color: scheme.outline.withValues(alpha: 0.35)),
         iconTheme: IconThemeData(color: scheme.onSurfaceVariant, size: 18),
       ),
       // Material 3 PopupMenu styling
       popupMenuTheme: PopupMenuThemeData(
         elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         color: scheme.surfaceContainer,
       ),
       // Material 3 Dialog styling
@@ -562,6 +585,39 @@ class AppTheme {
         elevation: 6,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         backgroundColor: scheme.surfaceContainerHigh,
+      ),
+      // Bottom sheet styling
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: scheme.surfaceContainer,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+      ),
+      // Navigation bar styling (Android 14+ feel)
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: scheme.surfaceContainer,
+        indicatorColor: scheme.primaryContainer,
+        elevation: 0,
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return IconThemeData(color: scheme.onPrimaryContainer);
+          }
+          return IconThemeData(color: scheme.onSurfaceVariant);
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return TextStyle(
+              color: scheme.primary,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            );
+          }
+          return TextStyle(
+            color: scheme.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
+            fontSize: 12,
+          );
+        }),
       ),
       // Icon button styling for three-dot menus
       iconButtonTheme: IconButtonThemeData(
@@ -596,7 +652,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         elevation:
             0, // Material 3 January 2026: use tone-based surfaces instead of elevation
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         color: scheme.surfaceContainerLow, // Material 3 elevated surface
       ),
       // Material 3 January 2026: FABs use Enhanced (secondary) container colors
@@ -610,32 +666,31 @@ class AppTheme {
         highlightElevation: 0,
       ),
       // Material 3 January 2026: Filled input fields (primary style)
-      // Removes hybrid filled+outlined pattern in favor of pure filled style
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: scheme.surfaceContainerHighest,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none, // Pure filled style - no outline
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: scheme.error, width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: scheme.error, width: 2),
         ),
         disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
         ),
         labelStyle: TextStyle(color: scheme.onSurfaceVariant),
@@ -654,7 +709,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ButtonStyle(
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           padding: const WidgetStatePropertyAll(
             EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -690,7 +745,7 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: ButtonStyle(
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           padding: const WidgetStatePropertyAll(
             EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -713,7 +768,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: ButtonStyle(
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           padding: const WidgetStatePropertyAll(
             EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -747,7 +802,7 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: ButtonStyle(
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           padding: const WidgetStatePropertyAll(
             EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -775,17 +830,20 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: scheme.surfaceContainerHighest,
-        selectedColor: scheme.primary.withValues(alpha: 0.25),
-        labelStyle: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
-        secondaryLabelStyle: TextStyle(fontSize: 12, color: scheme.onSurface),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        side: BorderSide.none,
+        selectedColor: scheme.primaryContainer,
+        labelStyle: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+        secondaryLabelStyle: TextStyle(
+          fontSize: 13,
+          color: scheme.onPrimaryContainer,
+        ),
+        shape: const StadiumBorder(),
+        side: BorderSide(color: scheme.outline.withValues(alpha: 0.35)),
         iconTheme: IconThemeData(color: scheme.onSurfaceVariant, size: 18),
       ),
       // Material 3 PopupMenu styling
       popupMenuTheme: PopupMenuThemeData(
         elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         color: scheme.surfaceContainer,
       ),
       // Material 3 Dialog styling
@@ -793,6 +851,39 @@ class AppTheme {
         elevation: 6,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         backgroundColor: scheme.surfaceContainerHigh,
+      ),
+      // Bottom sheet styling
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: scheme.surfaceContainer,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+      ),
+      // Navigation bar styling (Android 14+ feel)
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: scheme.surfaceContainer,
+        indicatorColor: scheme.primaryContainer,
+        elevation: 0,
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return IconThemeData(color: scheme.onPrimaryContainer);
+          }
+          return IconThemeData(color: scheme.onSurfaceVariant);
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return TextStyle(
+              color: scheme.primary,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            );
+          }
+          return TextStyle(
+            color: scheme.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
+            fontSize: 12,
+          );
+        }),
       ),
       // Icon button styling for three-dot menus
       iconButtonTheme: IconButtonThemeData(
@@ -1100,7 +1191,9 @@ class AppTheme {
       final monoDark = _createMonochromaticDarkScheme();
       light = _baseLight(dynamicLight ?? monoLight, fontFamily);
       dark = _baseDark(
-        dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : monoDark,
+        dynamicDark != null
+            ? _enhanceDarkExpressiveness(dynamicDark)
+            : monoDark,
         fontFamily,
       );
     }
@@ -1110,7 +1203,9 @@ class AppTheme {
       final greyDark = _createGreyDarkScheme();
       light = _baseLight(dynamicLight ?? greyLight, fontFamily);
       dark = _baseDark(
-        dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : greyDark,
+        dynamicDark != null
+            ? _enhanceDarkExpressiveness(dynamicDark)
+            : greyDark,
         fontFamily,
       );
     }
@@ -1120,7 +1215,9 @@ class AppTheme {
       final hackDark = _createHackDarkScheme();
       light = _baseLight(dynamicLight ?? hackLight, fontFamily);
       dark = _baseDark(
-        dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : hackDark,
+        dynamicDark != null
+            ? _enhanceDarkExpressiveness(dynamicDark)
+            : hackDark,
         fontFamily,
       );
     }
@@ -1131,7 +1228,9 @@ class AppTheme {
       // Use proper light/dark schemes with matching brightness
       light = _baseLight(dynamicLight ?? draculaLight, fontFamily);
       dark = _baseDark(
-        dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : draculaDark,
+        dynamicDark != null
+            ? _enhanceDarkExpressiveness(dynamicDark)
+            : draculaDark,
         fontFamily,
       );
     }
@@ -1142,7 +1241,9 @@ class AppTheme {
       // Use proper light/dark schemes with matching brightness
       light = _baseLight(dynamicLight ?? solarizedLight, fontFamily);
       dark = _baseDark(
-        dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : solarizedDark,
+        dynamicDark != null
+            ? _enhanceDarkExpressiveness(dynamicDark)
+            : solarizedDark,
         fontFamily,
       );
     } else {
@@ -1156,10 +1257,12 @@ class AppTheme {
         brightness: Brightness.dark,
       );
       // Boost dark mode contrast by adjusting surface colors
-      final enhancedDark = _enhanceDarkContrast(seedDark);
+      final enhancedDark = _enhanceDarkExpressiveness(seedDark);
       light = _baseLight(dynamicLight ?? seedLight, fontFamily);
       dark = _baseDark(
-        dynamicDark != null ? _enhanceDarkContrast(dynamicDark) : enhancedDark,
+        dynamicDark != null
+            ? _enhanceDarkExpressiveness(dynamicDark)
+            : enhancedDark,
         fontFamily,
       );
     }
@@ -1178,7 +1281,7 @@ class AppTheme {
         cardTheme: light.cardTheme.copyWith(
           margin: const EdgeInsets.symmetric(vertical: 4),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
       );
@@ -1195,7 +1298,7 @@ class AppTheme {
         cardTheme: dark.cardTheme.copyWith(
           margin: const EdgeInsets.symmetric(vertical: 4),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
       );
@@ -1313,19 +1416,68 @@ class AppTheme {
     return (light, dark);
   }
 
-  /// Derive a pure black variant of a dark ThemeData while keeping its ColorScheme.
+  /// Derive a true AMOLED-black variant of a dark theme with hue-tinted surfaces.
+  ///
+  /// Instead of flat grey, surface containers inherit the hue from the accent
+  /// color with decreasing saturation as lightness rises — giving an expressive
+  /// look that still saves power on OLED panels.
   static ThemeData blackify(ThemeData darkBase) {
     final cs = darkBase.colorScheme;
+
+    // Build a tinted near-black from the scheme's primary hue.
+    Color tintedBlack(Color source, double lightness, double satScale) {
+      final hsl = HSLColor.fromColor(source);
+      return HSLColor.fromAHSL(
+        1.0,
+        hsl.hue,
+        (hsl.saturation * satScale).clamp(0.0, 1.0),
+        lightness,
+      ).toColor();
+    }
+
+    final primary = cs.primary;
+    final newScheme = cs.copyWith(
+      surface: Colors.black,
+      surfaceContainerLowest: Colors.black,
+      surfaceContainerLow: tintedBlack(primary, 0.06, 0.65),
+      surfaceContainer: tintedBlack(primary, 0.10, 0.65),
+      surfaceContainerHigh: tintedBlack(primary, 0.13, 0.60),
+      surfaceContainerHighest: tintedBlack(primary, 0.17, 0.55),
+      outline: _darken(cs.outline, 0.35),
+      outlineVariant: _darken(cs.outlineVariant, 0.45),
+    );
+
     return darkBase.copyWith(
+      colorScheme: newScheme,
       scaffoldBackgroundColor: Colors.black,
       canvasColor: Colors.black,
-      cardColor: const Color(0xFF111111),
+      cardColor: newScheme.surfaceContainerLow,
       appBarTheme: darkBase.appBarTheme.copyWith(backgroundColor: Colors.black),
       navigationBarTheme: darkBase.navigationBarTheme.copyWith(
-        backgroundColor: Colors.black,
+        backgroundColor: newScheme.surfaceContainer,
       ),
-      colorScheme: cs.copyWith(surface: const Color(0xFF111111)),
-      dialogTheme: DialogThemeData(backgroundColor: const Color(0xFF111111)),
+      cardTheme: darkBase.cardTheme.copyWith(
+        color: newScheme.surfaceContainerLow,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide.none,
+        ),
+      ),
+      chipTheme: darkBase.chipTheme.copyWith(
+        side: BorderSide(color: newScheme.outline.withValues(alpha: 0.25)),
+      ),
+      dialogTheme: darkBase.dialogTheme.copyWith(
+        backgroundColor: newScheme.surfaceContainerHigh,
+      ),
+      bottomSheetTheme: darkBase.bottomSheetTheme.copyWith(
+        backgroundColor: newScheme.surfaceContainer,
+      ),
+      popupMenuTheme: darkBase.popupMenuTheme.copyWith(
+        color: newScheme.surfaceContainer,
+      ),
+      inputDecorationTheme: darkBase.inputDecorationTheme.copyWith(
+        fillColor: newScheme.surfaceContainerHighest,
+      ),
     );
   }
 

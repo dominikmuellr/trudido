@@ -407,7 +407,10 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
     // Don't apply black theme to Solarized (or other incompatible themes)
     final isSolarized =
         prefs.accentColorSeed == 0xFF268BD2 && !prefs.useDynamicColor;
-    final darkThemeEffective = (useBlack && !isSolarized)
+    // Monochrome theme always uses AMOLED black in dark mode
+    final isMonochrome =
+        prefs.accentColorSeed == 0xFF9E9E9E && !prefs.useDynamicColor;
+    final darkThemeEffective = ((useBlack || isMonochrome) && !isSolarized)
         ? AppTheme.blackify(themes.$2)
         : themes.$2;
 
@@ -438,7 +441,7 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
                 final currentTheme = Theme.of(context);
                 final overlayStyle = _createSystemUIOverlayStyle(
                   currentTheme.brightness,
-                  backgroundColor: currentTheme.scaffoldBackgroundColor,
+                  backgroundColor: currentTheme.colorScheme.surfaceContainer,
                 );
                 SystemChrome.setSystemUIOverlayStyle(overlayStyle);
 
@@ -611,7 +614,7 @@ class SystemNavigationBarHandler extends StatelessWidget {
     final currentTheme = Theme.of(context);
     final overlayStyle = _createSystemUIOverlayStyle(
       currentTheme.brightness,
-      backgroundColor: currentTheme.colorScheme.surface,
+      backgroundColor: currentTheme.colorScheme.surfaceContainer,
     );
 
     return AnnotatedRegion<SystemUiOverlayStyle>(

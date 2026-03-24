@@ -138,7 +138,12 @@ class EventController extends Notifier<AsyncValue<void>> {
 
       case 'weekly':
         final interval = event.repeatInterval ?? 1;
-        nextDate = currentStart.add(Duration(days: 7 * interval));
+        final weeklyDays = event.repeatDays;
+        if (weeklyDays != null && weeklyDays.isNotEmpty) {
+          nextDate = _nextSelectedDay(currentStart, weeklyDays, interval);
+        } else {
+          nextDate = currentStart.add(Duration(days: 7 * interval));
+        }
         break;
 
       case 'monthly':
@@ -183,7 +188,7 @@ class EventController extends Notifier<AsyncValue<void>> {
       case 'custom':
         if (event.repeatDays != null && event.repeatDays!.isNotEmpty) {
           final interval = event.repeatInterval ?? 1;
-          nextDate = currentStart.add(Duration(days: 7 * interval));
+          nextDate = _nextSelectedDay(currentStart, event.repeatDays!, interval);
         } else {
           final interval = event.repeatInterval ?? 1;
           nextDate = currentStart.add(Duration(days: interval));
@@ -199,6 +204,33 @@ class EventController extends Notifier<AsyncValue<void>> {
     }
 
     return nextDate;
+  }
+
+  /// Find the next date matching one of the selected [days] of the week.
+  /// If a later selected day exists in the same week, return that day.
+  /// Otherwise, advance to the first selected day of the next active week
+  /// (respecting the week [interval]).
+  static DateTime _nextSelectedDay(
+    DateTime current,
+    List<int> days,
+    int interval,
+  ) {
+    final sorted = List<int>.from(days)..sort();
+    final currentWeekday = current.weekday;
+
+    // Look for the next selected day later this week
+    for (final day in sorted) {
+      if (day > currentWeekday) {
+        return current.add(Duration(days: day - currentWeekday));
+      }
+    }
+
+    // No more selected days this week — jump to the first selected day
+    // of the next active week.
+    final daysUntilEndOfWeek = 7 - currentWeekday;
+    return current.add(
+      Duration(days: daysUntilEndOfWeek + (interval - 1) * 7 + sorted.first),
+    );
   }
 
   Future<void> delete(String id) async {

@@ -277,6 +277,8 @@ class _ThemeModeSheet extends ConsumerWidget {
         !isCustomTheme && accentColorSeed == 0xFFBD93F9 && !useDynamicColor;
     final isSolarizedTheme =
         !isCustomTheme && accentColorSeed == 0xFF268BD2 && !useDynamicColor;
+    final isMonochromeTheme =
+        !isCustomTheme && accentColorSeed == 0xFF9E9E9E && !useDynamicColor;
     final isDarkOnlyTheme = isHackTheme || isDraculaTheme;
     final isBlackIncompatibleTheme = isDarkOnlyTheme || isSolarizedTheme;
 
@@ -355,7 +357,10 @@ class _ThemeModeSheet extends ConsumerWidget {
             Icons.auto_mode_outlined,
           ),
           ListTile(
-            enabled: !isBlackIncompatibleTheme && current != ThemeMode.light,
+            enabled:
+                !isBlackIncompatibleTheme &&
+                !isMonochromeTheme &&
+                current != ThemeMode.light,
             leading: Icon(
               Icons.contrast,
               color: (isBlackIncompatibleTheme || current == ThemeMode.light)
@@ -379,17 +384,26 @@ class _ThemeModeSheet extends ConsumerWidget {
                       color: cs.onSurfaceVariant.withValues(alpha: 0.4),
                     ),
                   )
+                : isMonochromeTheme && current != ThemeMode.light
+                ? const Text('Always enabled for Monochrome theme')
                 : null,
             trailing: Switch(
-              value: useBlackTheme,
+              value: isMonochromeTheme && current != ThemeMode.light
+                  ? true
+                  : useBlackTheme,
               onChanged:
-                  (current == ThemeMode.light || isBlackIncompatibleTheme)
+                  (current == ThemeMode.light ||
+                      isBlackIncompatibleTheme ||
+                      isMonochromeTheme)
                   ? null
                   : (v) {
                       controller.toggleBlackTheme();
                     },
             ),
-            onTap: (current == ThemeMode.light || isBlackIncompatibleTheme)
+            onTap:
+                (current == ThemeMode.light ||
+                    isBlackIncompatibleTheme ||
+                    isMonochromeTheme)
                 ? null
                 : () {
                     controller.toggleBlackTheme();
