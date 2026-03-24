@@ -282,18 +282,24 @@ class NotePreviewCard extends ConsumerWidget {
       final Set<int> codeBlockOpIndices = {};
       {
         final brightness = Theme.of(context).brightness;
-        int groupStart = -1;       // first op index of the current code block group
-        int lineBufferStart = -1;  // first op index of the current line's content
+        int groupStart = -1; // first op index of the current code block group
+        int lineBufferStart =
+            -1; // first op index of the current line's content
         final codeText = StringBuffer();
         String? groupLanguage;
 
         void flushGroup() {
           if (groupStart < 0) return;
           final raw = codeText.toString();
-          final trimmed = raw.endsWith('\n') ? raw.substring(0, raw.length - 1) : raw;
-          final lang = groupLanguage ?? LanguageDetector.detectLanguage(trimmed);
+          final trimmed = raw.endsWith('\n')
+              ? raw.substring(0, raw.length - 1)
+              : raw;
+          final lang =
+              groupLanguage ?? LanguageDetector.detectLanguage(trimmed);
           final highlighted = CodeSyntaxHighlighter.highlightToSpans(
-            trimmed, lang, brightness,
+            trimmed,
+            lang,
+            brightness,
           );
           // Always use the full highlighted TextSpan (not just its children)
           // so that the monospace font and theme-correct default color
@@ -449,7 +455,7 @@ class NotePreviewCard extends ConsumerWidget {
                   if (hideImages) continue;
                   // Show actual image thumbnail
                   thumbnail = ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(8),
                     child: Image.file(
                       File(mediaPath),
                       width: 40,
@@ -463,7 +469,7 @@ class NotePreviewCard extends ConsumerWidget {
                             color: Theme.of(
                               context,
                             ).colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
                             Icons.image,
@@ -488,7 +494,7 @@ class NotePreviewCard extends ConsumerWidget {
                       color: Theme.of(
                         context,
                       ).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       Icons.mic,
@@ -505,7 +511,7 @@ class NotePreviewCard extends ConsumerWidget {
                       color: Theme.of(
                         context,
                       ).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       Icons.attachment,
@@ -546,7 +552,7 @@ class NotePreviewCard extends ConsumerWidget {
                           color: Theme.of(
                             context,
                           ).colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(
                           Icons.attachment,
@@ -750,37 +756,44 @@ class NotePreviewCard extends ConsumerWidget {
                       },
                       child: Tooltip(
                         message: option.label,
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: swatchColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected
-                                  ? Theme.of(ctx).colorScheme.primary
-                                  : Theme.of(ctx).colorScheme.outline
-                                        .withValues(alpha: 0.4),
-                              width: isSelected ? 3 : 1.5,
+                        child: AnimatedScale(
+                          scale: isSelected ? 1.15 : 1.0,
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOut,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOut,
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: swatchColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected
+                                    ? Theme.of(ctx).colorScheme.primary
+                                    : Theme.of(ctx).colorScheme.outline
+                                          .withValues(alpha: 0.4),
+                                width: isSelected ? 3 : 1.5,
+                              ),
                             ),
+                            child: option.index == null
+                                ? Icon(
+                                    Icons.format_color_reset,
+                                    size: 20,
+                                    color: Theme.of(
+                                      ctx,
+                                    ).colorScheme.onSurfaceVariant,
+                                  )
+                                : isSelected
+                                ? Icon(
+                                    Icons.check,
+                                    size: 20,
+                                    color: swatchColor.computeLuminance() > 0.4
+                                        ? Colors.black87
+                                        : Colors.white,
+                                  )
+                                : null,
                           ),
-                          child: option.index == null
-                              ? Icon(
-                                  Icons.format_color_reset,
-                                  size: 20,
-                                  color: Theme.of(
-                                    ctx,
-                                  ).colorScheme.onSurfaceVariant,
-                                )
-                              : isSelected
-                              ? Icon(
-                                  Icons.check,
-                                  size: 20,
-                                  color: swatchColor.computeLuminance() > 0.4
-                                      ? Colors.black87
-                                      : Colors.white,
-                                )
-                              : null,
                         ),
                       ),
                     );
@@ -987,7 +1000,7 @@ class NotePreviewCard extends ConsumerWidget {
                   note.title,
                   context,
                   Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     fontSize: 16,
                   ),
                 )
@@ -1269,14 +1282,27 @@ class NotePreviewCard extends ConsumerWidget {
     final brightness = Theme.of(context).brightness;
     final cardColor =
         resolveNoteColor(note.colorValue, brightness) ??
-        (brightness == Brightness.dark
-            ? Theme.of(context).colorScheme.surfaceContainerHighest
-            : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08));
+        Theme.of(context).colorScheme.surfaceContainerLow;
 
     final mainCard = Card(
       margin: EdgeInsets.zero,
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: SpacingBorderRadius.lg,
+        side: note.isPinned
+            ? BorderSide(
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.4),
+                width: 1.5,
+              )
+            : brightness == Brightness.light
+            ? BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                width: 0.5,
+              )
+            : BorderSide.none,
+      ),
       color: cardColor,
       child: SizedBox(
         width: double.infinity,
@@ -1363,7 +1389,7 @@ class NotePreviewCard extends ConsumerWidget {
                   return Padding(
                     padding: EdgeInsets.only(top: spacing.s12),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(16),
                       child: Image.file(
                         imageFile,
                         width: double.infinity,
@@ -1384,17 +1410,21 @@ class NotePreviewCard extends ConsumerWidget {
                     Icons.schedule,
                     size: 14,
                     color:
-                        onCardSecondary ??
-                        Theme.of(context).colorScheme.onSurfaceVariant,
+                        (onCardSecondary ??
+                                Theme.of(context).colorScheme.onSurfaceVariant)
+                            .withValues(alpha: 0.55),
                   ),
                   SizedBox(width: spacing.s4),
                   Flexible(
                     child: Text(
                       formattedDate,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color:
-                            onCardSecondary ??
-                            Theme.of(context).colorScheme.onSurfaceVariant,
+                            (onCardSecondary ??
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant)
+                                .withValues(alpha: 0.55),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1410,7 +1440,7 @@ class NotePreviewCard extends ConsumerWidget {
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: spacing.s8,
-        vertical: spacing.isCompact ? spacing.s2 : spacing.s4,
+        vertical: spacing.isCompact ? spacing.s4 : spacing.s6,
       ),
       child: mainCard,
     );
@@ -1439,7 +1469,7 @@ class NotePreviewCard extends ConsumerWidget {
 
     final baseStyle = isTitle
         ? Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             height: 1.2,
             color: onCardColor ?? Theme.of(context).colorScheme.secondary,
           )
@@ -1720,7 +1750,7 @@ class NotePreviewCard extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(12),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -2160,7 +2190,7 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
         height: 40,
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: const SizedBox(
           width: 16,
@@ -2176,7 +2206,7 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
         height: 40,
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
           Icons.videocam,
@@ -2187,7 +2217,7 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(8),
       child: Stack(
         children: [
           Image.file(

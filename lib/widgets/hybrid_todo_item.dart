@@ -100,19 +100,21 @@ class HybridTodoItem extends ConsumerWidget {
         child: Card(
           margin: EdgeInsets.symmetric(
             horizontal: spacing.s8,
-            vertical: spacing.isCompact ? spacing.s2 : spacing.s4,
+            vertical: spacing.isCompact ? spacing.s4 : spacing.s6,
           ),
           elevation: 0, // Modern MD3: flat design with no shadow
-          shape: RoundedRectangleBorder(borderRadius: SpacingBorderRadius.md),
+          shape: RoundedRectangleBorder(
+            borderRadius: SpacingBorderRadius.md,
+            side: Theme.of(context).brightness == Brightness.light
+                ? BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                    width: 0.5,
+                  )
+                : BorderSide.none,
+          ),
           color: selected
               ? Theme.of(context).colorScheme.primaryContainer
-              : (Theme.of(context).brightness == Brightness.dark
-                    ? Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest // Lighter surface in dark mode
-                    : Theme.of(context).colorScheme.primary.withValues(
-                        alpha: 0.08,
-                      )), // Match note preview card tint
+              : Theme.of(context).colorScheme.surfaceContainerLow,
           child: SizedBox(
             width: double.infinity,
             child: Padding(
@@ -121,7 +123,7 @@ class HybridTodoItem extends ConsumerWidget {
                 children: [
                   // Checkbox on the left (completion or selection)
                   if (!selectable)
-                    Checkbox(
+                    BurstCheckbox(
                       value: todo.isCompleted,
                       onChanged: (value) => onToggle(),
                     )
@@ -462,7 +464,7 @@ class HybridTodoItem extends ConsumerWidget {
 
     if (action == 'delete') {
       icon = Icons.delete;
-      color = Colors.red;
+      color = Theme.of(context).colorScheme.error;
       text = 'DELETE';
     } else if (action == 'pin') {
       icon = Icons.push_pin_outlined;
@@ -471,6 +473,10 @@ class HybridTodoItem extends ConsumerWidget {
     } else {
       return Container();
     }
+
+    final onColor = action == 'delete'
+        ? Theme.of(context).colorScheme.onError
+        : Colors.white;
 
     return Container(
       alignment: isStartToEnd ? Alignment.centerLeft : Alignment.centerRight,
@@ -484,12 +490,12 @@ class HybridTodoItem extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ScaledIcon(icon, color: Colors.white, size: 28),
+          ScaledIcon(icon, color: onColor, size: 28),
           SizedBox(height: spacing.s4),
           Text(
             text,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: onColor,
               fontWeight: FontWeight.bold,
               fontSize: 12,
             ),

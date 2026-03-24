@@ -164,8 +164,9 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
       Future.delayed(const Duration(milliseconds: 400), () {
         if (!mounted ||
             _hasPlayedScrollHint ||
-            !_scrollHintController.hasClients)
+            !_scrollHintController.hasClients) {
           return;
+        }
         _hasPlayedScrollHint = true;
         _playScrollHint();
       });

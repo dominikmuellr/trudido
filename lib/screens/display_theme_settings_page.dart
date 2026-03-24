@@ -79,6 +79,8 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
           // Interface Section
           _buildSectionHeader(context, 'Interface'),
           _buildGreetingSettings(),
+          _buildBlurEffectsToggle(),
+          _buildFloatingNavBarToggle(),
 
           // Notes Section
           _buildSectionHeader(context, 'Notes'),
@@ -135,6 +137,42 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
               },
             );
           },
+        );
+      },
+    );
+  }
+
+  Widget _buildBlurEffectsToggle() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final preferences = ref.watch(preferencesStateProvider);
+        final controller = ref.read(preferencesControllerProvider);
+
+        return SwitchListTile(
+          secondary: const Icon(Icons.blur_on_outlined),
+          title: const Text('Blur Effects'),
+          subtitle: const Text(
+            'Use blur for backdrop overlays (may impact performance on older devices)',
+          ),
+          value: preferences.useBlurEffects,
+          onChanged: (v) => controller.toggleBlurEffects(),
+        );
+      },
+    );
+  }
+
+  Widget _buildFloatingNavBarToggle() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final preferences = ref.watch(preferencesStateProvider);
+        final controller = ref.read(preferencesControllerProvider);
+
+        return SwitchListTile(
+          secondary: const Icon(Icons.dock_outlined),
+          title: const Text('Floating Navigation Bar'),
+          subtitle: const Text('Use a floating frosted-glass navigation bar'),
+          value: preferences.floatingNavBar,
+          onChanged: (v) => controller.toggleFloatingNavBar(),
         );
       },
     );

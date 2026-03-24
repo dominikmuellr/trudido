@@ -47,21 +47,33 @@ class NotesFilterChips extends ConsumerWidget {
                         ),
                       ],
                       child: IgnorePointer(
-                        child: FilterChip(
-                          label: Text(_getSortLabel(sortBy)),
-                          avatar: const Icon(Icons.sort, size: 18),
-                          selected: sortBy != 'date_modified',
-                          showCheckmark: false,
-                          side: BorderSide.none,
-                          backgroundColor: colorScheme.tertiaryContainer,
-                          selectedColor: colorScheme.tertiaryContainer,
-                          labelStyle: TextStyle(
-                            color: colorScheme.onTertiaryContainer,
+                        child: AnimatedScale(
+                          scale: sortBy != 'date_modified' ? 1.03 : 1.0,
+                          duration: const Duration(milliseconds: 150),
+                          curve: Curves.easeOut,
+                          child: FilterChip(
+                            label: Text(_getSortLabel(sortBy)),
+                            avatar: const Icon(Icons.sort, size: 18),
+                            selected: sortBy != 'date_modified',
+                            showCheckmark: false,
+                            side: BorderSide.none,
+                            backgroundColor: colorScheme.surfaceContainerHigh,
+                            selectedColor: colorScheme.primaryContainer,
+                            labelStyle: TextStyle(
+                              color: sortBy != 'date_modified'
+                                  ? colorScheme.onPrimaryContainer
+                                  : colorScheme.onSurfaceVariant,
+                              fontWeight: sortBy != 'date_modified'
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                            iconTheme: IconThemeData(
+                              color: sortBy != 'date_modified'
+                                  ? colorScheme.onPrimaryContainer
+                                  : colorScheme.onSurfaceVariant,
+                            ),
+                            onSelected: (_) {}, // Handled by PopupMenuButton
                           ),
-                          iconTheme: IconThemeData(
-                            color: colorScheme.onTertiaryContainer,
-                          ),
-                          onSelected: (_) {}, // Handled by PopupMenuButton
                         ),
                       ),
                     ),

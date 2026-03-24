@@ -190,14 +190,14 @@ class Spacing {
   /// Medium radius (12dp) - Cards, inputs, list tiles
   static const double radiusM = 12;
 
-  /// Large radius (16dp) - FABs, large cards
-  static const double radiusL = 16;
+  /// Large radius (20dp) - FABs, large cards
+  static const double radiusL = 20;
 
-  /// Extra large radius (20dp) - Chips, pills
-  static const double radiusXL = 20;
+  /// Extra large radius (24dp) - Chips, pills
+  static const double radiusXL = 24;
 
-  /// Full radius (28dp) - Dialogs, bottom sheets
-  static const double radiusFull = 28;
+  /// Full radius (32dp) - Dialogs, bottom sheets
+  static const double radiusFull = 32;
 }
 
 /// Extension for convenient EdgeInsets creation

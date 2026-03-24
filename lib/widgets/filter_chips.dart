@@ -100,17 +100,20 @@ class FilterChips extends ConsumerWidget {
                       selected: dueToday,
                       showCheckmark: false,
                       side: BorderSide.none,
-                      backgroundColor: colorScheme.tertiaryContainer,
+                      backgroundColor: colorScheme.surfaceContainerHigh,
                       selectedColor: colorScheme.primaryContainer,
                       labelStyle: TextStyle(
                         color: dueToday
                             ? colorScheme.onPrimaryContainer
-                            : colorScheme.onTertiaryContainer,
+                            : colorScheme.onSurfaceVariant,
+                        fontWeight: dueToday
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                       iconTheme: IconThemeData(
                         color: dueToday
                             ? colorScheme.onPrimaryContainer
-                            : colorScheme.onTertiaryContainer,
+                            : colorScheme.onSurfaceVariant,
                       ),
                       onSelected: (selected) {
                         ref
@@ -135,13 +138,20 @@ class FilterChips extends ConsumerWidget {
                       selected: !showCompleted,
                       showCheckmark: false,
                       side: BorderSide.none,
-                      backgroundColor: colorScheme.tertiaryContainer,
-                      selectedColor: colorScheme.tertiaryContainer,
+                      backgroundColor: colorScheme.surfaceContainerHigh,
+                      selectedColor: colorScheme.primaryContainer,
                       labelStyle: TextStyle(
-                        color: colorScheme.onTertiaryContainer,
+                        color: !showCompleted
+                            ? colorScheme.onPrimaryContainer
+                            : colorScheme.onSurfaceVariant,
+                        fontWeight: !showCompleted
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                       iconTheme: IconThemeData(
-                        color: colorScheme.onTertiaryContainer,
+                        color: !showCompleted
+                            ? colorScheme.onPrimaryContainer
+                            : colorScheme.onSurfaceVariant,
                       ),
                       onSelected: (selected) {
                         final newValue = !selected;
@@ -159,12 +169,12 @@ class FilterChips extends ConsumerWidget {
                       label: const Text('Clear'),
                       avatar: const Icon(Icons.clear_all, size: 18),
                       side: BorderSide.none,
-                      backgroundColor: colorScheme.tertiaryContainer,
+                      backgroundColor: colorScheme.surfaceContainerHigh,
                       labelStyle: TextStyle(
-                        color: colorScheme.onTertiaryContainer,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                       iconTheme: IconThemeData(
-                        color: colorScheme.onTertiaryContainer,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                       onPressed: hasActiveFilters
                           ? () {
@@ -200,25 +210,31 @@ class FilterChips extends ConsumerWidget {
     required ColorScheme colorScheme,
     required VoidCallback onSelected,
   }) {
-    return FilterChip(
-      label: Text(label),
-      avatar: Icon(icon, size: 18),
-      selected: isSelected,
-      showCheckmark: false,
-      side: BorderSide.none,
-      backgroundColor: colorScheme.tertiaryContainer,
-      selectedColor: colorScheme.primaryContainer,
-      labelStyle: TextStyle(
-        color: isSelected
-            ? colorScheme.onPrimaryContainer
-            : colorScheme.onTertiaryContainer,
+    return AnimatedScale(
+      scale: isSelected ? 1.03 : 1.0,
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeOut,
+      child: FilterChip(
+        label: Text(label),
+        avatar: Icon(icon, size: 18),
+        selected: isSelected,
+        showCheckmark: false,
+        side: BorderSide.none,
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        selectedColor: colorScheme.primaryContainer,
+        labelStyle: TextStyle(
+          color: isSelected
+              ? colorScheme.onPrimaryContainer
+              : colorScheme.onSurfaceVariant,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+        iconTheme: IconThemeData(
+          color: isSelected
+              ? colorScheme.onPrimaryContainer
+              : colorScheme.onSurfaceVariant,
+        ),
+        onSelected: (_) => onSelected(),
       ),
-      iconTheme: IconThemeData(
-        color: isSelected
-            ? colorScheme.onPrimaryContainer
-            : colorScheme.onTertiaryContainer,
-      ),
-      onSelected: (_) => onSelected(),
     );
   }
 }

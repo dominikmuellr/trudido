@@ -86,6 +86,10 @@ class PreferencesState {
   final bool?
   _showOverviewTab; // Whether the Overview tab is shown in navigation
   bool get showOverviewTab => _showOverviewTab ?? true;
+  final bool? _useBlurEffects; // Enable blur effects for backdrop overlays
+  bool get useBlurEffects => _useBlurEffects ?? true;
+  final bool? _floatingNavBar; // Floating frosted-glass navigation bar
+  bool get floatingNavBar => _floatingNavBar ?? true;
 
   const PreferencesState({
     required this.themeMode,
@@ -128,9 +132,13 @@ class PreferencesState {
     bool? floatingToolbarDragHintShown,
     bool? hideNavLabels,
     bool? showOverviewTab,
+    bool? useBlurEffects,
+    bool? floatingNavBar,
   }) : _lineHeightMultiplier = lineHeightMultiplier,
        _hideNavLabels = hideNavLabels,
        _showOverviewTab = showOverviewTab,
+       _useBlurEffects = useBlurEffects,
+       _floatingNavBar = floatingNavBar,
        _paragraphSpacing = paragraphSpacing,
        _blackoutRecents = blackoutRecents,
        _autoOpenKeyboardInNotes = autoOpenKeyboardInNotes,
@@ -185,6 +193,8 @@ class PreferencesState {
     bool? floatingToolbarDragHintShown,
     bool? hideNavLabels,
     bool? showOverviewTab,
+    bool? useBlurEffects,
+    bool? floatingNavBar,
   }) => PreferencesState(
     themeMode: themeMode ?? this.themeMode,
     useDynamicColor: useDynamicColor ?? this.useDynamicColor,
@@ -232,6 +242,8 @@ class PreferencesState {
         floatingToolbarDragHintShown ?? this.floatingToolbarDragHintShown,
     hideNavLabels: hideNavLabels ?? this.hideNavLabels,
     showOverviewTab: showOverviewTab ?? this.showOverviewTab,
+    useBlurEffects: useBlurEffects ?? this.useBlurEffects,
+    floatingNavBar: floatingNavBar ?? this.floatingNavBar,
   );
 
   static const defaultState = PreferencesState(

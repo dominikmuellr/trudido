@@ -17,6 +17,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../utils/animated_navigation.dart';
 import 'notification_service.dart';
 import 'storage_service.dart';
 import 'navigation_service.dart';
@@ -111,9 +112,10 @@ class NotificationActionSync {
           // Dynamically import TaskEditorScreen
           final taskEditorScreen = await _getTaskEditorScreen(todo);
           if (context.mounted) {
-            await Navigator.of(
+            await AnimatedNavigation.pushContainerTransform(
               context,
-            ).push(MaterialPageRoute(builder: (_) => taskEditorScreen));
+              taskEditorScreen,
+            );
           }
         }
       } catch (e) {

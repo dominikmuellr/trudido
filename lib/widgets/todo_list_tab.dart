@@ -112,6 +112,7 @@ class TodoListTab extends ConsumerWidget {
                       ref.watch(
                         searchQueryProvider.select((query) => query.isNotEmpty),
                       ),
+                      itemTypeFilter,
                     )
                   : _buildGroupedList(context, ref, filteredTodos, events),
             ),
@@ -128,35 +129,68 @@ class TodoListTab extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     bool isSearching,
+    String itemTypeFilter,
   ) {
     final spacing = ref.watch(adaptiveSpacingProvider);
+    final isEventsOnly = itemTypeFilter == 'events_only';
+    final itemLabel = isEventsOnly ? 'events' : 'todos';
+    final emptyIcon = isEventsOnly
+        ? Icons.event_outlined
+        : Icons.check_circle_outline;
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            isSearching ? Icons.search : Icons.check_circle_outline,
-            size: 64,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-          spacing.gapV16,
-          Text(
-            isSearching ? 'No tasks found' : 'No tasks yet',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          spacing.gapV8,
-          Text(
-            isSearching
-                ? 'Try adjusting your search or filters'
-                : 'Tap the + button to add your first task',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isSearching ? Icons.search : emptyIcon,
+              size: 64,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            spacing.gapV16,
+            Text(
+              isSearching ? 'No $itemLabel found' : 'No $itemLabel yet',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            spacing.gapV8,
+            Text(
+              isSearching
+                  ? 'Try adjusting your search or filters'
+                  : 'Tap the + button to add your first ${isEventsOnly ? 'event' : 'todo'}',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (!isSearching && !isEventsOnly) ...[
+              spacing.gapV24,
+              FloatingActionButton.extended(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => TaskEditorScreen(
+                        onSave: (todo) {
+                          ref.read(taskControllerProvider.notifier).add(todo);
+                        },
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.add_task),
+                label: Text(
+                  'Add your first ${isEventsOnly ? 'event' : 'todo'}',
+                ),
+                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                foregroundColor: Theme.of(
+                  context,
+                ).colorScheme.onPrimaryContainer,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -471,14 +505,20 @@ class TodoListTab extends ConsumerWidget {
         context,
         ref,
         ref.watch(searchQueryProvider).isNotEmpty,
+        ref.watch(listItemTypeFilterProvider),
       );
     }
 
     final spacing = ref.watch(adaptiveSpacingProvider);
+    final floatingNav = ref.watch(
+      preferencesStateProvider.select((p) => p.floatingNavBar),
+    );
 
     return ListView(
       physics: const BouncingScrollPhysics(),
-      padding: spacing.insets16,
+      padding: spacing.insets16.copyWith(
+        bottom: floatingNav ? 96 : spacing.s16,
+      ),
       children: [
         // TODAY section
         if (hasTodaySection) ...[
@@ -581,18 +621,31 @@ class TodoListTab extends ConsumerWidget {
   ) {
     final spacing = ref.watch(adaptiveSpacingProvider);
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: spacing.s8),
-      child: Row(
+      padding: EdgeInsets.only(top: spacing.s16, bottom: spacing.s8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: color),
-          SizedBox(width: spacing.s8),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
+          Divider(
+            height: 1,
+            thickness: 0.5,
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
+          SizedBox(height: spacing.s12),
+          Row(
+            children: [
+              Icon(icon, size: 18, color: color),
+              SizedBox(width: spacing.s8),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
           ),
         ],
       ),

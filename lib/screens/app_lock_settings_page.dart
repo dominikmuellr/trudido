@@ -21,6 +21,7 @@ import '../services/app_lock_service.dart';
 import '../services/biometric_auth_service.dart';
 import '../utils/responsive_size.dart';
 import '../theme/spacing_tokens.dart';
+import '../utils/animated_navigation.dart';
 import 'lock_screen.dart';
 import '../widgets/common/common.dart';
 
@@ -66,12 +67,11 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
 
   Future<void> _enableAppLock() async {
     // Navigate to PIN setup
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => const PinSetupScreen(
-          title: 'Create PIN',
-          subtitle: 'This PIN will be required to unlock the app',
-        ),
+    final result = await AnimatedNavigation.push<bool>(
+      context,
+      const PinSetupScreen(
+        title: 'Create PIN',
+        subtitle: 'This PIN will be required to unlock the app',
       ),
     );
 
@@ -176,13 +176,12 @@ class _AppLockSettingsPageState extends ConsumerState<AppLockSettingsPage> {
 
     if (verified == true && mounted) {
       // Navigate to new PIN setup
-      await Navigator.of(context).push<bool>(
-        MaterialPageRoute(
-          builder: (context) => const PinSetupScreen(
-            title: 'New PIN',
-            subtitle: 'Enter your new PIN',
-            isChangingPin: true,
-          ),
+      await AnimatedNavigation.push<bool>(
+        context,
+        const PinSetupScreen(
+          title: 'New PIN',
+          subtitle: 'Enter your new PIN',
+          isChangingPin: true,
         ),
       );
 

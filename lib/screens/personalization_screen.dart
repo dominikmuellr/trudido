@@ -30,6 +30,7 @@ import 'custom_theme_list_screen.dart';
 import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
 import '../providers/filter_providers.dart';
+import '../utils/animated_navigation.dart';
 
 class PersonalizationScreen extends ConsumerStatefulWidget {
   const PersonalizationScreen({super.key});
@@ -242,11 +243,9 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
                   ref
                       .read(recentSettingsProvider.notifier)
                       .record('custom_theme');
-                  await Navigator.push<bool>(
+                  await AnimatedNavigation.push<bool>(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const CustomThemeListScreen(),
-                    ),
+                    const CustomThemeListScreen(),
                   );
                 },
               );
@@ -313,11 +312,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
               ref.read(recentSettingsProvider.notifier).record('defaults');
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const DefaultsSettingsScreen(),
-                ),
-              );
+              AnimatedNavigation.push(context, const DefaultsSettingsScreen());
             },
           ),
 
@@ -440,11 +435,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: () {
         ref.read(recentSettingsProvider.notifier).record('font_size');
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const FontSizeSettingsScreen(),
-          ),
-        );
+        AnimatedNavigation.push(context, const FontSizeSettingsScreen());
       },
     );
   }

@@ -20,6 +20,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 
 import '../screens/task_editor_screen.dart';
+import '../utils/animated_navigation.dart';
 import '../models/todo.dart';
 import '../services/theme_service.dart';
 import '../utils/mention_navigator.dart';
@@ -73,15 +74,15 @@ class TodoItem extends ConsumerWidget {
           children: [
             SlidableAction(
               onPressed: (_) => onEdit(),
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
+              backgroundColor: cs.secondaryContainer,
+              foregroundColor: cs.onSecondaryContainer,
               icon: Icons.edit_outlined,
               label: 'Edit',
             ),
             SlidableAction(
               onPressed: (_) => onDelete(),
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: cs.errorContainer,
+              foregroundColor: cs.onErrorContainer,
               icon: Icons.delete_outline,
               label: 'Delete',
             ),
@@ -109,12 +110,9 @@ class TodoItem extends ConsumerWidget {
                   onSelectToggle!();
                   return;
                 }
-                Navigator.push(
+                AnimatedNavigation.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        TaskEditorScreen(todo: todo, onSave: (updatedTask) {}),
-                  ),
+                  TaskEditorScreen(todo: todo, onSave: (updatedTask) {}),
                 );
               },
               onLongPress: () {
@@ -164,12 +162,9 @@ class TodoItem extends ConsumerWidget {
                             onTap: onToggle,
                             child: Container(
                               padding: EdgeInsets.all(controlPad),
-                              child: Checkbox(
+                              child: BurstCheckbox(
                                 value: todo.isCompleted,
                                 onChanged: (_) => onToggle(),
-                                shape: const CircleBorder(),
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
                               ),
                             ),
                           ),
@@ -178,22 +173,30 @@ class TodoItem extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            todo.text,
-                            style: TextStyle(
-                              decoration: todo.isCompleted
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                              color: selected
-                                  ? selectedFg
-                                  : (todo.isCompleted
-                                        ? theme.colorScheme.outline
-                                        : theme.colorScheme.onSurface),
-                              fontWeight: todo.isCompleted
-                                  ? FontWeight.normal
-                                  : FontWeight.w500,
-                              fontSize: titleSize,
-                              letterSpacing: appOpts.highContrast ? 0.2 : null,
+                          TweenAnimationBuilder<double>(
+                            tween: Tween<double>(
+                              begin: todo.isCompleted ? 400 : 500,
+                              end: todo.isCompleted ? 400 : 500,
+                            ),
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOutCubicEmphasized,
+                            builder: (context, weight, _) => Text(
+                              todo.text,
+                              style: TextStyle(
+                                decoration: todo.isCompleted
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                color: selected
+                                    ? selectedFg
+                                    : (todo.isCompleted
+                                          ? theme.colorScheme.outline
+                                          : theme.colorScheme.onSurface),
+                                fontVariations: [FontVariation('wght', weight)],
+                                fontSize: titleSize,
+                                letterSpacing: appOpts.highContrast
+                                    ? 0.2
+                                    : null,
+                              ),
                             ),
                           ),
                           if (_hasSubtitleContent()) ...[

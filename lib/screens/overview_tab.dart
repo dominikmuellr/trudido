@@ -56,6 +56,7 @@ import '../screens/holiday_calendar_settings_screen.dart';
 import '../screens/backup_settings_page.dart';
 import '../screens/bin_settings_screen.dart';
 import '../theme/spacing_tokens.dart';
+import '../utils/animated_navigation.dart';
 import '../widgets/common/common.dart';
 
 /// Live clock that emits the current time and refreshes every minute.
@@ -160,7 +161,7 @@ final overviewFolderShortcutsProvider = Provider<List<_FolderShortcut>>((ref) {
   return shortcuts.take(3).toList();
 });
 
-class OverviewTab extends ConsumerWidget {
+class OverviewTab extends ConsumerStatefulWidget {
   const OverviewTab({super.key});
 
   static const _sectionLabels = {
@@ -175,29 +176,68 @@ class OverviewTab extends ConsumerWidget {
   };
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OverviewTab> createState() => _OverviewTabState();
+}
+
+class _OverviewTabState extends ConsumerState<OverviewTab>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _staggerController;
+
+  @override
+  void initState() {
+    super.initState();
+    _staggerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _staggerController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final spacing = ref.watch(adaptiveSpacingProvider);
     final sectionOrder = ref.watch(overviewSectionOrderProvider);
     final hiddenSections = ref.watch(overviewHiddenSectionsProvider);
     final taskStats = ref.watch(taskStatisticsProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
+    final visibleSections = [
+      for (final section in sectionOrder)
+        if (!hiddenSections.contains(section) &&
+            !(section == 'progress' && taskStats.total == 0))
+          section,
+    ];
+
+    final floatingNav = ref.watch(
+      preferencesStateProvider.select((p) => p.floatingNavBar),
+    );
+
     return ListView(
       physics: const BouncingScrollPhysics(),
-      padding: spacing.insets16,
+      padding: spacing.insets16.copyWith(
+        bottom: floatingNav ? 96 : spacing.s16,
+      ),
       children: [
         StaggeredGrid.count(
           crossAxisCount: 2,
           mainAxisSpacing: spacing.s16,
           crossAxisSpacing: spacing.s16,
           children: [
-            for (final section in sectionOrder)
-              if (!hiddenSections.contains(section) &&
-                  !(section == 'progress' && taskStats.total == 0))
-                StaggeredGridTile.fit(
-                  crossAxisCellCount: _crossAxisCount(section),
-                  child: _buildSection(section),
+            for (int i = 0; i < visibleSections.length; i++)
+              StaggeredGridTile.fit(
+                crossAxisCellCount: _crossAxisCount(visibleSections[i]),
+                child: _StaggeredEntrance(
+                  controller: _staggerController,
+                  index: i,
+                  totalCount: visibleSections.length,
+                  child: _buildSection(visibleSections[i]),
                 ),
+              ),
           ],
         ),
         SizedBox(height: spacing.s16),
@@ -304,7 +344,7 @@ class OverviewTab extends ConsumerWidget {
                           color: colorScheme.onSurfaceVariant,
                         ),
                         title: Text(
-                          _sectionLabels[section] ?? section,
+                          OverviewTab._sectionLabels[section] ?? section,
                           style: TextStyle(
                             color: isVisible
                                 ? colorScheme.onSurface
@@ -343,6 +383,44 @@ class OverviewTab extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
+// Staggered entrance animation for overview sections
+// ---------------------------------------------------------------------------
+class _StaggeredEntrance extends StatelessWidget {
+  final AnimationController controller;
+  final int index;
+  final int totalCount;
+  final Widget child;
+
+  const _StaggeredEntrance({
+    required this.controller,
+    required this.index,
+    required this.totalCount,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final start = (index * 0.1).clamp(0.0, 0.6);
+    final end = (start + 0.4).clamp(0.0, 1.0);
+    final curve = CurvedAnimation(
+      parent: controller,
+      curve: Interval(start, end, curve: Curves.easeOut),
+    );
+
+    return FadeTransition(
+      opacity: curve,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.04),
+          end: Offset.zero,
+        ).animate(curve),
+        child: child,
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Clock
 // ---------------------------------------------------------------------------
 class _ClockSection extends ConsumerWidget {
@@ -356,16 +434,30 @@ class _ClockSection extends ConsumerWidget {
     final systemUse24Hour = MediaQuery.of(context).alwaysUse24HourFormat;
     final use24Hour = preferences.resolveUse24Hour(systemUse24Hour);
     final timeStr = DateFormat(use24Hour ? 'HH:mm' : 'hh:mm a').format(now);
+    final dateStr = DateFormat('EEEE, MMM d').format(now);
 
     return Padding(
       padding: EdgeInsets.only(top: spacing.s4, bottom: spacing.s4),
-      child: Text(
-        timeStr,
-        style: theme.textTheme.displayMedium?.copyWith(
-          fontWeight: FontWeight.w200,
-          color: colorScheme.primary,
-          letterSpacing: 2,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            timeStr,
+            style: theme.textTheme.displayMedium?.copyWith(
+              fontWeight: FontWeight.w200,
+              color: colorScheme.primary,
+              letterSpacing: 2,
+            ),
+          ),
+          SizedBox(height: spacing.s2),
+          Text(
+            dateStr,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -663,14 +755,13 @@ class _TodosSection extends ConsumerWidget {
                     .read(taskControllerProvider.notifier)
                     .toggleComplete(todo.id),
                 onEdit: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => TaskEditorScreen(
-                        todo: todo,
-                        onSave: (updated) => ref
-                            .read(taskControllerProvider.notifier)
-                            .update(updated),
-                      ),
+                  AnimatedNavigation.pushContainerTransform(
+                    context,
+                    TaskEditorScreen(
+                      todo: todo,
+                      onSave: (updated) => ref
+                          .read(taskControllerProvider.notifier)
+                          .update(updated),
                     ),
                   );
                 },
@@ -737,14 +828,13 @@ class _EventsSection extends ConsumerWidget {
                 color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
                 child: InkWell(
                   onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => EventEditorScreen(
-                          event: event,
-                          onSave: (updated) => ref
-                              .read(eventControllerProvider.notifier)
-                              .update(updated),
-                        ),
+                    AnimatedNavigation.pushContainerTransform(
+                      context,
+                      EventEditorScreen(
+                        event: event,
+                        onSave: (updated) => ref
+                            .read(eventControllerProvider.notifier)
+                            .update(updated),
                       ),
                     );
                   },
@@ -837,12 +927,9 @@ class _LatestNotesSection extends ConsumerWidget {
                         ? NotePreviewCard(
                             note: notes[i],
                             onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => QuillNoteEditorScreen(
-                                    noteId: notes[i].id,
-                                  ),
-                                ),
+                              AnimatedNavigation.pushContainerTransform(
+                                context,
+                                QuillNoteEditorScreen(noteId: notes[i].id),
                               );
                             },
                             onPin: null,
@@ -1140,8 +1227,9 @@ class _SectionHeader extends ConsumerWidget {
         const SizedBox(width: 8),
         Text(
           title,
-          style: theme.textTheme.titleSmall?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
+            letterSpacing: 0.1,
           ),
         ),
         const Spacer(),
@@ -1175,7 +1263,12 @@ class _EmptyCard extends StatelessWidget {
     return Card(
       elevation: 0,
       color: colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: SpacingBorderRadius.md),
+      shape: RoundedRectangleBorder(
+        borderRadius: SpacingBorderRadius.md,
+        side: theme.brightness == Brightness.light
+            ? BorderSide(color: colorScheme.outlineVariant, width: 0.5)
+            : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Row(

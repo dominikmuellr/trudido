@@ -14,10 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../screens/home_screen_notifiers.dart';
 import '../controllers/notes_controller.dart';
+import '../providers/app_providers.dart';
 import '../repositories/note_folder_repository.dart';
 import '../widgets/common/common.dart';
 import '../utils/state_notifiers.dart';
@@ -338,15 +340,30 @@ class _FabMenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return ExpressiveFloatingActionButton.extended(
-      heroTag: null,
-      onPressed: () {
-        onTap();
-      },
-      label: Text(label),
-      icon: Icon(icon),
-      backgroundColor: theme.colorScheme.secondaryContainer,
-      foregroundColor: theme.colorScheme.onSecondaryContainer,
+    return Material(
+      color: theme.colorScheme.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(16),
+      elevation: 2,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 20, color: theme.colorScheme.onSurface),
+              const SizedBox(width: 10),
+              Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -394,12 +411,27 @@ class FabMenuScreenBackdrop extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
+    final useBlur = ref.watch(
+      preferencesStateProvider.select((p) => p.useBlurEffects),
+    );
+
     return Positioned.fill(
       child: ExpressiveGestureDetector(
         onTap: () {
           ref.read(fabMenuExpandedProvider.notifier).update(false);
         },
-        child: Container(color: Colors.black.withValues(alpha: 0.5)),
+        child: useBlur
+            ? ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                  child: Container(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.black.withValues(alpha: 0.35)
+                        : Colors.white.withValues(alpha: 0.25),
+                  ),
+                ),
+              )
+            : Container(color: Colors.black.withValues(alpha: 0.5)),
       ),
     );
   }

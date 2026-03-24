@@ -34,6 +34,8 @@ import 'quill_note_editor_screen.dart';
 import '../providers/app_providers.dart';
 import '../widgets/common/common.dart';
 import '../utils/state_notifiers.dart';
+import '../utils/animated_navigation.dart';
+import '../widgets/skeleton_loading.dart';
 
 /// Provider for notes search mode
 final notesSearchModeProvider = stateProvider<bool>(false);
@@ -58,7 +60,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
     return filteredNotesAsync.when(
       data: (notes) => _buildBody(notes, selectedFolderId == null),
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const SkeletonNoteList(),
       error: (error, stack) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -137,7 +139,14 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         return false;
       },
       child: MasonryGridView.count(
-        padding: spacing.insets8,
+        padding: spacing.insets8.copyWith(
+          bottom:
+              ref.watch(
+                preferencesStateProvider.select((p) => p.floatingNavBar),
+              )
+              ? 96
+              : spacing.s8,
+        ),
         physics: const BouncingScrollPhysics(),
         crossAxisCount: 2,
         mainAxisSpacing: spacing.s8,
@@ -226,34 +235,58 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     final spacing = ref.watch(adaptiveSpacingProvider);
 
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ScaledIcon(
-            isSearchMode ? Icons.search : Icons.note_add,
-            size: 64,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-          spacing.gapV16,
-          Text(
-            isSearchMode && searchQuery.isNotEmpty
-                ? 'No notes found'
-                : 'No notes yet',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          spacing.gapV8,
-          Text(
-            isSearchMode && searchQuery.isNotEmpty
-                ? 'Try a different search term'
-                : 'Create rich text notes with media, voice recordings, and markdown support',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ScaledIcon(
+              isSearchMode ? Icons.search : Icons.note_add,
+              size: 64,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            spacing.gapV16,
+            Text(
+              isSearchMode && searchQuery.isNotEmpty
+                  ? 'No notes found'
+                  : 'No notes yet',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            spacing.gapV8,
+            Text(
+              isSearchMode && searchQuery.isNotEmpty
+                  ? 'Try a different search term'
+                  : 'Create rich text notes with media, voice recordings, and markdown support',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (!isSearchMode) ...[
+              spacing.gapV24,
+              FloatingActionButton.extended(
+                onPressed: () {
+                  final selectedFolderId = ref.read(selectedNoteFolderProvider);
+                  final folderId = selectedFolderId == 'UNFILED'
+                      ? null
+                      : selectedFolderId;
+                  AnimatedNavigation.pushContainerTransform(
+                    context,
+                    QuillNoteEditorScreen(initialFolderId: folderId),
+                  );
+                },
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Write your first note'),
+                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                foregroundColor: Theme.of(
+                  context,
+                ).colorScheme.onPrimaryContainer,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -605,10 +638,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     }
 
     if (mounted) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => QuillNoteEditorScreen(noteId: noteId),
-        ),
+      AnimatedNavigation.pushContainerTransform(
+        context,
+        QuillNoteEditorScreen(noteId: noteId),
       );
     }
   }

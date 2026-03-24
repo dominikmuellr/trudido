@@ -151,6 +151,12 @@ class PreferencesController {
   Future<void> toggleShowOverviewTab() =>
       _update(showOverviewTab: !state.showOverviewTab);
 
+  Future<void> toggleBlurEffects() =>
+      _update(useBlurEffects: !state.useBlurEffects);
+
+  Future<void> toggleFloatingNavBar() =>
+      _update(floatingNavBar: !state.floatingNavBar);
+
   Future<void> dismissBatteryOptimizationReminder() =>
       _update(dismissedBatteryOptimizationReminder: true);
 
@@ -209,6 +215,8 @@ class PreferencesController {
     bool? floatingToolbarDragHintShown,
     bool? hideNavLabels,
     bool? showOverviewTab,
+    bool? useBlurEffects,
+    bool? floatingNavBar,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -249,6 +257,8 @@ class PreferencesController {
       floatingToolbarDragHintShown: floatingToolbarDragHintShown,
       hideNavLabels: hideNavLabels,
       showOverviewTab: showOverviewTab,
+      useBlurEffects: useBlurEffects,
+      floatingNavBar: floatingNavBar,
     );
     ref.read(preferencesStateProvider.notifier).update(updated);
   }

@@ -378,40 +378,29 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
         break;
       case 'notifications':
         ref.read(recentSettingsProvider.notifier).record('notifications');
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const ComprehensiveNotificationSettings(),
-          ),
+        AnimatedNavigation.push(
+          context,
+          const ComprehensiveNotificationSettings(),
         );
         break;
       case 'app_lock':
         ref.read(recentSettingsProvider.notifier).record('app_lock');
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => const AppLockSettingsPage()),
-        );
+        AnimatedNavigation.push(context, const AppLockSettingsPage());
         break;
       case 'data_management':
         ref.read(recentSettingsProvider.notifier).record('data_management');
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => const DataManagementScreen()),
-        );
+        AnimatedNavigation.push(context, const DataManagementScreen());
         break;
       case 'about':
         ref.read(recentSettingsProvider.notifier).record('about');
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (context) => const AboutScreen()));
+        AnimatedNavigation.push(context, const AboutScreen());
         break;
       case 'support':
         AnimatedNavigation.push(context, const SettingsScreen());
         break;
       case 'experimental':
         ref.read(recentSettingsProvider.notifier).record('experimental');
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const ExperimentalSettingsScreen(),
-          ),
-        );
+        AnimatedNavigation.push(context, const ExperimentalSettingsScreen());
         break;
       default:
         AnimatedNavigation.push(context, const SettingsScreen());
@@ -434,12 +423,9 @@ mixin HomeScreenActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
 
   /// Open personalization screen
   void openPersonalizationScreen(VoidCallback onReturn) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute(
-            builder: (context) => const PersonalizationScreen(),
-          ),
-        )
-        .then((_) => onReturn());
+    AnimatedNavigation.push(
+      context,
+      const PersonalizationScreen(),
+    ).then((_) => onReturn());
   }
 }

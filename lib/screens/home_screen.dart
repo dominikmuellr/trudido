@@ -37,6 +37,7 @@ import 'home_navigation_drawer.dart';
 import 'unified_search_results.dart';
 import 'home_app_bar.dart';
 import 'home_bottom_navigation.dart';
+import '../utils/animations.dart';
 import 'home_screen_actions.dart';
 import 'note_folder_dialogs.dart';
 import '../widgets/common/common.dart';
@@ -72,7 +73,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _updateWidgetOnStartup();
 
     _greetingAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
 
@@ -397,7 +398,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             onDeleteNoteConfirmed: deleteNoteConfirmed,
                             onNavigateToSetting: navigateToSetting,
                           )
-                        : IndexedStack(index: currentTab, children: tabs),
+                        : AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            switchInCurve: Curves.easeOut,
+                            switchOutCurve: Curves.easeIn,
+                            transitionBuilder: (child, animation) =>
+                                FadeThroughTransition(
+                                  animation: animation,
+                                  child: child,
+                                ),
+                            child: KeyedSubtree(
+                              key: ValueKey(currentTab),
+                              child: tabs[currentTab],
+                            ),
+                          ),
                   ),
                 ),
               ],
@@ -427,6 +441,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       children: [
         Scaffold(
           key: _scaffoldKey,
+          extendBody: ref.watch(
+            preferencesStateProvider.select((p) => p.floatingNavBar),
+          ),
           drawer: HomeNavigationDrawer(
             currentTab: currentTab,
             isCalendarExpanded: _isCalendarExpanded,
@@ -471,7 +488,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         onDeleteNoteConfirmed: deleteNoteConfirmed,
                         onNavigateToSetting: navigateToSetting,
                       )
-                    : IndexedStack(index: currentTab, children: tabs),
+                    : AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        switchInCurve: Curves.easeOut,
+                        switchOutCurve: Curves.easeIn,
+                        transitionBuilder: (child, animation) =>
+                            FadeThroughTransition(
+                              animation: animation,
+                              child: child,
+                            ),
+                        child: KeyedSubtree(
+                          key: ValueKey(currentTab),
+                          child: tabs[currentTab],
+                        ),
+                      ),
                 // Quick Input Bar (experimental mode) - inside Scaffold so it goes behind drawer
                 if (useQuickInputBar)
                   QuickInputBottomArea(

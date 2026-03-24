@@ -215,6 +215,8 @@ class PreferencesService {
       ),
       hideNavLabels: p.getBool('hide_nav_labels'),
       showOverviewTab: p.getBool('show_overview_tab'),
+      useBlurEffects: p.getBool('use_blur_effects'),
+      floatingNavBar: p.getBool('floating_nav_bar'),
     );
   }
 
@@ -283,6 +285,8 @@ class PreferencesService {
     bool? floatingToolbarDragHintShown,
     bool? hideNavLabels,
     bool? showOverviewTab,
+    bool? useBlurEffects,
+    bool? floatingNavBar,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -403,6 +407,12 @@ class PreferencesService {
       }
       if (showOverviewTab != null) {
         await p.setBool('show_overview_tab', showOverviewTab);
+      }
+      if (useBlurEffects != null) {
+        await p.setBool('use_blur_effects', useBlurEffects);
+      }
+      if (floatingNavBar != null) {
+        await p.setBool('floating_nav_bar', floatingNavBar);
       }
       _hydrate();
       return _cache;

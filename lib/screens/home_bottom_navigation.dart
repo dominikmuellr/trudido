@@ -27,6 +27,7 @@ import '../repositories/note_folder_repository.dart';
 import '../widgets/quick_input_bar.dart';
 import 'home_screen_notifiers.dart';
 import '../widgets/common/common.dart';
+import '../utils/animations.dart';
 import '../theme/expressive_motion.dart';
 
 /// Bottom navigation bar for the home screen
@@ -51,6 +52,7 @@ class HomeNavigationBar extends ConsumerWidget {
     final hapticsEnabled = prefs.hapticsEnabled;
     final hideNavLabels = prefs.hideNavLabels;
     final showOverviewTab = prefs.showOverviewTab;
+    final floatingNavBar = prefs.floatingNavBar;
 
     // When Overview is hidden, displayed indices are shifted down by 1.
     int toActual(int displayed) => showOverviewTab ? displayed : displayed + 1;
@@ -60,14 +62,24 @@ class HomeNavigationBar extends ConsumerWidget {
     // clamp to 1 (Tasks) to avoid invalid selectedIndex
     final safeTab = !showOverviewTab && currentTab == 0 ? 1 : currentTab;
 
-    return NavigationBar(
-      height: hideNavLabels ? 60 : null,
-      labelBehavior: hideNavLabels
+    final navBar = NavigationBar(
+      height: floatingNavBar ? 56 : (hideNavLabels ? 60 : null),
+      labelBehavior: (hideNavLabels || floatingNavBar)
           ? NavigationDestinationLabelBehavior.alwaysHide
           : NavigationDestinationLabelBehavior.alwaysShow,
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? null // Use default in dark mode
-          : Theme.of(context).colorScheme.surfaceContainerLow,
+      backgroundColor: floatingNavBar
+          ? Colors.transparent
+          : (Theme.of(context).brightness == Brightness.dark
+                ? null
+                : Theme.of(context).colorScheme.surfaceContainerLow),
+      elevation: floatingNavBar ? 0 : null,
+      shadowColor: floatingNavBar ? Colors.transparent : null,
+      surfaceTintColor: floatingNavBar ? Colors.transparent : null,
+      indicatorColor: floatingNavBar
+          ? Theme.of(
+              context,
+            ).colorScheme.primaryContainer.withValues(alpha: 0.8)
+          : null,
       selectedIndex: toDisplayed(safeTab),
       onDestinationSelected: (displayed) {
         final index = toActual(displayed);
@@ -118,6 +130,21 @@ class HomeNavigationBar extends ConsumerWidget {
           label: 'Notes',
         ),
       ],
+    );
+
+    if (!floatingNavBar) return navBar;
+
+    // Floating frosted-glass navigation bar
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 8),
+        child: FrostedGlass(
+          borderRadius: 28,
+          blurSigma: 22,
+          grainOpacity: 0,
+          child: navBar,
+        ),
+      ),
     );
   }
 }

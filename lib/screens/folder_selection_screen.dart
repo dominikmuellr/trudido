@@ -20,6 +20,7 @@ import '../models/folder.dart';
 import '../services/folder_provider.dart';
 import '../screens/folder_management_screen.dart';
 import '../theme/spacing_tokens.dart';
+import '../utils/animated_navigation.dart';
 import '../widgets/common/common.dart';
 
 class FolderSelectionScreen extends ConsumerWidget {
@@ -37,12 +38,7 @@ class FolderSelectionScreen extends ConsumerWidget {
         actions: [
           ExpressiveIconButton(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const FolderManagementScreen(),
-                ),
-              );
+              AnimatedNavigation.push(context, const FolderManagementScreen());
             },
             icon: Icon(Icons.settings),
             tooltip: 'Manage folders',
@@ -83,11 +79,9 @@ class FolderSelectionScreen extends ConsumerWidget {
 
             ExpressiveOutlinedButton.icon(
               onPressed: () {
-                Navigator.push(
+                AnimatedNavigation.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const FolderManagementScreen(),
-                  ),
+                  const FolderManagementScreen(),
                 );
               },
               icon: Icon(Icons.add),

@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../widgets/common/common.dart';
 
@@ -571,4 +573,112 @@ class _ExpandableContainerState extends State<ExpandableContainer>
       child: FadeTransition(opacity: _animation, child: widget.child),
     );
   }
+}
+
+/// Modern frosted glass effect with blur, graduated tint, and optional grain.
+///
+/// Wraps [child] in a clipped region with a backdrop blur and multi-stop
+/// colour gradient for a clean 2026-era glass look.
+///
+/// When an explicit [tintColor] is provided the flat colour is used instead
+/// of the graduated gradient (backward-compatible with older call-sites).
+class FrostedGlass extends StatelessWidget {
+  final Widget child;
+  final double borderRadius;
+  final double blurSigma;
+  final Color? tintColor;
+  final Color? borderColor;
+  final double grainOpacity;
+
+  const FrostedGlass({
+    super.key,
+    required this.child,
+    this.borderRadius = 28,
+    this.blurSigma = 22,
+    this.tintColor,
+    this.borderColor,
+    this.grainOpacity = 0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final effectiveBorder =
+        borderColor ??
+        (isDark
+            ? Colors.white.withValues(alpha: 0.1)
+            : Colors.black.withValues(alpha: 0.06));
+
+    // Explicit tintColor → flat fill (backward-compatible).
+    // Default → cool-tinted graduated gradient.
+    final Decoration tintDecoration;
+    if (tintColor != null) {
+      tintDecoration = BoxDecoration(
+        color: tintColor,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(color: effectiveBorder),
+      );
+    } else {
+      tintDecoration = BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isDark
+              ? [
+                  const Color(0xFF12141A).withValues(alpha: 0.50),
+                  const Color(0xFF08090D).withValues(alpha: 0.62),
+                ]
+              : [
+                  const Color(0xFFF0F4FF).withValues(alpha: 0.72),
+                  const Color(0xFFE8EEF8).withValues(alpha: 0.85),
+                ],
+        ),
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(color: effectiveBorder),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+        child: grainOpacity > 0
+            ? CustomPaint(
+                foregroundPainter: _GrainPainter(opacity: grainOpacity),
+                child: Container(decoration: tintDecoration, child: child),
+              )
+            : Container(decoration: tintDecoration, child: child),
+      ),
+    );
+  }
+}
+
+/// Paints subtle pseudo-random noise grain.
+class _GrainPainter extends CustomPainter {
+  final double opacity;
+  _GrainPainter({required this.opacity});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint();
+    final rng = math.Random(42);
+    const step = 3;
+    for (double y = 0; y < size.height; y += step) {
+      for (double x = 0; x < size.width; x += step) {
+        if (rng.nextDouble() > 0.5) {
+          final luminance = rng.nextInt(255);
+          paint.color = Color.fromRGBO(
+            luminance,
+            luminance,
+            luminance,
+            opacity,
+          );
+          canvas.drawRect(Rect.fromLTWH(x, y, 1.5, 1.5), paint);
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GrainPainter old) => old.opacity != opacity;
 }
