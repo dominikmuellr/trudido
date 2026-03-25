@@ -643,82 +643,86 @@ class NotePreviewCard extends ConsumerWidget {
     }
   }
 
-  void _showContextMenu(BuildContext context) {
-    showModalBottomSheet(
+  void _showContextMenu(BuildContext context, Offset tapPosition) {
+    final overlay =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final position = RelativeRect.fromRect(
+      tapPosition & const Size(1, 1),
+      Offset.zero & overlay.size,
+    );
+
+    showMenu<void>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Edit option
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Edit'),
-              onTap: () {
-                Navigator.pop(context);
-                onTap();
-              },
-            ),
-            // Pin/Unpin option
-            if (onPin != null)
-              ListTile(
-                leading: Icon(
-                  note.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                ),
-                title: Text(note.isPinned ? 'Unpin' : 'Pin'),
-                onTap: () {
-                  Navigator.pop(context);
-                  onPin!();
-                },
-              ),
-            // Card color picker
-            if (onColorChange != null)
-              ListTile(
-                leading: Icon(
-                  Icons.palette_outlined,
-                  color: resolveNoteColor(
-                    note.colorValue,
-                    Theme.of(context).brightness,
-                  ),
-                ),
-                title: const Text('Card color'),
-                subtitle: note.colorValue != null
-                    ? const Text('Tap to change or remove')
-                    : const Text('Tap to set a color'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _showColorPicker(context);
-                },
-              ),
-            // Move to folder option (only if not in vault)
-            if (!isInVault && onMoveToFolder != null)
-              ListTile(
-                leading: const Icon(Icons.drive_file_move_outline),
-                title: const Text('Move to Folder'),
-                onTap: () {
-                  Navigator.pop(context);
-                  onMoveToFolder!();
-                },
-              ),
-            // Delete option
-            if (onDelete != null)
-              ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text(
-                  'Delete',
-                  style: TextStyle(color: Colors.red),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  onDelete!();
-                },
-              ),
-          ],
+      position: position,
+      items: [
+        // Edit option
+        PopupMenuItem<void>(
+          onTap: onTap,
+          child: const ListTile(
+            leading: Icon(Icons.edit),
+            title: Text('Edit'),
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+          ),
         ),
-      ),
+        // Pin/Unpin option
+        if (onPin != null)
+          PopupMenuItem<void>(
+            onTap: onPin,
+            child: ListTile(
+              leading: Icon(
+                note.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+              ),
+              title: Text(note.isPinned ? 'Unpin' : 'Pin'),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        // Card color picker
+        if (onColorChange != null)
+          PopupMenuItem<void>(
+            onTap: () {
+              final ctx = context;
+              Future.microtask(() {
+                if (ctx.mounted) _showColorPicker(ctx);
+              });
+            },
+            child: ListTile(
+              leading: Icon(
+                Icons.palette_outlined,
+                color: resolveNoteColor(
+                  note.colorValue,
+                  Theme.of(context).brightness,
+                ),
+              ),
+              title: const Text('Card color'),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        // Move to folder option (only if not in vault)
+        if (!isInVault && onMoveToFolder != null)
+          PopupMenuItem<void>(
+            onTap: onMoveToFolder,
+            child: const ListTile(
+              leading: Icon(Icons.drive_file_move_outline),
+              title: Text('Move to Folder'),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        // Delete option
+        if (onDelete != null)
+          PopupMenuItem<void>(
+            onTap: onDelete,
+            child: const ListTile(
+              leading: Icon(Icons.delete, color: Colors.red),
+              title: Text('Delete', style: TextStyle(color: Colors.red)),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+      ],
     );
   }
 
@@ -1195,7 +1199,7 @@ class NotePreviewCard extends ConsumerWidget {
         // This should now be empty since we handle everything in confirmDismiss
         // The deletion should already be completed by the time this is called
       },
-      child: ExpressiveGestureDetector(
+      child: _NoteGestureHandler(
         onTap: selectable ? onSelectToggle : onTap,
         onLongPress: selectable
             ? null
@@ -1204,7 +1208,10 @@ class NotePreviewCard extends ConsumerWidget {
                 HapticFeedback.selectionClick();
                 onSelectToggle!();
               }
-            : () => _showContextMenu(context),
+            : null,
+        onLongPressWithPosition: selectable || onSelectToggle != null
+            ? null
+            : (position) => _showContextMenu(context, position),
         child: Stack(
           children: [
             _buildCard(
@@ -1282,7 +1289,7 @@ class NotePreviewCard extends ConsumerWidget {
     final brightness = Theme.of(context).brightness;
     final cardColor =
         resolveNoteColor(note.colorValue, brightness) ??
-        Theme.of(context).colorScheme.surfaceContainerLow;
+        Theme.of(context).colorScheme.surfaceContainerHigh;
 
     final mainCard = Card(
       margin: EdgeInsets.zero,
@@ -2239,6 +2246,46 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Gesture handler that captures position for long-press context menu
+// ---------------------------------------------------------------------------
+class _NoteGestureHandler extends StatefulWidget {
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final void Function(Offset position)? onLongPressWithPosition;
+  final Widget child;
+
+  const _NoteGestureHandler({
+    this.onTap,
+    this.onLongPress,
+    this.onLongPressWithPosition,
+    required this.child,
+  });
+
+  @override
+  State<_NoteGestureHandler> createState() => _NoteGestureHandlerState();
+}
+
+class _NoteGestureHandlerState extends State<_NoteGestureHandler> {
+  Offset _lastPointerPosition = Offset.zero;
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: (event) => _lastPointerPosition = event.position,
+      child: ExpressiveGestureDetector(
+        onTap: widget.onTap,
+        onLongPress:
+            widget.onLongPress ??
+            (widget.onLongPressWithPosition != null
+                ? () => widget.onLongPressWithPosition!(_lastPointerPosition)
+                : null),
+        child: widget.child,
       ),
     );
   }

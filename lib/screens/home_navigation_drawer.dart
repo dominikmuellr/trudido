@@ -125,7 +125,9 @@ class _HomeNavigationDrawerState extends ConsumerState<HomeNavigationDrawer> {
         Theme.of(context).brightness == Brightness.dark;
 
     return Drawer(
-      backgroundColor: isAmoledBlack ? Colors.black : colorScheme.surface,
+      backgroundColor: isAmoledBlack
+          ? Colors.black
+          : colorScheme.surfaceContainer,
       child: SafeArea(
         child: Column(
           children: [
@@ -274,7 +276,7 @@ class _TaskFoldersList extends ConsumerWidget {
                   ),
                   selected: selectedFolderId == null,
                   selectedTileColor: colorScheme.secondaryContainer.withValues(
-                    alpha: 0.3,
+                    alpha: 0.5,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: SpacingBorderRadius.md,
@@ -344,7 +346,7 @@ class _TaskFoldersList extends ConsumerWidget {
                 ),
                 selected: isSelected,
                 selectedTileColor: colorScheme.secondaryContainer.withValues(
-                  alpha: 0.3,
+                  alpha: 0.5,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: SpacingBorderRadius.md,
@@ -424,7 +426,7 @@ class _NoteFoldersList extends ConsumerWidget {
                   : null,
               selected: selectedFolderId == null,
               selectedTileColor: colorScheme.secondaryContainer.withValues(
-                alpha: 0.3,
+                alpha: 0.5,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: SpacingBorderRadius.md,
@@ -468,7 +470,7 @@ class _NoteFoldersList extends ConsumerWidget {
                   : null,
               selected: selectedFolderId == 'UNFILED',
               selectedTileColor: colorScheme.secondaryContainer.withValues(
-                alpha: 0.3,
+                alpha: 0.5,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: SpacingBorderRadius.md,
@@ -518,7 +520,7 @@ class _NoteFoldersList extends ConsumerWidget {
                     : null,
                 selected: isSelected,
                 selectedTileColor: colorScheme.secondaryContainer.withValues(
-                  alpha: 0.3,
+                  alpha: 0.5,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: SpacingBorderRadius.md,

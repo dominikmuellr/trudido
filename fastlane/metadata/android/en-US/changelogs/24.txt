@@ -1,0 +1,18 @@
+Version 1.3.3
+
+• Added new Overview tab with clock, greeting, and glanceable task/event summary
+• Added option to disable the Overview tab
+• Added in-app changelog viewer accessible from Settings
+• Added choosable colors for note preview cards
+• Added multiselect for tasks and notes
+• Added Inter as the default font
+• Added syntax highlighting for code blocks in notes
+• Reworked table editor — tables now also insertable via the slash menu in notes
+• Reworked bottom navigation bar layout
+• Fixed markdown not converting to view mode correctly
+• Fixed notes color selector not applying correctly
+• Fixed inline code block rendering issues
+• Fixed mentions now appearing colorful in note previews
+• Fixed deleted default folders reappearing after restart
+• Various theme and visual tweaks
+• Various small fixes and stability improvements

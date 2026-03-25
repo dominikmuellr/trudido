@@ -144,7 +144,13 @@ class LanguageDetector {
       RegExp(r'^def\s+\w+\s*\(', multiLine: true),
       RegExp(r'^from\s+\w+\s+import\b', multiLine: true),
       RegExp(r'^import\s+\w+', multiLine: true),
-      RegExp(r"if\s+__name__\s*==\s*['" '"' r"]__main__['" '"' r"]"),
+      RegExp(
+        r"if\s+__name__\s*==\s*['"
+        '"'
+        r"]__main__['"
+        '"'
+        r"]",
+      ),
       RegExp(r'\bself\.\w+'),
       RegExp(r'^\s*class\s+\w+.*:', multiLine: true),
       RegExp(r'\bprint\s*\('),

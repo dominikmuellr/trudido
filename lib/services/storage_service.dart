@@ -162,9 +162,7 @@ class StorageService {
       _notesCompleter ??= Completer<void>();
       try {
         _notesBox = await Hive.openBox<Note>(_notesBoxName);
-        if (_notesBox!.isEmpty) {
-          await _initializeDefaultNote();
-        } else {
+        if (_notesBox!.isNotEmpty) {
           await _migrateWelcomeNote();
         }
         _notesCompleter?.complete();
@@ -180,7 +178,6 @@ class StorageService {
         try {
           await Hive.deleteBoxFromDisk(_notesBoxName);
           _notesBox = await Hive.openBox<Note>(_notesBoxName);
-          await _initializeDefaultNote();
           _notesCompleter?.complete();
           if (enableLogging) {
             debugPrint('[StorageService] Successfully recovered notes box');
@@ -458,83 +455,6 @@ Type **/** to open the insert menu:
     }
 
     await _prefs?.setInt(versionKey, currentVersion);
-  }
-
-  static Future<void> _initializeDefaultNote() async {
-    final welcomeNote = Note(
-      title: 'Welcome to Trudido',
-      content: '''# Welcome to Trudido
-
----
-
-## Text Formatting
-
-**Bold**, *italic*, <u>underline</u>, ~~strikethrough~~, and ==highlight==.
-
----
-
-## Lists
-
-- Capture ideas as bullet points
-- Organise and reorder freely
-- Nest items for structure
-
-1. First step
-2. Second step
-3. Third step
-
----
-
-## Checkboxes
-
-- [ ] A task to complete
-- [ ] Another pending item
-- [x] Something already done
-
----
-
-## Quote
-
-> Block quotes stand out for important thoughts or citations.
-
----
-
-## Code
-
-Inline `code` works inside any sentence, or use a fenced block:
-
-```
-function greet(name) {
-  return "Hello, " + name + "!";
-}
-```
-
----
-
-## @Mentions
-
-Type **@** anywhere to search and link a task, event, or note inline. The linked item becomes tappable — tap it to jump directly to the referenced item.
-
----
-
-## Links
-
-[Visit example.com](https://example.com)
-
----
-
-## Tables & Media
-
-Type **/** to open the insert menu:
-- 📊 **Table** — interactive grid you can tap to edit, add or remove rows and columns
-- 📸 **Photo** — from gallery or camera
-- 🎥 **Video**
-- 🎤 **Voice recording**
-- 🔗 **Link**
-- `</>` **Code block**
-''',
-    );
-    await _notesBox!.put(welcomeNote.id, welcomeNote);
   }
 
   static Future<void> _initializeDefaultVaultFolder() async {

@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
@@ -656,29 +658,33 @@ class _ProgressSection extends ConsumerWidget {
           padding: spacing.insets16,
           child: Row(
             children: [
-              // Circular progress
+              // Animated gradient arc
               SizedBox(
                 width: 56,
                 height: 56,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    CircularProgressIndicator(
-                      value: stats.completionRate,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: stats.completionRate),
+                  duration: const Duration(milliseconds: 800),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, child) => CustomPaint(
+                    painter: _ArcProgressPainter(
+                      progress: value,
+                      trackColor: colorScheme.surfaceContainerHighest,
+                      startColor: colorScheme.primary,
+                      endColor: colorScheme.tertiary,
                       strokeWidth: 5,
-                      backgroundColor: colorScheme.surfaceContainerHighest,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        colorScheme.primary,
-                      ),
                     ),
-                    Text(
+                    child: child,
+                  ),
+                  child: Center(
+                    child: Text(
                       '${(stats.completionRate * 100).toInt()}%',
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: colorScheme.primary,
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
               SizedBox(width: spacing.s16),
@@ -1292,12 +1298,19 @@ class _EmptyCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Bento Card container
 // ---------------------------------------------------------------------------
-class _BentoCard extends ConsumerWidget {
+class _BentoCard extends ConsumerStatefulWidget {
   final Widget child;
   const _BentoCard({required this.child});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_BentoCard> createState() => _BentoCardState();
+}
+
+class _BentoCardState extends ConsumerState<_BentoCard> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final preferences = ref.watch(preferencesStateProvider);
@@ -1313,22 +1326,94 @@ class _BentoCard extends ConsumerWidget {
     final isMonochrome = preferences.accentColorSeed == 0xFF9E9E9E;
     final shouldRemoveBorder = isAmoledBlack && isMonochrome;
 
-    return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      color: bgColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: shouldRemoveBorder
-            ? BorderSide.none
-            : BorderSide(
-                color: isDark
-                    ? colorScheme.outlineVariant
-                    : colorScheme.primary.withValues(alpha: 0.18),
-                width: 0.5,
-              ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.97 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: Card(
+          elevation: 0,
+          margin: EdgeInsets.zero,
+          color: bgColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: shouldRemoveBorder
+                ? BorderSide.none
+                : BorderSide(
+                    color: isDark
+                        ? colorScheme.outlineVariant
+                        : colorScheme.primary.withValues(alpha: 0.18),
+                    width: 0.5,
+                  ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: widget.child,
+          ),
+        ),
       ),
-      child: Padding(padding: const EdgeInsets.all(16), child: child),
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Custom gradient arc painter for progress
+// ---------------------------------------------------------------------------
+class _ArcProgressPainter extends CustomPainter {
+  final double progress;
+  final Color trackColor;
+  final Color startColor;
+  final Color endColor;
+  final double strokeWidth;
+
+  _ArcProgressPainter({
+    required this.progress,
+    required this.trackColor,
+    required this.startColor,
+    required this.endColor,
+    required this.strokeWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.shortestSide - strokeWidth) / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    const startAngle = -math.pi / 2;
+
+    // Track
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(center, radius, trackPaint);
+
+    if (progress <= 0) return;
+
+    // Gradient arc
+    final sweepAngle = 2 * math.pi * progress;
+    final arcPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..shader = SweepGradient(
+        startAngle: startAngle,
+        endAngle: startAngle + sweepAngle,
+        colors: [startColor, endColor],
+        transform: const GradientRotation(-math.pi / 2),
+      ).createShader(rect);
+
+    canvas.drawArc(rect, startAngle, sweepAngle, false, arcPaint);
+  }
+
+  @override
+  bool shouldRepaint(_ArcProgressPainter oldDelegate) =>
+      progress != oldDelegate.progress ||
+      trackColor != oldDelegate.trackColor ||
+      startColor != oldDelegate.startColor ||
+      endColor != oldDelegate.endColor;
 }

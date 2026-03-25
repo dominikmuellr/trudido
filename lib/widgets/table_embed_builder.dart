@@ -23,7 +23,7 @@ import 'package:flutter_quill/quill_delta.dart';
 /// note editor. Cell data is stored as a JSON CustomBlockEmbed with key
 /// 'table' so it survives save/load cycles as part of the Quill Delta.
 ///
-/// Data format: {"rows": int, "cols": int, "cells": List<List<String>>}
+/// Data format: `{"rows": int, "cols": int, "cells": List<List<String>>}`
 ///
 /// The table is always rendered read-only inside the editor. Tapping it
 /// opens a bottom sheet with a full grid of editable cells, row/column

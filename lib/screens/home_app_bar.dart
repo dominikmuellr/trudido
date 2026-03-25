@@ -32,7 +32,6 @@ import '../services/folder_provider.dart';
 import '../repositories/note_folder_repository.dart';
 import '../widgets/user_avatar_widget.dart';
 import 'home_screen_notifiers.dart';
-import 'notes_screen.dart';
 import '../widgets/common/common.dart';
 
 /// AppBar widget for the home screen
@@ -411,37 +410,6 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    // View toggle for Notes tab
-                    if (currentTab == 2)
-                      Consumer(
-                        builder: (context, ref, _) {
-                          final viewMode = ref.watch(notesViewModeProvider);
-                          return Padding(
-                            padding: const EdgeInsets.only(left: 4),
-                            child: ExpressiveIconButton(
-                              icon: Icon(
-                                viewMode == 'grid'
-                                    ? Icons.view_list
-                                    : Icons.grid_view,
-                                color: colorScheme.onSurfaceVariant,
-                                size: 24,
-                              ),
-                              tooltip: viewMode == 'grid'
-                                  ? 'List view'
-                                  : 'Grid view',
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              onPressed: () {
-                                ref
-                                    .read(notesViewModeProvider.notifier)
-                                    .update(
-                                      viewMode == 'grid' ? 'list' : 'grid',
-                                    );
-                              },
-                            ),
-                          );
-                        },
-                      ),
                   ],
                 ),
               ),

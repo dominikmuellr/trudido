@@ -19,15 +19,15 @@ class NotesFilterChips extends ConsumerWidget {
     return Semantics(
       container: true,
       label: 'Note filters',
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: constraints.maxWidth),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Row(
+          children: [
+            // Sort chips (scrollable)
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(left: 16.0),
                 child: Row(
                   children: [
                     // Sort by (InputChip with menu)
@@ -81,8 +81,36 @@ class NotesFilterChips extends ConsumerWidget {
                 ),
               ),
             ),
-          );
-        },
+            // View mode toggle (pinned to the right)
+            Padding(
+              padding: const EdgeInsets.only(left: 8.0, right: 16.0),
+              child: SegmentedButton<String>(
+                showSelectedIcon: false,
+                style: SegmentedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+                segments: const [
+                  ButtonSegment(
+                    value: 'grid',
+                    icon: Icon(Icons.grid_view, size: 18),
+                  ),
+                  ButtonSegment(
+                    value: 'list',
+                    icon: Icon(Icons.view_list, size: 18),
+                  ),
+                ],
+                selected: {ref.watch(notesViewModeProvider)},
+                onSelectionChanged: (selected) {
+                  ref
+                      .read(notesViewModeProvider.notifier)
+                      .update(selected.first);
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

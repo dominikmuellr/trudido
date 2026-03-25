@@ -133,10 +133,11 @@ class TodoListTab extends ConsumerWidget {
   ) {
     final spacing = ref.watch(adaptiveSpacingProvider);
     final isEventsOnly = itemTypeFilter == 'events_only';
-    final itemLabel = isEventsOnly ? 'events' : 'todos';
+    final isAll = itemTypeFilter == 'all';
+    final itemLabel = isEventsOnly ? 'events' : (isAll ? 'items' : 'todos');
     final emptyIcon = isEventsOnly
         ? Icons.event_outlined
-        : Icons.check_circle_outline;
+        : (isAll ? Icons.inbox_outlined : Icons.check_circle_outline);
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -159,35 +160,62 @@ class TodoListTab extends ConsumerWidget {
             Text(
               isSearching
                   ? 'Try adjusting your search or filters'
+                  : isAll
+                  ? 'Tap the + button to add a todo or event'
                   : 'Tap the + button to add your first ${isEventsOnly ? 'event' : 'todo'}',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),
-            if (!isSearching && !isEventsOnly) ...[
+            if (!isSearching && !isAll) ...[
               spacing.gapV24,
-              FloatingActionButton.extended(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => TaskEditorScreen(
-                        onSave: (todo) {
-                          ref.read(taskControllerProvider.notifier).add(todo);
-                        },
+              if (isEventsOnly)
+                FloatingActionButton.extended(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => EventEditorScreen(
+                          onSave: (event) {
+                            ref
+                                .read(eventControllerProvider.notifier)
+                                .add(event);
+                          },
+                        ),
                       ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.add_task),
-                label: Text(
-                  'Add your first ${isEventsOnly ? 'event' : 'todo'}',
+                    );
+                  },
+                  icon: const Icon(Icons.event),
+                  label: const Text('Add your first event'),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer,
+                  foregroundColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimaryContainer,
+                )
+              else
+                FloatingActionButton.extended(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => TaskEditorScreen(
+                          onSave: (todo) {
+                            ref.read(taskControllerProvider.notifier).add(todo);
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.add_task),
+                  label: const Text('Add your first todo'),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer,
+                  foregroundColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimaryContainer,
                 ),
-                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                foregroundColor: Theme.of(
-                  context,
-                ).colorScheme.onPrimaryContainer,
-              ),
             ],
           ],
         ),

@@ -17,7 +17,7 @@
 import 'package:flutter/material.dart';
 
 /// The current app version string – update this with each release.
-const String kCurrentAppVersion = '1.3.2';
+const String kCurrentAppVersion = '1.3.3';
 
 /// One entry in the changelog.
 class _ChangelogEntry {
@@ -28,6 +28,26 @@ class _ChangelogEntry {
 
 /// Full changelog list, newest first.
 const List<_ChangelogEntry> _changelog = [
+  _ChangelogEntry(
+    version: '1.3.3',
+    changes: [
+      'New Overview tab with clock, greeting and recent content snapshot - disable it under Settings → Defaults',
+      'Configurable drawer modules on the Overview tab: calendar with task markers in slot 1, add/remove slots via the × / + buttons',
+      'Floating navigation bar: optional frosted-glass pill-shaped navbar - toggle it under Settings → Personalization',
+      'Note accent colors: assign a color via the editor toolbar; it shows as an accent on the preview card - via long-press on a note card',
+      'Tables in the slash menu: type / in the note editor to insert a table; table rendering reworked throughout',
+      'Multi-select for notes: long-press a note card to enter selection mode, then tap more cards',
+      'Syntax highlighting in code blocks: language auto-detected, overridable via the language picker in the block',
+      'Inter is now the default font - change it under Settings → Personalization',
+      'Colored @mentions in note preview cards',
+      'Priority chips now use vivid colors instead of muted container tones',
+      'In-app changelog dialog - Settings → About',
+      'Fixed: markdown not converting back to view mode when opening a note',
+      'Fixed: note color selector not applying correctly',
+      'Fixed: inline code block rendering broken in note previews',
+      'Fixed: deleted default folders reappearing after a restart',
+    ],
+  ),
   _ChangelogEntry(
     version: '1.3.2',
     changes: [

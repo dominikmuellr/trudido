@@ -210,6 +210,9 @@ final notesSortByProvider = NotifierProvider<NotesSortNotifier, String>(
   NotesSortNotifier.new,
 );
 
+/// Provider for notes view mode (grid or list)
+final notesViewModeProvider = stateProvider<String>('grid');
+
 /// Provider for filtered/searched notes
 final filteredNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
   final searchQuery = ref.watch(notesSearchQueryProvider);

@@ -300,6 +300,21 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
               );
             },
           ),
+          Consumer(
+            builder: (context, ref, _) {
+              final preferences = ref.watch(preferencesStateProvider);
+              final controller = ref.read(preferencesControllerProvider);
+              return SwitchListTile(
+                secondary: const Icon(Icons.dock_outlined),
+                title: const Text('Floating Navigation Bar'),
+                subtitle: const Text(
+                  'Use a floating frosted-glass navigation bar',
+                ),
+                value: preferences.floatingNavBar,
+                onChanged: (v) => controller.toggleFloatingNavBar(),
+              );
+            },
+          ),
 
           // Defaults Section
           _buildSectionHeader(context, 'Defaults'),

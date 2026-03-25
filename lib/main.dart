@@ -544,9 +544,8 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap>
       if (NavigationService.navigatorKey.currentContext != null) break;
       await Future.delayed(const Duration(milliseconds: 80));
     }
-    if (!mounted) return;
     final ctx = NavigationService.navigatorKey.currentContext;
-    if (ctx == null) return;
+    if (ctx == null || !ctx.mounted) return;
     await showChangelogDialog(ctx);
   }
 

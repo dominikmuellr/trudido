@@ -40,9 +40,6 @@ import '../widgets/skeleton_loading.dart';
 /// Provider for notes search mode
 final notesSearchModeProvider = stateProvider<bool>(false);
 
-/// Provider for notes view mode (grid or list)
-final notesViewModeProvider = stateProvider<String>('grid');
-
 /// Main notes screen showing list of all notes
 class NotesScreen extends ConsumerStatefulWidget {
   const NotesScreen({super.key});
@@ -51,7 +48,19 @@ class NotesScreen extends ConsumerStatefulWidget {
   ConsumerState<NotesScreen> createState() => _NotesScreenState();
 }
 
-class _NotesScreenState extends ConsumerState<NotesScreen> {
+class _NotesScreenState extends ConsumerState<NotesScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _staggerController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 600),
+  )..forward();
+
+  @override
+  void dispose() {
+    _staggerController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final filteredNotesAsync = ref.watch(filteredNotesProvider);
@@ -156,20 +165,24 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           final note = notes[index];
           final isInVault = _isNoteInVault(note);
 
-          return NotePreviewCard(
-            note: note,
-            onTap: () => _editNote(note.id),
-            onPin: () => _togglePin(note.id),
-            onDelete: () => _deleteNote(note.id, note.title),
-            onDeleteConfirmed: () => _deleteNoteConfirmed(note.id),
-            isInVault: isInVault,
-            onMoveToFolder: isInVault ? null : () => _moveNoteToFolder(note),
-            showFormatIndicator: isAllNotesView,
-            isGridView: true,
-            onColorChange: (color) => _setNoteColor(note.id, color),
-            selectable: isMultiSelect,
-            selected: selectedNoteIds.contains(note.id),
-            onSelectToggle: () => _onSelectToggle(note.id),
+          return _StaggeredItem(
+            controller: _staggerController,
+            index: index,
+            child: NotePreviewCard(
+              note: note,
+              onTap: () => _editNote(note.id),
+              onPin: () => _togglePin(note.id),
+              onDelete: () => _deleteNote(note.id, note.title),
+              onDeleteConfirmed: () => _deleteNoteConfirmed(note.id),
+              isInVault: isInVault,
+              onMoveToFolder: isInVault ? null : () => _moveNoteToFolder(note),
+              showFormatIndicator: isAllNotesView,
+              isGridView: true,
+              onColorChange: (color) => _setNoteColor(note.id, color),
+              selectable: isMultiSelect,
+              selected: selectedNoteIds.contains(note.id),
+              onSelectToggle: () => _onSelectToggle(note.id),
+            ),
           );
         },
       ),
@@ -207,21 +220,27 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           final note = notes[index];
           final isInVault = _isNoteInVault(note);
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: NotePreviewCard(
-              note: note,
-              onTap: () => _editNote(note.id),
-              onPin: () => _togglePin(note.id),
-              onDelete: () => _deleteNote(note.id, note.title),
-              onDeleteConfirmed: () => _deleteNoteConfirmed(note.id),
-              isInVault: isInVault,
-              onMoveToFolder: isInVault ? null : () => _moveNoteToFolder(note),
-              showFormatIndicator: isAllNotesView,
-              onColorChange: (color) => _setNoteColor(note.id, color),
-              selectable: isMultiSelect,
-              selected: selectedNoteIds.contains(note.id),
-              onSelectToggle: () => _onSelectToggle(note.id),
+          return _StaggeredItem(
+            controller: _staggerController,
+            index: index,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: NotePreviewCard(
+                note: note,
+                onTap: () => _editNote(note.id),
+                onPin: () => _togglePin(note.id),
+                onDelete: () => _deleteNote(note.id, note.title),
+                onDeleteConfirmed: () => _deleteNoteConfirmed(note.id),
+                isInVault: isInVault,
+                onMoveToFolder: isInVault
+                    ? null
+                    : () => _moveNoteToFolder(note),
+                showFormatIndicator: isAllNotesView,
+                onColorChange: (color) => _setNoteColor(note.id, color),
+                selectable: isMultiSelect,
+                selected: selectedNoteIds.contains(note.id),
+                onSelectToggle: () => _onSelectToggle(note.id),
+              ),
             ),
           );
         },
@@ -893,5 +912,41 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         );
       }
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Staggered entrance animation for note items
+// ---------------------------------------------------------------------------
+class _StaggeredItem extends StatelessWidget {
+  final AnimationController controller;
+  final int index;
+  final Widget child;
+
+  const _StaggeredItem({
+    required this.controller,
+    required this.index,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final start = (index * 0.07).clamp(0.0, 0.6);
+    final end = (start + 0.4).clamp(0.0, 1.0);
+    final curve = CurvedAnimation(
+      parent: controller,
+      curve: Interval(start, end, curve: Curves.easeOut),
+    );
+
+    return FadeTransition(
+      opacity: curve,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.04),
+          end: Offset.zero,
+        ).animate(curve),
+        child: child,
+      ),
+    );
   }
 }
