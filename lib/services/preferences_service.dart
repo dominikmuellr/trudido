@@ -217,6 +217,7 @@ class PreferencesService {
       showOverviewTab: p.getBool('show_overview_tab'),
       useBlurEffects: p.getBool('use_blur_effects'),
       floatingNavBar: p.getBool('floating_nav_bar'),
+      searchHistory: p.getStringList('search_history') ?? [],
     );
   }
 
@@ -287,6 +288,7 @@ class PreferencesService {
     bool? showOverviewTab,
     bool? useBlurEffects,
     bool? floatingNavBar,
+    List<String>? searchHistory,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -413,6 +415,9 @@ class PreferencesService {
       }
       if (floatingNavBar != null) {
         await p.setBool('floating_nav_bar', floatingNavBar);
+      }
+      if (searchHistory != null) {
+        await p.setStringList('search_history', searchHistory);
       }
       _hydrate();
       return _cache;

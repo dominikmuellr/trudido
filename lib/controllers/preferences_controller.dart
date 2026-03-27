@@ -279,4 +279,22 @@ class PreferencesController {
   Future<void> clearActiveCustomTheme() async {
     await _clearActiveCustomTheme();
   }
+
+  /// Add a query to search history (dedup, front-insert, max 10).
+  Future<void> addSearchHistory(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.length < 3) return;
+    final current = List<String>.from(state.searchHistory);
+    current.remove(trimmed);
+    current.insert(0, trimmed);
+    if (current.length > 10) current.removeRange(10, current.length);
+    final updated = await service.update(searchHistory: current);
+    ref.read(preferencesStateProvider.notifier).update(updated);
+  }
+
+  /// Clear all search history.
+  Future<void> clearSearchHistory() async {
+    final updated = await service.update(searchHistory: []);
+    ref.read(preferencesStateProvider.notifier).update(updated);
+  }
 }

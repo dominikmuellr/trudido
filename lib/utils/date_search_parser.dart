@@ -65,8 +65,36 @@ class FuzzySearch {
     return 1.0 - (distance / maxLen);
   }
 
-  /// Filters a list of items based on fuzzy matching
-  /// Returns items sorted by relevance score
+  /// Scores a single query token against the item text.
+  /// Returns best match score (0.0–1.0).
+  static double _scoreToken(String token, String text, List<String> words) {
+    if (text.contains(token)) return 1.0;
+
+    double bestScore = 0.0;
+    for (final word in words) {
+      if (word.length < 3 && token.length > 3) continue;
+      final s = calculateSimilarity(token, word);
+      if (s > bestScore) bestScore = s;
+    }
+    for (final word in words) {
+      if (word.length >= token.length) {
+        final s = calculateSimilarity(token, word.substring(0, token.length));
+        if (s > bestScore) bestScore = s;
+      }
+    }
+    return bestScore;
+  }
+
+  /// Adjusted minimum similarity based on token length.
+  static double _threshold(String token, double minSimilarity) {
+    if (token.length <= 3) return 0.85;
+    if (token.length <= 5) return 0.75;
+    return minSimilarity;
+  }
+
+  /// Filters a list of items based on fuzzy matching.
+  /// Multi-word queries use AND logic: every token must match.
+  /// Returns items sorted by relevance score.
   static List<T> filter<T>({
     required List<T> items,
     required String query,
@@ -75,53 +103,36 @@ class FuzzySearch {
   }) {
     if (query.isEmpty) return items;
 
-    final results = <_FuzzyResult<T>>[];
-    final queryLower = query.toLowerCase();
+    final tokens = query
+        .toLowerCase()
+        .split(RegExp(r'\s+'))
+        .where((t) => t.isNotEmpty)
+        .toList();
+    if (tokens.isEmpty) return items;
 
-    // Adjust minimum similarity based on query length
-    // Shorter queries need stricter matching to avoid false positives
-    final adjustedMinSimilarity = queryLower.length <= 3
-        ? 0.85 // Very strict for short queries (1 typo max for 3-letter words)
-        : queryLower.length <= 5
-        ? 0.75 // Strict for medium queries
-        : minSimilarity; // Use provided threshold for longer queries
+    final results = <_FuzzyResult<T>>[];
 
     for (final item in items) {
       final text = getText(item).toLowerCase();
-      double bestScore = 0.0;
+      final words = text.split(RegExp(r'\s+'));
 
-      if (text.contains(queryLower)) {
-        bestScore = 1.0;
-      } else {
-        final words = text.split(RegExp(r'\s+'));
-        for (final word in words) {
-          // Skip very short words unless query is also very short
-          if (word.length < 3 && queryLower.length > 3) continue;
+      double totalScore = 0.0;
+      bool allMatch = true;
 
-          final wordSimilarity = calculateSimilarity(queryLower, word);
-          if (wordSimilarity > bestScore) {
-            bestScore = wordSimilarity;
-          }
+      for (final token in tokens) {
+        final score = _scoreToken(token, text, words);
+        if (score < _threshold(token, minSimilarity)) {
+          allMatch = false;
+          break;
         }
-
-        // For longer words, check if query matches start of word (common typo pattern)
-        for (final word in words) {
-          if (word.length >= queryLower.length) {
-            final wordStart = word.substring(0, queryLower.length);
-            final startSimilarity = calculateSimilarity(queryLower, wordStart);
-            if (startSimilarity > bestScore) {
-              bestScore = startSimilarity;
-            }
-          }
-        }
+        totalScore += score;
       }
 
-      if (bestScore >= adjustedMinSimilarity) {
-        results.add(_FuzzyResult(item, bestScore));
+      if (allMatch) {
+        results.add(_FuzzyResult(item, totalScore / tokens.length));
       }
     }
 
-    // Sort by score (highest first)
     results.sort((a, b) => b.score.compareTo(a.score));
     return results.map((r) => r.item).toList();
   }
@@ -144,9 +155,23 @@ class DateSearchParser {
   /// - YYYY-MM-DD (ISO)
   /// - Accepts 2-digit years (e.g., 24 -> 2024)
   /// - Accepts any separator (., /, -, space)
+  /// - Relative keywords: today, tomorrow, yesterday
   /// Returns null if the query is not a valid date format
   static DateTime? parseDate(String query) {
     if (query.trim().isEmpty) return null;
+
+    // Handle relative date keywords
+    final lower = query.trim().toLowerCase();
+    final now = DateTime.now();
+    if (lower == 'today') return DateTime(now.year, now.month, now.day);
+    if (lower == 'tomorrow') {
+      final d = now.add(const Duration(days: 1));
+      return DateTime(d.year, d.month, d.day);
+    }
+    if (lower == 'yesterday') {
+      final d = now.subtract(const Duration(days: 1));
+      return DateTime(d.year, d.month, d.day);
+    }
 
     // Normalize the input: replace any separator with space for easier parsing
     final cleaned = query

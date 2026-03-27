@@ -26,6 +26,7 @@ import '../providers/app_providers.dart';
 import '../controllers/task_controller.dart';
 import '../controllers/notes_controller.dart';
 import '../controllers/event_controller.dart';
+import '../controllers/preferences_controller.dart';
 import '../services/storage_service.dart';
 import '../services/greeting_service.dart';
 import '../services/folder_provider.dart';
@@ -80,6 +81,10 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
       ref.read(settingsSearchQueryProvider.notifier).update(value);
       ref.read(folderSearchQueryProvider.notifier).update(value);
       ref.read(noteFolderSearchQueryProvider.notifier).update(value);
+      // Persist to search history
+      if (value.trim().length >= 3) {
+        ref.read(preferencesControllerProvider).addSearchHistory(value.trim());
+      }
     });
   }
 
@@ -122,6 +127,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
           ref.read(settingsSearchQueryProvider.notifier).update('');
           ref.read(folderSearchQueryProvider.notifier).update('');
           ref.read(noteFolderSearchQueryProvider.notifier).update('');
+          ref.read(searchScopeProvider.notifier).update(<String>{});
         },
       ),
       title: TextField(
@@ -155,6 +161,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
               ref.read(settingsSearchQueryProvider.notifier).update('');
               ref.read(folderSearchQueryProvider.notifier).update('');
               ref.read(noteFolderSearchQueryProvider.notifier).update('');
+              ref.read(searchScopeProvider.notifier).update(<String>{});
             },
           ),
       ],

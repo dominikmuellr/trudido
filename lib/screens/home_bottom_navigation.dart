@@ -110,6 +110,7 @@ class HomeNavigationBar extends ConsumerWidget {
           ref.read(settingsSearchQueryProvider.notifier).update('');
           ref.read(folderSearchQueryProvider.notifier).update('');
           ref.read(noteFolderSearchQueryProvider.notifier).update('');
+          ref.read(searchScopeProvider.notifier).update(<String>{});
         }
       },
       destinations: [

@@ -1017,9 +1017,16 @@ class NotePreviewCard extends ConsumerWidget {
                 ));
 
     // For Quill notes, render with formatting; for markdown, parse structure
-    final contentText = _isQuillFormat()
+    var contentText = _isQuillFormat()
         ? _extractPlainTextFromQuill()
         : _extractContentOnly(contentLines);
+
+    // When searching, show a snippet around the first match instead of the beginning
+    if (searchHighlight != null &&
+        searchHighlight!.isNotEmpty &&
+        contentText.isNotEmpty) {
+      contentText = _extractSnippet(contentText, searchHighlight!);
+    }
 
     final bodySpan = searchHighlight != null && searchHighlight!.isNotEmpty
         ? _applyHighlighting(
@@ -2076,6 +2083,28 @@ class NotePreviewCard extends ConsumerWidget {
       // Different year, show full date
       return DateFormat('d MMM y').format(date);
     }
+  }
+
+  /// Extracts a short snippet around the first match of [query] in [content].
+  String _extractSnippet(String content, String query, {int radius = 80}) {
+    final lowerContent = content.toLowerCase();
+    // Try each token from the query
+    final tokens = query
+        .toLowerCase()
+        .split(RegExp(r'\s+'))
+        .where((t) => t.isNotEmpty);
+    int matchIndex = -1;
+    for (final token in tokens) {
+      matchIndex = lowerContent.indexOf(token);
+      if (matchIndex != -1) break;
+    }
+    if (matchIndex == -1) return content; // No match found, show as-is
+
+    final start = (matchIndex - radius).clamp(0, content.length);
+    final end = (matchIndex + query.length + radius).clamp(0, content.length);
+    final prefix = start > 0 ? '...' : '';
+    final suffix = end < content.length ? '...' : '';
+    return '$prefix${content.substring(start, end)}$suffix';
   }
 
   TextSpan _applyHighlighting(

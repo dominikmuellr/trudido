@@ -149,6 +149,9 @@ final selectedNoteIdsProvider =
 // Provider for tracking search mode state
 final searchModeProvider = stateProvider<bool>(false);
 
+// Search scope filter: empty = show all, otherwise show only selected categories
+final searchScopeProvider = stateProvider<Set<String>>(<String>{});
+
 // Provider for current tab index with default tab initialization
 final currentTabProvider = NotifierProvider<CurrentTabNotifier, int>(
   CurrentTabNotifier.new,

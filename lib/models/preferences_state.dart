@@ -90,6 +90,7 @@ class PreferencesState {
   bool get useBlurEffects => _useBlurEffects ?? true;
   final bool? _floatingNavBar; // Floating frosted-glass navigation bar
   bool get floatingNavBar => _floatingNavBar ?? true;
+  final List<String> searchHistory; // Recent search queries (max 10)
 
   const PreferencesState({
     required this.themeMode,
@@ -134,6 +135,7 @@ class PreferencesState {
     bool? showOverviewTab,
     bool? useBlurEffects,
     bool? floatingNavBar,
+    this.searchHistory = const [],
   }) : _lineHeightMultiplier = lineHeightMultiplier,
        _hideNavLabels = hideNavLabels,
        _showOverviewTab = showOverviewTab,
@@ -195,6 +197,7 @@ class PreferencesState {
     bool? showOverviewTab,
     bool? useBlurEffects,
     bool? floatingNavBar,
+    List<String>? searchHistory,
   }) => PreferencesState(
     themeMode: themeMode ?? this.themeMode,
     useDynamicColor: useDynamicColor ?? this.useDynamicColor,
@@ -244,6 +247,7 @@ class PreferencesState {
     showOverviewTab: showOverviewTab ?? this.showOverviewTab,
     useBlurEffects: useBlurEffects ?? this.useBlurEffects,
     floatingNavBar: floatingNavBar ?? this.floatingNavBar,
+    searchHistory: searchHistory ?? this.searchHistory,
   );
 
   static const defaultState = PreferencesState(
@@ -279,6 +283,7 @@ class PreferencesState {
     paragraphSpacing: 8.0,
     autoOpenKeyboardInNotes: true, // Default: auto-open keyboard
     defaultNoteReadMode: false, // Default: open in edit mode
+    searchHistory: [],
   );
 
   /// Resolves whether to use 24-hour format based on the user preference.

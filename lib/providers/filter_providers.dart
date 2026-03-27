@@ -472,3 +472,33 @@ final eventsForSearchDateProvider = Provider<List<Event>>((ref) {
     return a.startDateTime.compareTo(b.startDateTime);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Overdue keyword search
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Whether the current search query is the keyword "overdue"
+final isOverdueSearchProvider = Provider<bool>((ref) {
+  final query = ref.watch(searchQueryProvider).trim().toLowerCase();
+  return query == 'overdue';
+});
+
+/// Overdue tasks (incomplete with past due date)
+final overdueTasksProvider = Provider<List<Todo>>((ref) {
+  if (!ref.watch(isOverdueSearchProvider)) return [];
+  final now = DateTime.now();
+  return ref.watch(tasksProvider).where((t) {
+    return !t.isCompleted && t.isOverdueAt(now);
+  }).toList()..sort(
+    (a, b) => (a.dueDate ?? a.createdAt).compareTo(b.dueDate ?? b.createdAt),
+  );
+});
+
+/// Overdue events (incomplete with past end date)
+final overdueEventsProvider = Provider<List<Event>>((ref) {
+  if (!ref.watch(isOverdueSearchProvider)) return [];
+  final now = DateTime.now();
+  return ref.watch(eventsProvider).where((e) {
+    return !e.isCompleted && e.endDateTime.isBefore(now);
+  }).toList()..sort((a, b) => a.endDateTime.compareTo(b.endDateTime));
+});
