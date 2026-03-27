@@ -59,39 +59,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _isCalendarExpanded = false;
   // _isFilterExpanded removed - filters are now in the always-visible chip row
 
-  // Animation state for greeting → search bar transition
-  AnimationController? _greetingAnimationController;
-  Animation<double>? _greetingFadeAnimation;
-  Animation<double>? _searchBarScaleAnimation;
-  bool _showSearchBar = false;
-  DateTime? _lastPausedTime;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _updateWidgetOnStartup();
 
-    _greetingAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-
-    _greetingFadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(
-        parent: _greetingAnimationController!,
-        curve: Curves.easeOut,
-      ),
-    );
-
-    _searchBarScaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _greetingAnimationController!,
-        curve: Curves.easeOut,
-      ),
-    );
-
-    _triggerGreetingAnimation();
     // Guard: if Overview tab is hidden but current tab is 0 at startup, switch away.
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkInitialTab());
   }
@@ -118,7 +91,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
-    _greetingAnimationController?.dispose();
     super.dispose();
   }
 
@@ -129,31 +101,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       clearVaultSelectionIfNeeded();
-      _lastPausedTime = DateTime.now();
-    } else if (state == AppLifecycleState.resumed) {
-      if (_lastPausedTime != null) {
-        final pauseDuration = DateTime.now().difference(_lastPausedTime!);
-        if (pauseDuration.inMilliseconds > 500) {
-          // Meaningful resume, trigger greeting animation
-          _triggerGreetingAnimation();
-        }
-      }
-      _lastPausedTime = null;
     }
-  }
-
-  /// Triggers the greeting → search bar animation after a 2-second delay
-  void _triggerGreetingAnimation() {
-    final showSearchBar = ref.read(preferencesStateProvider).showSearchBar;
-    if (!showSearchBar) return; // Don't show search bar if disabled in settings
-
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted || _greetingAnimationController == null) return;
-      setState(() {
-        _showSearchBar = true;
-      });
-      _greetingAnimationController!.forward();
-    });
   }
 
   @override
@@ -378,9 +326,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   child: Scaffold(
                     appBar: HomeAppBar(
                       searchController: _searchController,
-                      searchBarScaleAnimation: _searchBarScaleAnimation,
-                      greetingFadeAnimation: _greetingFadeAnimation,
-                      showSearchBar: _showSearchBar,
                       onOpenPersonalization: () =>
                           openPersonalizationScreen(() => setState(() {})),
                     ),
@@ -418,21 +363,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
           ),
           // Backdrop overlay
-          const FabMenuScreenBackdrop(),
+          if (!ref.watch(searchModeProvider)) const FabMenuScreenBackdrop(),
           // FAB on top
-          Positioned(
-            right: 16,
-            bottom: 16,
-            child: FabMenu(
-              onAddTask: showAddTaskDialog,
-              onAddNote: createNewNote,
-              onAddEvent: showAddEventDialog,
-              onAddFromTemplate: showTemplateSelection,
-              onCreateVaultNote: createVaultNote,
-              onLockVault: lockVault,
-              onSearch: triggerSearch,
+          if (!ref.watch(searchModeProvider))
+            Positioned(
+              right: 16,
+              bottom: 16,
+              child: FabMenu(
+                onAddTask: showAddTaskDialog,
+                onAddNote: createNewNote,
+                onAddEvent: showAddEventDialog,
+                onAddFromTemplate: showTemplateSelection,
+                onCreateVaultNote: createVaultNote,
+                onLockVault: lockVault,
+                onSearch: triggerSearch,
+              ),
             ),
-          ),
         ],
       );
     }
@@ -461,9 +407,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               80.0, // Allow swipe from left edge to open drawer (increased for easier triggering)
           appBar: HomeAppBar(
             searchController: _searchController,
-            searchBarScaleAnimation: _searchBarScaleAnimation,
-            greetingFadeAnimation: _greetingFadeAnimation,
-            showSearchBar: _showSearchBar,
             onOpenPersonalization: () =>
                 openPersonalizationScreen(() => setState(() {})),
           ),
@@ -526,9 +469,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               : null,
         ),
         // Backdrop overlay (only for FAB menu mode)
-        if (!useQuickInputBar) const FabMenuScreenBackdrop(),
+        if (!useQuickInputBar && !ref.watch(searchModeProvider))
+          const FabMenuScreenBackdrop(),
         // FAB (only for FAB menu mode, not for Quick Input Bar mode)
-        if (!useQuickInputBar)
+        if (!useQuickInputBar && !ref.watch(searchModeProvider))
           Builder(
             builder: (context) {
               final safeBottom = MediaQuery.viewPaddingOf(context).bottom;

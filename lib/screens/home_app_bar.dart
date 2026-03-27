@@ -39,17 +39,11 @@ import '../widgets/common/common.dart';
 /// Handles search mode, multi-select mode, and regular greeting display
 class HomeAppBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
   final TextEditingController searchController;
-  final Animation<double>? searchBarScaleAnimation;
-  final Animation<double>? greetingFadeAnimation;
-  final bool showSearchBar;
   final VoidCallback onOpenPersonalization;
 
   const HomeAppBar({
     super.key,
     required this.searchController,
-    this.searchBarScaleAnimation,
-    this.greetingFadeAnimation,
-    required this.showSearchBar,
     required this.onOpenPersonalization,
   });
 
@@ -60,12 +54,30 @@ class HomeAppBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
   ConsumerState<HomeAppBar> createState() => _HomeAppBarState();
 }
 
-class _HomeAppBarState extends ConsumerState<HomeAppBar> {
+class _HomeAppBarState extends ConsumerState<HomeAppBar>
+    with SingleTickerProviderStateMixin {
   Timer? _debounceTimer;
+  late AnimationController _searchModeController;
+  late Animation<double> _searchFadeAnimation;
+  bool _wasSearchMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchModeController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _searchFadeAnimation = CurvedAnimation(
+      parent: _searchModeController,
+      curve: Curves.easeOutCubic,
+    );
+  }
 
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _searchModeController.dispose();
     super.dispose();
   }
 
@@ -88,182 +100,223 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
     });
   }
 
+  void _exitSearch() {
+    ref.read(searchModeProvider.notifier).update(false);
+    widget.searchController.clear();
+    ref.read(searchQueryProvider.notifier).update('');
+    ref.read(notesSearchQueryProvider.notifier).update('');
+    ref.read(settingsSearchQueryProvider.notifier).update('');
+    ref.read(folderSearchQueryProvider.notifier).update('');
+    ref.read(noteFolderSearchQueryProvider.notifier).update('');
+    ref.read(searchScopeProvider.notifier).update(<String>{});
+  }
+
+  void _clearSearch() {
+    widget.searchController.clear();
+    ref.read(searchQueryProvider.notifier).update('');
+    ref.read(notesSearchQueryProvider.notifier).update('');
+    ref.read(settingsSearchQueryProvider.notifier).update('');
+    ref.read(folderSearchQueryProvider.notifier).update('');
+    ref.read(noteFolderSearchQueryProvider.notifier).update('');
+    ref.read(searchScopeProvider.notifier).update(<String>{});
+  }
+
   @override
   Widget build(BuildContext context) {
     final isSearchMode = ref.watch(searchModeProvider);
     final currentTab = ref.watch(currentTabProvider);
     final preferences = ref.watch(preferencesStateProvider);
-
-    // Check if AMOLED black theme is enabled
     final isAmoledBlack =
         preferences.useBlackTheme &&
         Theme.of(context).brightness == Brightness.dark;
-
-    if (isSearchMode && currentTab <= 2) {
-      return _buildSearchAppBar(context, isAmoledBlack);
-    }
-
-    return _buildRegularAppBar(context, isAmoledBlack, currentTab);
-  }
-
-  /// Builds the search mode AppBar
-  AppBar _buildSearchAppBar(BuildContext context, bool isAmoledBlack) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return AppBar(
-      backgroundColor: isAmoledBlack ? Colors.black : colorScheme.surface,
-      surfaceTintColor: isAmoledBlack
-          ? Colors.transparent
-          : colorScheme.surfaceTint,
-      leading: ExpressiveIconButton(
-        icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
-        onPressed: () {
-          ref.read(searchModeProvider.notifier).update(false);
-          widget.searchController.clear();
-          // Clear all search queries for universal search
-          ref.read(searchQueryProvider.notifier).update('');
-          ref.read(notesSearchQueryProvider.notifier).update('');
-          ref.read(settingsSearchQueryProvider.notifier).update('');
-          ref.read(folderSearchQueryProvider.notifier).update('');
-          ref.read(noteFolderSearchQueryProvider.notifier).update('');
-          ref.read(searchScopeProvider.notifier).update(<String>{});
-        },
-      ),
-      title: TextField(
-        controller: widget.searchController,
-        autofocus: true,
-        style: theme.textTheme.bodyLarge?.copyWith(
-          color: colorScheme.onSurface,
-        ),
-        decoration: InputDecoration(
-          hintText: 'Search Trudido',
-          hintStyle: theme.textTheme.bodyLarge?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-          border: InputBorder.none,
-          filled: false,
-          contentPadding: EdgeInsets.zero,
-        ),
-        // Use debounced search for better performance
-        onChanged: _onSearchChanged,
-      ),
-      actions: [
-        if (widget.searchController.text.isNotEmpty)
-          ExpressiveIconButton(
-            icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
-            tooltip: 'Clear search',
-            onPressed: () {
-              widget.searchController.clear();
-              // Clear all search queries for universal search
-              ref.read(searchQueryProvider.notifier).update('');
-              ref.read(notesSearchQueryProvider.notifier).update('');
-              ref.read(settingsSearchQueryProvider.notifier).update('');
-              ref.read(folderSearchQueryProvider.notifier).update('');
-              ref.read(noteFolderSearchQueryProvider.notifier).update('');
-              ref.read(searchScopeProvider.notifier).update(<String>{});
-            },
-          ),
-      ],
-    );
-  }
-
-  /// Builds the regular (non-search) AppBar
-  AppBar _buildRegularAppBar(
-    BuildContext context,
-    bool isAmoledBlack,
-    int currentTab,
-  ) {
     final multiMode = ref.watch(multiSelectModeProvider);
     final selectedIds = ref.watch(selectedTodoIdsProvider);
     final selectedEventIds = ref.watch(selectedEventIdsProvider);
-    final colorScheme = Theme.of(context).colorScheme;
-    final preferences = ref.watch(preferencesStateProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final isActiveSearch = isSearchMode && currentTab <= 2;
+
+    // Drive the search-mode animation controller
+    if (isActiveSearch && !_wasSearchMode) {
+      _wasSearchMode = true;
+      _searchModeController.forward();
+    } else if (!isActiveSearch && _wasSearchMode) {
+      _wasSearchMode = false;
+      _searchModeController.reverse();
+    }
+
+    final bgColor = isAmoledBlack ? Colors.black : colorScheme.surface;
+    final surfaceTint = isAmoledBlack
+        ? Colors.transparent
+        : colorScheme.surfaceTint;
 
     return AppBar(
-      backgroundColor: isAmoledBlack ? Colors.black : colorScheme.surface,
-      surfaceTintColor: isAmoledBlack
-          ? Colors.transparent
-          : colorScheme.surfaceTint,
-      // Leading: Menu button to open drawer (or close button in multi-select mode)
-      leading: multiMode
-          ? ExpressiveIconButton(
-              icon: ScaledIcon(Icons.close),
-              onPressed: () {
-                ref.read(multiSelectModeProvider.notifier).update(false);
-                ref.read(selectedTodoIdsProvider.notifier).clear();
-                ref.read(selectedEventIdsProvider.notifier).clear();
-              },
-            )
-          : Builder(
-              builder: (context) => ExpressiveIconButton(
-                icon: ScaledIcon(Icons.menu, color: colorScheme.primary),
-                tooltip: 'Open menu',
-                onPressed: () {
-                  Scaffold.of(context).openDrawer();
-                },
-              ),
-            ),
-      // Title: App name or selection count
-      title: multiMode && currentTab == 1
-          ? Text(
-              '${selectedIds.length + selectedEventIds.length} selected',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: colorScheme.onSurface,
-              ),
-            )
-          : currentTab == 0
-          ? preferences.showSearchBar
-                ? _buildSimpleSearchBar(context)
-                : null
-          : preferences.showSearchBar && widget.showSearchBar
-          ? _buildAnimatedSearchBar(context, currentTab)
-          : !preferences.showSearchBar || widget.greetingFadeAnimation == null
-          ? _buildGreeting(context, currentTab)
-          : AnimatedBuilder(
-              animation: widget.greetingFadeAnimation!,
-              builder: (context, child) {
-                return Opacity(
-                  opacity: widget.greetingFadeAnimation!.value,
-                  child: _buildGreeting(context, currentTab),
-                );
-              },
-            ),
-      // Actions: avatar button and delete button in multi-select mode
-      actions: [
-        // Delete button in multi-select mode
-        if (currentTab == 1 && multiMode)
-          ExpressiveIconButton(
-            icon: Icon(
-              Icons.delete_outline,
-              color: selectedIds.isEmpty && selectedEventIds.isEmpty
-                  ? colorScheme.onSurface.withAlpha(100)
-                  : colorScheme.error,
-            ),
-            tooltip: 'Delete',
-            onPressed: selectedIds.isEmpty && selectedEventIds.isEmpty
-                ? null
-                : () => _showDeleteConfirmation(
-                    context,
-                    ref,
-                    selectedIds,
-                    selectedEventIds,
-                    colorScheme,
-                  ),
-          ),
-        // Profile avatar button (always visible when not in multi-select mode)
-        if (!multiMode)
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: UserAvatarWidget(
-              radius: 18,
-              onTap: widget.onOpenPersonalization,
-            ),
-          ),
-      ],
+      backgroundColor: bgColor,
+      surfaceTintColor: surfaceTint,
+      leading: _buildLeading(
+        isActiveSearch: isActiveSearch,
+        multiMode: multiMode,
+        colorScheme: colorScheme,
+      ),
+      title: _buildTitle(
+        context: context,
+        isActiveSearch: isActiveSearch,
+        multiMode: multiMode,
+        currentTab: currentTab,
+        showSearchBar: preferences.showSearchBar,
+        selectedCount: selectedIds.length + selectedEventIds.length,
+        theme: theme,
+        colorScheme: colorScheme,
+      ),
+      actions: _buildActions(
+        context: context,
+        isActiveSearch: isActiveSearch,
+        multiMode: multiMode,
+        currentTab: currentTab,
+        selectedIds: selectedIds,
+        selectedEventIds: selectedEventIds,
+        colorScheme: colorScheme,
+      ),
     );
+  }
+
+  /// Builds the leading icon with animated transitions
+  Widget _buildLeading({
+    required bool isActiveSearch,
+    required bool multiMode,
+    required ColorScheme colorScheme,
+  }) {
+    Widget child;
+    if (isActiveSearch) {
+      child = ExpressiveIconButton(
+        key: const ValueKey('back'),
+        icon: Icon(Icons.arrow_back_rounded, color: colorScheme.onSurface),
+        onPressed: _exitSearch,
+      );
+    } else if (multiMode) {
+      child = ExpressiveIconButton(
+        key: const ValueKey('close'),
+        icon: ScaledIcon(Icons.close),
+        onPressed: () {
+          ref.read(multiSelectModeProvider.notifier).update(false);
+          ref.read(selectedTodoIdsProvider.notifier).clear();
+          ref.read(selectedEventIdsProvider.notifier).clear();
+        },
+      );
+    } else {
+      child = Builder(
+        key: const ValueKey('menu'),
+        builder: (ctx) => ExpressiveIconButton(
+          icon: ScaledIcon(Icons.menu, color: colorScheme.primary),
+          tooltip: 'Open menu',
+          onPressed: () => Scaffold.of(ctx).openDrawer(),
+        ),
+      );
+    }
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      child: child,
+    );
+  }
+
+  /// Builds the title area: active search bar, multi-select count, resting trigger, or greeting
+  Widget _buildTitle({
+    required BuildContext context,
+    required bool isActiveSearch,
+    required bool multiMode,
+    required int currentTab,
+    required bool showSearchBar,
+    required int selectedCount,
+    required ThemeData theme,
+    required ColorScheme colorScheme,
+  }) {
+    // Active search takes priority
+    if (isActiveSearch) {
+      return _buildM3SearchBar(
+        isActive: true,
+        theme: theme,
+        colorScheme: colorScheme,
+      );
+    }
+
+    // Multi-select title
+    if (multiMode && currentTab == 1) {
+      return Text(
+        '$selectedCount selected',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: colorScheme.onSurface,
+        ),
+      );
+    }
+
+    // Resting search trigger
+    if (showSearchBar) {
+      return _buildM3SearchBar(
+        isActive: false,
+        theme: theme,
+        colorScheme: colorScheme,
+      );
+    }
+
+    // Greeting fallback
+    return _buildGreeting(context, currentTab);
+  }
+
+  /// Builds the action buttons
+  List<Widget> _buildActions({
+    required BuildContext context,
+    required bool isActiveSearch,
+    required bool multiMode,
+    required int currentTab,
+    required Set<String> selectedIds,
+    required Set<String> selectedEventIds,
+    required ColorScheme colorScheme,
+  }) {
+    return [
+      if (currentTab == 1 && multiMode)
+        ExpressiveIconButton(
+          icon: Icon(
+            Icons.delete_outline,
+            color: selectedIds.isEmpty && selectedEventIds.isEmpty
+                ? colorScheme.onSurface.withAlpha(100)
+                : colorScheme.error,
+          ),
+          tooltip: 'Delete',
+          onPressed: selectedIds.isEmpty && selectedEventIds.isEmpty
+              ? null
+              : () => _showDeleteConfirmation(
+                  context,
+                  ref,
+                  selectedIds,
+                  selectedEventIds,
+                  colorScheme,
+                ),
+        ),
+      if (isActiveSearch && widget.searchController.text.isNotEmpty)
+        ExpressiveIconButton(
+          icon: Icon(
+            Icons.close_rounded,
+            color: colorScheme.onSurfaceVariant,
+            size: 20,
+          ),
+          tooltip: 'Clear search',
+          onPressed: _clearSearch,
+        ),
+      if (!multiMode && !isActiveSearch)
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: UserAvatarWidget(
+            radius: 18,
+            onTap: widget.onOpenPersonalization,
+          ),
+        ),
+    ];
   }
 
   /// Shows the delete confirmation dialog for multi-select mode
@@ -310,120 +363,80 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar> {
     }
   }
 
-  /// Builds a static (non-animated) search bar for the overview tab
-  Widget _buildSimpleSearchBar(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return ExpressiveGestureDetector(
-      onTap: () => ref.read(searchModeProvider.notifier).update(true),
-      child: Container(
-        height: 48,
-        margin: const EdgeInsets.only(left: 4, right: 8, top: 4, bottom: 4),
-        padding: const EdgeInsets.only(left: 12, right: 12),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: colorScheme.outline.withValues(alpha: 0.1),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.shadow.withValues(alpha: 0.05),
-              blurRadius: 2,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.search, color: colorScheme.onSurfaceVariant, size: 24),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Search Trudido',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.normal,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
+  /// M3-styled search bar that morphs between resting and active states
+  Widget _buildM3SearchBar({
+    required bool isActive,
+    required ThemeData theme,
+    required ColorScheme colorScheme,
+  }) {
+    final pill = AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      height: 48,
+      decoration: BoxDecoration(
+        color: isActive
+            ? colorScheme.surfaceContainerHighest
+            : colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(28),
       ),
-    );
-  }
-
-  /// Builds the animated search bar for the AppBar title
-  Widget _buildAnimatedSearchBar(BuildContext context, int currentTab) {
-    if (widget.searchBarScaleAnimation == null) return const SizedBox.shrink();
-
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return AnimatedBuilder(
-      animation: widget.searchBarScaleAnimation!,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: widget.searchBarScaleAnimation!.value,
-          child: Opacity(
-            opacity: widget.searchBarScaleAnimation!.value,
-            child: ExpressiveGestureDetector(
-              onTap: () {
-                // Activate full search mode when tapped
-                ref.read(searchModeProvider.notifier).update(true);
-              },
-              child: Container(
-                height: 48,
-                margin: const EdgeInsets.only(
-                  left: 4,
-                  right: 8,
-                  top: 4,
-                  bottom: 4,
-                ),
-                padding: const EdgeInsets.only(left: 12, right: 12),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: colorScheme.outline.withValues(alpha: 0.1),
-                    width: 1,
+      clipBehavior: Clip.antiAlias,
+      child: isActive
+          ? FadeTransition(
+              opacity: _searchFadeAnimation,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextField(
+                    controller: widget.searchController,
+                    autofocus: true,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: colorScheme.onSurface,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Search Trudido',
+                      hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
+                      contentPadding: EdgeInsets.zero,
+                      isDense: true,
+                    ),
+                    onChanged: _onSearchChanged,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colorScheme.shadow.withValues(alpha: 0.05),
-                      blurRadius: 2,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.search,
-                      color: colorScheme.onSurfaceVariant,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Search Trudido',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.normal,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+              ),
+            )
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.search_rounded,
+                    color: colorScheme.onSurfaceVariant,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Search Trudido',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ),
-        );
-      },
+    );
+
+    if (isActive) return pill;
+    return ExpressiveGestureDetector(
+      onTap: () => ref.read(searchModeProvider.notifier).update(true),
+      child: pill,
     );
   }
 

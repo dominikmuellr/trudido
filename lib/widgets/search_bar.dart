@@ -31,17 +31,42 @@ class TodoSearchBar extends StatefulWidget {
   State<TodoSearchBar> createState() => _TodoSearchBarState();
 }
 
-class _TodoSearchBarState extends State<TodoSearchBar> {
+class _TodoSearchBarState extends State<TodoSearchBar>
+    with SingleTickerProviderStateMixin {
   late TextEditingController _controller;
+  late FocusNode _focusNode;
+  late AnimationController _animationController;
+  late Animation<double> _elevationAnimation;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.searchQuery);
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChanged);
+
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 250),
+      vsync: this,
+    );
+    _elevationAnimation = Tween<double>(begin: 0.5, end: 3.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
+    );
+  }
+
+  void _onFocusChanged() {
+    if (_focusNode.hasFocus) {
+      _animationController.forward();
+    } else {
+      _animationController.reverse();
+    }
   }
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChanged);
+    _focusNode.dispose();
+    _animationController.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -49,26 +74,59 @@ class _TodoSearchBarState extends State<TodoSearchBar> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final borderRadius = BorderRadius.circular(28);
 
-    return TextField(
-      controller: _controller,
-      decoration: InputDecoration(
-        hintText: 'Search todos...',
-        prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
-        suffixIcon: widget.searchQuery.isNotEmpty
-            ? ExpressiveIconButton(
-                icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
-                onPressed: () {
-                  _controller.clear();
-                  widget.onSearchChanged('');
-                },
-              )
-            : null,
-        filled: true,
-        fillColor: colorScheme.surfaceContainerHigh,
+    return AnimatedBuilder(
+      animation: _animationController,
+      builder: (context, child) {
+        return Material(
+          elevation: _elevationAnimation.value,
+          shadowColor: colorScheme.shadow.withValues(alpha: 0.3),
+          borderRadius: borderRadius,
+          color: Colors.transparent,
+          child: child,
+        );
+      },
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        decoration: InputDecoration(
+          hintText: 'Search todos...',
+          prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
+          suffixIcon: widget.searchQuery.isNotEmpty
+              ? ExpressiveIconButton(
+                  icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
+                  onPressed: () {
+                    _controller.clear();
+                    widget.onSearchChanged('');
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: colorScheme.surfaceContainerHigh,
+          border: OutlineInputBorder(
+            borderRadius: borderRadius,
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: borderRadius,
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: borderRadius,
+            borderSide: BorderSide(
+              color: colorScheme.primary.withValues(alpha: 0.4),
+              width: 1.5,
+            ),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
+        ),
+        style: TextStyle(color: colorScheme.onSurface),
+        onChanged: widget.onSearchChanged,
       ),
-      style: TextStyle(color: colorScheme.onSurface),
-      onChanged: widget.onSearchChanged,
     );
   }
 }
