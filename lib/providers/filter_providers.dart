@@ -25,6 +25,7 @@ import '../models/todo.dart';
 import '../models/event.dart';
 import '../utils/date_search_parser.dart';
 import 'app_providers.dart';
+import '../controllers/preferences_controller.dart';
 import '../services/folder_provider.dart';
 import '../widgets/calendar_view.dart';
 import '../utils/state_notifiers.dart';
@@ -218,7 +219,27 @@ final pinnedOverviewNoteProvider =
 // View state providers
 enum TaskViewType { list, calendar }
 
-final taskViewTypeProvider = stateProvider<TaskViewType>(TaskViewType.list);
+class TaskViewTypeNotifier extends Notifier<TaskViewType> {
+  @override
+  TaskViewType build() {
+    final savedView = ref.read(preferencesStateProvider).defaultTaskView;
+    return savedView == 'calendar' ? TaskViewType.calendar : TaskViewType.list;
+  }
+
+  void update(TaskViewType value) {
+    state = value;
+    ref
+        .read(preferencesControllerProvider)
+        .setDefaultTaskView(
+          value == TaskViewType.calendar ? 'calendar' : 'list',
+        );
+  }
+}
+
+final taskViewTypeProvider =
+    NotifierProvider<TaskViewTypeNotifier, TaskViewType>(
+      TaskViewTypeNotifier.new,
+    );
 final selectedCalendarDateProvider = stateProvider<DateTime?>(null);
 
 // Calendar format notifier with persistence
