@@ -21,6 +21,7 @@ import '../services/calendar_sync_service.dart';
 import '../providers/app_providers.dart';
 import '../providers/holiday_providers.dart';
 import '../controllers/task_controller.dart';
+import '../controllers/event_controller.dart';
 import '../utils/responsive_size.dart';
 import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
@@ -318,7 +319,7 @@ class _CalendarSyncSettingsScreenState
             SwitchListTile(
               secondary: ScaledIcon(Icons.swap_vert),
               title: const Text('Two-Way Sync'),
-              subtitle: const Text('Import calendar events as tasks'),
+              subtitle: const Text('Import calendar events as events'),
               value: status.twoWaySyncEnabled,
               onChanged: (value) async {
                 await service.setTwoWaySyncEnabled(value);
@@ -757,9 +758,9 @@ class _CalendarSyncSettingsScreenState
       );
 
       if (result.imported.isNotEmpty) {
-        final taskController = ref.read(taskControllerProvider.notifier);
-        for (final todo in result.imported) {
-          await taskController.add(todo);
+        final eventController = ref.read(eventControllerProvider.notifier);
+        for (final event in result.imported) {
+          await eventController.add(event);
         }
       }
 
@@ -839,7 +840,7 @@ class _CalendarSyncSettingsScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Import events from your selected calendars as tasks. '
+                'Import events from your selected calendars as events. '
                 'Events exported by Trudido will be skipped.',
               ),
               SpacingGap.gapV16,
@@ -912,18 +913,18 @@ class _CalendarSyncSettingsScreenState
       }
 
       int totalAdded = 0;
-      final taskController = ref.read(taskControllerProvider.notifier);
+      final eventController = ref.read(eventControllerProvider.notifier);
 
       for (final calendar in calendarsToImport) {
-        final importedTodos = await service.importEventsFromCalendar(
+        final importedEvents = await service.importEventsFromCalendarAsEvents(
           calendarId: calendar.id,
           startDate: startDate,
           endDate: endDate,
           skipAlreadyImported: skipAlreadyImported,
         );
 
-        for (final todo in importedTodos) {
-          await taskController.add(todo);
+        for (final event in importedEvents) {
+          await eventController.add(event);
           totalAdded++;
         }
       }
@@ -939,7 +940,7 @@ class _CalendarSyncSettingsScreenState
 
       if (mounted) {
         messenger.showSnackBar(
-          SnackBar(content: Text('Imported $totalAdded events as tasks')),
+          SnackBar(content: Text('Imported $totalAdded events')),
         );
       }
 
@@ -977,9 +978,9 @@ class _CalendarSyncSettingsScreenState
       );
 
       if (result.imported.isNotEmpty) {
-        final taskController = ref.read(taskControllerProvider.notifier);
-        for (final todo in result.imported) {
-          await taskController.add(todo);
+        final eventController = ref.read(eventControllerProvider.notifier);
+        for (final event in result.imported) {
+          await eventController.add(event);
         }
       }
 
@@ -994,11 +995,6 @@ class _CalendarSyncSettingsScreenState
       }
 
       ref.invalidate(calendarSyncStatusProvider);
-
-      // Check for past imported tasks and offer to mark them complete
-      if (context.mounted) {
-        await _checkAndOfferMarkPastComplete(context);
-      }
     } catch (e) {
       if (mounted) {
         messenger.showSnackBar(SnackBar(content: Text('Sync failed: $e')));

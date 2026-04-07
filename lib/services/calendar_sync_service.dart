@@ -1068,7 +1068,7 @@ class CalendarSyncService {
     required DateTime syncEndDate,
   }) async {
     final exported = <String>[];
-    final imported = <Todo>[];
+    final imported = <app_event.Event>[];
 
     // Export tasks to calendar
     for (final task in existingTasks) {
@@ -1081,13 +1081,13 @@ class CalendarSyncService {
 
     // Import events from calendars
     for (final cal in importCalendars) {
-      final todos = await importEventsFromCalendar(
+      final events = await importEventsFromCalendarAsEvents(
         calendarId: cal.id,
         startDate: syncStartDate,
         endDate: syncEndDate,
         skipAlreadyImported: true,
       );
-      imported.addAll(todos);
+      imported.addAll(events);
     }
 
     await _updateLastSyncTime();
@@ -1178,7 +1178,7 @@ class CalendarSyncService {
 /// Result of a two-way sync operation
 class TwoWaySyncResult {
   final List<String> exported;
-  final List<Todo> imported;
+  final List<app_event.Event> imported;
 
   const TwoWaySyncResult({required this.exported, required this.imported});
 }
