@@ -185,6 +185,11 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
         // Apply blackout recents setting on startup
         final privacyService = PrivacyService();
         await privacyService.setSecureFlag(svc.snapshot.blackoutRecents);
+
+        // Sync persistent notifications pref to native SharedPreferences
+        await NotificationBridge.instance.setPersistentNotifications(
+          svc.snapshot.persistentNotifications,
+        );
       }
     }
 

@@ -38,10 +38,10 @@ object NotificationScheduler {
         }
     }
 
-    fun scheduleExact(context: Context, taskId: String, title: String, body: String, triggerAtMillis: Long, requestCode: Int) {
+    fun scheduleExact(context: Context, taskId: String, title: String, body: String, triggerAtMillis: Long, requestCode: Int, persistent: Boolean = false) {
         createChannel(context)
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val pendingIntent = buildShowIntent(context, taskId, title, body, requestCode)
+        val pendingIntent = buildShowIntent(context, taskId, title, body, requestCode, persistent)
         Log.d("NotificationScheduler", "scheduleExact taskId=$taskId at=$triggerAtMillis now=${System.currentTimeMillis()} requestCode=$requestCode")
         // Persist for reboot restoration
         ScheduledNotificationsStore.upsert(context, taskId, title, body, triggerAtMillis)
@@ -53,7 +53,7 @@ object NotificationScheduler {
             // Use a checkpoint: wake up when within ~24h window (or sooner if extremely far out)
             val remaining = triggerAtMillis - nowCheck
             val delayMs = (remaining - DAY_MS).coerceAtLeast(DAY_MS / 2) // if >48h away wake mid-way
-            DeferredReminderWork.enqueue(context, taskId, title, body, triggerAtMillis, delayMs)
+            DeferredReminderWork.enqueue(context, taskId, title, body, triggerAtMillis, delayMs, persistent)
             Log.d("NotificationScheduler", "Deferring via WorkManager taskId=$taskId remainingMs=$remaining delayMs=$delayMs")
             return
         }
@@ -78,18 +78,19 @@ object NotificationScheduler {
                 }
             } else {
                 Log.w("NotificationScheduler", "Exact not allowed & near-term; showing immediately")
-                showNow(context, taskId, title, body)
+                showNow(context, taskId, title, body, persistent)
                 return
             }
         }
     }
 
-    private fun buildShowIntent(context: Context, taskId: String, title: String, body: String, requestCode: Int): PendingIntent {
+    private fun buildShowIntent(context: Context, taskId: String, title: String, body: String, requestCode: Int, persistent: Boolean = false): PendingIntent {
         val intent = Intent(context, ShowNotificationReceiver::class.java).apply {
             putExtra("taskId", taskId)
             putExtra("title", title)
             putExtra("body", body)
             putExtra("scheduledAt", System.currentTimeMillis())
+            putExtra("persistent", persistent)
         }
         return PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or flagImmutable())
     }
@@ -106,15 +107,19 @@ object NotificationScheduler {
         updateGroupSummary(context)
     }
 
-    fun showNow(context: Context, taskId: String, title: String, body: String) {
+    fun showNow(context: Context, taskId: String, title: String, body: String, persistent: Boolean = false) {
         createChannel(context)
-        val notification = buildNotification(context, taskId, title, body)
-        Log.d("NotificationScheduler", "showNow immediate notification for taskId=$taskId")
+        val notification = buildNotification(context, taskId, title, body, persistent)
+        Log.d("NotificationScheduler", "showNow immediate notification for taskId=$taskId persistent=$persistent")
         NotificationManagerCompat.from(context).notify(taskId.hashCode(), notification)
         updateGroupSummary(context)
     }
 
-    fun buildNotification(context: Context, taskId: String, title: String, body: String): Notification {
+    fun buildNotification(context: Context, taskId: String, title: String, body: String, persistent: Boolean = false): Notification {
+        // Always read the global preference as source of truth.
+        // The parameter acts as an override; either one being true makes it persistent.
+        val isPersistent = persistent || PersistentNotificationPref.isEnabled(context)
+        Log.d("NotificationScheduler", "buildNotification taskId=$taskId paramPersistent=$persistent globalPref=${PersistentNotificationPref.isEnabled(context)} → isPersistent=$isPersistent")
         // Content intent for tapping notification body
         val contentIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -138,17 +143,35 @@ object NotificationScheduler {
         }
         val completePi = PendingIntent.getBroadcast(context, (taskId + "_c").hashCode(), completeIntent, PendingIntent.FLAG_UPDATE_CURRENT or flagImmutable())
         val snoozePi = PendingIntent.getBroadcast(context, (taskId + "_s").hashCode(), snoozeIntent, PendingIntent.FLAG_UPDATE_CURRENT or flagImmutable())
-        return NotificationCompat.Builder(context, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(context.applicationInfo.icon)
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
+            .setAutoCancel(!isPersistent)
             .setGroup(GROUP_TASKS)
             .setContentIntent(contentPi)
             .addAction(0, "Done", completePi)
             .addAction(0, "Snooze", snoozePi)
-            .build()
+        if (isPersistent) {
+            // deleteIntent fires when the user swipes or clears the notification.
+            // Re-post it immediately so the reminder stays visible.
+            // We intentionally do NOT use setOngoing / FLAG_NO_CLEAR because
+            // those suppress the dismiss event and prevent deleteIntent from firing.
+            val restoreIntent = Intent(context, NotificationRestoreReceiver::class.java).apply {
+                putExtra("taskId", taskId)
+                putExtra("title", title)
+                putExtra("body", body)
+            }
+            val restorePi = PendingIntent.getBroadcast(
+                context,
+                ("restore_" + taskId).hashCode(),
+                restoreIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or flagImmutable()
+            )
+            builder.setDeleteIntent(restorePi)
+        }
+        return builder.build()
     }
 
     fun updateGroupSummary(context: Context) {

@@ -339,7 +339,8 @@ class MainActivity : FlutterFragmentActivity() {
                     val body = args["body"] as String
                     val triggerTime = (args["triggerTime"] as Number).toLong()
                     val uniqueKey = args["uniqueKey"] as String? ?: taskId
-                    NotificationScheduler.scheduleExact(applicationContext, taskId, title, body, triggerTime, uniqueKey.hashCode())
+                    val persistent = args["persistent"] as Boolean? ?: false
+                    NotificationScheduler.scheduleExact(applicationContext, taskId, title, body, triggerTime, uniqueKey.hashCode(), persistent)
                     result.success(true)
                 }
                 "cancelScheduledNotification" -> {
@@ -350,6 +351,12 @@ class MainActivity : FlutterFragmentActivity() {
                 }
                 "getPendingActions" -> result.success(PendingActionStore.getPendingActions(applicationContext))
                 "clearPendingActions" -> { PendingActionStore.clear(applicationContext); result.success(true) }
+                "setPersistentNotifications" -> {
+                    val args = call.arguments as Map<*, *>
+                    val enabled = args["enabled"] as Boolean? ?: false
+                    PersistentNotificationPref.setEnabled(applicationContext, enabled)
+                    result.success(true)
+                }
                 "canScheduleExactAlarms" -> {
                     val can = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) true else {
                         val am = getSystemService(Context.ALARM_SERVICE) as AlarmManager

@@ -93,6 +93,22 @@ class ExperimentalSettingsScreen extends ConsumerWidget {
               );
             },
           ),
+          Consumer(
+            builder: (context, ref, _) {
+              final preferences = ref.watch(preferencesStateProvider);
+              final controller = ref.read(preferencesControllerProvider);
+
+              return SwitchListTile(
+                secondary: const Icon(Icons.event_available_outlined),
+                title: const Text('Auto-complete Events'),
+                subtitle: const Text(
+                  'Automatically mark events as complete when their end time has passed',
+                ),
+                value: preferences.autoCompleteEvents,
+                onChanged: (v) => controller.toggleAutoCompleteEvents(),
+              );
+            },
+          ),
           const SizedBox(height: 16),
         ],
       ),

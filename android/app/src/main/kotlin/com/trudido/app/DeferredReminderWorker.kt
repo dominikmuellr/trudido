@@ -21,13 +21,14 @@ class DeferredReminderWorker(
         val title = inputData.getString(KEY_TITLE) ?: "Task Reminder"
         val body = inputData.getString(KEY_BODY) ?: ""
         val triggerAt = inputData.getLong(KEY_TRIGGER_AT, -1L)
+        val persistent = inputData.getBoolean(KEY_PERSISTENT, false)
         if (triggerAt <= 0) return Result.failure()
         val now = System.currentTimeMillis()
         val remaining = triggerAt - now
         Log.d(TAG, "Worker run taskId=$taskId remainingMs=$remaining")
         if (remaining <= 0) {
             // Time passed while deferred – show immediately
-            NotificationScheduler.showNow(applicationContext, taskId, title, body)
+            NotificationScheduler.showNow(applicationContext, taskId, title, body, persistent)
             ScheduledNotificationsStore.remove(applicationContext, taskId)
             return Result.success()
         }
@@ -35,12 +36,12 @@ class DeferredReminderWorker(
         if (remaining <= DAY_MS) {
             // Move to regular alarm scheduling path
             val requestCode = taskId.hashCode()
-            NotificationScheduler.scheduleExact(applicationContext, taskId, title, body, triggerAt, requestCode)
+            NotificationScheduler.scheduleExact(applicationContext, taskId, title, body, triggerAt, requestCode, persistent)
             return Result.success()
         }
         // Still far out; re-enqueue self for another checkpoint just before next 24h boundary.
         val delay = (remaining - DAY_MS).coerceAtLeast(DAY_MS / 2) // wake up midway if extremely far
-        DeferredReminderWork.enqueue(applicationContext, taskId, title, body, triggerAt, delay)
+        DeferredReminderWork.enqueue(applicationContext, taskId, title, body, triggerAt, delay, persistent)
         return Result.success()
     }
 
@@ -50,5 +51,6 @@ class DeferredReminderWorker(
         const val KEY_TITLE = "title"
         const val KEY_BODY = "body"
         const val KEY_TRIGGER_AT = "triggerAt"
+        const val KEY_PERSISTENT = "persistent"
     }
 }

@@ -11,6 +11,7 @@ object MissedReminderCatchUp {
     fun run(context: Context) {
         val now = System.currentTimeMillis()
         val items = ScheduledNotificationsStore.all(context)
+        val persistent = PersistentNotificationPref.isEnabled(context)
         var shown = 0
         var dropped = 0
         for (item in items) {
@@ -18,7 +19,7 @@ object MissedReminderCatchUp {
             if (delta <= 0) {
                 val age = now - item.triggerTime
                 if (age <= GRACE_MS) {
-                    NotificationScheduler.showNow(context, item.taskId, item.title, item.body)
+                    NotificationScheduler.showNow(context, item.taskId, item.title, item.body, persistent)
                     ScheduledNotificationsStore.remove(context, item.taskId)
                     shown++
                 } else if (age > MAX_STALE_MS) {

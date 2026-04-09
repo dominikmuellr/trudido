@@ -24,6 +24,8 @@ import 'backup_settings_page.dart';
 import 'bin_settings_screen.dart';
 import '../widgets/common/common.dart';
 import '../providers/filter_providers.dart';
+import '../providers/app_providers.dart';
+import '../services/ics_export_service.dart';
 
 class DataManagementScreen extends ConsumerWidget {
   const DataManagementScreen({super.key});
@@ -60,7 +62,7 @@ class DataManagementScreen extends ConsumerWidget {
           ListTile(
             leading: ScaledIcon(Icons.event),
             title: const Text('Import Calendar'),
-            subtitle: const Text('Import from .ics files'),
+            subtitle: const Text('Import events from .ics file'),
             trailing: ScaledIcon(Icons.arrow_forward_ios),
             onTap: () {
               ref
@@ -70,6 +72,24 @@ class DataManagementScreen extends ConsumerWidget {
                 MaterialPageRoute(
                   builder: (context) => const HolidayCalendarSettingsScreen(),
                 ),
+              );
+            },
+          ),
+          ListTile(
+            leading: ScaledIcon(Icons.ios_share_outlined),
+            title: const Text('Export Calendar'),
+            subtitle: const Text('Export events as .ics file'),
+            onTap: () async {
+              final events = ref.read(eventsProvider);
+              if (events.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('No events to export')),
+                );
+                return;
+              }
+              await IcsExportService.exportAndShareEvents(
+                events,
+                filename: 'trudido_events.ics',
               );
             },
           ),

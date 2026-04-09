@@ -11,7 +11,8 @@ class ShowNotificationReceiver : BroadcastReceiver() {
         val body = intent.getStringExtra("body") ?: ""
     val scheduledAt = intent.getLongExtra("scheduledAt", 0L)
     if (scheduledAt > 0) LateAlarmTracker.recordFire(context, scheduledAt)
-        val notif = NotificationScheduler.buildNotification(context, taskId, title, body)
+        val persistent = intent.getBooleanExtra("persistent", false)
+        val notif = NotificationScheduler.buildNotification(context, taskId, title, body, persistent)
         androidx.core.app.NotificationManagerCompat.from(context).notify(taskId.hashCode(), notif)
     // Update group summary after posting
     NotificationScheduler.updateGroupSummary(context)

@@ -81,12 +81,25 @@ class _EventsNotifier extends Notifier<List<Event>> {
 
   Future<void> _load() async {
     await repo.load();
+    await _autoCompleteEndedEvents();
     state = repo.events;
   }
 
   Future<void> refresh() async {
     await repo.load();
+    await _autoCompleteEndedEvents();
     state = repo.events;
+  }
+
+  Future<void> _autoCompleteEndedEvents() async {
+    if (!PreferencesService().snapshot.autoCompleteEvents) return;
+    final now = DateTime.now();
+    final toComplete = repo.events
+        .where((e) => !e.isCompleted && !e.isDeleted && e.hasEndedAt(now))
+        .toList();
+    for (final event in toComplete) {
+      await repo.update(event.copyWith(isCompleted: true, completedAt: now));
+    }
   }
 }
 

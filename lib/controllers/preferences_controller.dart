@@ -157,6 +157,12 @@ class PreferencesController {
   Future<void> toggleFloatingNavBar() =>
       _update(floatingNavBar: !state.floatingNavBar);
 
+  Future<void> toggleCompactNotesView() =>
+      _update(compactNotesView: !state.compactNotesView);
+
+  Future<void> toggleAutoCompleteEvents() =>
+      _update(autoCompleteEvents: !state.autoCompleteEvents);
+
   Future<void> dismissBatteryOptimizationReminder() =>
       _update(dismissedBatteryOptimizationReminder: true);
 
@@ -217,6 +223,8 @@ class PreferencesController {
     bool? showOverviewTab,
     bool? useBlurEffects,
     bool? floatingNavBar,
+    bool? compactNotesView,
+    bool? autoCompleteEvents,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -259,6 +267,8 @@ class PreferencesController {
       showOverviewTab: showOverviewTab,
       useBlurEffects: useBlurEffects,
       floatingNavBar: floatingNavBar,
+      compactNotesView: compactNotesView,
+      autoCompleteEvents: autoCompleteEvents,
     );
     ref.read(preferencesStateProvider.notifier).update(updated);
   }

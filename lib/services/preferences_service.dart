@@ -217,6 +217,9 @@ class PreferencesService {
       showOverviewTab: p.getBool('show_overview_tab'),
       useBlurEffects: p.getBool('use_blur_effects'),
       floatingNavBar: p.getBool('floating_nav_bar'),
+      persistentNotifications: p.getBool('persistent_notifications'),
+      compactNotesView: p.getBool('compact_notes_view'),
+      autoCompleteEvents: p.getBool('auto_complete_events'),
       searchHistory: p.getStringList('search_history') ?? [],
     );
   }
@@ -288,6 +291,9 @@ class PreferencesService {
     bool? showOverviewTab,
     bool? useBlurEffects,
     bool? floatingNavBar,
+    bool? persistentNotifications,
+    bool? compactNotesView,
+    bool? autoCompleteEvents,
     List<String>? searchHistory,
   }) async {
     final p = _prefs;
@@ -415,6 +421,15 @@ class PreferencesService {
       }
       if (floatingNavBar != null) {
         await p.setBool('floating_nav_bar', floatingNavBar);
+      }
+      if (persistentNotifications != null) {
+        await p.setBool('persistent_notifications', persistentNotifications);
+      }
+      if (compactNotesView != null) {
+        await p.setBool('compact_notes_view', compactNotesView);
+      }
+      if (autoCompleteEvents != null) {
+        await p.setBool('auto_complete_events', autoCompleteEvents);
       }
       if (searchHistory != null) {
         await p.setStringList('search_history', searchHistory);

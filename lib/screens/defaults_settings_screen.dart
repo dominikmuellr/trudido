@@ -88,6 +88,7 @@ class DefaultsSettingsScreen extends ConsumerWidget {
           const _DefaultTabSelector(),
           const _DefaultViewSelector(),
           const _DefaultNotesFolderSelector(),
+          const _CompactNotesViewSelector(),
           const _TimeFormatSelector(),
           const _WeekStartSelector(),
           const _GreetingLanguageSelector(),
@@ -478,6 +479,35 @@ class _DefaultNotesFolderSheet extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ============================================================================
+// Compact Notes View Selector
+// ============================================================================
+
+class _CompactNotesViewSelector extends ConsumerWidget {
+  const _CompactNotesViewSelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final preferences = ref.watch(preferencesStateProvider);
+    final controller = ref.read(preferencesControllerProvider);
+    final spacing = ref.watch(adaptiveSpacingProvider);
+
+    return SwitchListTile.adaptive(
+      contentPadding: spacing.listTileInsets,
+      visualDensity: spacing.listTileDensity,
+      secondary: const Icon(Icons.title),
+      title: const Text('Compact Notes View'),
+      subtitle: const Text(
+        'Show only titles in the notes list, hiding content previews',
+      ),
+      value: preferences.compactNotesView,
+      onChanged: (_) async {
+        await controller.toggleCompactNotesView();
+      },
     );
   }
 }

@@ -353,6 +353,9 @@ class TaskController extends Notifier<AsyncValue<void>> {
   Future<void> _scheduleNotifications(Todo todo) async {
     if (todo.dueDate == null) return;
     final now = ref.read(clockProvider).now();
+    final persistent = ref
+        .read(preferencesStateProvider)
+        .persistentNotifications;
     final times = computeReminderTimes(
       todo.dueDate!,
       todo.reminderOffsetsMinutes,
@@ -365,6 +368,7 @@ class TaskController extends Notifier<AsyncValue<void>> {
         body: todo.text,
         scheduledTime: entry.value,
         uniqueKey: '${todo.id}_${entry.key}',
+        persistent: persistent,
       );
     }
   }

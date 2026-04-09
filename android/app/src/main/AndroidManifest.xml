@@ -58,6 +58,9 @@
             android:name=".ShowNotificationReceiver"
             android:exported="false"/>
         <receiver
+            android:name=".NotificationRestoreReceiver"
+            android:exported="false"/>
+        <receiver
             android:name=".NotificationActionReceiver"
             android:exported="false">
             <intent-filter>

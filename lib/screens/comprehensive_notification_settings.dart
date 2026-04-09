@@ -19,6 +19,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/permissions_channel.dart';
 import '../providers/alarm_settings_providers.dart';
+import '../providers/app_providers.dart';
+import '../services/notification_service.dart';
 
 class ComprehensiveNotificationSettings extends ConsumerStatefulWidget {
   const ComprehensiveNotificationSettings({super.key});
@@ -100,6 +102,28 @@ class _ComprehensiveNotificationSettingsState
             isGranted: ignoringBattery,
             onTap: () =>
                 PermissionsChannel.instance.openBatteryOptimizationSettings(),
+          ),
+
+          // Behavior Section
+          _buildSectionHeader(context, 'Behavior'),
+
+          SwitchListTile(
+            secondary: const Icon(Icons.push_pin_outlined),
+            title: const Text('Persistent Notifications'),
+            subtitle: const Text(
+              'Notifications will reappear instantly if dismissed. '
+              'Only the Done and Snooze buttons can remove them.',
+            ),
+            value: ref.watch(preferencesStateProvider).persistentNotifications,
+            onChanged: (value) async {
+              final svc = ref.read(preferencesServiceProvider);
+              final updated = await svc.update(persistentNotifications: value);
+              ref.read(preferencesStateProvider.notifier).update(updated);
+              // Sync to native SharedPreferences so receivers can read it
+              await NotificationBridge.instance.setPersistentNotifications(
+                value,
+              );
+            },
           ),
 
           // System Settings Section

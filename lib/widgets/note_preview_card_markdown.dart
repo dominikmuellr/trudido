@@ -1231,6 +1231,7 @@ class NotePreviewCard extends ConsumerWidget {
               formattedDate: formattedDate,
               onCardColor: onCardColor,
               onCardSecondary: onCardSecondary,
+              compactNotesView: preferences.compactNotesView,
             ),
             // Selection overlay
             if (selectable)
@@ -1290,6 +1291,7 @@ class NotePreviewCard extends ConsumerWidget {
     required bool isTodoTxt,
     required TextSpan bodySpan,
     required String formattedDate,
+    required bool compactNotesView,
     Color? onCardColor,
     Color? onCardSecondary,
   }) {
@@ -1353,7 +1355,7 @@ class NotePreviewCard extends ConsumerWidget {
               ),
 
               // Subtitle (if exists)
-              if (subtitle.isNotEmpty) ...[
+              if (!compactNotesView && subtitle.isNotEmpty) ...[
                 SizedBox(height: spacing.s4),
                 Text(
                   subtitle,
@@ -1367,54 +1369,59 @@ class NotePreviewCard extends ConsumerWidget {
               ],
 
               // Body snippet - show todo.txt tasks or markdown content
-              if (isTodoTxt)
-                ..._buildTodoTxtPreview(context, onCardColor: onCardSecondary)
-              else if (!_isSpanEffectivelyEmpty(bodySpan)) ...[
-                SizedBox(height: subtitle.isNotEmpty ? spacing.s6 : spacing.s8),
-                RichText(
-                  textScaler: MediaQuery.textScalerOf(context),
-                  maxLines: 8,
-                  overflow: TextOverflow.ellipsis,
-                  text: bodySpan,
-                ),
-              ],
+              if (!compactNotesView)
+                if (isTodoTxt)
+                  ..._buildTodoTxtPreview(context, onCardColor: onCardSecondary)
+                else if (!_isSpanEffectivelyEmpty(bodySpan)) ...[
+                  SizedBox(
+                    height: subtitle.isNotEmpty ? spacing.s6 : spacing.s8,
+                  ),
+                  RichText(
+                    textScaler: MediaQuery.textScalerOf(context),
+                    maxLines: 8,
+                    overflow: TextOverflow.ellipsis,
+                    text: bodySpan,
+                  ),
+                ],
 
               // Table preview for Quill notes with embedded tables
-              Builder(
-                builder: (context) {
-                  final tableData = _extractFirstTableData();
-                  if (tableData == null) return const SizedBox.shrink();
-                  return Padding(
-                    padding: EdgeInsets.only(top: spacing.s8),
-                    child: _buildTablePreview(context, tableData),
-                  );
-                },
-              ),
+              if (!compactNotesView)
+                Builder(
+                  builder: (context) {
+                    final tableData = _extractFirstTableData();
+                    if (tableData == null) return const SizedBox.shrink();
+                    return Padding(
+                      padding: EdgeInsets.only(top: spacing.s8),
+                      child: _buildTablePreview(context, tableData),
+                    );
+                  },
+                ),
 
               // Expanded image banner
-              Builder(
-                builder: (context) {
-                  final imagePath = _extractFirstImagePath();
-                  if (imagePath == null) return const SizedBox.shrink();
-                  final imageFile = File(imagePath);
-                  if (!imageFile.existsSync()) {
-                    return const SizedBox.shrink();
-                  }
-                  return Padding(
-                    padding: EdgeInsets.only(top: spacing.s12),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.file(
-                        imageFile,
-                        width: double.infinity,
-                        height: 160,
-                        fit: isGridView ? BoxFit.cover : BoxFit.contain,
-                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              if (!compactNotesView)
+                Builder(
+                  builder: (context) {
+                    final imagePath = _extractFirstImagePath();
+                    if (imagePath == null) return const SizedBox.shrink();
+                    final imageFile = File(imagePath);
+                    if (!imageFile.existsSync()) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: EdgeInsets.only(top: spacing.s12),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.file(
+                          imageFile,
+                          width: double.infinity,
+                          height: 160,
+                          fit: isGridView ? BoxFit.cover : BoxFit.contain,
+                          errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                    );
+                  },
+                ),
 
               // Footer with metadata
               SizedBox(height: spacing.s12),

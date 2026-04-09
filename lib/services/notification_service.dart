@@ -91,6 +91,7 @@ class NotificationBridge {
     required String body,
     required DateTime scheduledTime,
     String? uniqueKey,
+    bool persistent = false,
   }) async {
     try {
       final result = await _channel.invokeMethod('scheduleNotification', {
@@ -99,6 +100,7 @@ class NotificationBridge {
         'body': body,
         'triggerTime': scheduledTime.millisecondsSinceEpoch,
         if (uniqueKey != null) 'uniqueKey': uniqueKey,
+        'persistent': persistent,
       });
       return result == true;
     } catch (e) {
@@ -117,6 +119,17 @@ class NotificationBridge {
     } catch (e) {
       debugPrint('[NotificationBridge] cancel error: $e');
       return false;
+    }
+  }
+
+  /// Sync the persistent notifications preference to the native side.
+  Future<void> setPersistentNotifications(bool enabled) async {
+    try {
+      await _channel.invokeMethod('setPersistentNotifications', {
+        'enabled': enabled,
+      });
+    } catch (e) {
+      debugPrint('[NotificationBridge] setPersistentNotifications error: $e');
     }
   }
 

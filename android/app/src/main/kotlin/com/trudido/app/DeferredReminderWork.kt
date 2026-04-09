@@ -12,13 +12,14 @@ import java.util.concurrent.TimeUnit
 object DeferredReminderWork {
     private const val UNIQUE_PREFIX = "deferred_reminder_"
 
-    fun enqueue(context: Context, taskId: String, title: String, body: String, triggerAt: Long, delayMs: Long) {
+    fun enqueue(context: Context, taskId: String, title: String, body: String, triggerAt: Long, delayMs: Long, persistent: Boolean = false) {
         val wm = WorkManager.getInstance(context)
         val data = Data.Builder()
             .putString(DeferredReminderWorker.KEY_TASK_ID, taskId)
             .putString(DeferredReminderWorker.KEY_TITLE, title)
             .putString(DeferredReminderWorker.KEY_BODY, body)
             .putLong(DeferredReminderWorker.KEY_TRIGGER_AT, triggerAt)
+            .putBoolean(DeferredReminderWorker.KEY_PERSISTENT, persistent)
             .build()
         val req = OneTimeWorkRequestBuilder<DeferredReminderWorker>()
             .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)

@@ -90,6 +90,15 @@ class PreferencesState {
   bool get useBlurEffects => _useBlurEffects ?? true;
   final bool? _floatingNavBar; // Floating frosted-glass navigation bar
   bool get floatingNavBar => _floatingNavBar ?? true;
+  final bool?
+  _persistentNotifications; // Prevent swipe-dismiss of notifications
+  bool get persistentNotifications => _persistentNotifications ?? false;
+  final bool?
+  _compactNotesView; // Show only titles in notes list (hide body, images, tables)
+  bool get compactNotesView => _compactNotesView ?? false;
+  final bool?
+  _autoCompleteEvents; // Auto-complete events when their end time passes
+  bool get autoCompleteEvents => _autoCompleteEvents ?? true;
   final List<String> searchHistory; // Recent search queries (max 10)
 
   const PreferencesState({
@@ -135,6 +144,9 @@ class PreferencesState {
     bool? showOverviewTab,
     bool? useBlurEffects,
     bool? floatingNavBar,
+    bool? persistentNotifications,
+    bool? compactNotesView,
+    bool? autoCompleteEvents,
     this.searchHistory = const [],
   }) : _lineHeightMultiplier = lineHeightMultiplier,
        _hideNavLabels = hideNavLabels,
@@ -152,7 +164,10 @@ class PreferencesState {
        _floatingToolbarX = floatingToolbarX,
        _floatingToolbarY = floatingToolbarY,
        _floatingToolbarExpanded = floatingToolbarExpanded,
-       _floatingToolbarDragHintShown = floatingToolbarDragHintShown;
+       _floatingToolbarDragHintShown = floatingToolbarDragHintShown,
+       _persistentNotifications = persistentNotifications,
+       _compactNotesView = compactNotesView,
+       _autoCompleteEvents = autoCompleteEvents;
 
   PreferencesState copyWith({
     String? themeMode,
@@ -197,6 +212,9 @@ class PreferencesState {
     bool? showOverviewTab,
     bool? useBlurEffects,
     bool? floatingNavBar,
+    bool? persistentNotifications,
+    bool? compactNotesView,
+    bool? autoCompleteEvents,
     List<String>? searchHistory,
   }) => PreferencesState(
     themeMode: themeMode ?? this.themeMode,
@@ -247,6 +265,10 @@ class PreferencesState {
     showOverviewTab: showOverviewTab ?? this.showOverviewTab,
     useBlurEffects: useBlurEffects ?? this.useBlurEffects,
     floatingNavBar: floatingNavBar ?? this.floatingNavBar,
+    persistentNotifications:
+        persistentNotifications ?? this.persistentNotifications,
+    compactNotesView: compactNotesView ?? this.compactNotesView,
+    autoCompleteEvents: autoCompleteEvents ?? this.autoCompleteEvents,
     searchHistory: searchHistory ?? this.searchHistory,
   );
 

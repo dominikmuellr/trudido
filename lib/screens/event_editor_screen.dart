@@ -33,6 +33,7 @@ import '../utils/mention_parser.dart';
 import '../utils/mention_navigator.dart';
 import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
+import '../services/ics_export_service.dart';
 
 /// Unified Event Editor Screen
 /// Handles both creating new events and editing existing ones
@@ -215,6 +216,13 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
         foregroundColor: colorScheme.onTertiaryContainer,
         elevation: 0,
         actions: [
+          if (widget.event != null)
+            IconButton(
+              icon: const Icon(Icons.ios_share_outlined),
+              tooltip: 'Export as .ICS',
+              onPressed: () =>
+                  IcsExportService.exportAndShareEvents([widget.event!]),
+            ),
           ExpressiveTextButton(
             onPressed: _isLoading ? null : _saveEvent,
             child: _isLoading

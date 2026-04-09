@@ -188,7 +188,11 @@ class EventController extends Notifier<AsyncValue<void>> {
       case 'custom':
         if (event.repeatDays != null && event.repeatDays!.isNotEmpty) {
           final interval = event.repeatInterval ?? 1;
-          nextDate = _nextSelectedDay(currentStart, event.repeatDays!, interval);
+          nextDate = _nextSelectedDay(
+            currentStart,
+            event.repeatDays!,
+            interval,
+          );
         } else {
           final interval = event.repeatInterval ?? 1;
           nextDate = currentStart.add(Duration(days: interval));
@@ -304,6 +308,9 @@ class EventController extends Notifier<AsyncValue<void>> {
 
   Future<void> _scheduleNotifications(Event event) async {
     final now = ref.read(clockProvider).now();
+    final persistent = ref
+        .read(preferencesStateProvider)
+        .persistentNotifications;
     // Schedule reminders relative to startDateTime
     for (final offset in event.reminderOffsetsMinutes.toSet()) {
       if (offset < 0) continue;
@@ -315,6 +322,7 @@ class EventController extends Notifier<AsyncValue<void>> {
           body: event.text,
           scheduledTime: when,
           uniqueKey: '${event.id}_$offset',
+          persistent: persistent,
         );
       }
     }
