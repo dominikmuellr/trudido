@@ -325,6 +325,19 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
     ref.read(selectedNoteIdsProvider.notifier).clear();
   }
 
+  Future<void> _bulkTogglePin(
+    List<Note> notes,
+    Set<String> selectedNoteIds,
+  ) async {
+    final allPinned = selectedNoteIds.every(
+      (id) => notes.any((n) => n.id == id && n.isPinned),
+    );
+    await ref
+        .read(notesControllerProvider.notifier)
+        .bulkSetPin(selectedNoteIds, !allPinned);
+    _exitMultiSelect();
+  }
+
   Widget _buildBulkActionBar(List<Note> notes, Set<String> selectedNoteIds) {
     final cs = Theme.of(context).colorScheme;
     final allSelected = selectedNoteIds.length == notes.length;
@@ -358,6 +371,28 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
                 ).textTheme.labelMedium?.copyWith(color: cs.onSurface),
               ),
               const Spacer(),
+              // Pin / Unpin
+              Builder(
+                builder: (context) {
+                  final allPinned =
+                      selectedNoteIds.isNotEmpty &&
+                      selectedNoteIds.every(
+                        (id) => notes.any((n) => n.id == id && n.isPinned),
+                      );
+                  return IconButton(
+                    icon: Icon(
+                      allPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                      color: selectedNoteIds.isEmpty
+                          ? cs.onSurface.withValues(alpha: 0.3)
+                          : cs.primary,
+                    ),
+                    tooltip: allPinned ? 'Unpin' : 'Pin',
+                    onPressed: selectedNoteIds.isEmpty
+                        ? null
+                        : () => _bulkTogglePin(notes, selectedNoteIds),
+                  );
+                },
+              ),
               // Color picker
               IconButton(
                 icon: Icon(

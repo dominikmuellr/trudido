@@ -1,0 +1,11 @@
+Version 1.3.4
+
+• Overhauled search: multi-word AND matching, date keywords (today/tomorrow/yesterday), overdue search, category scope filtering, and result count summary
+• Search now highlights matches across all result types and shows note content snippets around matches
+• Search history is now persisted between sessions
+• Added .ics calendar export — share your events as a standard .ics file
+• Added compact notes view — show only titles, hiding content previews (Settings → Defaults)
+• Added auto-complete events option — automatically mark events as done when their end time passes (Settings → Experimental)
+• Fixed: Calendar events imported as events instead of tasks (Issue #98)
+• Fixed: Default Task View setting not persisting on app restart
+• Various search bar UI fixes and improvements

@@ -134,6 +134,17 @@ class NotesController extends Notifier<AsyncValue<void>> {
     }
   }
 
+  /// Sets the pinned status on multiple notes
+  Future<void> bulkSetPin(Iterable<String> ids, bool pinned) async {
+    try {
+      state = const AsyncValue.loading();
+      await _notesNotifier.bulkSetPin(ids, pinned);
+      state = const AsyncValue.data(null);
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+    }
+  }
+
   /// Sets the same card color on multiple notes
   Future<void> bulkSetColor(Iterable<String> ids, int? colorValue) async {
     try {

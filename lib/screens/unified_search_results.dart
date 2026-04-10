@@ -128,7 +128,7 @@ class UnifiedSearchResults extends ConsumerWidget {
             ),
 
           // Regular search results (only show if not a date/overdue search)
-          if (searchDate == null && !isOverdue) ...[
+          if (searchDate == null && !isOverdue) ...<Widget>[
             // Tasks section
             if (searchQuery.isNotEmpty &&
                 filteredTasks.isNotEmpty &&
@@ -190,6 +190,9 @@ class UnifiedSearchResults extends ConsumerWidget {
                       .isEmpty ??
                   true))
             _buildNoResultsState(context),
+
+          // Bottom padding so entries aren't hidden behind the nav bar
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
         ],
       ),
     );
@@ -1112,7 +1115,7 @@ class _CappedList extends StatefulWidget {
 
   const _CappedList({
     required this.children,
-    this.maxVisible = 10,
+    this.maxVisible = 10, // ignore: unused_element_parameter
     this.resetKey = '',
   });
 

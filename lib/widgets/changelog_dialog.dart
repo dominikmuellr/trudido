@@ -17,7 +17,7 @@
 import 'package:flutter/material.dart';
 
 /// The current app version string – update this with each release.
-const String kCurrentAppVersion = '1.3.3';
+const String kCurrentAppVersion = '1.3.4';
 
 /// One entry in the changelog.
 class _ChangelogEntry {
@@ -28,6 +28,20 @@ class _ChangelogEntry {
 
 /// Full changelog list, newest first.
 const List<_ChangelogEntry> _changelog = [
+  _ChangelogEntry(
+    version: '1.3.4',
+    changes: [
+      'Overhauled search: multi-word AND matching, date keywords (today/tomorrow/yesterday), overdue search, category scope filtering, and result count summary',
+      'Search now highlights matches across all result types and shows note content snippets around matches',
+      'Search history is now persisted between sessions',
+      'Export calendar: share your events as a standard .ics file via Settings → Data Management',
+      'Compact notes view: show only titles, hiding content previews - toggle under Settings → Defaults',
+      'Auto-complete events: automatically mark events as done when their end time passes - Settings → Experimental',
+      'Fixed: Calendar events imported as events instead of tasks (Issue #98)',
+      'Fixed: Default Task View setting not persisting on app restart',
+      'Various search bar UI fixes and improvements',
+    ],
+  ),
   _ChangelogEntry(
     version: '1.3.3',
     changes: [

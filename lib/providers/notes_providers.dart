@@ -136,6 +136,19 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
     await refresh();
   }
 
+  /// Sets the pinned status on multiple notes
+  Future<void> bulkSetPin(Iterable<String> ids, bool pinned) async {
+    final repository = ref.read(notesRepositoryProvider);
+    for (final id in ids) {
+      await repository.updateNote(
+        id: id,
+        isPinned: pinned,
+        preserveUpdatedAt: true,
+      );
+    }
+    await refresh();
+  }
+
   /// Sets the same card color on multiple notes
   Future<void> bulkSetColor(Iterable<String> ids, int? colorValue) async {
     final repository = ref.read(notesRepositoryProvider);

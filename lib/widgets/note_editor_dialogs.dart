@@ -17,6 +17,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../services/media_service.dart';
 import '../widgets/common/common.dart';
 
@@ -128,6 +129,9 @@ class _VoiceRecordingDialogState extends State<VoiceRecordingDialog> {
         _recordingDuration = Duration.zero;
       });
 
+      // Keep screen on while recording
+      WakelockPlus.enable();
+
       _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (mounted && _recordingStartTime != null) {
           setState(() {
@@ -151,6 +155,7 @@ class _VoiceRecordingDialogState extends State<VoiceRecordingDialog> {
 
   Future<void> _stopRecording() async {
     _durationTimer?.cancel();
+    WakelockPlus.disable();
     final file = await widget.mediaService.stopRecording();
     if (file != null && mounted) {
       widget.onRecordingComplete(file);
@@ -165,6 +170,7 @@ class _VoiceRecordingDialogState extends State<VoiceRecordingDialog> {
 
   Future<void> _cancelRecording() async {
     _durationTimer?.cancel();
+    WakelockPlus.disable();
     await widget.mediaService.cancelRecording();
     if (mounted) {
       Navigator.pop(context);
@@ -223,7 +229,10 @@ class _VoiceRecordingDialogState extends State<VoiceRecordingDialog> {
             label: const Text('Start Recording'),
           ),
         ] else ...[
-          ExpressiveTextButton(onPressed: _cancelRecording, child: const Text('Cancel')),
+          ExpressiveTextButton(
+            onPressed: _cancelRecording,
+            child: const Text('Cancel'),
+          ),
           ExpressiveElevatedButton.icon(
             onPressed: _stopRecording,
             icon: const Icon(Icons.stop),
