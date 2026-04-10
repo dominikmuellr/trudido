@@ -208,7 +208,7 @@ final filteredFoldersProvider = Provider<AsyncValue<List<Folder>>>((ref) {
         items: folders,
         query: searchQuery,
         getText: (folder) => '${folder.name} ${folder.description ?? ''}',
-        minSimilarity: 0.4,
+        minSimilarity: 0.6,
       );
 
       return AsyncValue.data(filteredFolders);

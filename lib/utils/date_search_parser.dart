@@ -68,7 +68,13 @@ class FuzzySearch {
   /// Scores a single query token against the item text.
   /// Returns best match score (0.0–1.0).
   static double _scoreToken(String token, String text, List<String> words) {
-    if (text.contains(token)) return 1.0;
+    // Exact substring match — boost whole-word matches above partial ones
+    if (text.contains(token)) {
+      final wholeWord = RegExp(
+        r'(?:^|\W)' + RegExp.escape(token) + r'(?:\W|$)',
+      );
+      return wholeWord.hasMatch(text) ? 1.1 : 1.0;
+    }
 
     double bestScore = 0.0;
     for (final word in words) {
@@ -86,10 +92,15 @@ class FuzzySearch {
   }
 
   /// Adjusted minimum similarity based on token length.
+  /// Short tokens require near-exact matches; longer tokens are progressively
+  /// stricter to reduce false positives from Levenshtein distance.
   static double _threshold(String token, double minSimilarity) {
     if (token.length <= 3) return 0.85;
     if (token.length <= 5) return 0.75;
-    return minSimilarity;
+    if (token.length <= 8) {
+      return minSimilarity > 0.62 ? minSimilarity : 0.62;
+    }
+    return minSimilarity > 0.68 ? minSimilarity : 0.68;
   }
 
   /// Filters a list of items based on fuzzy matching.

@@ -263,7 +263,7 @@ final filteredNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
           items: filtered,
           query: searchQuery,
           getText: (note) => '${note.title} ${note.content}',
-          minSimilarity: 0.4,
+          minSimilarity: 0.6,
         );
       }
 

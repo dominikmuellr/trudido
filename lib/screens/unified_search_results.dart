@@ -167,7 +167,12 @@ class UnifiedSearchResults extends ConsumerWidget {
             if (searchQuery.isNotEmpty &&
                 filteredSettings.isNotEmpty &&
                 inScope('settings'))
-              _buildSettingsSection(context, filteredSettings, searchQuery),
+              _buildSettingsSection(
+                context,
+                ref,
+                filteredSettings,
+                searchQuery,
+              ),
           ],
 
           // No results found (only for non-date, non-overdue searches)
@@ -436,21 +441,26 @@ class UnifiedSearchResults extends ConsumerWidget {
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
-        ...filteredTasks.map(
-          (task) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: HybridTodoItem(
-              todo: task,
-              onToggle: () => ref
-                  .read(taskControllerProvider.notifier)
-                  .toggleComplete(task.id),
-              onEdit: () => onEditTask(task),
-              onDelete: () => onDeleteTask(task),
-              selectable: false,
-              onSelectToggle: () {},
-              searchHighlight: searchQuery,
-            ),
-          ),
+        _CappedList(
+          resetKey: searchQuery,
+          children: filteredTasks
+              .map(
+                (task) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: HybridTodoItem(
+                    todo: task,
+                    onToggle: () => ref
+                        .read(taskControllerProvider.notifier)
+                        .toggleComplete(task.id),
+                    onEdit: () => onEditTask(task),
+                    onDelete: () => onDeleteTask(task),
+                    selectable: false,
+                    onSelectToggle: () {},
+                    searchHighlight: searchQuery,
+                  ),
+                ),
+              )
+              .toList(),
         ),
       ],
     );
@@ -474,8 +484,14 @@ class UnifiedSearchResults extends ConsumerWidget {
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
-        ...filteredEvents.map(
-          (event) => _buildEventListTile(context, ref, event, searchQuery),
+        _CappedList(
+          resetKey: searchQuery,
+          children: filteredEvents
+              .map(
+                (event) =>
+                    _buildEventListTile(context, ref, event, searchQuery),
+              )
+              .toList(),
         ),
       ],
     );
@@ -556,20 +572,25 @@ class UnifiedSearchResults extends ConsumerWidget {
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
-            ...notes.map(
-              (note) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: NotePreviewCard(
-                  note: note,
-                  onTap: () => onEditNote(note.id),
-                  onPin: () => onToggleNotePin(note.id),
-                  onDelete: () => onDeleteNote(note.id, note.title),
-                  onDeleteConfirmed: () => onDeleteNoteConfirmed(note.id),
-                  isInVault: note.folderId != null,
-                  showFormatIndicator: true,
-                  searchHighlight: searchQuery,
-                ),
-              ),
+            _CappedList(
+              resetKey: searchQuery,
+              children: notes
+                  .map(
+                    (note) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: NotePreviewCard(
+                        note: note,
+                        onTap: () => onEditNote(note.id),
+                        onPin: () => onToggleNotePin(note.id),
+                        onDelete: () => onDeleteNote(note.id, note.title),
+                        onDeleteConfirmed: () => onDeleteNoteConfirmed(note.id),
+                        isInVault: note.folderId != null,
+                        showFormatIndicator: true,
+                        searchHighlight: searchQuery,
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
           ],
         );
@@ -603,27 +624,33 @@ class UnifiedSearchResults extends ConsumerWidget {
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
-            ...nonVaultFolders.map(
-              (folder) => ListTile(
-                leading: Icon(
-                  getIconDataFromName(folder.icon),
-                  color: Color(folder.color),
-                ),
-                title: RichText(
-                  text: _highlightText(
-                    folder.name,
-                    searchQuery,
-                    context,
-                    baseStyle: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ),
-                subtitle:
-                    folder.description != null && folder.description!.isNotEmpty
-                    ? Text(folder.description!)
-                    : null,
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () => _navigateToFolder(ref, folder.id),
-              ),
+            _CappedList(
+              resetKey: searchQuery,
+              children: nonVaultFolders
+                  .map(
+                    (folder) => ListTile(
+                      leading: Icon(
+                        getIconDataFromName(folder.icon),
+                        color: Color(folder.color),
+                      ),
+                      title: RichText(
+                        text: _highlightText(
+                          folder.name,
+                          searchQuery,
+                          context,
+                          baseStyle: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ),
+                      subtitle:
+                          folder.description != null &&
+                              folder.description!.isNotEmpty
+                          ? Text(folder.description!)
+                          : null,
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () => _navigateToFolder(ref, folder.id),
+                    ),
+                  )
+                  .toList(),
             ),
           ],
         );
@@ -657,27 +684,33 @@ class UnifiedSearchResults extends ConsumerWidget {
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
-            ...nonVaultNoteFolders.map(
-              (folder) => ListTile(
-                leading: Icon(
-                  Icons.folder_special,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                title: RichText(
-                  text: _highlightText(
-                    folder.name,
-                    searchQuery,
-                    context,
-                    baseStyle: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ),
-                subtitle:
-                    folder.description != null && folder.description!.isNotEmpty
-                    ? Text(folder.description!)
-                    : null,
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () => _navigateToNoteFolder(ref, folder.id),
-              ),
+            _CappedList(
+              resetKey: searchQuery,
+              children: nonVaultNoteFolders
+                  .map(
+                    (folder) => ListTile(
+                      leading: Icon(
+                        Icons.folder_special,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      title: RichText(
+                        text: _highlightText(
+                          folder.name,
+                          searchQuery,
+                          context,
+                          baseStyle: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ),
+                      subtitle:
+                          folder.description != null &&
+                              folder.description!.isNotEmpty
+                          ? Text(folder.description!)
+                          : null,
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () => _navigateToNoteFolder(ref, folder.id),
+                    ),
+                  )
+                  .toList(),
             ),
           ],
         );
@@ -689,6 +722,7 @@ class UnifiedSearchResults extends ConsumerWidget {
 
   Widget _buildSettingsSection(
     BuildContext context,
+    WidgetRef ref,
     List<dynamic> filteredSettings,
     String searchQuery,
   ) {
@@ -704,24 +738,107 @@ class UnifiedSearchResults extends ConsumerWidget {
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
-        ...filteredSettings.map(
-          (setting) => ListTile(
-            leading: Icon(setting.icon),
-            title: RichText(
-              text: _highlightText(
-                setting.title,
-                searchQuery,
-                context,
-                baseStyle: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ),
-            subtitle: Text(setting.subtitle),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () => onNavigateToSetting(setting.route),
-          ),
+        _CappedList(
+          resetKey: searchQuery,
+          children: filteredSettings
+              .map(
+                (setting) => _buildSettingTile(
+                  context,
+                  ref,
+                  setting as SettingsItem,
+                  searchQuery,
+                ),
+              )
+              .toList(),
         ),
       ],
     );
+  }
+
+  Widget _buildSettingTile(
+    BuildContext context,
+    WidgetRef ref,
+    SettingsItem setting,
+    String searchQuery,
+  ) {
+    final isToggle = setting.toggleKey != null;
+    final bool currentValue = isToggle
+        ? _readToggle(ref, setting.toggleKey!)
+        : false;
+
+    return ListTile(
+      leading: Icon(setting.icon),
+      title: RichText(
+        text: _highlightText(
+          setting.title,
+          searchQuery,
+          context,
+          baseStyle: Theme.of(context).textTheme.bodyLarge,
+        ),
+      ),
+      subtitle: Text(setting.subtitle),
+      trailing: isToggle
+          ? Switch(
+              value: currentValue,
+              onChanged: (value) =>
+                  _writeToggle(ref, setting.toggleKey!, value),
+            )
+          : const Icon(Icons.arrow_forward_ios, size: 16),
+      onTap: isToggle
+          ? () => _writeToggle(ref, setting.toggleKey!, !currentValue)
+          : () => onNavigateToSetting(setting.route),
+    );
+  }
+
+  /// Read the current boolean value for a toggle key.
+  bool _readToggle(WidgetRef ref, String key) {
+    final prefs = ref.watch(preferencesStateProvider);
+    return switch (key) {
+      'hapticsEnabled' => prefs.hapticsEnabled,
+      'showSearchBar' => prefs.showSearchBar,
+      'floatingNavBar' => prefs.floatingNavBar,
+      'showOverviewTab' => prefs.showOverviewTab,
+      'compactDensity' => prefs.compactDensity,
+      'compactNotesView' => prefs.compactNotesView,
+      'hideNavLabels' => prefs.hideNavLabels,
+      'blackoutRecents' => prefs.blackoutRecents,
+      'enableBin' => prefs.enableBin,
+      'useQuickInputBar' => prefs.useQuickInputBar,
+      'enableNoteHistory' => prefs.enableNoteHistory,
+      'autoCompleteEvents' => prefs.autoCompleteEvents,
+      _ => false,
+    };
+  }
+
+  /// Write a new boolean value for a toggle key.
+  void _writeToggle(WidgetRef ref, String key, bool value) {
+    final ctrl = ref.read(preferencesControllerProvider);
+    switch (key) {
+      case 'hapticsEnabled':
+        ctrl.toggleHaptics();
+      case 'showSearchBar':
+        ctrl.toggleShowSearchBar();
+      case 'floatingNavBar':
+        ctrl.toggleFloatingNavBar();
+      case 'showOverviewTab':
+        ctrl.toggleShowOverviewTab();
+      case 'compactDensity':
+        ctrl.toggleCompactDensity();
+      case 'compactNotesView':
+        ctrl.toggleCompactNotesView();
+      case 'hideNavLabels':
+        ctrl.toggleHideNavLabels();
+      case 'blackoutRecents':
+        ctrl.toggleBlackoutRecents();
+      case 'enableBin':
+        ctrl.setEnableBin(value);
+      case 'useQuickInputBar':
+        ctrl.toggleQuickInputBar();
+      case 'enableNoteHistory':
+        ctrl.toggleNoteHistory();
+      case 'autoCompleteEvents':
+        ctrl.toggleAutoCompleteEvents();
+    }
   }
 
   void _navigateToFolder(WidgetRef ref, String folderId) {
@@ -983,5 +1100,57 @@ class UnifiedSearchResults extends ConsumerWidget {
 
     if (spans.isEmpty) return TextSpan(text: text, style: style);
     return TextSpan(children: spans);
+  }
+}
+
+/// A widget that shows at most [maxVisible] children and a "Show more" button.
+/// Resets to collapsed state whenever [resetKey] changes (e.g. the search query).
+class _CappedList extends StatefulWidget {
+  final List<Widget> children;
+  final int maxVisible;
+  final String resetKey;
+
+  const _CappedList({
+    required this.children,
+    this.maxVisible = 10,
+    this.resetKey = '',
+  });
+
+  @override
+  State<_CappedList> createState() => _CappedListState();
+}
+
+class _CappedListState extends State<_CappedList> {
+  bool _expanded = false;
+  String _lastResetKey = '';
+
+  @override
+  Widget build(BuildContext context) {
+    // Auto-collapse when the query (resetKey) changes
+    if (widget.resetKey != _lastResetKey) {
+      _expanded = false;
+      _lastResetKey = widget.resetKey;
+    }
+
+    final total = widget.children.length;
+    final capped = !_expanded && total > widget.maxVisible;
+    final visible = capped
+        ? widget.children.take(widget.maxVisible).toList()
+        : widget.children;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ...visible,
+        if (capped)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: TextButton(
+              onPressed: () => setState(() => _expanded = true),
+              child: Text('Show ${total - widget.maxVisible} more'),
+            ),
+          ),
+      ],
+    );
   }
 }

@@ -20,7 +20,6 @@ import '../services/storage_service.dart';
 import '../utils/date_search_parser.dart';
 import '../utils/state_notifiers.dart';
 
-
 /// Repository for managing note folder data
 class NoteFolderRepository {
   /// Gets all note folders sorted by sort order
@@ -200,7 +199,7 @@ final filteredNoteFoldersProvider = Provider<AsyncValue<List<NoteFolder>>>((
         items: folders,
         query: searchQuery,
         getText: (folder) => '${folder.name} ${folder.description ?? ''}',
-        minSimilarity: 0.4,
+        minSimilarity: 0.6,
       );
 
       return AsyncValue.data(filteredFolders);

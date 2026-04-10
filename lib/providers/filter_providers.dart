@@ -322,7 +322,7 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
       items: filtered,
       query: searchQuery,
       getText: (todo) => '${todo.text} ${todo.notes ?? ''}',
-      minSimilarity: 0.4,
+      minSimilarity: 0.6,
     );
   }
 
@@ -459,7 +459,7 @@ final filteredEventsProvider = Provider<List<Event>>((ref) {
       query: searchQuery,
       getText: (event) =>
           '${event.text} ${event.notes ?? ''} ${event.location ?? ''}',
-      minSimilarity: 0.4,
+      minSimilarity: 0.6,
     );
   }
 
