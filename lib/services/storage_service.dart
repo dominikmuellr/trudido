@@ -610,6 +610,17 @@ Type **/** to open the insert menu:
     }
   }
 
+  /// Persists all notes in the given order (clear + re-insert).
+  static Future<void> saveNotesOrder(List<Note> notes) async {
+    await waitNotesReady();
+    if (_notesBox != null) {
+      await _notesBox!.clear();
+      for (final n in notes) {
+        await _notesBox!.put(n.id, n);
+      }
+    }
+  }
+
   // Event operations
   static Future<void> saveEvent(Event event) async {
     await waitEventsReady();
@@ -1704,5 +1715,39 @@ Type **/** to open the insert menu:
     if (_prefs == null) kickOffPrefsInit();
     final id = _prefs?.getString(_activeCustomThemeKey);
     return (id != null && id.isNotEmpty) ? id : null;
+  }
+
+  // ============================================================================
+  // Freeform Canvas Positions
+  // ============================================================================
+
+  static String _freeformKey(String folderKey) =>
+      'note_freeform_positions_$folderKey';
+
+  /// Save freeform canvas positions for a folder.
+  /// [folderKey] is the folder ID or 'ALL' for the all-notes view.
+  static Future<void> saveFreeformPositions(
+    String folderKey,
+    Map<String, List<double>> positions,
+  ) async {
+    await _ensurePrefs();
+    await _prefs!.setString(_freeformKey(folderKey), jsonEncode(positions));
+  }
+
+  /// Load freeform canvas positions for a folder.
+  /// Returns a map of noteId -> [dx, dy].
+  static Map<String, List<double>> loadFreeformPositions(String folderKey) {
+    if (_prefs == null) kickOffPrefsInit();
+    final raw = _prefs?.getString(_freeformKey(folderKey));
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      return decoded.map((k, v) {
+        final list = (v as List).cast<num>();
+        return MapEntry(k, [list[0].toDouble(), list[1].toDouble()]);
+      });
+    } catch (_) {
+      return {};
+    }
   }
 }

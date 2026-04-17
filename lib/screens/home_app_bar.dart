@@ -146,6 +146,41 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar>
       _searchModeController.reverse();
     }
 
+    final isFreeform =
+        currentTab == 2 && ref.watch(notesViewModeProvider) == 'freeform';
+
+    // In freeform/canvas mode: transparent bar with only the view switcher
+    if (isFreeform) {
+      return AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: SegmentedButton<String>(
+          showSelectedIcon: false,
+          style: SegmentedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+          ),
+          segments: const [
+            ButtonSegment(value: 'grid', icon: Icon(Icons.grid_view, size: 18)),
+            ButtonSegment(value: 'list', icon: Icon(Icons.view_list, size: 18)),
+            ButtonSegment(
+              value: 'freeform',
+              icon: Icon(Icons.space_dashboard_outlined, size: 18),
+            ),
+          ],
+          selected: const {'freeform'},
+          onSelectionChanged: (selected) {
+            ref.read(notesViewModeProvider.notifier).update(selected.first);
+          },
+        ),
+        centerTitle: true,
+      );
+    }
+
     final bgColor = isAmoledBlack ? Colors.black : colorScheme.surface;
     final surfaceTint = isAmoledBlack
         ? Colors.transparent

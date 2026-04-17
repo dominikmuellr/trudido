@@ -100,6 +100,10 @@ class NotesFilterChips extends ConsumerWidget {
                     value: 'list',
                     icon: Icon(Icons.view_list, size: 18),
                   ),
+                  ButtonSegment(
+                    value: 'freeform',
+                    icon: Icon(Icons.space_dashboard_outlined, size: 18),
+                  ),
                 ],
                 selected: {ref.watch(notesViewModeProvider)},
                 onSelectionChanged: (selected) {

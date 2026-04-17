@@ -15,8 +15,12 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:ui' show Offset;
 import '../models/note.dart';
 import '../repositories/notes_repository.dart';
+import '../controllers/notes_controller.dart';
+import '../services/storage_service.dart';
+import '../utils/mention_parser.dart';
 
 const Object _providerSentinel = Object();
 
@@ -161,4 +165,118 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
     }
     await refresh();
   }
+}
+
+// ============================================================================
+// Freeform Canvas Positions
+// ============================================================================
+
+/// Manages freeform canvas positions per folder.
+///
+/// Automatically reloads when the selected folder changes.
+/// Positions are persisted in SharedPreferences as JSON.
+class FreeformPositionsNotifier extends Notifier<Map<String, Offset>> {
+  String get _folderKey => ref.read(selectedNoteFolderProvider) ?? 'ALL';
+
+  @override
+  Map<String, Offset> build() {
+    // Re-read when folder changes
+    ref.watch(selectedNoteFolderProvider);
+    return _load();
+  }
+
+  Map<String, Offset> _load() {
+    final raw = StorageService.loadFreeformPositions(_folderKey);
+    return raw.map((k, v) => MapEntry(k, Offset(v[0], v[1])));
+  }
+
+  /// Update a single note's position and persist.
+  Future<void> updatePosition(String noteId, Offset pos) async {
+    state = {...state, noteId: pos};
+    await _save();
+  }
+
+  /// Batch-set positions for multiple notes and persist.
+  Future<void> setPositions(Map<String, Offset> positions) async {
+    state = {...state, ...positions};
+    await _save();
+  }
+
+  /// Ensure all notes have a position; auto-place those that don't.
+  /// Starts placing at [origin] in rows of [columns], with given spacing.
+  Future<void> ensurePositions(
+    List<String> noteIds, {
+    Offset origin = const Offset(800, 400),
+    int columns = 3,
+    double colSpacing = 220,
+    double rowSpacing = 280,
+  }) async {
+    final missing = noteIds.where((id) => !state.containsKey(id)).toList();
+    if (missing.isEmpty) return;
+
+    final newPositions = <String, Offset>{};
+    for (var i = 0; i < missing.length; i++) {
+      final col = i % columns;
+      final row = i ~/ columns;
+      newPositions[missing[i]] = Offset(
+        origin.dx + col * colSpacing,
+        origin.dy + row * rowSpacing,
+      );
+    }
+    await setPositions(newPositions);
+  }
+
+  Future<void> _save() async {
+    final raw = state.map((k, v) => MapEntry(k, [v.dx, v.dy]));
+    await StorageService.saveFreeformPositions(_folderKey, raw);
+  }
+}
+
+final noteFreeformPositionsProvider =
+    NotifierProvider<FreeformPositionsNotifier, Map<String, Offset>>(
+      FreeformPositionsNotifier.new,
+    );
+
+// ============================================================================
+// Freeform Note Link Graph
+// ============================================================================
+
+/// Maps each note ID to the set of note IDs it @mentions.
+/// Handles both markdown format `@[Title](note:uuid)` and Quill JSON
+/// format `"mention:note:uuid"`. Only includes IDs present in the current
+/// filtered note list so we never draw lines to invisible notes.
+final noteFreeformLinksProvider = Provider<Map<String, Set<String>>>((ref) {
+  final notesAsync = ref.watch(filteredNotesProvider);
+  return notesAsync.maybeWhen(
+    data: (notes) {
+      final noteIdSet = notes.map((n) => n.id).toSet();
+      final links = <String, Set<String>>{};
+      for (final note in notes) {
+        // Extract from markdown @[Title](note:uuid) format
+        final mdIds = MentionParser.extractNoteIds(note.content);
+        // Extract from Quill JSON "mention:note:uuid" format
+        final quillIds = _extractQuillMentionNoteIds(note.content);
+        final allIds = {...mdIds, ...quillIds}.intersection(noteIdSet);
+        // Exclude self-references
+        allIds.remove(note.id);
+        if (allIds.isNotEmpty) links[note.id] = allIds;
+      }
+      return links;
+    },
+    orElse: () => {},
+  );
+});
+
+/// Extracts note IDs from Quill JSON content where mentions are stored as
+/// `"link":"mention:note:uuid"` attributes.
+final RegExp _quillMentionNotePattern = RegExp(
+  r'mention:note:([a-zA-Z0-9\-]+)',
+);
+
+Set<String> _extractQuillMentionNoteIds(String content) {
+  final ids = <String>{};
+  for (final match in _quillMentionNotePattern.allMatches(content)) {
+    ids.add(match.group(1)!);
+  }
+  return ids;
 }

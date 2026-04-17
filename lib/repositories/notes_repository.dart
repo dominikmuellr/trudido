@@ -248,6 +248,16 @@ class NotesRepository {
     return sortedNotes;
   }
 
+  /// Persists all notes in the given order (for manual drag-and-drop reordering).
+  Future<void> saveOrder(List<Note> ordered) async {
+    // Re-encrypt vault notes before persisting (the list contains decrypted notes)
+    final toSave = <Note>[];
+    for (final note in ordered) {
+      toSave.add(await _encryptNoteIfNeeded(note));
+    }
+    await StorageService.saveNotesOrder(toSave);
+  }
+
   Future<List<Note>> getDeletedNotes() async {
     await StorageService.waitNotesReady();
     // Get raw deleted notes (encrypted)

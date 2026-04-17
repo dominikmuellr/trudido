@@ -245,121 +245,59 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     bool useQuickInputBar,
   ) {
     final fabMenuExpanded = ref.watch(fabMenuExpandedProvider);
-    final showOverviewTab = ref.watch(preferencesStateProvider).showOverviewTab;
+    final isFreeform =
+        currentTab == 2 && ref.watch(notesViewModeProvider) == 'freeform';
 
     if (useNavigationRail && !hideBottomNav) {
       return Stack(
         children: [
           Scaffold(
-            body: Row(
-              children: [
-                // Material 3 NavigationRail
-                NavigationRail(
-                  selectedIndex: showOverviewTab
-                      ? currentTab
-                      : (currentTab == 0 ? 0 : currentTab - 1),
-                  onDestinationSelected: (displayed) {
-                    final index = showOverviewTab ? displayed : displayed + 1;
-                    final previousTab = ref.read(currentTabProvider);
-
-                    // Security: Clear vault folder selection when leaving Notes tab
-                    if (previousTab == 2 && index != 2) {
-                      clearVaultSelectionIfNeeded();
-                    }
-
-                    ref.read(currentTabProvider.notifier).setTab(index);
-                    // Exit search mode when switching tabs
-                    final isSearchMode = ref.read(searchModeProvider);
-                    if (isSearchMode) {
-                      ref.read(searchModeProvider.notifier).update(false);
-                      _searchController.clear();
-                      ref.read(searchQueryProvider.notifier).update('');
-                      ref.read(notesSearchQueryProvider.notifier).update('');
-                      ref.read(settingsSearchQueryProvider.notifier).update('');
-                      ref.read(folderSearchQueryProvider.notifier).update('');
-                      ref
-                          .read(noteFolderSearchQueryProvider.notifier)
-                          .update('');
-                    }
-                  },
-                  labelType: NavigationRailLabelType.all,
-                  destinations: [
-                    if (showOverviewTab)
-                      NavigationRailDestination(
-                        icon: NavigationRailIcon(
-                          icon: Icons.dashboard_outlined,
-                          tabIndex: 0,
-                        ),
-                        selectedIcon: NavigationRailIcon(
-                          icon: Icons.dashboard,
-                          tabIndex: 0,
-                        ),
-                        label: const Text('Overview'),
-                      ),
-                    NavigationRailDestination(
-                      icon: NavigationRailIcon(
-                        icon: Icons.checklist_outlined,
-                        tabIndex: 1,
-                      ),
-                      selectedIcon: NavigationRailIcon(
-                        icon: Icons.checklist,
-                        tabIndex: 1,
-                      ),
-                      label: const Text('Tasks'),
-                    ),
-                    NavigationRailDestination(
-                      icon: NavigationRailIcon(
-                        icon: Icons.note_outlined,
-                        tabIndex: 2,
-                      ),
-                      selectedIcon: NavigationRailIcon(
-                        icon: Icons.note,
-                        tabIndex: 2,
-                      ),
-                      label: const Text('Notes'),
-                    ),
-                  ],
-                ),
-                const VerticalDivider(thickness: 1, width: 1),
-                // Main content
-                Expanded(
-                  child: Scaffold(
-                    appBar: HomeAppBar(
+            body: Scaffold(
+              extendBodyBehindAppBar: isFreeform,
+              extendBody: ref.watch(
+                preferencesStateProvider.select((p) => p.floatingNavBar),
+              ),
+              appBar: HomeAppBar(
+                searchController: _searchController,
+                onOpenPersonalization: () =>
+                    openPersonalizationScreen(() => setState(() {})),
+              ),
+              bottomNavigationBar: !isFreeform
+                  ? HomeNavigationBar(
+                      currentTab: currentTab,
+                      scaffoldKey: _scaffoldKey,
                       searchController: _searchController,
-                      onOpenPersonalization: () =>
-                          openPersonalizationScreen(() => setState(() {})),
-                    ),
-                    body: ref.watch(searchModeProvider)
-                        ? UnifiedSearchResults(
-                            searchController: _searchController,
-                            onAddTask: showAddTaskDialog,
-                            onEditTask: showEditTaskDialog,
-                            onDeleteTask: deleteTaskWithConfirmation,
-                            onEditEvent: showEditEventDialog,
-                            onDeleteEvent: deleteEventWithConfirmation,
-                            onEditNote: editNoteInSearch,
-                            onToggleNotePin: toggleNotePin,
-                            onDeleteNote: deleteNoteInSearch,
-                            onDeleteNoteConfirmed: deleteNoteConfirmed,
-                            onNavigateToSetting: navigateToSetting,
-                          )
-                        : AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            switchInCurve: Curves.easeOut,
-                            switchOutCurve: Curves.easeIn,
-                            transitionBuilder: (child, animation) =>
-                                FadeThroughTransition(
-                                  animation: animation,
-                                  child: child,
-                                ),
-                            child: KeyedSubtree(
-                              key: ValueKey(currentTab),
-                              child: tabs[currentTab],
-                            ),
+                      onClearVaultSelection: clearVaultSelectionIfNeeded,
+                    )
+                  : null,
+              body: ref.watch(searchModeProvider)
+                  ? UnifiedSearchResults(
+                      searchController: _searchController,
+                      onAddTask: showAddTaskDialog,
+                      onEditTask: showEditTaskDialog,
+                      onDeleteTask: deleteTaskWithConfirmation,
+                      onEditEvent: showEditEventDialog,
+                      onDeleteEvent: deleteEventWithConfirmation,
+                      onEditNote: editNoteInSearch,
+                      onToggleNotePin: toggleNotePin,
+                      onDeleteNote: deleteNoteInSearch,
+                      onDeleteNoteConfirmed: deleteNoteConfirmed,
+                      onNavigateToSetting: navigateToSetting,
+                    )
+                  : AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      switchInCurve: Curves.easeOut,
+                      switchOutCurve: Curves.easeIn,
+                      transitionBuilder: (child, animation) =>
+                          FadeThroughTransition(
+                            animation: animation,
+                            child: child,
                           ),
-                  ),
-                ),
-              ],
+                      child: KeyedSubtree(
+                        key: ValueKey(currentTab),
+                        child: tabs[currentTab],
+                      ),
+                    ),
             ),
           ),
           // Backdrop overlay
@@ -390,6 +328,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           extendBody: ref.watch(
             preferencesStateProvider.select((p) => p.floatingNavBar),
           ),
+          extendBodyBehindAppBar: isFreeform,
           drawer: HomeNavigationDrawer(
             currentTab: currentTab,
             isCalendarExpanded: _isCalendarExpanded,
@@ -403,8 +342,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             onCreateNoteFolder: () => showCreateNoteFolderDialog(context, ref),
             onClearVaultSelection: clearVaultSelectionIfNeeded,
           ),
-          drawerEdgeDragWidth:
-              80.0, // Allow swipe from left edge to open drawer (increased for easier triggering)
+          drawerEdgeDragWidth: isFreeform ? 0.0 : 80.0,
           appBar: HomeAppBar(
             searchController: _searchController,
             onOpenPersonalization: () =>
@@ -459,7 +397,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
           ),
           // NavigationBar
-          bottomNavigationBar: !hideBottomNav
+          bottomNavigationBar: !hideBottomNav && !isFreeform
               ? HomeNavigationBar(
                   currentTab: currentTab,
                   scaffoldKey: _scaffoldKey,

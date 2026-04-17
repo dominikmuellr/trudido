@@ -19,6 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/note.dart';
 import '../providers/notes_providers.dart';
 import '../repositories/note_folder_repository.dart';
+import '../repositories/notes_repository.dart';
 import '../utils/date_search_parser.dart';
 import '../utils/state_notifiers.dart';
 
@@ -169,6 +170,30 @@ class NotesController extends Notifier<AsyncValue<void>> {
     }
   }
 
+  /// Persists a reordered view list produced by drag-and-drop.
+  ///
+  /// [reorderedView] is the filtered/visible list in its new order.
+  /// Notes not present in the view (other folders, vault, etc.) are
+  /// appended so no data is lost.
+  Future<void> commitReorder(List<Note> reorderedView) async {
+    final allNotes = ref.read(notesProvider).value ?? [];
+
+    // IDs that appear in the reordered view
+    final viewIds = reorderedView.map((n) => n.id).toSet();
+
+    // Notes outside the current view keep their relative order
+    final nonViewNotes = allNotes
+        .where((n) => !viewIds.contains(n.id))
+        .toList();
+
+    final fullOrdered = [...reorderedView, ...nonViewNotes];
+
+    final repo = ref.read(notesRepositoryProvider);
+    await repo.saveOrder(fullOrdered);
+    await ref.read(notesSortByProvider.notifier).setSort('manual');
+    await ref.read(notesProvider.notifier).refresh();
+  }
+
   /// Searches notes
   void searchNotes(String query) {
     _notesNotifier.searchNotes(query);
@@ -290,6 +315,8 @@ final filteredNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
             (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
           );
           break;
+        case 'manual':
+          break; // preserve storage (Hive insertion) order
         case 'date_modified':
         default:
           filtered.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
