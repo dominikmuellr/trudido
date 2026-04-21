@@ -99,6 +99,11 @@ class PreferencesState {
   final bool?
   _autoCompleteEvents; // Auto-complete events when their end time passes
   bool get autoCompleteEvents => _autoCompleteEvents ?? true;
+  final double? _editorFontSize; // Editor font size in points (e.g. 16.0)
+  double get editorFontSize => _editorFontSize ?? 16.0;
+  final String?
+  _editorFontFamily; // Editor font family ('default' = inherit global app font)
+  String get editorFontFamily => _editorFontFamily ?? 'default';
   final List<String> searchHistory; // Recent search queries (max 10)
 
   const PreferencesState({
@@ -147,8 +152,12 @@ class PreferencesState {
     bool? persistentNotifications,
     bool? compactNotesView,
     bool? autoCompleteEvents,
+    double? editorFontSize,
+    String? editorFontFamily,
     this.searchHistory = const [],
   }) : _lineHeightMultiplier = lineHeightMultiplier,
+       _editorFontSize = editorFontSize,
+       _editorFontFamily = editorFontFamily,
        _hideNavLabels = hideNavLabels,
        _showOverviewTab = showOverviewTab,
        _useBlurEffects = useBlurEffects,
@@ -215,6 +224,8 @@ class PreferencesState {
     bool? persistentNotifications,
     bool? compactNotesView,
     bool? autoCompleteEvents,
+    double? editorFontSize,
+    String? editorFontFamily,
     List<String>? searchHistory,
   }) => PreferencesState(
     themeMode: themeMode ?? this.themeMode,
@@ -269,6 +280,8 @@ class PreferencesState {
         persistentNotifications ?? this.persistentNotifications,
     compactNotesView: compactNotesView ?? this.compactNotesView,
     autoCompleteEvents: autoCompleteEvents ?? this.autoCompleteEvents,
+    editorFontSize: editorFontSize ?? this.editorFontSize,
+    editorFontFamily: editorFontFamily ?? this.editorFontFamily,
     searchHistory: searchHistory ?? this.searchHistory,
   );
 

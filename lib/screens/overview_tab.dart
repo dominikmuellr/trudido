@@ -611,7 +611,11 @@ class _ProgressSection extends ConsumerWidget {
         color: colorScheme.secondaryContainer.withValues(alpha: 0.5),
         child: ExpressiveInkWell(
           borderRadius: SpacingBorderRadius.lg,
-          onTap: () => ref.read(currentTabProvider.notifier).setTab(1),
+          onTap: () {
+            ref.read(selectedFolderProvider.notifier).update(null);
+            ref.read(dueTodayFilterProvider.notifier).update(false);
+            ref.read(currentTabProvider.notifier).setTab(1);
+          },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
@@ -653,7 +657,11 @@ class _ProgressSection extends ConsumerWidget {
       color: colorScheme.primaryContainer.withValues(alpha: 0.35),
       child: ExpressiveInkWell(
         borderRadius: SpacingBorderRadius.lg,
-        onTap: () => ref.read(currentTabProvider.notifier).setTab(1),
+        onTap: () {
+          ref.read(selectedFolderProvider.notifier).update(null);
+          ref.read(dueTodayFilterProvider.notifier).update(false);
+          ref.read(currentTabProvider.notifier).setTab(1);
+        },
         child: Padding(
           padding: spacing.insets16,
           child: Row(

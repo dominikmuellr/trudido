@@ -220,6 +220,10 @@ class PreferencesService {
       persistentNotifications: p.getBool('persistent_notifications'),
       compactNotesView: p.getBool('compact_notes_view'),
       autoCompleteEvents: p.getBool('auto_complete_events'),
+      editorFontSize: p.getDouble('editor_font_size'),
+      editorFontFamily: _sanitizeEditorFontFamily(
+        p.getString('editor_font_family'),
+      ),
       searchHistory: p.getStringList('search_history') ?? [],
     );
   }
@@ -239,6 +243,21 @@ class PreferencesService {
         return v!;
       default:
         return PreferencesState.defaultState.fontFamily;
+    }
+  }
+
+  String _sanitizeEditorFontFamily(String? v) {
+    switch (v) {
+      case 'default':
+      case 'roboto':
+      case 'opensans':
+      case 'inter':
+      case 'jetbrains':
+      case 'lexend':
+      case 'monospace':
+        return v!;
+      default:
+        return PreferencesState.defaultState.editorFontFamily;
     }
   }
 
@@ -295,6 +314,8 @@ class PreferencesService {
     bool? compactNotesView,
     bool? autoCompleteEvents,
     List<String>? searchHistory,
+    double? editorFontSize,
+    String? editorFontFamily,
   }) async {
     final p = _prefs;
     if (p == null) {
@@ -433,6 +454,12 @@ class PreferencesService {
       }
       if (searchHistory != null) {
         await p.setStringList('search_history', searchHistory);
+      }
+      if (editorFontSize != null) {
+        await p.setDouble('editor_font_size', editorFontSize);
+      }
+      if (editorFontFamily != null) {
+        await p.setString('editor_font_family', editorFontFamily);
       }
       _hydrate();
       return _cache;

@@ -225,6 +225,8 @@ class PreferencesController {
     bool? floatingNavBar,
     bool? compactNotesView,
     bool? autoCompleteEvents,
+    double? editorFontSize,
+    String? editorFontFamily,
   }) async {
     final updated = await service.update(
       themeMode: themeMode,
@@ -269,6 +271,8 @@ class PreferencesController {
       floatingNavBar: floatingNavBar,
       compactNotesView: compactNotesView,
       autoCompleteEvents: autoCompleteEvents,
+      editorFontSize: editorFontSize,
+      editorFontFamily: editorFontFamily,
     );
     ref.read(preferencesStateProvider.notifier).update(updated);
   }
@@ -281,6 +285,12 @@ class PreferencesController {
   Future<void> setFontFamily(String fontFamily) async {
     await _update(fontFamily: fontFamily);
   }
+
+  Future<void> setEditorFontFamily(String family) =>
+      _update(editorFontFamily: family);
+
+  Future<void> setEditorFontSize(double size) =>
+      _update(editorFontSize: size);
 
   Future<void> setActiveCustomTheme(String themeId) async {
     await _update(activeCustomThemeId: themeId);

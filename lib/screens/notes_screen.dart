@@ -314,8 +314,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
       w = _freeformBubbleWidth;
       h = _freeformBubbleHeight;
     } else {
-      w = _freeformDotSize;
-      h = _freeformDotSize;
+      w = _freeformDotTouchTarget;
+      h = _freeformDotTouchTarget;
     }
 
     // Iterate in reverse to match visual stacking (last painted = on top)
@@ -344,8 +344,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
       w = _freeformBubbleWidth;
       h = _freeformBubbleHeight;
     } else {
-      w = _freeformDotSize;
-      h = _freeformDotSize;
+      w = _freeformDotTouchTarget;
+      h = _freeformDotTouchTarget;
     }
 
     // Iterate in reverse to match visual stacking (last painted = on top)
@@ -381,9 +381,10 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
 
   void _onCanvasScaleUpdate(ScaleUpdateDetails details) {
     // Track whether finger moved significantly (to distinguish tap from drag)
+    // Use 18px threshold — real device taps naturally jitter up to ~10px
     if (!_scaleHadSignificantMove && _scaleStartPoint != null) {
       final delta = (details.localFocalPoint - _scaleStartPoint!).distance;
-      if (delta > 10) {
+      if (delta > 18) {
         _scaleHadSignificantMove = true;
         _longPressTimer?.cancel();
       }
@@ -403,12 +404,12 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
           ? _freeformCardWidth
           : _lodLevel == 1
           ? _freeformBubbleWidth
-          : _freeformDotSize;
+          : _freeformDotTouchTarget;
       final noteH = _lodLevel == 0
           ? 180.0
           : _lodLevel == 1
           ? _freeformBubbleHeight
-          : _freeformDotSize;
+          : _freeformDotTouchTarget;
       final clampedPos = Offset(
         rawPos.dx.clamp(margin, canvasSize - noteW - margin),
         rawPos.dy.clamp(margin, canvasSize - noteH - margin),
@@ -463,9 +464,22 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
   void _onCanvasScaleEnd(ScaleEndDetails details) {
     _longPressTimer?.cancel();
     if (_movingNoteId != null) {
-      _onFreeformDragEnd(_movingNoteId!);
+      if (!_scaleHadSignificantMove) {
+        // Tap on a note (no drag movement) — open the quick view
+        final idx = _freeformNotes.indexWhere((n) => n.id == _movingNoteId);
+        if (idx != -1) {
+          _showNoteQuickView(_freeformNotes[idx]);
+          _dragStartCanvasPos = null;
+          _dragStartScreenPos = null;
+          setState(() => _movingNoteId = null);
+        } else {
+          _onFreeformDragEnd(_movingNoteId!);
+        }
+      } else {
+        _onFreeformDragEnd(_movingNoteId!);
+      }
     } else if (!_scaleHadSignificantMove && _scaleStartPoint != null) {
-      // Gesture was a tap — check if a note card is under the finger
+      // Gesture was a tap on empty canvas — check if a note card is under the finger
       final noteId = _hitTestNoteCardAtScreen(_scaleStartPoint!);
       if (noteId != null) {
         _showNoteQuickView(_freeformNotes.firstWhere((n) => n.id == noteId));
@@ -719,7 +733,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
 
               return LongPressDraggable<String>(
                 data: note.id,
-                delay: const Duration(milliseconds: 300),
+                delay: const Duration(milliseconds: 650),
                 hapticFeedbackOnStart: true,
                 maxSimultaneousDrags: isMultiSelect ? 0 : 1,
                 onDragStarted: () {
@@ -841,6 +855,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
   static const double _freeformBubbleWidth = 140.0;
   static const double _freeformBubbleHeight = 44.0;
   static const double _freeformDotSize = 32.0;
+  static const double _freeformDotTouchTarget =
+      56.0; // larger hit area for dots
 
   /// Build freeform canvas view with pan/zoom and freely movable note cards
   Widget _buildFreeformView(List<Note> notes, bool isAllNotesView) {
@@ -1115,25 +1131,32 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
     final cardBg =
         resolveNoteColor(note.colorValue, brightness) ?? colorScheme.primary;
 
-    return Container(
-      width: _freeformDotSize,
-      height: _freeformDotSize,
-      decoration: BoxDecoration(
-        color: cardBg,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: note.isPinned
-              ? colorScheme.primary
-              : colorScheme.outlineVariant.withValues(alpha: 0.6),
-          width: note.isPinned ? 2 : 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: cardBg.withValues(alpha: 0.4),
-            blurRadius: 4,
-            spreadRadius: 1,
+    // Wrap in a larger invisible touch target so tiny dots remain grabbable
+    return SizedBox(
+      width: _freeformDotTouchTarget,
+      height: _freeformDotTouchTarget,
+      child: Center(
+        child: Container(
+          width: _freeformDotSize,
+          height: _freeformDotSize,
+          decoration: BoxDecoration(
+            color: cardBg,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: note.isPinned
+                  ? colorScheme.primary
+                  : colorScheme.outlineVariant.withValues(alpha: 0.6),
+              width: note.isPinned ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: cardBg.withValues(alpha: 0.4),
+                blurRadius: 4,
+                spreadRadius: 1,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

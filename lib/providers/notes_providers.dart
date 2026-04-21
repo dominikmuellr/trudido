@@ -50,6 +50,8 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
     required String content,
     String? folderId,
     String? todoTxtContent,
+    double? lineHeightMultiplier,
+    double? paragraphSpacing,
   }) async {
     final repository = ref.read(notesRepositoryProvider);
     final note = await repository.createNote(
@@ -57,6 +59,8 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
       content: content,
       folderId: folderId,
       todoTxtContent: todoTxtContent,
+      lineHeightMultiplier: lineHeightMultiplier,
+      paragraphSpacing: paragraphSpacing,
     );
     await refresh();
     return note;

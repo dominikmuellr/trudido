@@ -140,6 +140,8 @@ class NotesRepository {
     bool isPinned = false,
     String? folderId,
     String? todoTxtContent,
+    double? lineHeightMultiplier,
+    double? paragraphSpacing,
   }) async {
     final note = Note(
       title: title,
@@ -147,6 +149,8 @@ class NotesRepository {
       isPinned: isPinned,
       folderId: folderId,
       todoTxtContent: todoTxtContent,
+      lineHeightMultiplier: lineHeightMultiplier ?? 1.5,
+      paragraphSpacing: paragraphSpacing ?? 8.0,
     );
 
     // Encrypt if vault folder

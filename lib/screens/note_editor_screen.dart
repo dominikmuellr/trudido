@@ -498,6 +498,26 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     );
   }
 
+  /// Maps the editor font family preference string to the actual font family
+  /// name used in Flutter. Returns null for 'default' and 'roboto' so the
+  /// inherited theme font (global app font) is used instead.
+  String? _resolveEditorFontFamily(String pref) {
+    switch (pref) {
+      case 'opensans':
+        return 'OpenSans';
+      case 'inter':
+        return 'Inter';
+      case 'jetbrains':
+        return 'JetBrainsMono';
+      case 'lexend':
+        return 'Lexend';
+      case 'monospace':
+        return 'monospace';
+      default: // 'default' or 'roboto' → inherit theme
+        return null;
+    }
+  }
+
   Widget _buildMarkdownEditor() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20.0),
@@ -523,6 +543,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
           ),
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             color: Theme.of(context).colorScheme.onSurface,
+            fontFamily: _resolveEditorFontFamily(
+              ref.watch(preferencesStateProvider).editorFontFamily,
+            ),
+            fontSize: ref.watch(preferencesStateProvider).editorFontSize,
+            height: ref.watch(preferencesStateProvider).lineHeightMultiplier,
           ),
           maxLines: null,
           keyboardType: TextInputType.multiline,
@@ -655,6 +680,10 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
           Theme.of(context).textTheme.bodyLarge?.copyWith(
             color: Theme.of(context).colorScheme.onSurface,
             height: ref.watch(preferencesStateProvider).lineHeightMultiplier,
+            fontFamily: _resolveEditorFontFamily(
+              ref.watch(preferencesStateProvider).editorFontFamily,
+            ),
+            fontSize: ref.watch(preferencesStateProvider).editorFontSize,
           );
 
       // Parse inline formatting within the line

@@ -42,6 +42,8 @@ class NotesController extends Notifier<AsyncValue<void>> {
     required String content,
     String? folderId,
     String? todoTxtContent,
+    double? lineHeightMultiplier,
+    double? paragraphSpacing,
   }) async {
     if (title.trim().isEmpty) {
       state = const AsyncValue.error('Title cannot be empty', StackTrace.empty);
@@ -55,6 +57,8 @@ class NotesController extends Notifier<AsyncValue<void>> {
         content: content,
         folderId: folderId,
         todoTxtContent: todoTxtContent,
+        lineHeightMultiplier: lineHeightMultiplier,
+        paragraphSpacing: paragraphSpacing,
       );
       state = const AsyncValue.data(null);
       return note;

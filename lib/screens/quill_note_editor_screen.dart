@@ -1732,10 +1732,13 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         _scheduleHistoryRecord(existingId, contentBefore, content);
       }
     } else {
+      final prefs = ref.read(preferencesStateProvider);
       savedNote = await controller.createNote(
         title: title,
         content: content,
         folderId: widget.initialFolderId,
+        lineHeightMultiplier: prefs.lineHeightMultiplier,
+        paragraphSpacing: prefs.paragraphSpacing,
       );
     }
 
@@ -2363,8 +2366,12 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
           onInsertVideo: _insertVideo,
           onInsertVoice: _insertVoiceNote,
           onInsertLink: _insertLink,
-          currentLineHeight: _originalNote?.lineHeightMultiplier ?? 1.5,
-          currentParagraphSpacing: _originalNote?.paragraphSpacing ?? 8.0,
+          currentLineHeight:
+              _originalNote?.lineHeightMultiplier ??
+              ref.read(preferencesStateProvider).lineHeightMultiplier,
+          currentParagraphSpacing:
+              _originalNote?.paragraphSpacing ??
+              ref.read(preferencesStateProvider).paragraphSpacing,
           onLineHeightChanged: (newHeight) {
             if (_originalNote != null) {
               setState(() {
@@ -2392,8 +2399,29 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     );
   }
 
+  /// Maps the editor font family preference string to the actual font family
+  /// name used in Flutter. Returns null for 'default' and 'roboto' so the
+  /// inherited theme font (global app font) is used instead.
+  String? _resolveEditorFontFamily(String pref) {
+    switch (pref) {
+      case 'opensans':
+        return 'OpenSans';
+      case 'inter':
+        return 'Inter';
+      case 'jetbrains':
+        return 'JetBrainsMono';
+      case 'lexend':
+        return 'Lexend';
+      case 'monospace':
+        return 'monospace';
+      default: // 'default' or 'roboto' → inherit theme
+        return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final prefs = ref.watch(preferencesStateProvider);
     return PopScope(
       // Always intercept back navigation — _hasUnsavedChanges is checked
       // lazily in the callback so toggling it doesn't require a rebuild
@@ -2737,42 +2765,25 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                     const ToolbarDivider(),
                                     LineHeightDropdown(
                                       currentHeight:
-                                          _originalNote?.lineHeightMultiplier ??
-                                          1.5,
+                                          prefs.lineHeightMultiplier,
                                       onChanged: (newHeight) {
-                                        if (_originalNote != null) {
-                                          setState(() {
-                                            _originalNote = _originalNote!
-                                                .copyWith(
-                                                  lineHeightMultiplier:
-                                                      newHeight,
-                                                );
-                                            _hasUnsavedChanges = true;
-                                          });
-                                          _saveNoteInternal(
-                                            showFeedback: false,
-                                          );
-                                        }
+                                        ref
+                                            .read(
+                                              preferencesControllerProvider,
+                                            )
+                                            .setLineHeightMultiplier(newHeight);
                                       },
                                     ),
                                     const ToolbarDivider(),
                                     ParagraphSpacingDropdown(
                                       currentSpacing:
-                                          _originalNote?.paragraphSpacing ??
-                                          8.0,
+                                          prefs.paragraphSpacing,
                                       onChanged: (newSpacing) {
-                                        if (_originalNote != null) {
-                                          setState(() {
-                                            _originalNote = _originalNote!
-                                                .copyWith(
-                                                  paragraphSpacing: newSpacing,
-                                                );
-                                            _hasUnsavedChanges = true;
-                                          });
-                                          _saveNoteInternal(
-                                            showFeedback: false,
-                                          );
-                                        }
+                                        ref
+                                            .read(
+                                              preferencesControllerProvider,
+                                            )
+                                            .setParagraphSpacing(newSpacing);
                                       },
                                     ),
                                     const ToolbarDivider(),
@@ -3051,35 +3062,33 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                         ),
                                         paragraph: quill.DefaultTextBlockStyle(
                                           TextStyle(
-                                            fontSize: 16,
+                                            fontSize: prefs.editorFontSize,
+                                            fontFamily: _resolveEditorFontFamily(
+                                              prefs.editorFontFamily,
+                                            ),
                                             color: Theme.of(
                                               context,
                                             ).colorScheme.onSurface,
-                                            height:
-                                                _originalNote
-                                                    ?.lineHeightMultiplier ??
-                                                1.5,
+                                            height: prefs.lineHeightMultiplier,
                                           ),
                                           quill.HorizontalSpacing(0, 0),
                                           quill.VerticalSpacing(
-                                            _originalNote?.paragraphSpacing ??
-                                                8.0,
-                                            _originalNote?.paragraphSpacing ??
-                                                8.0,
+                                            prefs.paragraphSpacing,
+                                            prefs.paragraphSpacing,
                                           ),
                                           quill.VerticalSpacing(0, 0),
                                           null,
                                         ),
                                         lists: quill.DefaultListBlockStyle(
                                           TextStyle(
-                                            fontSize: 16,
+                                            fontSize: prefs.editorFontSize,
+                                            fontFamily: _resolveEditorFontFamily(
+                                              prefs.editorFontFamily,
+                                            ),
                                             color: Theme.of(
                                               context,
                                             ).colorScheme.onSurface,
-                                            height:
-                                                _originalNote
-                                                    ?.lineHeightMultiplier ??
-                                                1.5,
+                                            height: prefs.lineHeightMultiplier,
                                           ),
                                           quill.HorizontalSpacing(0, 0),
                                           // No inter-block spacing for lists —

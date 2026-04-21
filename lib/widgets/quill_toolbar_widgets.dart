@@ -276,30 +276,40 @@ class FontFamilyDropdown extends StatelessWidget {
     this.onChanged,
   });
 
-  static const List<String> fontFamilies = [
-    'Roboto',
-    'Courier',
-    'Monospace',
-    'Sans-serif',
-    'Serif',
+  static const List<Map<String, String>> fontOptions = [
+    {'label': 'Default', 'value': ''},
+    {'label': 'Inter', 'value': 'Inter'},
+    {'label': 'Open Sans', 'value': 'OpenSans'},
+    {'label': 'Lexend', 'value': 'Lexend'},
+    {'label': 'JetBrains Mono', 'value': 'JetBrainsMono'},
+    {'label': 'Monospace', 'value': 'monospace'},
+    {'label': 'Roboto', 'value': 'Roboto'},
   ];
 
   String _getCurrentFamily() {
     try {
       final style = controller.getSelectionStyle();
       final fontAttr = style.attributes[quill.Attribute.font.key]?.value;
-      if (fontAttr != null && fontAttr is String) {
+      if (fontAttr != null && fontAttr is String && fontAttr.isNotEmpty) {
         return fontAttr;
       }
     } catch (e) {
       // Ignore errors
     }
-    return 'Roboto';
+    return '';
+  }
+
+  String _getLabelForValue(String value) {
+    for (final opt in fontOptions) {
+      if (opt['value'] == value) return opt['label']!;
+    }
+    return value.isEmpty ? 'Default' : value;
   }
 
   @override
   Widget build(BuildContext context) {
     final currentFamily = _getCurrentFamily();
+    final displayLabel = _getLabelForValue(currentFamily);
 
     return PopupMenuButton<String>(
       tooltip: 'Font family',
@@ -317,11 +327,14 @@ class FontFamilyDropdown extends StatelessWidget {
           children: [
             Flexible(
               child: Text(
-                currentFamily,
+                displayLabel,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(
                   context,
-                ).textTheme.bodyMedium?.copyWith(fontSize: 14),
+                ).textTheme.bodyMedium?.copyWith(
+                  fontSize: 14,
+                  fontFamily: currentFamily.isEmpty ? null : currentFamily,
+                ),
               ),
             ),
             const SizedBox(width: 4),
@@ -333,25 +346,33 @@ class FontFamilyDropdown extends StatelessWidget {
           ],
         ),
       ),
-      itemBuilder: (context) => fontFamilies.map((family) {
+      itemBuilder: (context) => fontOptions.map((opt) {
+        final value = opt['value']!;
+        final label = opt['label']!;
+        final isCurrent = value == currentFamily;
         return PopupMenuItem<String>(
-          value: family,
+          value: value,
           child: Text(
-            family,
+            label,
             style: TextStyle(
               fontSize: 14,
-              fontFamily: family,
-              fontWeight: family == currentFamily
-                  ? FontWeight.bold
-                  : FontWeight.normal,
+              fontFamily: value.isEmpty ? null : value,
+              fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
             ),
           ),
         );
       }).toList(),
       onSelected: (newFamily) {
-        controller.formatSelection(
-          quill.Attribute.fromKeyValue('font', newFamily),
-        );
+        if (newFamily.isEmpty) {
+          // Remove font attribute (revert to default)
+          controller.formatSelection(
+            const quill.Attribute('font', quill.AttributeScope.inline, null),
+          );
+        } else {
+          controller.formatSelection(
+            quill.Attribute.fromKeyValue('font', newFamily),
+          );
+        }
         onChanged?.call();
       },
     );
