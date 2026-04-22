@@ -289,8 +289,7 @@ class PreferencesController {
   Future<void> setEditorFontFamily(String family) =>
       _update(editorFontFamily: family);
 
-  Future<void> setEditorFontSize(double size) =>
-      _update(editorFontSize: size);
+  Future<void> setEditorFontSize(double size) => _update(editorFontSize: size);
 
   Future<void> setActiveCustomTheme(String themeId) async {
     await _update(activeCustomThemeId: themeId);

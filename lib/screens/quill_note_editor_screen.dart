@@ -46,6 +46,7 @@ import '../utils/syntax_highlighter.dart';
 import '../utils/language_detector.dart';
 import '../providers/app_providers.dart';
 import '../services/preferences_service.dart';
+import '../models/preferences_state.dart';
 import '../controllers/preferences_controller.dart';
 import '../providers/note_history_provider.dart';
 import '../widgets/note_history_bottom_sheet.dart';
@@ -2343,7 +2344,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   /// Wrapped in a LayoutBuilder so the toolbar knows the real available size
   /// (which shrinks when the keyboard opens because the Scaffold has
   /// resizeToAvoidBottomInset: true).
-  Widget _buildFloatingToolbarOverlay() {
+  Widget _buildFloatingToolbarOverlay(PreferencesState prefs) {
     if (!_useFloatingToolbar || _isReadMode) return const SizedBox.shrink();
 
     return LayoutBuilder(
@@ -2366,33 +2367,17 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
           onInsertVideo: _insertVideo,
           onInsertVoice: _insertVoiceNote,
           onInsertLink: _insertLink,
-          currentLineHeight:
-              _originalNote?.lineHeightMultiplier ??
-              ref.read(preferencesStateProvider).lineHeightMultiplier,
-          currentParagraphSpacing:
-              _originalNote?.paragraphSpacing ??
-              ref.read(preferencesStateProvider).paragraphSpacing,
+          currentLineHeight: prefs.lineHeightMultiplier,
+          currentParagraphSpacing: prefs.paragraphSpacing,
           onLineHeightChanged: (newHeight) {
-            if (_originalNote != null) {
-              setState(() {
-                _originalNote = _originalNote!.copyWith(
-                  lineHeightMultiplier: newHeight,
-                );
-                _hasUnsavedChanges = true;
-              });
-              _saveNoteInternal(showFeedback: false);
-            }
+            ref
+                .read(preferencesControllerProvider)
+                .setLineHeightMultiplier(newHeight);
           },
           onParagraphSpacingChanged: (newSpacing) {
-            if (_originalNote != null) {
-              setState(() {
-                _originalNote = _originalNote!.copyWith(
-                  paragraphSpacing: newSpacing,
-                );
-                _hasUnsavedChanges = true;
-              });
-              _saveNoteInternal(showFeedback: false);
-            }
+            ref
+                .read(preferencesControllerProvider)
+                .setParagraphSpacing(newSpacing);
           },
         );
       },
@@ -2764,25 +2749,19 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                     ),
                                     const ToolbarDivider(),
                                     LineHeightDropdown(
-                                      currentHeight:
-                                          prefs.lineHeightMultiplier,
+                                      currentHeight: prefs.lineHeightMultiplier,
                                       onChanged: (newHeight) {
                                         ref
-                                            .read(
-                                              preferencesControllerProvider,
-                                            )
+                                            .read(preferencesControllerProvider)
                                             .setLineHeightMultiplier(newHeight);
                                       },
                                     ),
                                     const ToolbarDivider(),
                                     ParagraphSpacingDropdown(
-                                      currentSpacing:
-                                          prefs.paragraphSpacing,
+                                      currentSpacing: prefs.paragraphSpacing,
                                       onChanged: (newSpacing) {
                                         ref
-                                            .read(
-                                              preferencesControllerProvider,
-                                            )
+                                            .read(preferencesControllerProvider)
                                             .setParagraphSpacing(newSpacing);
                                       },
                                     ),
@@ -2862,6 +2841,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                     _quillTapPending = true;
                                   },
                                   child: quill.QuillEditor(
+                                    key: ValueKey(
+                                      '${prefs.editorFontFamily}_${prefs.editorFontSize}_${prefs.lineHeightMultiplier}_${prefs.paragraphSpacing}',
+                                    ),
                                     focusNode: _focusNode,
                                     scrollController: _scrollController,
                                     controller: _quillController,
@@ -3063,9 +3045,10 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                         paragraph: quill.DefaultTextBlockStyle(
                                           TextStyle(
                                             fontSize: prefs.editorFontSize,
-                                            fontFamily: _resolveEditorFontFamily(
-                                              prefs.editorFontFamily,
-                                            ),
+                                            fontFamily:
+                                                _resolveEditorFontFamily(
+                                                  prefs.editorFontFamily,
+                                                ),
                                             color: Theme.of(
                                               context,
                                             ).colorScheme.onSurface,
@@ -3082,9 +3065,10 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                                         lists: quill.DefaultListBlockStyle(
                                           TextStyle(
                                             fontSize: prefs.editorFontSize,
-                                            fontFamily: _resolveEditorFontFamily(
-                                              prefs.editorFontFamily,
-                                            ),
+                                            fontFamily:
+                                                _resolveEditorFontFamily(
+                                                  prefs.editorFontFamily,
+                                                ),
                                             color: Theme.of(
                                               context,
                                             ).colorScheme.onSurface,
@@ -3301,7 +3285,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                 },
               ),
             // Floating note toolbar overlay — positioned anywhere on screen
-            _buildFloatingToolbarOverlay(),
+            _buildFloatingToolbarOverlay(prefs),
             // One-time drag-to-detach hint tooltip
             if (_showDragHint) _buildDragHintTooltip(),
           ],

@@ -16,6 +16,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/app_providers.dart';
 
 /// Scrollable toolbar wrapper with fade effect on edges
 class ScrollableToolbar extends StatelessWidget {
@@ -59,37 +61,37 @@ class ToolbarDivider extends StatelessWidget {
       height: 24,
       width: 1,
       margin: const EdgeInsets.symmetric(horizontal: 6),
-      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+      color: Theme.of(
+        context,
+      ).colorScheme.outlineVariant.withValues(alpha: 0.5),
     );
   }
 }
 
 /// Font size dropdown for Quill editor
-class FontSizeDropdown extends StatelessWidget {
+class FontSizeDropdown extends ConsumerWidget {
   final quill.QuillController controller;
   final VoidCallback? onChanged;
 
   const FontSizeDropdown({super.key, required this.controller, this.onChanged});
 
   static const List<int> fontSizes = [
-    8,
-    9,
-    10,
-    11,
     12,
+    13,
     14,
+    15,
     16,
+    17,
     18,
+    19,
     20,
+    21,
+    22,
+    23,
     24,
-    28,
-    32,
-    36,
-    48,
-    72,
   ];
 
-  int _getCurrentSize() {
+  int _getCurrentSize(int prefSize) {
     try {
       final style = controller.getSelectionStyle();
       final sizeAttr = style.attributes[quill.Attribute.size.key]?.value;
@@ -111,12 +113,13 @@ class FontSizeDropdown extends StatelessWidget {
     } catch (e) {
       // Ignore errors
     }
-    return 16; // Default size
+    return prefSize; // Fall back to global preference
   }
 
   @override
-  Widget build(BuildContext context) {
-    final currentSize = _getCurrentSize();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prefSize = ref.watch(preferencesStateProvider).editorFontSize.round();
+    final currentSize = _getCurrentSize(prefSize);
 
     return PopupMenuButton<int>(
       tooltip: 'Font size',
@@ -266,7 +269,7 @@ class HeaderStyleDropdown extends StatelessWidget {
 }
 
 /// Font family dropdown for Quill editor
-class FontFamilyDropdown extends StatelessWidget {
+class FontFamilyDropdown extends ConsumerWidget {
   final quill.QuillController controller;
   final VoidCallback? onChanged;
 
@@ -286,7 +289,7 @@ class FontFamilyDropdown extends StatelessWidget {
     {'label': 'Roboto', 'value': 'Roboto'},
   ];
 
-  String _getCurrentFamily() {
+  String _getCurrentFamily(String prefFamily) {
     try {
       final style = controller.getSelectionStyle();
       final fontAttr = style.attributes[quill.Attribute.font.key]?.value;
@@ -296,7 +299,7 @@ class FontFamilyDropdown extends StatelessWidget {
     } catch (e) {
       // Ignore errors
     }
-    return '';
+    return prefFamily; // Fall back to global preference
   }
 
   String _getLabelForValue(String value) {
@@ -306,9 +309,31 @@ class FontFamilyDropdown extends StatelessWidget {
     return value.isEmpty ? 'Default' : value;
   }
 
+  // Convert the pref key (e.g. 'opensans') to the font value used in the dropdown
+  String _prefKeyToFontValue(String prefKey) {
+    switch (prefKey) {
+      case 'opensans':
+        return 'OpenSans';
+      case 'inter':
+        return 'Inter';
+      case 'jetbrains':
+        return 'JetBrainsMono';
+      case 'lexend':
+        return 'Lexend';
+      case 'monospace':
+        return 'monospace';
+      case 'roboto':
+        return 'Roboto';
+      default: // 'default'
+        return '';
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
-    final currentFamily = _getCurrentFamily();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prefFontKey = ref.watch(preferencesStateProvider).editorFontFamily;
+    final prefFontValue = _prefKeyToFontValue(prefFontKey);
+    final currentFamily = _getCurrentFamily(prefFontValue);
     final displayLabel = _getLabelForValue(currentFamily);
 
     return PopupMenuButton<String>(
@@ -329,9 +354,7 @@ class FontFamilyDropdown extends StatelessWidget {
               child: Text(
                 displayLabel,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   fontSize: 14,
                   fontFamily: currentFamily.isEmpty ? null : currentFamily,
                 ),
@@ -390,16 +413,7 @@ class LineHeightDropdown extends StatelessWidget {
     this.onChanged,
   });
 
-  static const List<double> lineHeights = [
-    1.0,
-    1.2,
-    1.5,
-    1.8,
-    2.0,
-    2.2,
-    2.5,
-    3.0,
-  ];
+  static const List<double> lineHeights = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0];
 
   @override
   Widget build(BuildContext context) {
@@ -461,7 +475,7 @@ class ParagraphSpacingDropdown extends StatelessWidget {
     this.onChanged,
   });
 
-  static const List<double> spacings = [0.0, 4.0, 8.0, 12.0, 16.0, 24.0];
+  static const List<double> spacings = [0.0, 4.0, 8.0, 12.0, 16.0, 20.0];
 
   @override
   Widget build(BuildContext context) {
