@@ -373,6 +373,14 @@ final settingsItemsProvider = Provider<List<SettingsItem>>((ref) {
       toggleKey: 'enableNoteHistory',
     ),
     const SettingsItem(
+      title: 'Spatial Canvas',
+      subtitle: 'Experimental · Zoomable notes canvas view',
+      icon: Icons.space_dashboard_outlined,
+      keywords: 'spatial canvas notes zoom pan view',
+      route: 'experimental',
+      toggleKey: 'enableSpatialCanvas',
+    ),
+    const SettingsItem(
       title: 'Auto-complete Events',
       subtitle: 'Experimental · Mark events complete after end time',
       icon: Icons.event_available_outlined,

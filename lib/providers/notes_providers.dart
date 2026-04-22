@@ -172,10 +172,10 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
 }
 
 // ============================================================================
-// Freeform Canvas Positions
+// Spatial Canvas Positions
 // ============================================================================
 
-/// Manages freeform canvas positions per folder.
+/// Manages Spatial Canvas positions per folder.
 ///
 /// Automatically reloads when the selected folder changes.
 /// Positions are persisted in SharedPreferences as JSON.

@@ -1310,5 +1310,3 @@ Widget _buildFontOption(
     },
   );
 }
-
-

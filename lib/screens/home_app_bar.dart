@@ -146,11 +146,27 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar>
       _searchModeController.reverse();
     }
 
-    final isFreeform =
-        currentTab == 2 && ref.watch(notesViewModeProvider) == 'freeform';
+    final currentNotesViewMode = ref.watch(notesViewModeProvider);
+    final isSpatialCanvasEnabled = preferences.enableSpatialCanvas;
 
-    // In freeform/canvas mode: transparent bar with only the view switcher
-    if (isFreeform) {
+    if (!isSpatialCanvasEnabled &&
+        currentTab == 2 &&
+        currentNotesViewMode == 'spatial') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (ref.read(notesViewModeProvider) == 'spatial') {
+          ref.read(notesViewModeProvider.notifier).update('grid');
+        }
+      });
+    }
+
+    final isSpatialCanvas =
+        currentTab == 2 &&
+        isSpatialCanvasEnabled &&
+        currentNotesViewMode == 'spatial';
+
+    // In spatial canvas mode: transparent bar with only the view switcher
+    if (isSpatialCanvas) {
       return AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
@@ -168,11 +184,11 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar>
             ButtonSegment(value: 'grid', icon: Icon(Icons.grid_view, size: 18)),
             ButtonSegment(value: 'list', icon: Icon(Icons.view_list, size: 18)),
             ButtonSegment(
-              value: 'freeform',
+              value: 'spatial',
               icon: Icon(Icons.space_dashboard_outlined, size: 18),
             ),
           ],
-          selected: const {'freeform'},
+          selected: const {'spatial'},
           onSelectionChanged: (selected) {
             ref.read(notesViewModeProvider.notifier).update(selected.first);
           },

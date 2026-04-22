@@ -115,6 +115,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final preferences = ref.watch(preferencesStateProvider);
     final hideBottomNav = preferences.hideBottomNavigation;
     final useQuickInputBar = preferences.useQuickInputBar;
+    final enableSpatialCanvas = preferences.enableSpatialCanvas;
 
     // Guard: if Overview tab is hidden and user is on it, switch to default tab.
     ref.listen(preferencesStateProvider, (previous, next) {
@@ -233,6 +234,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         currentTab,
         hideBottomNav,
         useQuickInputBar,
+        enableSpatialCanvas,
       ),
     );
   }
@@ -243,17 +245,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     int currentTab,
     bool hideBottomNav,
     bool useQuickInputBar,
+    bool enableSpatialCanvas,
   ) {
     final fabMenuExpanded = ref.watch(fabMenuExpandedProvider);
-    final isFreeform =
-        currentTab == 2 && ref.watch(notesViewModeProvider) == 'freeform';
+    final isSpatialCanvas =
+        enableSpatialCanvas &&
+        currentTab == 2 &&
+        ref.watch(notesViewModeProvider) == 'spatial';
 
     if (useNavigationRail && !hideBottomNav) {
       return Stack(
         children: [
           Scaffold(
             body: Scaffold(
-              extendBodyBehindAppBar: isFreeform,
+              extendBodyBehindAppBar: isSpatialCanvas,
               extendBody: ref.watch(
                 preferencesStateProvider.select((p) => p.floatingNavBar),
               ),
@@ -262,7 +267,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 onOpenPersonalization: () =>
                     openPersonalizationScreen(() => setState(() {})),
               ),
-              bottomNavigationBar: !isFreeform
+              bottomNavigationBar: !isSpatialCanvas
                   ? HomeNavigationBar(
                       currentTab: currentTab,
                       scaffoldKey: _scaffoldKey,
@@ -328,7 +333,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           extendBody: ref.watch(
             preferencesStateProvider.select((p) => p.floatingNavBar),
           ),
-          extendBodyBehindAppBar: isFreeform,
+          extendBodyBehindAppBar: isSpatialCanvas,
           drawer: HomeNavigationDrawer(
             currentTab: currentTab,
             isCalendarExpanded: _isCalendarExpanded,
@@ -342,7 +347,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             onCreateNoteFolder: () => showCreateNoteFolderDialog(context, ref),
             onClearVaultSelection: clearVaultSelectionIfNeeded,
           ),
-          drawerEdgeDragWidth: isFreeform ? 0.0 : 80.0,
+          drawerEdgeDragWidth: isSpatialCanvas ? 0.0 : 80.0,
           appBar: HomeAppBar(
             searchController: _searchController,
             onOpenPersonalization: () =>
@@ -397,7 +402,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
           ),
           // NavigationBar
-          bottomNavigationBar: !hideBottomNav && !isFreeform
+          bottomNavigationBar: !hideBottomNav && !isSpatialCanvas
               ? HomeNavigationBar(
                   currentTab: currentTab,
                   scaffoldKey: _scaffoldKey,

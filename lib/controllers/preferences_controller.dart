@@ -112,6 +112,9 @@ class PreferencesController {
   Future<void> toggleNoteHistory() =>
       _update(enableNoteHistory: !state.enableNoteHistory);
 
+  Future<void> toggleSpatialCanvas() =>
+      _update(enableSpatialCanvas: !state.enableSpatialCanvas);
+
   Future<void> toggleAutoOpenKeyboardInNotes() =>
       _update(autoOpenKeyboardInNotes: !state.autoOpenKeyboardInNotes);
 
@@ -198,6 +201,7 @@ class PreferencesController {
     bool? useFloatingNoteToolbar,
     bool? useQuickInputBar,
     bool? enableNoteHistory,
+    bool? enableSpatialCanvas,
     int? firstDayOfWeek,
     String? defaultTaskView,
     String? defaultNotesFolderId,
@@ -243,6 +247,7 @@ class PreferencesController {
       useFloatingNoteToolbar: useFloatingNoteToolbar,
       useQuickInputBar: useQuickInputBar,
       enableNoteHistory: enableNoteHistory,
+      enableSpatialCanvas: enableSpatialCanvas,
       firstDayOfWeek: firstDayOfWeek,
       defaultTaskView: defaultTaskView,
       defaultNotesFolderId: defaultNotesFolderId,

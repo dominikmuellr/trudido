@@ -1718,13 +1718,13 @@ Type **/** to open the insert menu:
   }
 
   // ============================================================================
-  // Freeform Canvas Positions
+  // Spatial Canvas Positions
   // ============================================================================
 
   static String _freeformKey(String folderKey) =>
       'note_freeform_positions_$folderKey';
 
-  /// Save freeform canvas positions for a folder.
+  /// Save Spatial Canvas positions for a folder.
   /// [folderKey] is the folder ID or 'ALL' for the all-notes view.
   static Future<void> saveFreeformPositions(
     String folderKey,
@@ -1734,7 +1734,7 @@ Type **/** to open the insert menu:
     await _prefs!.setString(_freeformKey(folderKey), jsonEncode(positions));
   }
 
-  /// Load freeform canvas positions for a folder.
+  /// Load Spatial Canvas positions for a folder.
   /// Returns a map of noteId -> [dx, dy].
   static Map<String, List<double>> loadFreeformPositions(String folderKey) {
     if (_prefs == null) kickOffPrefsInit();

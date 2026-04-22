@@ -177,6 +177,10 @@ class PreferencesService {
       enableNoteHistory:
           p.getBool('enable_note_history') ??
           PreferencesState.defaultState.enableNoteHistory,
+      enableSpatialCanvas:
+          p.getBool('enable_spatial_canvas') ??
+          p.getBool('enable_freeform_canvas') ??
+          PreferencesState.defaultState.enableSpatialCanvas,
       hideBottomNavigation:
           p.getBool('hide_bottom_navigation') ??
           PreferencesState.defaultState.hideBottomNavigation,
@@ -283,6 +287,7 @@ class PreferencesService {
     bool? useFloatingNoteToolbar,
     bool? useQuickInputBar,
     bool? enableNoteHistory,
+    bool? enableSpatialCanvas,
     bool? hideBottomNavigation,
     int? firstDayOfWeek,
     String? defaultTaskView,
@@ -363,6 +368,9 @@ class PreferencesService {
       }
       if (enableNoteHistory != null) {
         await p.setBool('enable_note_history', enableNoteHistory);
+      }
+      if (enableSpatialCanvas != null) {
+        await p.setBool('enable_spatial_canvas', enableSpatialCanvas);
       }
       if (hideBottomNavigation != null) {
         await p.setBool('hide_bottom_navigation', hideBottomNavigation);

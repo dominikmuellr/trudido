@@ -808,6 +808,7 @@ class UnifiedSearchResults extends ConsumerWidget {
       'enableBin' => prefs.enableBin,
       'useQuickInputBar' => prefs.useQuickInputBar,
       'enableNoteHistory' => prefs.enableNoteHistory,
+      'enableSpatialCanvas' => prefs.enableSpatialCanvas,
       'autoCompleteEvents' => prefs.autoCompleteEvents,
       _ => false,
     };
@@ -839,6 +840,8 @@ class UnifiedSearchResults extends ConsumerWidget {
         ctrl.toggleQuickInputBar();
       case 'enableNoteHistory':
         ctrl.toggleNoteHistory();
+      case 'enableSpatialCanvas':
+        ctrl.toggleSpatialCanvas();
       case 'autoCompleteEvents':
         ctrl.toggleAutoCompleteEvents();
     }

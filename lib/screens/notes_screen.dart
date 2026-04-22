@@ -64,7 +64,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
   List<Note>?
   _optimisticNotes; // Optimistic reorder result to prevent snap-back
 
-  // ─── Freeform canvas state ────────────────────────────────────────────
+  // ─── Spatial Canvas state ─────────────────────────────────────────────
   final TransformationController _freeformTransformController =
       TransformationController();
   final Map<String, Offset> _livePositions = {};
@@ -112,7 +112,12 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
     if (!mounted) return;
     final orientation = MediaQuery.orientationOf(context);
     final viewMode = ref.read(notesViewModeProvider);
-    if (orientation == Orientation.landscape && viewMode == 'freeform') {
+    final isSpatialCanvasEnabled = ref
+        .read(preferencesStateProvider)
+        .enableSpatialCanvas;
+    if (orientation == Orientation.landscape &&
+        viewMode == 'spatial' &&
+        isSpatialCanvasEnabled) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     } else {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -577,6 +582,22 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
 
   Widget _buildBody(List<Note> notes, bool isAllNotesView) {
     final viewMode = ref.watch(notesViewModeProvider);
+    final isSpatialCanvasEnabled = ref.watch(
+      preferencesStateProvider.select((p) => p.enableSpatialCanvas),
+    );
+    final effectiveViewMode = !isSpatialCanvasEnabled && viewMode == 'spatial'
+        ? 'grid'
+        : viewMode;
+
+    if (!isSpatialCanvasEnabled && viewMode == 'spatial') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (ref.read(notesViewModeProvider) == 'spatial') {
+          ref.read(notesViewModeProvider.notifier).update('grid');
+        }
+      });
+    }
+
     // Update immersive mode whenever viewMode or orientation changes
     WidgetsBinding.instance.addPostFrameCallback((_) => _updateSystemUI());
     final isMultiSelect = ref.watch(notesMultiSelectModeProvider);
@@ -593,7 +614,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
       });
     }
 
-    // Reset freeform state when folder changes
+    // Reset Spatial Canvas state when folder changes
     final currentFolderId = ref.watch(selectedNoteFolderProvider);
     if (_lastFolderId != null && _lastFolderId != currentFolderId) {
       _freeformInitialized = false;
@@ -604,13 +625,13 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
 
     return Column(
       children: [
-        if (viewMode != 'freeform') const NotesFilterChips(),
+        if (effectiveViewMode != 'spatial') const NotesFilterChips(),
         Expanded(
           child: effectiveNotes.isEmpty
               ? _buildEmptyState()
-              : viewMode == 'grid'
+              : effectiveViewMode == 'grid'
               ? _buildGridView(effectiveNotes, isAllNotesView)
-              : viewMode == 'freeform'
+              : effectiveViewMode == 'spatial'
               ? _buildFreeformView(effectiveNotes, isAllNotesView)
               : _buildListView(effectiveNotes, isAllNotesView),
         ),
@@ -849,7 +870,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
     );
   }
 
-  // ─── Freeform canvas view ─────────────────────────────────────────────
+  // ─── Spatial Canvas view ──────────────────────────────────────────────
 
   static const double _freeformCardWidth = 180.0;
   static const double _freeformBubbleWidth = 140.0;
@@ -858,7 +879,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
   static const double _freeformDotTouchTarget =
       56.0; // larger hit area for dots
 
-  /// Build freeform canvas view with pan/zoom and freely movable note cards
+  /// Build Spatial Canvas view with pan/zoom and freely movable note cards
   Widget _buildFreeformView(List<Note> notes, bool isAllNotesView) {
     final isMultiSelect = ref.watch(notesMultiSelectModeProvider);
     final selectedNoteIds = ref.watch(selectedNoteIdsProvider);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/notes_controller.dart';
+import '../providers/app_providers.dart';
 
 class NotesFilterChips extends ConsumerWidget {
   const NotesFilterChips({super.key});
@@ -15,6 +16,33 @@ class NotesFilterChips extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final sortBy = ref.watch(notesSortByProvider);
+    final isSpatialCanvasEnabled = ref.watch(
+      preferencesStateProvider.select((p) => p.enableSpatialCanvas),
+    );
+    final selectedViewMode = ref.watch(notesViewModeProvider);
+
+    if (!isSpatialCanvasEnabled && selectedViewMode == 'spatial') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (ref.read(notesViewModeProvider) == 'spatial') {
+          ref.read(notesViewModeProvider.notifier).update('grid');
+        }
+      });
+    }
+
+    final effectiveViewMode =
+        !isSpatialCanvasEnabled && selectedViewMode == 'spatial'
+        ? 'grid'
+        : selectedViewMode;
+
+    final viewModeSegments = <ButtonSegment<String>>[
+      const ButtonSegment(value: 'grid', icon: Icon(Icons.grid_view, size: 18)),
+      const ButtonSegment(value: 'list', icon: Icon(Icons.view_list, size: 18)),
+      if (isSpatialCanvasEnabled)
+        const ButtonSegment(
+          value: 'spatial',
+          icon: Icon(Icons.space_dashboard_outlined, size: 18),
+        ),
+    ];
 
     return Semantics(
       container: true,
@@ -91,21 +119,8 @@ class NotesFilterChips extends ConsumerWidget {
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
                 ),
-                segments: const [
-                  ButtonSegment(
-                    value: 'grid',
-                    icon: Icon(Icons.grid_view, size: 18),
-                  ),
-                  ButtonSegment(
-                    value: 'list',
-                    icon: Icon(Icons.view_list, size: 18),
-                  ),
-                  ButtonSegment(
-                    value: 'freeform',
-                    icon: Icon(Icons.space_dashboard_outlined, size: 18),
-                  ),
-                ],
-                selected: {ref.watch(notesViewModeProvider)},
+                segments: viewModeSegments,
+                selected: {effectiveViewMode},
                 onSelectionChanged: (selected) {
                   ref
                       .read(notesViewModeProvider.notifier)
