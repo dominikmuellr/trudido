@@ -90,6 +90,51 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
     }
   }
 
+  Future<void> _handleFloatingNavBarToggle(bool nextValue) async {
+    final preferences = ref.read(preferencesStateProvider);
+    final controller = ref.read(preferencesControllerProvider);
+
+    if (nextValue == preferences.floatingNavBar) {
+      return;
+    }
+
+    // Only guard the enable path when quick input bar is active.
+    if (nextValue && preferences.useQuickInputBar) {
+      final disableQuickInputBar = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Switch Off Quick Input Bar?'),
+          content: const Text(
+            'Floating Navigation Bar does not work well together with Quick Input Bar. '
+            'To use Floating Navigation Bar, switch off Quick Input Bar.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Switch Off Quick Input Bar'),
+            ),
+          ],
+        ),
+      );
+
+      if (disableQuickInputBar != true) {
+        return;
+      }
+
+      await controller.toggleQuickInputBar();
+      if (context.mounted) {
+        await controller.toggleFloatingNavBar();
+      }
+      return;
+    }
+
+    await controller.toggleFloatingNavBar();
+  }
+
   Future<void> _showAvatarOptions() async {
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -304,7 +349,6 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
           Consumer(
             builder: (context, ref, _) {
               final preferences = ref.watch(preferencesStateProvider);
-              final controller = ref.read(preferencesControllerProvider);
               return SwitchListTile(
                 secondary: const Icon(Icons.dock_outlined),
                 title: const Text('Floating Navigation Bar'),
@@ -312,7 +356,7 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
                   'Use a floating frosted-glass navigation bar',
                 ),
                 value: preferences.floatingNavBar,
-                onChanged: (v) => controller.toggleFloatingNavBar(),
+                onChanged: (v) => _handleFloatingNavBarToggle(v),
               );
             },
           ),

@@ -784,11 +784,11 @@ class UnifiedSearchResults extends ConsumerWidget {
           ? Switch(
               value: currentValue,
               onChanged: (value) =>
-                  _writeToggle(ref, setting.toggleKey!, value),
+                  _writeToggle(context, ref, setting.toggleKey!, value),
             )
           : const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: isToggle
-          ? () => _writeToggle(ref, setting.toggleKey!, !currentValue)
+          ? () => _writeToggle(context, ref, setting.toggleKey!, !currentValue)
           : () => onNavigateToSetting(setting.route),
     );
   }
@@ -815,7 +815,12 @@ class UnifiedSearchResults extends ConsumerWidget {
   }
 
   /// Write a new boolean value for a toggle key.
-  void _writeToggle(WidgetRef ref, String key, bool value) {
+  Future<void> _writeToggle(
+    BuildContext context,
+    WidgetRef ref,
+    String key,
+    bool value,
+  ) async {
     final ctrl = ref.read(preferencesControllerProvider);
     switch (key) {
       case 'hapticsEnabled':
@@ -823,7 +828,7 @@ class UnifiedSearchResults extends ConsumerWidget {
       case 'showSearchBar':
         ctrl.toggleShowSearchBar();
       case 'floatingNavBar':
-        ctrl.toggleFloatingNavBar();
+        await _handleFloatingNavBarToggle(context, ref, value);
       case 'showOverviewTab':
         ctrl.toggleShowOverviewTab();
       case 'compactDensity':
@@ -837,7 +842,7 @@ class UnifiedSearchResults extends ConsumerWidget {
       case 'enableBin':
         ctrl.setEnableBin(value);
       case 'useQuickInputBar':
-        ctrl.toggleQuickInputBar();
+        await _handleQuickInputBarToggle(context, ref, value);
       case 'enableNoteHistory':
         ctrl.toggleNoteHistory();
       case 'enableSpatialCanvas':
@@ -845,6 +850,104 @@ class UnifiedSearchResults extends ConsumerWidget {
       case 'autoCompleteEvents':
         ctrl.toggleAutoCompleteEvents();
     }
+  }
+
+  Future<void> _handleQuickInputBarToggle(
+    BuildContext context,
+    WidgetRef ref,
+    bool nextValue,
+  ) async {
+    final preferences = ref.read(preferencesStateProvider);
+    final controller = ref.read(preferencesControllerProvider);
+
+    if (nextValue == preferences.useQuickInputBar) {
+      return;
+    }
+
+    // Only guard the enable path when floating nav bar is active.
+    if (nextValue && preferences.floatingNavBar) {
+      final disableFloatingBar = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Switch Off Floating Navigation Bar?'),
+          content: const Text(
+            'Quick Input Bar does not work well together with Floating Navigation Bar. '
+            'To use Quick Input Bar, switch off Floating Navigation Bar.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Switch Off Floating Bar'),
+            ),
+          ],
+        ),
+      );
+
+      if (disableFloatingBar != true) {
+        return;
+      }
+
+      await controller.toggleFloatingNavBar();
+      if (context.mounted) {
+        await controller.toggleQuickInputBar();
+      }
+      return;
+    }
+
+    await controller.toggleQuickInputBar();
+  }
+
+  Future<void> _handleFloatingNavBarToggle(
+    BuildContext context,
+    WidgetRef ref,
+    bool nextValue,
+  ) async {
+    final preferences = ref.read(preferencesStateProvider);
+    final controller = ref.read(preferencesControllerProvider);
+
+    if (nextValue == preferences.floatingNavBar) {
+      return;
+    }
+
+    // Only guard the enable path when quick input bar is active.
+    if (nextValue && preferences.useQuickInputBar) {
+      final disableQuickInputBar = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Switch Off Quick Input Bar?'),
+          content: const Text(
+            'Floating Navigation Bar does not work well together with Quick Input Bar. '
+            'To use Floating Navigation Bar, switch off Quick Input Bar.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Switch Off Quick Input Bar'),
+            ),
+          ],
+        ),
+      );
+
+      if (disableQuickInputBar != true) {
+        return;
+      }
+
+      await controller.toggleQuickInputBar();
+      if (context.mounted) {
+        await controller.toggleFloatingNavBar();
+      }
+      return;
+    }
+
+    await controller.toggleFloatingNavBar();
   }
 
   void _navigateToFolder(WidgetRef ref, String folderId) {

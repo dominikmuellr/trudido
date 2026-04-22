@@ -24,6 +24,55 @@ import 'template_management_screen.dart';
 class ExperimentalSettingsScreen extends ConsumerWidget {
   const ExperimentalSettingsScreen({super.key});
 
+  Future<void> _handleQuickInputBarToggle(
+    BuildContext context,
+    WidgetRef ref,
+    bool nextValue,
+  ) async {
+    final preferences = ref.read(preferencesStateProvider);
+    final controller = ref.read(preferencesControllerProvider);
+
+    if (nextValue == preferences.useQuickInputBar) {
+      return;
+    }
+
+    // Only guard the enable path when floating nav bar is active.
+    if (nextValue && preferences.floatingNavBar) {
+      final disableFloatingBar = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Switch Off Floating Navigation Bar?'),
+          content: const Text(
+            'Quick Input Bar does not work well together with Floating Navigation Bar. '
+            'To use Quick Input Bar, switch off Floating Navigation Bar.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Switch Off Floating Bar'),
+            ),
+          ],
+        ),
+      );
+
+      if (disableFloatingBar != true) {
+        return;
+      }
+
+      await controller.toggleFloatingNavBar();
+      if (context.mounted) {
+        await controller.toggleQuickInputBar();
+      }
+      return;
+    }
+
+    await controller.toggleQuickInputBar();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -64,7 +113,6 @@ class ExperimentalSettingsScreen extends ConsumerWidget {
           Consumer(
             builder: (context, ref, _) {
               final preferences = ref.watch(preferencesStateProvider);
-              final controller = ref.read(preferencesControllerProvider);
 
               return SwitchListTile(
                 secondary: const Icon(Icons.edit_note_outlined),
@@ -73,7 +121,7 @@ class ExperimentalSettingsScreen extends ConsumerWidget {
                   'Replace floating action button with a bottom input bar for quick task/note creation',
                 ),
                 value: preferences.useQuickInputBar,
-                onChanged: (v) => controller.toggleQuickInputBar(),
+                onChanged: (v) => _handleQuickInputBarToggle(context, ref, v),
               );
             },
           ),

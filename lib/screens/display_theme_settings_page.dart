@@ -29,6 +29,55 @@ import '../theme/spacing_tokens.dart';
 class DisplayThemeSettingsPage extends ConsumerWidget {
   const DisplayThemeSettingsPage({super.key});
 
+  Future<void> _handleFloatingNavBarToggle(
+    BuildContext context,
+    WidgetRef ref,
+    bool nextValue,
+  ) async {
+    final preferences = ref.read(preferencesStateProvider);
+    final controller = ref.read(preferencesControllerProvider);
+
+    if (nextValue == preferences.floatingNavBar) {
+      return;
+    }
+
+    // Only guard the enable path when quick input bar is active.
+    if (nextValue && preferences.useQuickInputBar) {
+      final disableQuickInputBar = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Switch Off Quick Input Bar?'),
+          content: const Text(
+            'Floating Navigation Bar does not work well together with Quick Input Bar. '
+            'To use Floating Navigation Bar, switch off Quick Input Bar.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Switch Off Quick Input Bar'),
+            ),
+          ],
+        ),
+      );
+
+      if (disableQuickInputBar != true) {
+        return;
+      }
+
+      await controller.toggleQuickInputBar();
+      if (context.mounted) {
+        await controller.toggleFloatingNavBar();
+      }
+      return;
+    }
+
+    await controller.toggleFloatingNavBar();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -165,14 +214,13 @@ class DisplayThemeSettingsPage extends ConsumerWidget {
     return Consumer(
       builder: (context, ref, _) {
         final preferences = ref.watch(preferencesStateProvider);
-        final controller = ref.read(preferencesControllerProvider);
 
         return SwitchListTile(
           secondary: const Icon(Icons.dock_outlined),
           title: const Text('Floating Navigation Bar'),
           subtitle: const Text('Use a floating frosted-glass navigation bar'),
           value: preferences.floatingNavBar,
-          onChanged: (v) => controller.toggleFloatingNavBar(),
+          onChanged: (v) => _handleFloatingNavBarToggle(context, ref, v),
         );
       },
     );
