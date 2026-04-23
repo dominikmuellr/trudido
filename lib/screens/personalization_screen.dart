@@ -333,21 +333,6 @@ class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
           ),
           Consumer(
             builder: (context, ref, _) {
-              final enabled = ref.watch(preferencesStateProvider).showSearchBar;
-              final controller = ref.read(preferencesControllerProvider);
-              return SwitchListTile(
-                secondary: const Icon(Icons.search),
-                title: const Text('Show Search Bar'),
-                subtitle: const Text(
-                  'Display search bar in header. Search is still available via the menu button',
-                ),
-                value: enabled,
-                onChanged: (v) => controller.toggleShowSearchBar(),
-              );
-            },
-          ),
-          Consumer(
-            builder: (context, ref, _) {
               final preferences = ref.watch(preferencesStateProvider);
               return SwitchListTile(
                 secondary: const Icon(Icons.dock_outlined),

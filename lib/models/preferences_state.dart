@@ -26,8 +26,6 @@ class PreferencesState {
   contrastLevel; // standard | medium | high (Material 3 January 2026)
   final bool hideGreeting;
   final int greetingLanguage; // Language index for greeting header
-  final bool
-  showSearchBar; // Show search bar in header (when false, keeps greeting)
   final String fabPosition; // left | center | right
   final String swipeLeftAction; // 'none', 'delete', 'pin'
   final String swipeRightAction; // 'none', 'delete', 'pin'
@@ -118,7 +116,6 @@ class PreferencesState {
     required this.contrastLevel,
     required this.hideGreeting,
     required this.greetingLanguage,
-    required this.showSearchBar,
     required this.fabPosition,
     required this.swipeLeftAction,
     required this.swipeRightAction,
@@ -191,7 +188,6 @@ class PreferencesState {
     String? contrastLevel,
     bool? hideGreeting,
     int? greetingLanguage,
-    bool? showSearchBar,
     String? fabPosition,
     String? swipeLeftAction,
     String? swipeRightAction,
@@ -241,7 +237,6 @@ class PreferencesState {
     contrastLevel: contrastLevel ?? this.contrastLevel,
     hideGreeting: hideGreeting ?? this.hideGreeting,
     greetingLanguage: greetingLanguage ?? this.greetingLanguage,
-    showSearchBar: showSearchBar ?? this.showSearchBar,
     fabPosition: fabPosition ?? this.fabPosition,
     swipeLeftAction: swipeLeftAction ?? this.swipeLeftAction,
     swipeRightAction: swipeRightAction ?? this.swipeRightAction,
@@ -301,7 +296,6 @@ class PreferencesState {
         'standard', // Material 3 January 2026: standard | medium | high
     hideGreeting: false,
     greetingLanguage: 0, // Default: English (index 0)
-    showSearchBar: true, // Default: show search bar
     fabPosition: 'right',
     swipeLeftAction: 'delete', // Default: left to delete
     swipeRightAction: 'pin', // Default: right to pin

@@ -797,7 +797,6 @@ class UnifiedSearchResults extends ConsumerWidget {
     final prefs = ref.watch(preferencesStateProvider);
     return switch (key) {
       'hapticsEnabled' => prefs.hapticsEnabled,
-      'showSearchBar' => prefs.showSearchBar,
       'floatingNavBar' => prefs.floatingNavBar,
       'showOverviewTab' => prefs.showOverviewTab,
       'compactDensity' => prefs.compactDensity,
@@ -824,8 +823,6 @@ class UnifiedSearchResults extends ConsumerWidget {
     switch (key) {
       case 'hapticsEnabled':
         ctrl.toggleHaptics();
-      case 'showSearchBar':
-        ctrl.toggleShowSearchBar();
       case 'floatingNavBar':
         await _handleFloatingNavBarToggle(context, ref, value);
       case 'showOverviewTab':

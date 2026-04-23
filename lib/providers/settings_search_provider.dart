@@ -144,14 +144,6 @@ final settingsItemsProvider = Provider<List<SettingsItem>>((ref) {
       toggleKey: 'hapticsEnabled',
     ),
     const SettingsItem(
-      title: 'Show Search Bar',
-      subtitle: 'Personalization · Display search bar in header',
-      icon: Icons.search_outlined,
-      keywords: 'search bar header show hide display',
-      route: 'personalization',
-      toggleKey: 'showSearchBar',
-    ),
-    const SettingsItem(
       title: 'Floating Navigation Bar',
       subtitle: 'Personalization · Frosted-glass navigation bar',
       icon: Icons.dock_outlined,

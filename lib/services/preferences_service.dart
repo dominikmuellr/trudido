@@ -26,6 +26,8 @@ import 'storage_service.dart';
 /// code continues to function while new UI reads from [PreferencesState].
 class PreferencesService {
   static final PreferencesService _instance = PreferencesService._internal();
+  static const _showSearchBarMigrationDoneKey =
+      'migration_remove_show_search_bar_done';
   factory PreferencesService() => _instance;
   PreferencesService._internal();
 
@@ -45,7 +47,22 @@ class PreferencesService {
     // On first launch, detect device language and set greeting language
     await _setInitialGreetingLanguage();
 
+    // Cleanup obsolete preference keys once after app upgrade.
+    await _runOneTimeMigrations();
+
     _hydrate();
+  }
+
+  Future<void> _runOneTimeMigrations() async {
+    final p = _prefs!;
+    final migrationDone = p.getBool(_showSearchBarMigrationDoneKey) ?? false;
+    if (migrationDone) return;
+
+    if (p.containsKey('show_search_bar')) {
+      await p.remove('show_search_bar');
+    }
+
+    await p.setBool(_showSearchBarMigrationDoneKey, true);
   }
 
   /// Detect device language and set greeting language on first launch
@@ -152,9 +169,6 @@ class PreferencesService {
       greetingLanguage:
           p.getInt('greeting_language') ??
           PreferencesState.defaultState.greetingLanguage,
-      showSearchBar:
-          p.getBool('show_search_bar') ??
-          PreferencesState.defaultState.showSearchBar,
       fabPosition: _sanitizeFabPosition(p.getString('fab_position')),
       swipeLeftAction:
           p.getString('swipe_left_action') ??
@@ -278,7 +292,6 @@ class PreferencesService {
     bool? compactDensity,
     bool? hideGreeting,
     int? greetingLanguage,
-    bool? showSearchBar,
     String? fabPosition,
     String? swipeLeftAction,
     String? swipeRightAction,
@@ -343,9 +356,6 @@ class PreferencesService {
       if (hideGreeting != null) await p.setBool('hide_greeting', hideGreeting);
       if (greetingLanguage != null) {
         await p.setInt('greeting_language', greetingLanguage);
-      }
-      if (showSearchBar != null) {
-        await p.setBool('show_search_bar', showSearchBar);
       }
       if (fabPosition != null) await p.setString('fab_position', fabPosition);
       if (swipeLeftAction != null) {

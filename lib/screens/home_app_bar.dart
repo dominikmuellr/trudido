@@ -21,22 +21,19 @@ import 'package:trudido/utils/responsive_size.dart';
 
 import '../providers/filter_providers.dart';
 import '../providers/settings_search_provider.dart';
-import '../providers/clock.dart';
 import '../providers/app_providers.dart';
 import '../controllers/task_controller.dart';
 import '../controllers/notes_controller.dart';
 import '../controllers/event_controller.dart';
 import '../controllers/preferences_controller.dart';
-import '../services/storage_service.dart';
-import '../services/greeting_service.dart';
 import '../services/folder_provider.dart';
 import '../repositories/note_folder_repository.dart';
 import '../widgets/user_avatar_widget.dart';
 import 'home_screen_notifiers.dart';
 import '../widgets/common/common.dart';
 
-/// AppBar widget for the home screen
-/// Handles search mode, multi-select mode, and regular greeting display
+/// AppBar widget for the home screen.
+/// Handles search mode and multi-select mode.
 class HomeAppBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
   final TextEditingController searchController;
   final VoidCallback onOpenPersonalization;
@@ -214,11 +211,9 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar>
         colorScheme: colorScheme,
       ),
       title: _buildTitle(
-        context: context,
         isActiveSearch: isActiveSearch,
         multiMode: multiMode,
         currentTab: currentTab,
-        showSearchBar: preferences.showSearchBar,
         selectedCount: selectedIds.length + selectedEventIds.length,
         theme: theme,
         colorScheme: colorScheme,
@@ -277,13 +272,11 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar>
     );
   }
 
-  /// Builds the title area: active search bar, multi-select count, resting trigger, or greeting
+  /// Builds the title area: active search bar, multi-select count, or resting trigger.
   Widget _buildTitle({
-    required BuildContext context,
     required bool isActiveSearch,
     required bool multiMode,
     required int currentTab,
-    required bool showSearchBar,
     required int selectedCount,
     required ThemeData theme,
     required ColorScheme colorScheme,
@@ -310,16 +303,11 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar>
     }
 
     // Resting search trigger
-    if (showSearchBar) {
-      return _buildM3SearchBar(
-        isActive: false,
-        theme: theme,
-        colorScheme: colorScheme,
-      );
-    }
-
-    // Greeting fallback
-    return _buildGreeting(context, currentTab);
+    return _buildM3SearchBar(
+      isActive: false,
+      theme: theme,
+      colorScheme: colorScheme,
+    );
   }
 
   /// Builds the action buttons
@@ -491,109 +479,6 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar>
     return ExpressiveGestureDetector(
       onTap: () => ref.read(searchModeProvider.notifier).update(true),
       child: pill,
-    );
-  }
-
-  /// Builds greeting widget for AppBar based on current tab
-  Widget _buildGreeting(BuildContext context, int currentTab) {
-    if (currentTab == 1) {
-      return _buildTasksGreeting(context);
-    } else if (currentTab == 2) {
-      return _buildNotesGreeting(context);
-    } else {
-      return _buildTasksGreeting(context);
-    }
-  }
-
-  /// Builds tasks greeting with time-based subtitle
-  Widget _buildTasksGreeting(BuildContext context) {
-    final userName = StorageService.getUserName();
-    final hour = ref.read(clockProvider).now().hour;
-    final theme = Theme.of(context);
-    final preferences = ref.watch(preferencesStateProvider);
-    final languageIndex = preferences.greetingLanguage;
-
-    final greeting = GreetingService.getGreeting(
-      hour: hour,
-      languageIndex: languageIndex,
-      userName: userName,
-    );
-    final subtitle = GreetingService.getTasksSubtitle(
-      hour: hour,
-      languageIndex: languageIndex,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          greeting,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w500,
-            color: theme.colorScheme.primary,
-            fontSize: 17,
-          ),
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-        ),
-        Text(
-          subtitle,
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w500,
-            color: theme.colorScheme.secondary.withValues(alpha: 0.8),
-            fontSize: 13,
-          ),
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  /// Builds notes greeting
-  Widget _buildNotesGreeting(BuildContext context) {
-    final userName = StorageService.getUserName();
-    final hour = ref.read(clockProvider).now().hour;
-    final theme = Theme.of(context);
-    final preferences = ref.watch(preferencesStateProvider);
-    final languageIndex = preferences.greetingLanguage;
-
-    final greeting = GreetingService.getGreeting(
-      hour: hour,
-      languageIndex: languageIndex,
-      userName: userName,
-    );
-    final subtitle = GreetingService.getNotesSubtitle(
-      hour: hour,
-      languageIndex: languageIndex,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          greeting,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: theme.colorScheme.primary,
-            fontSize: 17,
-          ),
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-        ),
-        Text(
-          subtitle,
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w500,
-            color: theme.colorScheme.secondary.withValues(alpha: 0.8),
-            fontSize: 13,
-          ),
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-        ),
-      ],
     );
   }
 }
