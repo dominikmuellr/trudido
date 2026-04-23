@@ -19,6 +19,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:intl/intl.dart';
 
+import '../models/folder.dart';
+import '../models/note.dart';
+import '../models/note_folder.dart';
 import '../models/todo.dart';
 import '../models/event.dart' as app_event;
 import '../providers/filter_providers.dart';
@@ -557,11 +560,11 @@ class UnifiedSearchResults extends ConsumerWidget {
 
   Widget _buildNotesSection(
     BuildContext context,
-    AsyncValue<dynamic> filteredNotesAsync,
+    AsyncValue<List<Note>> filteredNotesAsync,
     String searchQuery,
   ) {
     return filteredNotesAsync.when(
-      data: (notes) {
+      data: (List<Note> notes) {
         if (notes.isEmpty) return const SizedBox.shrink();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -606,11 +609,11 @@ class UnifiedSearchResults extends ConsumerWidget {
   Widget _buildFoldersSection(
     BuildContext context,
     WidgetRef ref,
-    AsyncValue<dynamic> filteredFoldersAsync,
+    AsyncValue<List<Folder>> filteredFoldersAsync,
     String searchQuery,
   ) {
     return filteredFoldersAsync.when(
-      data: (allFolders) {
+      data: (List<Folder> allFolders) {
         final nonVaultFolders = allFolders
             .where((folder) => !folder.isVault)
             .toList();
@@ -666,11 +669,11 @@ class UnifiedSearchResults extends ConsumerWidget {
   Widget _buildNoteFoldersSection(
     BuildContext context,
     WidgetRef ref,
-    AsyncValue<dynamic> filteredNoteFoldersAsync,
+    AsyncValue<List<NoteFolder>> filteredNoteFoldersAsync,
     String searchQuery,
   ) {
     return filteredNoteFoldersAsync.when(
-      data: (allNoteFolders) {
+      data: (List<NoteFolder> allNoteFolders) {
         final nonVaultNoteFolders = allNoteFolders
             .where((folder) => !folder.isVault)
             .toList();
@@ -726,7 +729,7 @@ class UnifiedSearchResults extends ConsumerWidget {
   Widget _buildSettingsSection(
     BuildContext context,
     WidgetRef ref,
-    List<dynamic> filteredSettings,
+    List<SettingsItem> filteredSettings,
     String searchQuery,
   ) {
     return Column(
@@ -745,12 +748,8 @@ class UnifiedSearchResults extends ConsumerWidget {
           resetKey: searchQuery,
           children: filteredSettings
               .map(
-                (setting) => _buildSettingTile(
-                  context,
-                  ref,
-                  setting as SettingsItem,
-                  searchQuery,
-                ),
+                (setting) =>
+                    _buildSettingTile(context, ref, setting, searchQuery),
               )
               .toList(),
         ),

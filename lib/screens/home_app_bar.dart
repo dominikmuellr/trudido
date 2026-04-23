@@ -87,6 +87,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar>
 
     // Debounce: wait 300ms before updating search
     _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
       // Universal search - update tasks, notes, folders, and settings
       ref.read(searchQueryProvider.notifier).update(value);
       ref.read(notesSearchQueryProvider.notifier).update(value);
@@ -101,6 +102,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar>
   }
 
   void _exitSearch() {
+    _debounceTimer?.cancel();
     ref.read(searchModeProvider.notifier).update(false);
     widget.searchController.clear();
     ref.read(searchQueryProvider.notifier).update('');
@@ -112,6 +114,7 @@ class _HomeAppBarState extends ConsumerState<HomeAppBar>
   }
 
   void _clearSearch() {
+    _debounceTimer?.cancel();
     widget.searchController.clear();
     ref.read(searchQueryProvider.notifier).update('');
     ref.read(notesSearchQueryProvider.notifier).update('');

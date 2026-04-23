@@ -644,8 +644,11 @@ class NotePreviewCard extends ConsumerWidget {
   }
 
   void _showContextMenu(BuildContext context, Offset tapPosition) {
-    final overlay =
-        Overlay.of(context).context.findRenderObject()! as RenderBox;
+    if (!context.mounted) return;
+    final overlayState = Overlay.maybeOf(context);
+    final renderObject = overlayState?.context.findRenderObject();
+    if (renderObject is! RenderBox) return;
+    final overlay = renderObject;
     final position = RelativeRect.fromRect(
       tapPosition & const Size(1, 1),
       Offset.zero & overlay.size,

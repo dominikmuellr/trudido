@@ -312,25 +312,26 @@ class EditorSettingsScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
-      builder: (ctx) => ListView(
-        shrinkWrap: true,
-        children: [
-          ...options.map(
-            (v) => RadioListTile<double>(
-              value: v,
-              groupValue: current,
-              title: Text('${v.toStringAsFixed(1)}×'),
-              // ignore: deprecated_member_use
-              onChanged: (picked) {
-                if (picked != null) {
-                  controller.setLineHeightMultiplier(picked);
-                  Navigator.pop(ctx);
-                }
-              },
+      builder: (ctx) => RadioGroup<double>(
+        groupValue: current,
+        onChanged: (picked) {
+          if (picked != null) {
+            controller.setLineHeightMultiplier(picked);
+            Navigator.pop(ctx);
+          }
+        },
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            ...options.map(
+              (v) => RadioListTile<double>(
+                value: v,
+                title: Text('${v.toStringAsFixed(1)}×'),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-        ],
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
@@ -343,27 +344,28 @@ class EditorSettingsScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
-      builder: (ctx) => ListView(
-        shrinkWrap: true,
-        children: [
-          ...options.map(
-            (v) => RadioListTile<double>(
-              value: v,
-              groupValue: current,
-              title: Text(
-                v == 0 ? 'None (0 pt)' : '${v.toStringAsFixed(0)} pt',
+      builder: (ctx) => RadioGroup<double>(
+        groupValue: current,
+        onChanged: (picked) {
+          if (picked != null) {
+            controller.setParagraphSpacing(picked);
+            Navigator.pop(ctx);
+          }
+        },
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            ...options.map(
+              (v) => RadioListTile<double>(
+                value: v,
+                title: Text(
+                  v == 0 ? 'None (0 pt)' : '${v.toStringAsFixed(0)} pt',
+                ),
               ),
-              // ignore: deprecated_member_use
-              onChanged: (picked) {
-                if (picked != null) {
-                  controller.setParagraphSpacing(picked);
-                  Navigator.pop(ctx);
-                }
-              },
             ),
-          ),
-          const SizedBox(height: 8),
-        ],
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }

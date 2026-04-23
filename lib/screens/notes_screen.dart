@@ -150,8 +150,11 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
   }
 
   void _showFreeformContextMenu(Note note, Offset screenPosition) {
-    final overlay =
-        Overlay.of(context).context.findRenderObject()! as RenderBox;
+    if (!mounted) return;
+    final overlayState = Overlay.maybeOf(context);
+    final renderObject = overlayState?.context.findRenderObject();
+    if (renderObject is! RenderBox) return;
+    final overlay = renderObject;
     final position = RelativeRect.fromRect(
       screenPosition & const Size(1, 1),
       Offset.zero & overlay.size,
@@ -1179,18 +1182,6 @@ class _NotesScreenState extends ConsumerState<NotesScreen>
           ),
         ),
       ),
-    );
-  }
-
-  /// Get the center of the current freeform viewport in canvas coordinates.
-  Offset _getFreeformViewportCenter() {
-    final renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox == null) return const Offset(900, 500);
-    final size = renderBox.size;
-    final inverse = Matrix4.inverted(_freeformTransformController.value);
-    return MatrixUtils.transformPoint(
-      inverse,
-      Offset(size.width / 2, size.height / 2),
     );
   }
 
