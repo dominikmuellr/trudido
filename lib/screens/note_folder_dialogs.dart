@@ -24,6 +24,69 @@ import '../services/vault_password_service.dart';
 import '../theme/spacing_tokens.dart';
 import '../widgets/common/common.dart';
 
+const int _defaultNoteFolderColor = 0xFF2196F3;
+const int _defaultVaultFolderColor = 0xFFFFC107;
+const List<int> _noteFolderColorPalette = [
+  0xFF2196F3, // Blue
+  0xFF4CAF50, // Green
+  0xFFFF9800, // Orange
+  0xFFF44336, // Red
+  0xFF9C27B0, // Purple
+  0xFF00BCD4, // Cyan
+  0xFF795548, // Brown
+  0xFF607D8B, // Blue Grey
+  0xFFE91E63, // Pink
+  0xFFFFC107, // Amber
+];
+
+Widget _buildNoteFolderColorPicker({
+  required BuildContext context,
+  required int selectedColor,
+  required ValueChanged<int> onChanged,
+}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Folder Color', style: Theme.of(context).textTheme.titleSmall),
+      SpacingGap.gapV8,
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: _noteFolderColorPalette.map((value) {
+          final isSelected = value == selectedColor;
+          return ExpressiveGestureDetector(
+            onTap: () => onChanged(value),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: Color(value),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(context).colorScheme.outlineVariant,
+                  width: isSelected ? 2.5 : 1,
+                ),
+              ),
+              child: isSelected
+                  ? Icon(
+                      Icons.check,
+                      size: 16,
+                      color: Color(value).computeLuminance() > 0.5
+                          ? Colors.black
+                          : Colors.white,
+                    )
+                  : null,
+            ),
+          );
+        }).toList(),
+      ),
+    ],
+  );
+}
+
 /// Shows password setup dialog for vault folders
 /// Returns a map with 'password' and 'useBiometric' keys, or null if cancelled
 Future<Map<String, dynamic>?> showPasswordSetupDialogForFolder(
@@ -168,6 +231,7 @@ Future<bool> showCreateNoteFolderDialog(
   final nameController = TextEditingController();
   final descriptionController = TextEditingController();
   bool isVault = false;
+  int selectedColor = _defaultNoteFolderColor;
   String noteFormat = 'markdown'; // Default to markdown
   bool created = false;
 
@@ -208,6 +272,15 @@ Future<bool> showCreateNoteFolderDialog(
                   textCapitalization: TextCapitalization.sentences,
                 ),
                 SpacingGap.gapV16,
+                _buildNoteFolderColorPicker(
+                  context: dialogContext,
+                  selectedColor: selectedColor,
+                  onChanged: (value) {
+                    setDialogState(() {
+                      selectedColor = value;
+                    });
+                  },
+                ),
                 SpacingGap.gapV16,
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
@@ -223,7 +296,15 @@ Future<bool> showCreateNoteFolderDialog(
                   value: isVault,
                   onChanged: (value) {
                     setDialogState(() {
-                      isVault = value ?? false;
+                      final nextIsVault = value ?? false;
+                      if (nextIsVault &&
+                          selectedColor == _defaultNoteFolderColor) {
+                        selectedColor = _defaultVaultFolderColor;
+                      } else if (!nextIsVault &&
+                          selectedColor == _defaultVaultFolderColor) {
+                        selectedColor = _defaultNoteFolderColor;
+                      }
+                      isVault = nextIsVault;
                     });
                   },
                 ),
@@ -273,6 +354,7 @@ Future<bool> showCreateNoteFolderDialog(
                       hasPassword: isVault && vaultPassword != null,
                       useBiometric: useBiometric,
                       noteFormat: noteFormat,
+                      color: selectedColor,
                     );
 
                 if (context.mounted) {

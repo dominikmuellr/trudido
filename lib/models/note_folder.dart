@@ -52,6 +52,9 @@ class NoteFolder extends HiveObject {
   @HiveField(9, defaultValue: 'markdown')
   String noteFormat; // 'markdown' or 'todotxt' - format for all notes in this folder
 
+  @HiveField(10, defaultValue: 0xFF2196F3)
+  int color; // Color value used for folder tinting in notes UI
+
   NoteFolder({
     String? id,
     required this.name,
@@ -63,6 +66,7 @@ class NoteFolder extends HiveObject {
     this.hasPassword = false,
     this.useBiometric = true,
     this.noteFormat = 'markdown',
+    this.color = 0xFF2196F3,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
@@ -78,6 +82,7 @@ class NoteFolder extends HiveObject {
     bool? hasPassword,
     bool? useBiometric,
     String? noteFormat,
+    int? color,
   }) {
     return NoteFolder(
       id: id ?? this.id,
@@ -90,12 +95,13 @@ class NoteFolder extends HiveObject {
       hasPassword: hasPassword ?? this.hasPassword,
       useBiometric: useBiometric ?? this.useBiometric,
       noteFormat: noteFormat ?? this.noteFormat,
+      color: color ?? this.color,
     );
   }
 
   @override
   String toString() {
-    return 'NoteFolder(id: $id, name: $name, isVault: $isVault)';
+    return 'NoteFolder(id: $id, name: $name, isVault: $isVault, color: $color)';
   }
 
   @override
@@ -119,6 +125,7 @@ class NoteFolder extends HiveObject {
       'hasPassword': hasPassword,
       'useBiometric': useBiometric,
       'noteFormat': noteFormat,
+      'color': color,
     };
   }
 
@@ -134,6 +141,7 @@ class NoteFolder extends HiveObject {
       hasPassword: json['hasPassword'] as bool? ?? false,
       useBiometric: json['useBiometric'] as bool? ?? true,
       noteFormat: json['noteFormat'] as String? ?? 'markdown',
+      color: json['color'] as int? ?? 0xFF2196F3,
     );
   }
 }

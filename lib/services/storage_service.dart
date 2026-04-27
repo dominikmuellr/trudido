@@ -471,6 +471,7 @@ Type **/** to open the insert menu:
       hasPassword: false, // No password set initially
       useBiometric: true,
       sortOrder: 0,
+      color: 0xFFFFC107,
     );
     await _noteFoldersBox!.put(vaultFolder.id, vaultFolder);
 
@@ -1174,6 +1175,32 @@ Type **/** to open the insert menu:
   static List<String> getRecentSettings() {
     if (_prefs == null) kickOffPrefsInit();
     return _prefs?.getStringList('recent_settings') ?? [];
+  }
+
+  // Recently used note tags (most recent first, max 20)
+  static Future<void> setRecentNoteTags(List<String> tags) async {
+    await _ensurePrefs();
+    await _prefs!.setStringList('recent_note_tags', tags);
+  }
+
+  static List<String> getRecentNoteTags() {
+    if (_prefs == null) kickOffPrefsInit();
+    return _prefs?.getStringList('recent_note_tags') ?? [];
+  }
+
+  // Notes drawer tag scope preference: 'all' or 'folder'
+  static Future<void> setNotesDrawerTagScope(String scope) async {
+    await _ensurePrefs();
+    await _prefs!.setString('notes_drawer_tag_scope', scope);
+  }
+
+  static String getNotesDrawerTagScope() {
+    if (_prefs == null) kickOffPrefsInit();
+    final value = _prefs?.getString('notes_drawer_tag_scope');
+    if (value == 'folder') {
+      return 'folder';
+    }
+    return 'all';
   }
 
   // Pinned overview note ID

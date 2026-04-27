@@ -150,14 +150,23 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   // Drag-to-detach hint tooltip
   final GlobalKey _dragHandleKey = GlobalKey();
   final GlobalKey _toolbarContainerKey = GlobalKey();
+  final GlobalKey _tagBarKey = GlobalKey();
+  double _tagBarHeight = 0.0;
   bool _showDragHint = false;
 
   // Mention autocomplete
   MentionAutocompletePopup? _mentionPopup;
   bool _quillTapPending = false;
 
+  // Lightweight explicit tags
+  List<String> _tags = [];
+  final TextEditingController _inlineTagController = TextEditingController();
+  List<String> _recentTags = [];
+  static const int _maxRecentTags = 20;
+
   // Read/Edit mode toggle
   bool _isReadMode = false;
+  bool _isAddingTag = false;
   bool _fabVisible = true;
   double _lastScrollOffset = 0.0;
 
@@ -186,6 +195,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     super.initState();
     // Initialize with empty document
     _quillController = quill.QuillController.basic();
+    _loadRecentTags();
     // Set initial title if provided (from quick input bar)
     if (widget.initialTitle != null) {
       _titleController.text = widget.initialTitle!;
@@ -212,6 +222,128 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     }
 
     debugPrint('QuillNoteEditor initialized: noteId=${widget.noteId}');
+  }
+
+  void _loadRecentTags() {
+    final stored = StorageService.getRecentNoteTags();
+    if (stored.isEmpty) {
+      return;
+    }
+    _recentTags = stored.take(_maxRecentTags).toList();
+  }
+
+  List<String> _mergeRecentTags(Iterable<String> prioritized) {
+    final ordered = <String, String>{};
+    for (final raw in [...prioritized, ..._recentTags]) {
+      final cleaned = raw.trim();
+      if (cleaned.isEmpty) continue;
+      final key = cleaned.toLowerCase();
+      ordered.putIfAbsent(key, () => cleaned);
+      if (ordered.length >= _maxRecentTags) break;
+    }
+    return ordered.values.toList();
+  }
+
+  List<String> _parseTagsFromInput(String raw) {
+    return raw
+        .split(',')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
+  }
+
+  void _persistRecentTags(List<String> recentTags) {
+    unawaited(StorageService.setRecentNoteTags(recentTags));
+  }
+
+  void _addTags(
+    Iterable<String> rawValues, {
+    bool clearInlineInput = true,
+    bool autoSaveExisting = true,
+  }) {
+    final nextTags = List<String>.from(_tags);
+    final existing = nextTags.map((tag) => tag.toLowerCase()).toSet();
+    final newlyAdded = <String>[];
+
+    for (final raw in rawValues) {
+      final cleaned = raw.trim();
+      if (cleaned.isEmpty) continue;
+      final key = cleaned.toLowerCase();
+      if (existing.add(key)) {
+        nextTags.add(cleaned);
+        newlyAdded.add(cleaned);
+      }
+    }
+
+    if (clearInlineInput) {
+      _inlineTagController.clear();
+    }
+
+    if (newlyAdded.isEmpty) {
+      return;
+    }
+
+    final updatedRecent = _mergeRecentTags([...newlyAdded, ...nextTags]);
+
+    setState(() {
+      _tags = nextTags;
+      _recentTags = updatedRecent;
+      _hasUnsavedChanges = true;
+    });
+
+    _persistRecentTags(updatedRecent);
+
+    if (autoSaveExisting && _originalNote != null) {
+      unawaited(_saveNoteInternal(showFeedback: false));
+    }
+  }
+
+  void _addTagsFromInput(
+    String raw, {
+    bool clearInlineInput = true,
+    bool autoSaveExisting = true,
+  }) {
+    _addTags(
+      _parseTagsFromInput(raw),
+      clearInlineInput: clearInlineInput,
+      autoSaveExisting: autoSaveExisting,
+    );
+  }
+
+  void _removeTag(String value, {bool autoSaveExisting = true}) {
+    final key = value.toLowerCase();
+    final nextTags = _tags.where((tag) => tag.toLowerCase() != key).toList();
+    if (nextTags.length == _tags.length) {
+      return;
+    }
+
+    setState(() {
+      _tags = nextTags;
+      _hasUnsavedChanges = true;
+    });
+
+    if (autoSaveExisting && _originalNote != null) {
+      unawaited(_saveNoteInternal(showFeedback: false));
+    }
+  }
+
+  void _consumeInlineTagSeparators(String value) {
+    if (!value.contains(',')) {
+      return;
+    }
+
+    final parts = value.split(',');
+    if (parts.length < 2) {
+      return;
+    }
+
+    final trailing = parts.removeLast().trimLeft();
+    _addTags(parts, clearInlineInput: false);
+
+    _inlineTagController.value = TextEditingValue(
+      text: trailing,
+      selection: TextSelection.collapsed(offset: trailing.length),
+    );
   }
 
   /// Consolidated controller change handler — single listener replaces six.
@@ -1046,6 +1178,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     _originalNote = note;
 
     if (_originalNote != null) {
+      _tags = List<String>.from(_originalNote!.tags);
       // Set the title from the note
       _titleController.text = _originalNote!.title;
 
@@ -1723,6 +1856,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         content: content,
         lineHeightMultiplier: _originalNote?.lineHeightMultiplier,
         paragraphSpacing: _originalNote?.paragraphSpacing,
+        tags: _tags,
       );
 
       // Schedule history recording with debouncing (skip during undo/redo)
@@ -1740,6 +1874,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
         folderId: widget.initialFolderId,
         lineHeightMultiplier: prefs.lineHeightMultiplier,
         paragraphSpacing: prefs.paragraphSpacing,
+        tags: _tags,
       );
     }
 
@@ -1825,6 +1960,128 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
       return Theme.of(context).colorScheme.error;
     }
     return Theme.of(context).colorScheme.onSurfaceVariant;
+  }
+
+  Widget _buildInlineTagsSection() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final backgroundColor =
+        resolveNoteEditorColor(
+          _originalNote?.colorValue,
+          Theme.of(context).brightness,
+        ) ??
+        colorScheme.surface;
+
+    return Container(
+      key: _tagBarKey,
+      padding: EdgeInsets.fromLTRB(
+        12,
+        6,
+        12,
+        math.max(6.0, MediaQuery.of(context).viewPadding.bottom),
+      ),
+      decoration: BoxDecoration(
+        color: backgroundColor.withValues(alpha: 0.92),
+        border: Border(
+          top: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!_isReadMode) ..._buildAddTagControl(colorScheme),
+            if (!_isReadMode && _tags.isNotEmpty) const SizedBox(width: 4),
+            ..._tags.map(
+              (tag) => Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: InputChip(
+                  label: Text('#$tag'),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  onDeleted: _isReadMode ? null : () => _removeTag(tag),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildAddTagControl(ColorScheme colorScheme) {
+    if (_isAddingTag) {
+      return [
+        SizedBox(
+          width: 160,
+          height: 32,
+          child: Center(
+            child: TextField(
+              controller: _inlineTagController,
+              autofocus: true,
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'tag name',
+                prefixIcon: const Icon(Icons.sell_outlined, size: 16),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 6,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: colorScheme.outline, width: 1),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: colorScheme.outline.withValues(alpha: 0.5),
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: colorScheme.primary,
+                    width: 1.5,
+                  ),
+                ),
+              ),
+              textInputAction: TextInputAction.done,
+              onSubmitted: (value) {
+                _addTagsFromInput(value);
+                setState(() => _isAddingTag = false);
+              },
+              onTapOutside: (_) {
+                _inlineTagController.clear();
+                setState(() => _isAddingTag = false);
+              },
+              onChanged: _consumeInlineTagSeparators,
+            ),
+          ),
+        ),
+      ];
+    }
+    return [
+      ActionChip(
+        avatar: Icon(
+          Icons.sell_outlined,
+          size: 16,
+          color: colorScheme.onSurfaceVariant,
+        ),
+        label: Text(
+          'Add tag',
+          style: TextStyle(color: colorScheme.onSurfaceVariant),
+        ),
+        visualDensity: VisualDensity.compact,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        side: BorderSide.none,
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        onPressed: () => setState(() => _isAddingTag = true),
+      ),
+    ];
   }
 
   // Handle undo operation - shows the most recent history entry as a preview
@@ -2238,6 +2495,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
 
     _quillController.dispose();
     _titleController.dispose();
+    _inlineTagController.dispose();
     _titleFocusNode.dispose();
     _focusNode.dispose();
     _scrollController.dispose();
@@ -2249,9 +2507,14 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   /// Shows the read/edit toggle FAB (hides on scroll down, shows on scroll up).
   /// When in edit mode with floating toolbar enabled, also shows the toolbar FAB.
   Widget? _buildFloatingActionButtons() {
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom > 0
-        ? 8.0
-        : 0.0;
+    final tagBarContext = _tagBarKey.currentContext;
+    if (tagBarContext != null) {
+      final box = tagBarContext.findRenderObject() as RenderBox?;
+      if (box != null && box.hasSize) {
+        _tagBarHeight = box.size.height;
+      }
+    }
+    final bottomPadding = math.max(8.0, _tagBarHeight);
     final cs = Theme.of(context).colorScheme;
 
     return AnimatedSlide(
@@ -3210,6 +3473,8 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
                             ],
                           ),
                   ),
+                  if (_tags.isNotEmpty || !_isReadMode)
+                    _buildInlineTagsSection(),
                 ],
               ),
             ),
@@ -3298,7 +3563,8 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   Widget _buildDragHintTooltip() {
     // Find the drag handle's position via its GlobalKey
     final handleContext = _dragHandleKey.currentContext;
-    if (handleContext == null) return const SizedBox.shrink();
+    if (handleContext == null || !handleContext.mounted)
+      return const SizedBox.shrink();
     final handleBox = handleContext.findRenderObject() as RenderBox?;
     if (handleBox == null || !handleBox.attached) {
       return const SizedBox.shrink();
@@ -3312,7 +3578,7 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
     // Find the bottom of the whole toolbar container for vertical positioning
     double toolbarBottom = handlePos.dy + handleSize.height;
     final toolbarContext = _toolbarContainerKey.currentContext;
-    if (toolbarContext != null) {
+    if (toolbarContext != null && toolbarContext.mounted) {
       final toolbarBox = toolbarContext.findRenderObject() as RenderBox?;
       if (toolbarBox != null && toolbarBox.attached) {
         final toolbarPos = toolbarBox.localToGlobal(

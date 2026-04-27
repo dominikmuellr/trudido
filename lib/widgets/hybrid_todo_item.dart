@@ -21,6 +21,7 @@ import 'package:intl/intl.dart';
 import '../models/preferences_state.dart';
 import '../models/todo.dart';
 import '../providers/app_providers.dart';
+import '../services/folder_provider.dart';
 import '../utils/responsive_size.dart';
 import '../utils/date_formatters.dart';
 import '../theme/spacing_tokens.dart';
@@ -56,6 +57,20 @@ class HybridTodoItem extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final preferences = ref.watch(preferencesStateProvider);
     final spacing = ref.watch(adaptiveSpacingProvider);
+    final folder = todo.folderId != null
+        ? ref.watch(folderByIdProvider(todo.folderId!))
+        : null;
+    final folderTintColor = folder != null
+        ? Color(folder.color).withValues(
+            alpha: Theme.of(context).brightness == Brightness.dark
+                ? 0.32
+                : 0.16,
+          )
+        : null;
+    final cardColor = selected
+        ? Theme.of(context).colorScheme.primaryContainer
+        : (folderTintColor ??
+              Theme.of(context).colorScheme.surfaceContainerLow);
 
     return Dismissible(
       key: ValueKey(todo.id),
@@ -112,9 +127,7 @@ class HybridTodoItem extends ConsumerWidget {
                   )
                 : BorderSide.none,
           ),
-          color: selected
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Theme.of(context).colorScheme.surfaceContainerLow,
+          color: cardColor,
           child: SizedBox(
             width: double.infinity,
             child: Padding(

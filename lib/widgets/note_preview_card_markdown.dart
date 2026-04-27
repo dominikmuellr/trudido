@@ -37,6 +37,7 @@ import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import '../widgets/common/common.dart';
 import '../theme/spacing_tokens.dart';
+import '../repositories/note_folder_repository.dart';
 
 /// A clean, scannable preview card with lightweight markdown rendering
 ///
@@ -977,7 +978,23 @@ class NotePreviewCard extends ConsumerWidget {
     // Compute adaptive on-card text colors so text stays readable on any
     // card background (palette or custom). Null when using theme default.
     final brightness = Theme.of(context).brightness;
-    final cardBg = resolveNoteColor(note.colorValue, brightness);
+    final explicitCardBg = resolveNoteColor(note.colorValue, brightness);
+    Color? folderCardBg;
+    if (note.folderId != null) {
+      final folders = ref
+          .watch(noteFoldersProvider)
+          .maybeWhen(data: (value) => value, orElse: () => null);
+      if (folders != null) {
+        for (final folder in folders) {
+          if (folder.id == note.folderId) {
+            final alpha = brightness == Brightness.dark ? 0.32 : 0.16;
+            folderCardBg = Color(folder.color).withValues(alpha: alpha);
+            break;
+          }
+        }
+      }
+    }
+    final cardBg = explicitCardBg ?? folderCardBg;
     final Color? onCardColor = cardBg != null
         ? (cardBg.computeLuminance() > 0.35
               ? const Color(0xDD000000) // black87
@@ -1232,6 +1249,7 @@ class NotePreviewCard extends ConsumerWidget {
               isTodoTxt: isTodoTxt,
               bodySpan: bodySpan,
               formattedDate: formattedDate,
+              cardColor: cardBg,
               onCardColor: onCardColor,
               onCardSecondary: onCardSecondary,
               compactNotesView: preferences.compactNotesView,
@@ -1295,13 +1313,23 @@ class NotePreviewCard extends ConsumerWidget {
     required TextSpan bodySpan,
     required String formattedDate,
     required bool compactNotesView,
+    Color? cardColor,
     Color? onCardColor,
     Color? onCardSecondary,
   }) {
     final brightness = Theme.of(context).brightness;
-    final cardColor =
-        resolveNoteColor(note.colorValue, brightness) ??
-        Theme.of(context).colorScheme.surfaceContainerHigh;
+    final effectiveCardColor =
+        cardColor ?? Theme.of(context).colorScheme.surfaceContainerHigh;
+    final allTags = note.tags
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList();
+    final visibleTags = allTags.take(3).toList();
+    final hiddenTagsCount = allTags.length - visibleTags.length;
+    final tagColor =
+        (onCardSecondary ?? Theme.of(context).colorScheme.onSurfaceVariant)
+            .withValues(alpha: 0.9);
+    final tagBackground = tagColor.withValues(alpha: 0.14);
 
     final mainCard = Card(
       margin: EdgeInsets.zero,
@@ -1322,7 +1350,7 @@ class NotePreviewCard extends ConsumerWidget {
               )
             : BorderSide.none,
       ),
-      color: cardColor,
+      color: effectiveCardColor,
       child: SizedBox(
         width: double.infinity,
         child: Padding(
@@ -1425,6 +1453,55 @@ class NotePreviewCard extends ConsumerWidget {
                     );
                   },
                 ),
+
+              if (visibleTags.isNotEmpty) ...[
+                SizedBox(height: compactNotesView ? spacing.s8 : spacing.s12),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    ...visibleTags.map(
+                      (tag) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: tagBackground,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '#$tag',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: tagColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                    ),
+                    if (hiddenTagsCount > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: tagBackground,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '+$hiddenTagsCount',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: tagColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
 
               // Footer with metadata
               SizedBox(height: spacing.s12),

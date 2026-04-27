@@ -390,12 +390,21 @@ class _NoteFoldersList extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
     final foldersAsync = ref.watch(noteFoldersProvider);
     final selectedFolderId = ref.watch(selectedNoteFolderProvider);
+    final selectedTag = ref.watch(selectedNoteTagProvider);
+    final drawerTagScope = ref.watch(notesDrawerTagScopeProvider);
+    final drawerTags = ref.watch(drawerNoteTagsProvider);
     final defaultFolderId = ref
         .watch(preferencesStateProvider)
         .defaultNotesFolderId;
 
     return foldersAsync.when(
       data: (folders) {
+        final selectedTagShownInScope =
+            selectedTag == null ||
+            drawerTags.any(
+              (tag) => tag.toLowerCase() == selectedTag.toLowerCase(),
+            );
+
         return ListView(
           padding: SpacingEdgeInsets.insetsV8,
           children: [
@@ -492,6 +501,7 @@ class _NoteFoldersList extends ConsumerWidget {
               final isSelected = selectedFolderId == folder.id;
               final isVault = folder.isVault;
               final isDefault = defaultFolderId == folder.id;
+              final folderColor = Color(folder.color);
               return ListTile(
                 dense: true,
                 visualDensity: VisualDensity.compact,
@@ -500,9 +510,7 @@ class _NoteFoldersList extends ConsumerWidget {
                       ? (isSelected ? Icons.lock_open : Icons.lock)
                       : Icons.folder_outlined,
                   size: 20,
-                  color: isSelected
-                      ? colorScheme.primary
-                      : (isVault ? Colors.amber : colorScheme.onSurfaceVariant),
+                  color: isSelected ? colorScheme.primary : folderColor,
                 ),
                 title: Text(
                   folder.name,
@@ -575,6 +583,102 @@ class _NoteFoldersList extends ConsumerWidget {
                 },
               );
             }),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Text(
+                'Tags',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: SegmentedButton<String>(
+                showSelectedIcon: false,
+                style: SegmentedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                segments: const [
+                  ButtonSegment<String>(value: 'all', label: Text('All tags')),
+                  ButtonSegment<String>(
+                    value: 'folder',
+                    label: Text('Current folder'),
+                  ),
+                ],
+                selected: {drawerTagScope},
+                onSelectionChanged: (selection) {
+                  ref
+                      .read(notesDrawerTagScopeProvider.notifier)
+                      .setScope(selection.first);
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilterChip(
+                    label: const Text('Any tag'),
+                    selected: selectedTag == null,
+                    onSelected: (_) {
+                      ref.read(selectedNoteTagProvider.notifier).update(null);
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                  if (!selectedTagShownInScope)
+                    FilterChip(
+                      label: Text('#$selectedTag'),
+                      selected: true,
+                      onSelected: (_) {
+                        ref.read(selectedNoteTagProvider.notifier).update(null);
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ...drawerTags.map(
+                    (tag) => FilterChip(
+                      label: Text('#$tag'),
+                      selected:
+                          selectedTag != null &&
+                          selectedTag.toLowerCase() == tag.toLowerCase(),
+                      onSelected: (selected) {
+                        if (selected) {
+                          if (drawerTagScope == 'all') {
+                            ref
+                                .read(selectedNoteFolderProvider.notifier)
+                                .update(null);
+                          }
+                          ref
+                              .read(selectedNoteTagProvider.notifier)
+                              .update(tag);
+                        } else {
+                          ref
+                              .read(selectedNoteTagProvider.notifier)
+                              .update(null);
+                        }
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (drawerTags.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Text(
+                  'No tags in this scope',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
             // Create new folder option
             SpacingGap.gapV8,
             ListTile(
@@ -759,7 +863,7 @@ class _OverviewModules extends ConsumerWidget {
           ),
         ),
         // Module content
-        _buildModuleContent(context, ref, moduleType),
+        _buildModuleContent(context, ref, moduleType, index),
       ],
     );
   }
@@ -768,14 +872,15 @@ class _OverviewModules extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     String moduleType,
+    int index,
   ) {
     switch (moduleType) {
       case 'calendar':
-        return const _InlineCalendar();
+        return _InlineCalendar(key: ValueKey('calendar_$index'));
       case 'daily_agenda':
-        return const _DailyAgenda();
+        return _DailyAgenda(key: ValueKey('daily_agenda_$index'));
       case 'today_date':
-        return const _TodayDate();
+        return _TodayDate(key: ValueKey('today_date_$index'));
       default:
         return const SizedBox.shrink();
     }
@@ -1015,7 +1120,7 @@ class _BinListTile extends ConsumerWidget {
 /// Always-visible calendar module for the overview drawer.
 /// Each instance manages its own focused month independently.
 class _InlineCalendar extends ConsumerStatefulWidget {
-  const _InlineCalendar();
+  const _InlineCalendar({super.key});
 
   @override
   ConsumerState<_InlineCalendar> createState() => _InlineCalendarState();
@@ -1308,7 +1413,7 @@ class _InlineCalendarState extends ConsumerState<_InlineCalendar> {
 
 /// Today's date module: displays the current date in European format.
 class _TodayDate extends StatelessWidget {
-  const _TodayDate();
+  const _TodayDate({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -1353,7 +1458,7 @@ class _TodayDate extends StatelessWidget {
 
 /// Daily agenda module: shows today's tasks and events in a compact list.
 class _DailyAgenda extends ConsumerWidget {
-  const _DailyAgenda();
+  const _DailyAgenda({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

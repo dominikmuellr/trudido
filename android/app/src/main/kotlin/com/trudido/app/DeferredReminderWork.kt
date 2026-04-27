@@ -12,9 +12,19 @@ import java.util.concurrent.TimeUnit
 object DeferredReminderWork {
     private const val UNIQUE_PREFIX = "deferred_reminder_"
 
-    fun enqueue(context: Context, taskId: String, title: String, body: String, triggerAt: Long, delayMs: Long, persistent: Boolean = false) {
+    fun enqueue(
+        context: Context,
+        scheduleKey: String,
+        taskId: String,
+        title: String,
+        body: String,
+        triggerAt: Long,
+        delayMs: Long,
+        persistent: Boolean = false
+    ) {
         val wm = WorkManager.getInstance(context)
         val data = Data.Builder()
+            .putString(DeferredReminderWorker.KEY_SCHEDULE_KEY, scheduleKey)
             .putString(DeferredReminderWorker.KEY_TASK_ID, taskId)
             .putString(DeferredReminderWorker.KEY_TITLE, title)
             .putString(DeferredReminderWorker.KEY_BODY, body)
@@ -24,16 +34,19 @@ object DeferredReminderWork {
         val req = OneTimeWorkRequestBuilder<DeferredReminderWorker>()
             .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
             .setInputData(data)
-            .addTag(uniqueTag(taskId))
+            .addTag(uniqueTag(scheduleKey))
             .build()
-        wm.enqueueUniqueWork(uniqueName(taskId), ExistingWorkPolicy.REPLACE, req)
-        Log.d("DeferredReminderWork", "Enqueued taskId=$taskId delayMs=$delayMs triggerAt=$triggerAt")
+        wm.enqueueUniqueWork(uniqueName(scheduleKey), ExistingWorkPolicy.REPLACE, req)
+        Log.d(
+            "DeferredReminderWork",
+            "Enqueued key=$scheduleKey taskId=$taskId delayMs=$delayMs triggerAt=$triggerAt"
+        )
     }
 
-    fun cancel(context: Context, taskId: String) {
-        WorkManager.getInstance(context).cancelUniqueWork(uniqueName(taskId))
+    fun cancel(context: Context, scheduleKey: String) {
+        WorkManager.getInstance(context).cancelUniqueWork(uniqueName(scheduleKey))
     }
 
-    private fun uniqueName(taskId: String) = UNIQUE_PREFIX + taskId
-    private fun uniqueTag(taskId: String) = UNIQUE_PREFIX + taskId
+    private fun uniqueName(scheduleKey: String) = UNIQUE_PREFIX + scheduleKey
+    private fun uniqueTag(scheduleKey: String) = UNIQUE_PREFIX + scheduleKey
 }

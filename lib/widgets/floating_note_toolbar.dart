@@ -441,9 +441,12 @@ class _FloatingNoteToolbarState extends ConsumerState<FloatingNoteToolbar>
     required List<PopupMenuEntry> menuItems,
     required Function(dynamic) onSelected,
   }) {
-    final RenderBox button = context.findRenderObject() as RenderBox;
-    final RenderBox overlay =
-        Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
+    if (!mounted) return;
+    final RenderBox? button = context.findRenderObject() as RenderBox?;
+    if (button == null) return;
+    final RenderBox? overlay =
+        Navigator.of(context).overlay?.context.findRenderObject() as RenderBox?;
+    if (overlay == null) return;
     final RelativeRect position = RelativeRect.fromRect(
       Rect.fromPoints(
         button.localToGlobal(Offset.zero, ancestor: overlay),

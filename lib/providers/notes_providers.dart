@@ -52,6 +52,7 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
     String? todoTxtContent,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
+    List<String>? tags,
   }) async {
     final repository = ref.read(notesRepositoryProvider);
     final note = await repository.createNote(
@@ -61,6 +62,7 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
       todoTxtContent: todoTxtContent,
       lineHeightMultiplier: lineHeightMultiplier,
       paragraphSpacing: paragraphSpacing,
+      tags: tags,
     );
     await refresh();
     return note;
@@ -78,6 +80,7 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
     double? paragraphSpacing,
     bool? lastReadMode,
     Object? colorValue = _providerSentinel,
+    List<String>? tags,
   }) async {
     final repository = ref.read(notesRepositoryProvider);
     final note = await repository.updateNote(
@@ -91,6 +94,7 @@ class NotesNotifier extends AsyncNotifier<List<Note>> {
       paragraphSpacing: paragraphSpacing,
       lastReadMode: lastReadMode,
       colorValue: colorValue,
+      tags: tags,
     );
     if (note != null) {
       await refresh();

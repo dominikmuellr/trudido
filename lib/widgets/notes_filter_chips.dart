@@ -6,6 +6,8 @@ import '../providers/app_providers.dart';
 class NotesFilterChips extends ConsumerWidget {
   const NotesFilterChips({super.key});
 
+  static const String _allTagsValue = '__all_tags__';
+
   static const _sortOptions = {
     'date_modified': 'Last Modified',
     'date_created': 'Created',
@@ -16,6 +18,8 @@ class NotesFilterChips extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final sortBy = ref.watch(notesSortByProvider);
+    final selectedTag = ref.watch(selectedNoteTagProvider);
+    final availableTags = ref.watch(availableNoteTagsProvider);
     final isSpatialCanvasEnabled = ref.watch(
       preferencesStateProvider.select((p) => p.enableSpatialCanvas),
     );
@@ -105,6 +109,66 @@ class NotesFilterChips extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    if (availableTags.isNotEmpty || selectedTag != null) ...[
+                      const SizedBox(width: 8),
+                      PopupMenuButton<String>(
+                        position: PopupMenuPosition.under,
+                        onSelected: (value) {
+                          if (value == _allTagsValue) {
+                            ref
+                                .read(selectedNoteTagProvider.notifier)
+                                .update(null);
+                            return;
+                          }
+                          ref
+                              .read(selectedNoteTagProvider.notifier)
+                              .update(value);
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem<String>(
+                            value: _allTagsValue,
+                            child: Text('All tags'),
+                          ),
+                          ...availableTags.map(
+                            (tag) => CheckedPopupMenuItem<String>(
+                              value: tag,
+                              checked:
+                                  selectedTag != null &&
+                                  selectedTag.toLowerCase() ==
+                                      tag.toLowerCase(),
+                              child: Text('#$tag'),
+                            ),
+                          ),
+                        ],
+                        child: IgnorePointer(
+                          child: FilterChip(
+                            label: Text(
+                              selectedTag == null ? 'Tag' : '#$selectedTag',
+                            ),
+                            avatar: const Icon(Icons.sell_outlined, size: 18),
+                            selected: selectedTag != null,
+                            showCheckmark: false,
+                            side: BorderSide.none,
+                            backgroundColor: colorScheme.surfaceContainerHigh,
+                            selectedColor: colorScheme.primaryContainer,
+                            labelStyle: TextStyle(
+                              color: selectedTag != null
+                                  ? colorScheme.onPrimaryContainer
+                                  : colorScheme.onSurfaceVariant,
+                              fontWeight: selectedTag != null
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                            iconTheme: IconThemeData(
+                              color: selectedTag != null
+                                  ? colorScheme.onPrimaryContainer
+                                  : colorScheme.onSurfaceVariant,
+                            ),
+                            onSelected: (_) {},
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

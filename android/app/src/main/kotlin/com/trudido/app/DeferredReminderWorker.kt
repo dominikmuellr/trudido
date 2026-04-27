@@ -17,36 +17,57 @@ class DeferredReminderWorker(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
+        val scheduleKey = inputData.getString(KEY_SCHEDULE_KEY)
         val taskId = inputData.getString(KEY_TASK_ID) ?: return Result.failure()
         val title = inputData.getString(KEY_TITLE) ?: "Task Reminder"
         val body = inputData.getString(KEY_BODY) ?: ""
         val triggerAt = inputData.getLong(KEY_TRIGGER_AT, -1L)
         val persistent = inputData.getBoolean(KEY_PERSISTENT, false)
+        val effectiveKey = scheduleKey ?: taskId
         if (triggerAt <= 0) return Result.failure()
         val now = System.currentTimeMillis()
         val remaining = triggerAt - now
-        Log.d(TAG, "Worker run taskId=$taskId remainingMs=$remaining")
+        Log.d(TAG, "Worker run key=$effectiveKey taskId=$taskId remainingMs=$remaining")
         if (remaining <= 0) {
             // Time passed while deferred – show immediately
             NotificationScheduler.showNow(applicationContext, taskId, title, body, persistent)
-            ScheduledNotificationsStore.remove(applicationContext, taskId)
+            ScheduledNotificationsStore.remove(applicationContext, effectiveKey)
             return Result.success()
         }
         val DAY_MS = 24 * 60 * 60 * 1000L
         if (remaining <= DAY_MS) {
             // Move to regular alarm scheduling path
-            val requestCode = taskId.hashCode()
-            NotificationScheduler.scheduleExact(applicationContext, taskId, title, body, triggerAt, requestCode, persistent)
+            val requestCode = effectiveKey.hashCode()
+            NotificationScheduler.scheduleExact(
+                applicationContext,
+                taskId,
+                title,
+                body,
+                triggerAt,
+                requestCode,
+                persistent,
+                effectiveKey
+            )
             return Result.success()
         }
         // Still far out; re-enqueue self for another checkpoint just before next 24h boundary.
         val delay = (remaining - DAY_MS).coerceAtLeast(DAY_MS / 2) // wake up midway if extremely far
-        DeferredReminderWork.enqueue(applicationContext, taskId, title, body, triggerAt, delay, persistent)
+        DeferredReminderWork.enqueue(
+            applicationContext,
+            effectiveKey,
+            taskId,
+            title,
+            body,
+            triggerAt,
+            delay,
+            persistent
+        )
         return Result.success()
     }
 
     companion object {
         const val TAG = "DeferredReminderWorker"
+        const val KEY_SCHEDULE_KEY = "scheduleKey"
         const val KEY_TASK_ID = "taskId"
         const val KEY_TITLE = "title"
         const val KEY_BODY = "body"

@@ -19,13 +19,23 @@ class BootCompletedReceiver : BroadcastReceiver() {
             if (delta <= 0) {
                 if (now - item.triggerTime <= 30 * 60 * 1000) {
                     NotificationScheduler.showNow(context, item.taskId, item.title, item.body, persistent)
+                    ScheduledNotificationsStore.remove(context, item.key)
                 } else {
                     // Drop very old reminder
-                    ScheduledNotificationsStore.remove(context, item.taskId)
+                    ScheduledNotificationsStore.remove(context, item.key)
                 }
             } else {
-                val requestCode = item.taskId.hashCode()
-                NotificationScheduler.scheduleExact(context, item.taskId, item.title, item.body, item.triggerTime, requestCode, persistent)
+                val requestCode = item.key.hashCode()
+                NotificationScheduler.scheduleExact(
+                    context,
+                    item.taskId,
+                    item.title,
+                    item.body,
+                    item.triggerTime,
+                    requestCode,
+                    persistent,
+                    item.key
+                )
                 restored++
             }
         }

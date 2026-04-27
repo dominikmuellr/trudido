@@ -142,6 +142,7 @@ class NotesRepository {
     String? todoTxtContent,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
+    List<String>? tags,
   }) async {
     final note = Note(
       title: title,
@@ -151,6 +152,7 @@ class NotesRepository {
       todoTxtContent: todoTxtContent,
       lineHeightMultiplier: lineHeightMultiplier ?? 1.5,
       paragraphSpacing: paragraphSpacing ?? 8.0,
+      tags: tags,
     );
 
     // Encrypt if vault folder
@@ -173,6 +175,7 @@ class NotesRepository {
     double? paragraphSpacing,
     bool? lastReadMode,
     Object? colorValue = _sentinel,
+    List<String>? tags,
     bool preserveUpdatedAt = false,
   }) async {
     final existingNote = StorageService.getNote(id);
@@ -194,6 +197,7 @@ class NotesRepository {
       colorValue: colorValue == _sentinel
           ? decryptedNote.colorValue
           : colorValue as int?,
+      tags: tags ?? decryptedNote.tags,
       updatedAt: preserveUpdatedAt ? decryptedNote.updatedAt : DateTime.now(),
     );
 
@@ -237,7 +241,8 @@ class NotesRepository {
         .where(
           (note) =>
               note.title.toLowerCase().contains(lowerQuery) ||
-              note.content.toLowerCase().contains(lowerQuery),
+              note.content.toLowerCase().contains(lowerQuery) ||
+              note.tags.any((tag) => tag.toLowerCase().contains(lowerQuery)),
         )
         .toList();
     final sortedNotes = List<Note>.from(filteredNotes); // Create mutable copy

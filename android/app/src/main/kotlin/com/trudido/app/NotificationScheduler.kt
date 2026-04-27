@@ -38,13 +38,32 @@ object NotificationScheduler {
         }
     }
 
-    fun scheduleExact(context: Context, taskId: String, title: String, body: String, triggerAtMillis: Long, requestCode: Int, persistent: Boolean = false) {
+    fun scheduleExact(
+        context: Context,
+        taskId: String,
+        title: String,
+        body: String,
+        triggerAtMillis: Long,
+        requestCode: Int,
+        persistent: Boolean = false,
+        scheduleKey: String = taskId
+    ) {
         createChannel(context)
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pendingIntent = buildShowIntent(context, taskId, title, body, requestCode, persistent)
-        Log.d("NotificationScheduler", "scheduleExact taskId=$taskId at=$triggerAtMillis now=${System.currentTimeMillis()} requestCode=$requestCode")
+        Log.d(
+            "NotificationScheduler",
+            "scheduleExact taskId=$taskId key=$scheduleKey at=$triggerAtMillis now=${System.currentTimeMillis()} requestCode=$requestCode"
+        )
         // Persist for reboot restoration
-        ScheduledNotificationsStore.upsert(context, taskId, title, body, triggerAtMillis)
+        ScheduledNotificationsStore.upsert(
+            context,
+            scheduleKey,
+            taskId,
+            title,
+            body,
+            triggerAtMillis
+        )
         // WorkManager fallback for far-future (non time-critical) reminders to save battery / quota.
         val DAY_MS = 24 * 60 * 60 * 1000L
         val nowCheck = System.currentTimeMillis()
@@ -53,7 +72,16 @@ object NotificationScheduler {
             // Use a checkpoint: wake up when within ~24h window (or sooner if extremely far out)
             val remaining = triggerAtMillis - nowCheck
             val delayMs = (remaining - DAY_MS).coerceAtLeast(DAY_MS / 2) // if >48h away wake mid-way
-            DeferredReminderWork.enqueue(context, taskId, title, body, triggerAtMillis, delayMs, persistent)
+            DeferredReminderWork.enqueue(
+                context,
+                scheduleKey,
+                taskId,
+                title,
+                body,
+                triggerAtMillis,
+                delayMs,
+                persistent
+            )
             Log.d("NotificationScheduler", "Deferring via WorkManager taskId=$taskId remainingMs=$remaining delayMs=$delayMs")
             return
         }
@@ -101,9 +129,26 @@ object NotificationScheduler {
         val pi = buildShowIntent(context, key, "", "", key.hashCode())
         alarmManager.cancel(pi)
         NotificationManagerCompat.from(context).cancel(key.hashCode())
-    ScheduledNotificationsStore.remove(context, key)
-    // Cancel deferred work if present
-    DeferredReminderWork.cancel(context, key)
+        ScheduledNotificationsStore.remove(context, key)
+        // Cancel deferred work if present
+        DeferredReminderWork.cancel(context, key)
+        updateGroupSummary(context)
+    }
+
+    fun cancelAllForTask(context: Context, taskId: String) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val entries = ScheduledNotificationsStore.allForTask(context, taskId)
+        for (entry in entries) {
+            val pi = buildShowIntent(context, taskId, "", "", entry.key.hashCode())
+            alarmManager.cancel(pi)
+            DeferredReminderWork.cancel(context, entry.key)
+            ScheduledNotificationsStore.remove(context, entry.key)
+        }
+        // Best-effort legacy cleanup for old single-key schedules.
+        cancel(context, taskId)
+        NotificationManagerCompat.from(context).cancel(taskId.hashCode())
+        ScheduledNotificationsStore.removeByTaskId(context, taskId)
+        Log.d("NotificationScheduler", "cancelAllForTask taskId=$taskId removed=${entries.size}")
         updateGroupSummary(context)
     }
 

@@ -25,6 +25,8 @@ import '../theme/spacing_tokens.dart';
 class FilterChips extends ConsumerWidget {
   const FilterChips({super.key});
 
+  static const String _allTagsValue = '__all_tags__';
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -36,9 +38,16 @@ class FilterChips extends ConsumerWidget {
     final itemType = ref.watch(
       listItemTypeFilterProvider.select((type) => type),
     );
+    final selectedTag = ref.watch(
+      selectedTaskEventTagProvider.select((value) => value),
+    );
+    final availableTags = ref.watch(availableTaskEventTagsProvider);
 
     final hasActiveFilters =
-        dueToday == true || showCompleted == false || itemType != 'all';
+        dueToday == true ||
+        showCompleted == false ||
+        itemType != 'all' ||
+        selectedTag != null;
 
     return Semantics(
       container: true,
@@ -90,6 +99,67 @@ class FilterChips extends ConsumerWidget {
                           .read(listItemTypeFilterProvider.notifier)
                           .update('events_only'),
                     ),
+
+                    if (availableTags.isNotEmpty || selectedTag != null) ...[
+                      SpacingGap.gapH8,
+                      PopupMenuButton<String>(
+                        position: PopupMenuPosition.under,
+                        onSelected: (value) {
+                          if (value == _allTagsValue) {
+                            ref
+                                .read(selectedTaskEventTagProvider.notifier)
+                                .update(null);
+                            return;
+                          }
+                          ref
+                              .read(selectedTaskEventTagProvider.notifier)
+                              .update(value);
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem<String>(
+                            value: _allTagsValue,
+                            child: Text('All tags'),
+                          ),
+                          ...availableTags.map(
+                            (tag) => CheckedPopupMenuItem<String>(
+                              value: tag,
+                              checked:
+                                  selectedTag != null &&
+                                  selectedTag.toLowerCase() ==
+                                      tag.toLowerCase(),
+                              child: Text('#$tag'),
+                            ),
+                          ),
+                        ],
+                        child: IgnorePointer(
+                          child: FilterChip(
+                            label: Text(
+                              selectedTag == null ? 'Tag' : '#$selectedTag',
+                            ),
+                            avatar: const Icon(Icons.sell_outlined, size: 18),
+                            selected: selectedTag != null,
+                            showCheckmark: false,
+                            side: BorderSide.none,
+                            backgroundColor: colorScheme.surfaceContainerHigh,
+                            selectedColor: colorScheme.primaryContainer,
+                            labelStyle: TextStyle(
+                              color: selectedTag != null
+                                  ? colorScheme.onPrimaryContainer
+                                  : colorScheme.onSurfaceVariant,
+                              fontWeight: selectedTag != null
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                            iconTheme: IconThemeData(
+                              color: selectedTag != null
+                                  ? colorScheme.onPrimaryContainer
+                                  : colorScheme.onSurfaceVariant,
+                            ),
+                            onSelected: (_) {},
+                          ),
+                        ),
+                      ),
+                    ],
 
                     SpacingGap.gapH8,
 
@@ -187,6 +257,9 @@ class FilterChips extends ConsumerWidget {
                               ref
                                   .read(listItemTypeFilterProvider.notifier)
                                   .update('all');
+                              ref
+                                  .read(selectedTaskEventTagProvider.notifier)
+                                  .update(null);
                               StorageService.setShowCompletedTasks(true);
                             }
                           : null,

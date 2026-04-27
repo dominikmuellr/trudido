@@ -58,6 +58,7 @@ class TaskEditorScreen extends ConsumerStatefulWidget {
 class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   late TextEditingController _titleController;
   late MentionTextEditingController _notesController;
+  late TextEditingController _tagsController;
   final _formKey = GlobalKey<FormState>();
 
   // Core task data
@@ -69,6 +70,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   String _priority = 'none';
   String _selectedFolderId = '';
   List<int> _reminderOffsetsMinutes = [];
+  List<String> _tags = [];
 
   // Repeat settings
   String _repeatType = 'none';
@@ -91,6 +93,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     _notesController = MentionTextEditingController(
       text: widget.todo?.notes ?? '',
     );
+    _tagsController = TextEditingController();
     _notesController.onMentionTap = (mention) {
       _mentionPopup?.hide();
       MentionNavigator.navigateToMention(context, ref, mention);
@@ -107,6 +110,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
       }
       _durationMinutes = widget.todo!.durationMinutes;
       _priority = widget.todo!.priority;
+      _tags = List<String>.from(widget.todo!.tags);
       _reminderOffsetsMinutes = List<int>.from(
         widget.todo!.reminderOffsetsMinutes,
       );
@@ -194,7 +198,38 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     _mentionPopup?.hide();
     _titleController.dispose();
     _notesController.dispose();
+    _tagsController.dispose();
     super.dispose();
+  }
+
+  void _addTagsFromInput(String rawValue) {
+    final parts = rawValue
+        .split(RegExp(r'[,\n]'))
+        .map((entry) => entry.trim())
+        .where((entry) => entry.isNotEmpty)
+        .toList();
+
+    if (parts.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      for (final part in parts) {
+        final exists = _tags.any(
+          (existing) => existing.toLowerCase() == part.toLowerCase(),
+        );
+        if (!exists) {
+          _tags.add(part);
+        }
+      }
+    });
+    _tagsController.clear();
+  }
+
+  void _removeTag(String tag) {
+    setState(() {
+      _tags.remove(tag);
+    });
   }
 
   @override
@@ -619,8 +654,58 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         if (widget.todo != null)
           BacklinksSection(itemId: widget.todo!.id, itemType: 'task'),
 
+        // Tags
+        _buildTagsSection(theme, colorScheme),
+        SpacingGap.gapV16,
+
         // Folder selection
         _buildFolderSelection(theme, colorScheme),
+      ],
+    );
+  }
+
+  Widget _buildTagsSection(ThemeData theme, ColorScheme colorScheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Tags',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        SpacingGap.gapV8,
+        TextField(
+          controller: _tagsController,
+          decoration: InputDecoration(
+            hintText: 'Add tag and press Enter',
+            prefixIcon: ScaledIcon(Icons.sell_outlined),
+            suffixIcon: ExpressiveIconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () => _addTagsFromInput(_tagsController.text),
+              tooltip: 'Add tag',
+            ),
+            border: OutlineInputBorder(borderRadius: SpacingBorderRadius.lg),
+          ),
+          textInputAction: TextInputAction.done,
+          onSubmitted: _addTagsFromInput,
+        ),
+        if (_tags.isNotEmpty) ...[
+          SpacingGap.gapV8,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _tags
+                .map(
+                  (tag) => InputChip(
+                    label: Text(tag),
+                    onDeleted: () => _removeTag(tag),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
       ],
     );
   }
@@ -1440,6 +1525,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         startDate: finalStartDate,
         dueDate: finalDueDate,
         priority: _priority,
+        tags: List<String>.from(_tags),
         folderId: _selectedFolderId.isEmpty ? null : _selectedFolderId,
         reminderOffsetsMinutes: reminders,
         repeatType: _repeatType,

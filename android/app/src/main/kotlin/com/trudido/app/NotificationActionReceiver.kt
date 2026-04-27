@@ -21,15 +21,25 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     Log.d("NotifActionReceiver", "Marked completed + persisting pending action for $taskId")
                     PendingActionStore.addAction(context, mapOf("type" to "taskCompleted", "taskId" to taskId))
                 }
-                NotificationManagerCompat.from(context).cancel(taskId.hashCode())
+                NotificationScheduler.cancelAllForTask(context, taskId)
                 MainActivity.methodChannel?.invokeMethod("notificationAction", mapOf("type" to "taskCompleted", "taskId" to taskId))
             }
             ACTION_SNOOZE -> {
                 NotificationManagerCompat.from(context).cancel(taskId.hashCode())
                 val persistent = PersistentNotificationPref.isEnabled(context)
                 val newTime = System.currentTimeMillis() + SNOOZE_MINUTES * 60_000
-                val requestCode = (taskId + "_snooze_" + newTime).hashCode()
-                NotificationScheduler.scheduleExact(context, taskId, "Task Reminder", "Reminder after snooze", newTime, requestCode, persistent)
+                val scheduleKey = taskId + "_snooze_" + newTime
+                val requestCode = scheduleKey.hashCode()
+                NotificationScheduler.scheduleExact(
+                    context,
+                    taskId,
+                    "Task Reminder",
+                    "Reminder after snooze",
+                    newTime,
+                    requestCode,
+                    persistent,
+                    scheduleKey
+                )
                 Log.d("NotifActionReceiver", "Snoozed $taskId newTime=$newTime persisting action")
                 PendingActionStore.addAction(context, mapOf("type" to "taskSnoozed", "taskId" to taskId, "newTime" to newTime))
                 MainActivity.methodChannel?.invokeMethod("notificationAction", mapOf("type" to "taskSnoozed", "taskId" to taskId, "newTime" to newTime))

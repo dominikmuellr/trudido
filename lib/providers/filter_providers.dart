@@ -35,6 +35,39 @@ import '../services/storage_service.dart';
 final searchQueryProvider = stateProvider<String>('');
 final selectedPriorityProvider = stateProvider<String>('all');
 final showCompletedProvider = stateProvider<bool>(true);
+final selectedTaskEventTagProvider = stateProvider<String?>(null);
+
+/// All distinct tags used by tasks/events in the currently selected folder scope.
+final availableTaskEventTagsProvider = Provider<List<String>>((ref) {
+  final tasks = ref.watch(tasksProvider);
+  final events = ref.watch(eventsProvider);
+  final selectedFolder = ref.watch(selectedFolderProvider);
+
+  final tagMap = <String, String>{};
+
+  void collectTags(Iterable<String> tags) {
+    for (final rawTag in tags) {
+      final cleaned = rawTag.trim();
+      if (cleaned.isEmpty) continue;
+      final key = cleaned.toLowerCase();
+      tagMap.putIfAbsent(key, () => cleaned);
+    }
+  }
+
+  for (final task in tasks) {
+    if (selectedFolder != null && task.folderId != selectedFolder) continue;
+    collectTags(task.tags);
+  }
+
+  for (final event in events) {
+    if (selectedFolder != null && event.folderId != selectedFolder) continue;
+    collectTags(event.tags);
+  }
+
+  final values = tagMap.values.toList();
+  values.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  return values;
+});
 final sortByProvider = stateProvider<String>(
   'default',
 ); // default|date_created|date_due|priority|alphabetical|manual
@@ -285,6 +318,7 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
   final searchQuery = ref.watch(searchQueryProvider);
   final selectedPriority = ref.watch(selectedPriorityProvider);
   final showCompleted = ref.watch(showCompletedProvider);
+  final selectedTag = ref.watch(selectedTaskEventTagProvider);
   final sortBy = ref.watch(sortByProvider);
   final dueTodayFilter = ref.watch(dueTodayFilterProvider);
   // Folder filter still comes from legacy folder provider (not yet migrated)
@@ -297,6 +331,12 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
   var filtered = tasks.where((todo) {
     if (selectedFolder != null && todo.folderId != selectedFolder) return false;
     if (selectedPriority != 'all' && todo.priority != selectedPriority) {
+      return false;
+    }
+    if (selectedTag != null &&
+        !todo.tags.any(
+          (tag) => tag.toLowerCase() == selectedTag.toLowerCase(),
+        )) {
       return false;
     }
     if (!showCompleted && todo.isCompleted) return false;
@@ -321,7 +361,8 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
     filtered = FuzzySearch.filter(
       items: filtered,
       query: searchQuery,
-      getText: (todo) => '${todo.text} ${todo.notes ?? ''}',
+      getText: (todo) =>
+          '${todo.text} ${todo.notes ?? ''} ${todo.tags.join(' ')}',
       minSimilarity: 0.6,
     );
   }
@@ -443,10 +484,17 @@ final filteredEventsProvider = Provider<List<Event>>((ref) {
   final events = ref.watch(eventsProvider);
   final searchQuery = ref.watch(searchQueryProvider);
   final showCompleted = ref.watch(showCompletedProvider);
+  final selectedTag = ref.watch(selectedTaskEventTagProvider);
   final selectedFolder = ref.watch(selectedFolderProvider);
 
   var filtered = events.where((event) {
     if (selectedFolder != null && event.folderId != selectedFolder) {
+      return false;
+    }
+    if (selectedTag != null &&
+        !event.tags.any(
+          (tag) => tag.toLowerCase() == selectedTag.toLowerCase(),
+        )) {
       return false;
     }
     if (!showCompleted && event.isCompleted) return false;
@@ -458,7 +506,7 @@ final filteredEventsProvider = Provider<List<Event>>((ref) {
       items: filtered,
       query: searchQuery,
       getText: (event) =>
-          '${event.text} ${event.notes ?? ''} ${event.location ?? ''}',
+          '${event.text} ${event.notes ?? ''} ${event.location ?? ''} ${event.tags.join(' ')}',
       minSimilarity: 0.6,
     );
   }

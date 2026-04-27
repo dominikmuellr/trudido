@@ -17,9 +17,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/note.dart';
+import '../models/note_folder.dart';
 import '../providers/notes_providers.dart';
 import '../repositories/note_folder_repository.dart';
 import '../repositories/notes_repository.dart';
+import '../services/storage_service.dart';
 import '../utils/date_search_parser.dart';
 import '../utils/state_notifiers.dart';
 
@@ -44,6 +46,7 @@ class NotesController extends Notifier<AsyncValue<void>> {
     String? todoTxtContent,
     double? lineHeightMultiplier,
     double? paragraphSpacing,
+    List<String>? tags,
   }) async {
     if (title.trim().isEmpty) {
       state = const AsyncValue.error('Title cannot be empty', StackTrace.empty);
@@ -59,6 +62,7 @@ class NotesController extends Notifier<AsyncValue<void>> {
         todoTxtContent: todoTxtContent,
         lineHeightMultiplier: lineHeightMultiplier,
         paragraphSpacing: paragraphSpacing,
+        tags: tags,
       );
       state = const AsyncValue.data(null);
       return note;
@@ -77,6 +81,7 @@ class NotesController extends Notifier<AsyncValue<void>> {
     double? lineHeightMultiplier,
     double? paragraphSpacing,
     bool? lastReadMode,
+    List<String>? tags,
   }) async {
     if (title != null && title.trim().isEmpty) {
       state = const AsyncValue.error('Title cannot be empty', StackTrace.empty);
@@ -93,6 +98,7 @@ class NotesController extends Notifier<AsyncValue<void>> {
         lineHeightMultiplier: lineHeightMultiplier,
         paragraphSpacing: paragraphSpacing,
         lastReadMode: lastReadMode,
+        tags: tags,
       );
       state = const AsyncValue.data(null);
       return note;
@@ -215,6 +221,203 @@ final notesControllerProvider =
 
 /// Provider for search functionality
 final notesSearchQueryProvider = stateProvider<String>('');
+final selectedNoteTagProvider = stateProvider<String?>(null);
+
+class NotesDrawerTagScopeNotifier extends Notifier<String> {
+  @override
+  String build() {
+    return StorageService.getNotesDrawerTagScope();
+  }
+
+  Future<void> setScope(String scope) async {
+    if (scope != 'all' && scope != 'folder') {
+      return;
+    }
+    state = scope;
+    await StorageService.setNotesDrawerTagScope(scope);
+  }
+}
+
+/// Scope for tag overview shown in notes drawer: 'all' or 'folder'.
+final notesDrawerTagScopeProvider =
+    NotifierProvider<NotesDrawerTagScopeNotifier, String>(
+      NotesDrawerTagScopeNotifier.new,
+    );
+
+List<Note> _scopeDrawerNotes({
+  required List<Note> notes,
+  required List<NoteFolder> folders,
+  required String scope,
+  required String? selectedFolderId,
+}) {
+  final vaultFolderIds = folders
+      .where((folder) => folder.isVault)
+      .map((folder) => folder.id)
+      .toSet();
+
+  var scopedNotes = notes.where((note) {
+    return note.folderId == null || !vaultFolderIds.contains(note.folderId);
+  }).toList();
+
+  if (scope == 'folder') {
+    if (selectedFolderId == 'UNFILED') {
+      scopedNotes = scopedNotes.where((note) => note.folderId == null).toList();
+    } else if (selectedFolderId != null) {
+      scopedNotes = scopedNotes
+          .where((note) => note.folderId == selectedFolderId)
+          .toList();
+    }
+  }
+
+  return scopedNotes;
+}
+
+List<String> _collectUniqueTags(Iterable<Note> notes) {
+  final tagsMap = <String, String>{};
+  for (final note in notes) {
+    for (final rawTag in note.tags) {
+      final cleaned = rawTag.trim();
+      if (cleaned.isEmpty) continue;
+      final key = cleaned.toLowerCase();
+      tagsMap.putIfAbsent(key, () => cleaned);
+    }
+  }
+  return tagsMap.values.toList();
+}
+
+List<String> orderTagsByRecentUsage({
+  required List<String> tags,
+  required List<String> recentTags,
+}) {
+  final canonicalByLower = <String, String>{};
+  for (final tag in tags) {
+    final cleaned = tag.trim();
+    if (cleaned.isEmpty) continue;
+    canonicalByLower.putIfAbsent(cleaned.toLowerCase(), () => cleaned);
+  }
+
+  final ordered = <String>[];
+  final usedKeys = <String>{};
+
+  for (final raw in recentTags) {
+    final key = raw.trim().toLowerCase();
+    if (key.isEmpty || usedKeys.contains(key)) continue;
+    final canonical = canonicalByLower[key];
+    if (canonical != null) {
+      ordered.add(canonical);
+      usedKeys.add(key);
+    }
+  }
+
+  final remaining =
+      canonicalByLower.entries
+          .where((entry) => !usedKeys.contains(entry.key))
+          .map((entry) => entry.value)
+          .toList()
+        ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+  return [...ordered, ...remaining];
+}
+
+List<String> buildDrawerTags({
+  required List<Note> notes,
+  required List<NoteFolder> folders,
+  required String scope,
+  required String? selectedFolderId,
+  required List<String> recentTags,
+}) {
+  final scopedNotes = _scopeDrawerNotes(
+    notes: notes,
+    folders: folders,
+    scope: scope,
+    selectedFolderId: selectedFolderId,
+  );
+
+  final uniqueTags = _collectUniqueTags(scopedNotes);
+  return orderTagsByRecentUsage(tags: uniqueTags, recentTags: recentTags);
+}
+
+/// Tags for drawer overview, optionally scoped to selected folder.
+/// Vault tags are always excluded for privacy.
+final drawerNoteTagsProvider = Provider<List<String>>((ref) {
+  final scope = ref.watch(notesDrawerTagScopeProvider);
+  final selectedFolderId = ref.watch(selectedNoteFolderProvider);
+  final allNotesAsync = ref.watch(notesProvider);
+  final foldersAsync = ref.watch(noteFoldersProvider);
+
+  final allNotes = allNotesAsync.maybeWhen(
+    data: (value) => value,
+    orElse: () => null,
+  );
+  final folders = foldersAsync.maybeWhen(
+    data: (value) => value,
+    orElse: () => null,
+  );
+  if (allNotes == null || folders == null) {
+    return const [];
+  }
+
+  final recentTags = StorageService.getRecentNoteTags();
+  return buildDrawerTags(
+    notes: allNotes,
+    folders: folders,
+    scope: scope,
+    selectedFolderId: selectedFolderId,
+    recentTags: recentTags,
+  );
+});
+
+/// Available note tags in current folder scope (or all non-vault notes).
+final availableNoteTagsProvider = Provider<List<String>>((ref) {
+  final selectedFolderId = ref.watch(selectedNoteFolderProvider);
+  final allNotesAsync = ref.watch(notesProvider);
+  final foldersAsync = ref.watch(noteFoldersProvider);
+
+  final allNotes = allNotesAsync.maybeWhen(
+    data: (value) => value,
+    orElse: () => null,
+  );
+  final folders = foldersAsync.maybeWhen(
+    data: (value) => value,
+    orElse: () => null,
+  );
+  if (allNotes == null || folders == null) {
+    return const [];
+  }
+
+  var scopedNotes = allNotes;
+  if (selectedFolderId != null) {
+    if (selectedFolderId == 'UNFILED') {
+      scopedNotes = scopedNotes.where((note) => note.folderId == null).toList();
+    } else {
+      scopedNotes = scopedNotes
+          .where((note) => note.folderId == selectedFolderId)
+          .toList();
+    }
+  } else {
+    final vaultFolderIds = folders
+        .where((folder) => folder.isVault)
+        .map((folder) => folder.id)
+        .toSet();
+    scopedNotes = scopedNotes.where((note) {
+      return note.folderId == null || !vaultFolderIds.contains(note.folderId);
+    }).toList();
+  }
+
+  final tagsMap = <String, String>{};
+  for (final note in scopedNotes) {
+    for (final rawTag in note.tags) {
+      final cleaned = rawTag.trim();
+      if (cleaned.isEmpty) continue;
+      final key = cleaned.toLowerCase();
+      tagsMap.putIfAbsent(key, () => cleaned);
+    }
+  }
+
+  final tags = tagsMap.values.toList();
+  tags.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  return tags;
+});
 
 class NotesSortNotifier extends Notifier<String> {
   @override
@@ -257,6 +460,7 @@ final notesViewModeProvider = stateProvider<String>('grid');
 final filteredNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
   final searchQuery = ref.watch(notesSearchQueryProvider);
   final selectedFolderId = ref.watch(selectedNoteFolderProvider);
+  final selectedTag = ref.watch(selectedNoteTagProvider);
   final allNotesAsync = ref.watch(notesProvider);
   final foldersAsync = ref.watch(noteFoldersProvider);
   final sortBy = ref.watch(notesSortByProvider);
@@ -297,12 +501,21 @@ final filteredNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
         });
       }
 
+      if (selectedTag != null) {
+        filtered = filtered.where((note) {
+          return note.tags.any(
+            (tag) => tag.toLowerCase() == selectedTag.toLowerCase(),
+          );
+        }).toList();
+      }
+
       // Filter by search query if provided with fuzzy matching
       if (searchQuery.isNotEmpty) {
         filtered = FuzzySearch.filter(
           items: filtered,
           query: searchQuery,
-          getText: (note) => '${note.title} ${note.content}',
+          getText: (note) =>
+              '${note.title} ${note.content} ${note.tags.join(' ')}',
           minSimilarity: 0.6,
         );
       }

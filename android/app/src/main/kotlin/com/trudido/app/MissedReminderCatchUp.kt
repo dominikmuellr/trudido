@@ -20,10 +20,10 @@ object MissedReminderCatchUp {
                 val age = now - item.triggerTime
                 if (age <= GRACE_MS) {
                     NotificationScheduler.showNow(context, item.taskId, item.title, item.body, persistent)
-                    ScheduledNotificationsStore.remove(context, item.taskId)
+                    ScheduledNotificationsStore.remove(context, item.key)
                     shown++
                 } else if (age > MAX_STALE_MS) {
-                    ScheduledNotificationsStore.remove(context, item.taskId)
+                    ScheduledNotificationsStore.remove(context, item.key)
                     dropped++
                 } else {
                     // Keep for potential manual review (still future catch-up logic); no action

@@ -340,7 +340,16 @@ class MainActivity : FlutterFragmentActivity() {
                     val triggerTime = (args["triggerTime"] as Number).toLong()
                     val uniqueKey = args["uniqueKey"] as String? ?: taskId
                     val persistent = args["persistent"] as Boolean? ?: false
-                    NotificationScheduler.scheduleExact(applicationContext, taskId, title, body, triggerTime, uniqueKey.hashCode(), persistent)
+                    NotificationScheduler.scheduleExact(
+                        applicationContext,
+                        taskId,
+                        title,
+                        body,
+                        triggerTime,
+                        uniqueKey.hashCode(),
+                        persistent,
+                        uniqueKey
+                    )
                     result.success(true)
                 }
                 "cancelScheduledNotification" -> {

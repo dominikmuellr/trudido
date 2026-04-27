@@ -63,6 +63,9 @@ class Note extends HiveObject {
   @HiveField(13)
   int? colorValue; // ARGB color value for card background, null = default theme color
 
+  @HiveField(14)
+  List<String> tags;
+
   Note({
     String? id,
     required this.title,
@@ -78,9 +81,11 @@ class Note extends HiveObject {
     this.lastReadMode = false,
     this.deletedAt,
     this.colorValue,
+    List<String>? tags,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
-       updatedAt = updatedAt ?? DateTime.now();
+       updatedAt = updatedAt ?? DateTime.now(),
+       tags = tags ?? [];
 
   Note copyWith({
     String? id,
@@ -97,6 +102,7 @@ class Note extends HiveObject {
     bool? lastReadMode,
     DateTime? deletedAt,
     Object? colorValue = _sentinel,
+    List<String>? tags,
   }) {
     return Note(
       id: id ?? this.id,
@@ -115,6 +121,7 @@ class Note extends HiveObject {
       colorValue: colorValue == _sentinel
           ? this.colorValue
           : colorValue as int?,
+      tags: tags ?? this.tags,
     );
   }
 
@@ -148,6 +155,7 @@ class Note extends HiveObject {
       'paragraphSpacing': paragraphSpacing,
       'lastReadMode': lastReadMode,
       if (colorValue != null) 'colorValue': colorValue,
+      'tags': tags,
     };
   }
 
@@ -168,6 +176,7 @@ class Note extends HiveObject {
       paragraphSpacing: (json['paragraphSpacing'] as num?)?.toDouble() ?? 8.0,
       lastReadMode: json['lastReadMode'] as bool? ?? false,
       colorValue: json['colorValue'] as int?,
+      tags: List<String>.from(json['tags'] ?? const <String>[]),
     );
   }
 }

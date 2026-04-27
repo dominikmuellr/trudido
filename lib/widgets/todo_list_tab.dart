@@ -878,20 +878,53 @@ class TodoListTab extends ConsumerWidget {
     );
   }
 
-  /// Build compact event card for TODAY section – one-liner with time + title
-  /// Resolve event dot color: folder color > event color > tertiary
-  Color _getEventDotColor(
+  Color? _getEventFolderColor(WidgetRef ref, app_event.Event event) {
+    if (event.folderId == null) {
+      return null;
+    }
+    final folder = ref.watch(folderByIdProvider(event.folderId!));
+    if (folder == null) {
+      return null;
+    }
+    return Color(folder.color);
+  }
+
+  /// Accent color precedence: item color > folder color > tertiary fallback.
+  Color _getEventAccentColor(
     WidgetRef ref,
     app_event.Event event,
     ColorScheme colorScheme,
   ) {
-    if (event.folderId != null) {
-      final folder = ref.watch(folderByIdProvider(event.folderId!));
-      if (folder != null) return Color(folder.color);
+    if (event.color != null) {
+      return Color(event.color!);
     }
-    if (event.color != null) return Color(event.color!);
+    final folderColor = _getEventFolderColor(ref, event);
+    if (folderColor != null) {
+      return folderColor;
+    }
     return colorScheme.tertiary;
   }
+
+  /// Background tint precedence: item color > folder color > theme surface.
+  Color _getEventBackgroundColor(
+    WidgetRef ref,
+    app_event.Event event,
+    ColorScheme colorScheme,
+    Brightness brightness,
+  ) {
+    final explicitColor = event.color != null ? Color(event.color!) : null;
+    final folderColor = _getEventFolderColor(ref, event);
+    final base = explicitColor ?? folderColor;
+
+    if (base == null) {
+      return colorScheme.surfaceContainerLow;
+    }
+
+    final alpha = brightness == Brightness.dark ? 0.32 : 0.18;
+    return base.withValues(alpha: alpha);
+  }
+
+  /// Build compact event card for TODAY section – one-liner with time + title
 
   Widget _buildCompactEventCard(
     BuildContext context,
@@ -902,7 +935,19 @@ class TodoListTab extends ConsumerWidget {
   ) {
     final spacing = ref.watch(adaptiveSpacingProvider);
     final preferences = ref.watch(preferencesStateProvider);
-    final dotColor = _getEventDotColor(ref, event, colorScheme);
+    final dotColor = _getEventAccentColor(ref, event, colorScheme);
+    final cardBg = _getEventBackgroundColor(
+      ref,
+      event,
+      colorScheme,
+      theme.brightness,
+    );
+    final onCardColor = cardBg.computeLuminance() > 0.35
+        ? const Color(0xDD000000)
+        : Colors.white;
+    final onCardSecondary = cardBg.computeLuminance() > 0.35
+        ? const Color(0x8A000000)
+        : const Color(0xB3FFFFFF);
     final timeFormat = DateFormat('HH:mm');
     final dateFormat = DateFormat('MMM d');
     final String timeText;
@@ -917,119 +962,129 @@ class TodoListTab extends ConsumerWidget {
 
     final cardContent = Padding(
       padding: EdgeInsets.symmetric(vertical: spacing.s2),
-      child: InkWell(
-        onTap: () {
-          final multiMode = ref.read(multiSelectModeProvider);
-          if (multiMode) {
-            if (!ref.read(multiSelectModeProvider)) {
+      child: Container(
+        margin: EdgeInsets.symmetric(
+          horizontal: spacing.s8,
+          vertical: spacing.s4,
+        ),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: SpacingBorderRadius.sm,
+        ),
+        child: InkWell(
+          onTap: () {
+            final multiMode = ref.read(multiSelectModeProvider);
+            if (multiMode) {
+              if (!ref.read(multiSelectModeProvider)) {
+                ref.read(multiSelectModeProvider.notifier).update(true);
+              }
+              ref.read(selectedEventIdsProvider.notifier).toggle(event.id);
+              HapticFeedback.selectionClick();
+            } else {
+              _showEditEventDialog(context, ref, event);
+            }
+          },
+          onLongPress: () {
+            final multiMode = ref.read(multiSelectModeProvider);
+            if (!multiMode) {
               ref.read(multiSelectModeProvider.notifier).update(true);
             }
             ref.read(selectedEventIdsProvider.notifier).toggle(event.id);
             HapticFeedback.selectionClick();
-          } else {
-            _showEditEventDialog(context, ref, event);
-          }
-        },
-        onLongPress: () {
-          final multiMode = ref.read(multiSelectModeProvider);
-          if (!multiMode) {
-            ref.read(multiSelectModeProvider.notifier).update(true);
-          }
-          ref.read(selectedEventIdsProvider.notifier).toggle(event.id);
-          HapticFeedback.selectionClick();
-        },
-        borderRadius: SpacingBorderRadius.sm,
-        child: Builder(
-          builder: (context) {
-            final multiMode = ref.watch(multiSelectModeProvider);
-            final selectedEventIds = ref.watch(selectedEventIdsProvider);
-            final isSelected = selectedEventIds.contains(event.id);
-            return Stack(
-              children: [
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: spacing.s12,
-                    vertical: spacing.s8,
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: dotColor,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: spacing.s8),
-                      Flexible(
-                        flex: 0,
-                        child: Text(
-                          timeText,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
+          },
+          borderRadius: SpacingBorderRadius.sm,
+          child: Builder(
+            builder: (context) {
+              final multiMode = ref.watch(multiSelectModeProvider);
+              final selectedEventIds = ref.watch(selectedEventIdsProvider);
+              final isSelected = selectedEventIds.contains(event.id);
+              return Stack(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: spacing.s12,
+                      vertical: spacing.s8,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: dotColor,
+                            shape: BoxShape.circle,
                           ),
                         ),
-                      ),
-                      SizedBox(width: spacing.s8),
-                      Expanded(
-                        child: Text(
-                          event.text,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurface,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (event.location != null && event.location!.isNotEmpty)
-                        Padding(
-                          padding: EdgeInsets.only(left: spacing.s8),
-                          child: Icon(
-                            Icons.location_on_outlined,
-                            size: 14,
-                            color: colorScheme.onSurfaceVariant.withValues(
-                              alpha: 0.6,
+                        SizedBox(width: spacing.s8),
+                        Flexible(
+                          flex: 0,
+                          child: Text(
+                            timeText,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: onCardSecondary,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                      if (multiMode)
-                        Padding(
-                          padding: EdgeInsets.only(left: spacing.s8),
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 120),
-                            child: isSelected
-                                ? Icon(
-                                    Icons.check_circle,
-                                    key: const ValueKey('chk'),
-                                    size: 18,
-                                    color: colorScheme.primary,
-                                  )
-                                : Icon(
-                                    Icons.radio_button_unchecked,
-                                    key: const ValueKey('unchk'),
-                                    size: 18,
-                                    color: colorScheme.onSurfaceVariant
-                                        .withValues(alpha: 0.5),
-                                  ),
+                        SizedBox(width: spacing.s8),
+                        Expanded(
+                          child: Text(
+                            event.text,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: onCardColor,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                    ],
-                  ),
-                ),
-                if (multiMode && isSelected)
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius: SpacingBorderRadius.sm,
-                      ),
+                        if (event.location != null &&
+                            event.location!.isNotEmpty)
+                          Padding(
+                            padding: EdgeInsets.only(left: spacing.s8),
+                            child: Icon(
+                              Icons.location_on_outlined,
+                              size: 14,
+                              color: onCardSecondary,
+                            ),
+                          ),
+                        if (multiMode)
+                          Padding(
+                            padding: EdgeInsets.only(left: spacing.s8),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 120),
+                              child: isSelected
+                                  ? Icon(
+                                      Icons.check_circle,
+                                      key: const ValueKey('chk'),
+                                      size: 18,
+                                      color: colorScheme.primary,
+                                    )
+                                  : Icon(
+                                      Icons.radio_button_unchecked,
+                                      key: const ValueKey('unchk'),
+                                      size: 18,
+                                      color: onCardSecondary.withValues(
+                                        alpha: 0.7,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-              ],
-            );
-          },
+                  if (multiMode && isSelected)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withValues(alpha: 0.12),
+                          borderRadius: SpacingBorderRadius.sm,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -1102,9 +1157,19 @@ class TodoListTab extends ConsumerWidget {
     VoidCallback? onSelectToggle,
   }) {
     final spacing = ref.watch(adaptiveSpacingProvider);
-    final eventColor = event.color != null
-        ? Color(event.color!)
-        : colorScheme.tertiary;
+    final eventColor = _getEventAccentColor(ref, event, colorScheme);
+    final eventBackgroundColor = _getEventBackgroundColor(
+      ref,
+      event,
+      colorScheme,
+      theme.brightness,
+    );
+    final onEventCardColor = eventBackgroundColor.computeLuminance() > 0.35
+        ? const Color(0xDD000000)
+        : Colors.white;
+    final onEventCardSecondary = eventBackgroundColor.computeLuminance() > 0.35
+        ? const Color(0x8A000000)
+        : const Color(0xB3FFFFFF);
     final timeFormat = DateFormat('HH:mm');
     final dateFormat = DateFormat('MMM d');
 
@@ -1182,7 +1247,7 @@ class TodoListTab extends ConsumerWidget {
                 borderRadius: SpacingBorderRadius.md,
               ),
               clipBehavior: Clip.antiAlias,
-              color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
+              color: eventBackgroundColor,
               child: InkWell(
                 onTap: selectable
                     ? onSelectToggle
@@ -1202,7 +1267,7 @@ class TodoListTab extends ConsumerWidget {
                           child: Text(
                             timeText,
                             style: theme.textTheme.labelMedium?.copyWith(
-                              color: colorScheme.onTertiaryContainer,
+                              color: onEventCardColor,
                               fontWeight: FontWeight.w600,
                             ),
                             textAlign: TextAlign.center,
@@ -1222,7 +1287,7 @@ class TodoListTab extends ConsumerWidget {
                                 event.text,
                                 style: theme.textTheme.bodyLarge?.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: colorScheme.onTertiaryContainer,
+                                  color: onEventCardColor,
                                   decoration: event.isCompleted
                                       ? TextDecoration.lineThrough
                                       : null,
@@ -1235,8 +1300,7 @@ class TodoListTab extends ConsumerWidget {
                                 Text(
                                   dateText,
                                   style: theme.textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.onTertiaryContainer
-                                        .withValues(alpha: 0.7),
+                                    color: onEventCardSecondary,
                                   ),
                                 ),
                               ],
@@ -1248,8 +1312,7 @@ class TodoListTab extends ConsumerWidget {
                                     Icon(
                                       Icons.location_on_outlined,
                                       size: 14,
-                                      color: colorScheme.onTertiaryContainer
-                                          .withValues(alpha: 0.7),
+                                      color: onEventCardSecondary,
                                     ),
                                     SizedBox(width: spacing.s4),
                                     Expanded(
@@ -1257,9 +1320,7 @@ class TodoListTab extends ConsumerWidget {
                                         event.location!,
                                         style: theme.textTheme.bodySmall
                                             ?.copyWith(
-                                              color: colorScheme
-                                                  .onTertiaryContainer
-                                                  .withValues(alpha: 0.7),
+                                              color: onEventCardSecondary,
                                             ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -1296,8 +1357,7 @@ class TodoListTab extends ConsumerWidget {
                             : Icon(
                                 Icons.event,
                                 size: 20,
-                                color: colorScheme.onTertiaryContainer
-                                    .withValues(alpha: 0.5),
+                                color: onEventCardSecondary,
                               ),
                       ),
                     ],

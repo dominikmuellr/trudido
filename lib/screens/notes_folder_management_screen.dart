@@ -23,6 +23,21 @@ import '../services/vault_password_service.dart';
 import '../services/vault_auth_service.dart';
 import '../widgets/common/common.dart';
 
+const int _defaultNoteFolderColor = 0xFF2196F3;
+const int _defaultVaultFolderColor = 0xFFFFC107;
+const List<int> _noteFolderColorPalette = [
+  0xFF2196F3, // Blue
+  0xFF4CAF50, // Green
+  0xFFFF9800, // Orange
+  0xFFF44336, // Red
+  0xFF9C27B0, // Purple
+  0xFF00BCD4, // Cyan
+  0xFF795548, // Brown
+  0xFF607D8B, // Blue Grey
+  0xFFE91E63, // Pink
+  0xFFFFC107, // Amber
+];
+
 /// Folder management screen specifically for Notes (with vault support)
 class NotesFolderManagementScreen extends ConsumerStatefulWidget {
   const NotesFolderManagementScreen({super.key});
@@ -34,6 +49,54 @@ class NotesFolderManagementScreen extends ConsumerStatefulWidget {
 
 class _NotesFolderManagementScreenState
     extends ConsumerState<NotesFolderManagementScreen> {
+  Widget _buildFolderColorPicker({
+    required BuildContext context,
+    required int selectedColor,
+    required ValueChanged<int> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Folder Color', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _noteFolderColorPalette.map((value) {
+            final isSelected = value == selectedColor;
+            return ExpressiveGestureDetector(
+              onTap: () => onChanged(value),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: Color(value),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.onSurface
+                        : Theme.of(context).colorScheme.outlineVariant,
+                    width: isSelected ? 2.5 : 1,
+                  ),
+                ),
+                child: isSelected
+                    ? Icon(
+                        Icons.check,
+                        size: 16,
+                        color: Color(value).computeLuminance() > 0.5
+                            ? Colors.black
+                            : Colors.white,
+                      )
+                    : null,
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final foldersAsync = ref.watch(noteFoldersProvider);
@@ -87,7 +150,7 @@ class _NotesFolderManagementScreenState
                 child: ListTile(
                   leading: Icon(
                     folder.isVault ? Icons.lock : Icons.folder,
-                    color: folder.isVault ? Colors.amber : Colors.blue,
+                    color: Color(folder.color),
                     size: 32,
                   ),
                   title: Text(
@@ -105,12 +168,16 @@ class _NotesFolderManagementScreenState
                           padding: const EdgeInsets.only(top: 4),
                           child: Row(
                             children: [
-                              Icon(Icons.lock, size: 14, color: Colors.amber),
+                              Icon(
+                                Icons.lock,
+                                size: 14,
+                                color: Color(folder.color),
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 'Encrypted Vault',
                                 style: TextStyle(
-                                  color: Colors.amber,
+                                  color: Color(folder.color),
                                   fontWeight: FontWeight.w500,
                                   fontSize: 12,
                                 ),
@@ -173,6 +240,7 @@ class _NotesFolderManagementScreenState
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
     bool isVault = false;
+    int selectedColor = _defaultNoteFolderColor;
 
     return showDialog(
       context: context,
@@ -211,6 +279,16 @@ class _NotesFolderManagementScreenState
                     textCapitalization: TextCapitalization.sentences,
                   ),
                   const SizedBox(height: 16),
+                  _buildFolderColorPicker(
+                    context: context,
+                    selectedColor: selectedColor,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        selectedColor = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Encrypted Vault Folder'),
@@ -225,7 +303,15 @@ class _NotesFolderManagementScreenState
                     value: isVault,
                     onChanged: (value) {
                       setDialogState(() {
-                        isVault = value ?? false;
+                        final nextIsVault = value ?? false;
+                        if (nextIsVault &&
+                            selectedColor == _defaultNoteFolderColor) {
+                          selectedColor = _defaultVaultFolderColor;
+                        } else if (!nextIsVault &&
+                            selectedColor == _defaultVaultFolderColor) {
+                          selectedColor = _defaultNoteFolderColor;
+                        }
+                        isVault = nextIsVault;
                       });
                     },
                   ),
@@ -274,6 +360,7 @@ class _NotesFolderManagementScreenState
                         isVault: isVault,
                         hasPassword: isVault && vaultPassword != null,
                         useBiometric: useBiometric,
+                        color: selectedColor,
                       );
 
                   if (mounted) {
@@ -321,6 +408,7 @@ class _NotesFolderManagementScreenState
     final descriptionController = TextEditingController(
       text: folder.description ?? '',
     );
+    int selectedColor = folder.color;
 
     return showDialog(
       context: context,
@@ -358,25 +446,39 @@ class _NotesFolderManagementScreenState
                     textCapitalization: TextCapitalization.sentences,
                   ),
                   const SizedBox(height: 16),
+                  _buildFolderColorPicker(
+                    context: context,
+                    selectedColor: selectedColor,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        selectedColor = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
                   // Show vault status but don't allow editing
                   if (folder.isVault)
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.1),
+                        color: Color(folder.color).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.amber),
+                        border: Border.all(color: Color(folder.color)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.lock, color: Colors.amber, size: 20),
+                          Icon(
+                            Icons.lock,
+                            color: Color(folder.color),
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Encrypted Vault Folder - Encryption cannot be disabled after creation',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.amber.shade900,
+                                color: Color(folder.color),
                               ),
                             ),
                           ),
@@ -403,6 +505,7 @@ class _NotesFolderManagementScreenState
                   final updated = folder.copyWith(
                     name: name,
                     description: description.isEmpty ? null : description,
+                    color: selectedColor,
                     // Keep existing vault status - cannot be changed
                   );
 

@@ -27,13 +27,14 @@ class NoteFolderAdapter extends TypeAdapter<NoteFolder> {
       hasPassword: fields[7] == null ? false : fields[7] as bool,
       useBiometric: fields[8] == null ? true : fields[8] as bool,
       noteFormat: fields[9] == null ? 'markdown' : fields[9] as String,
+      color: fields[10] == null ? 0xFF2196F3 : fields[10] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, NoteFolder obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -53,7 +54,9 @@ class NoteFolderAdapter extends TypeAdapter<NoteFolder> {
       ..writeByte(8)
       ..write(obj.useBiometric)
       ..writeByte(9)
-      ..write(obj.noteFormat);
+      ..write(obj.noteFormat)
+      ..writeByte(10)
+      ..write(obj.color);
   }
 
   @override
