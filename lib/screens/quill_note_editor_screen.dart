@@ -3563,8 +3563,9 @@ class _QuillNoteEditorScreenState extends ConsumerState<QuillNoteEditorScreen> {
   Widget _buildDragHintTooltip() {
     // Find the drag handle's position via its GlobalKey
     final handleContext = _dragHandleKey.currentContext;
-    if (handleContext == null || !handleContext.mounted)
+    if (handleContext == null || !handleContext.mounted) {
       return const SizedBox.shrink();
+    }
     final handleBox = handleContext.findRenderObject() as RenderBox?;
     if (handleBox == null || !handleBox.attached) {
       return const SizedBox.shrink();
