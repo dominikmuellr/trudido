@@ -17,7 +17,7 @@
 import 'package:flutter/material.dart';
 
 /// The current app version string – update this with each release.
-const String kCurrentAppVersion = '1.3.4';
+const String kCurrentAppVersion = '1.3.5';
 
 /// One entry in the changelog.
 class _ChangelogEntry {
@@ -28,6 +28,17 @@ class _ChangelogEntry {
 
 /// Full changelog list, newest first.
 const List<_ChangelogEntry> _changelog = [
+  _ChangelogEntry(
+    version: '1.3.5',
+    changes: [
+      'Spatial Canvas: new graph/visualization view for notes - explore notes as an interactive spatial map (Settings → Experimental)',
+      'Tag bar in note editor: assign and manage tags directly while editing a note',
+      'Default note editor settings: configure default formatting, text size, and behavior for new notes in one place',
+      'Search bar is now always active - the option to hide or remove it has been removed',
+      'Mutual exclusion dialog: confirmation dialog when toggling between quick input bar and floating navbar',
+      'Various search bar fixes and stability improvements',
+    ],
+  ),
   _ChangelogEntry(
     version: '1.3.4',
     changes: [

@@ -147,6 +147,7 @@ class _FolderShortcut {
   factory _FolderShortcut.fromNote(NoteFolder f) => _FolderShortcut(
     id: f.id,
     name: f.name,
+    folderColor: f.color,
     updatedAt: f.updatedAt,
     type: _FolderType.notes,
   );
@@ -1154,7 +1155,7 @@ class _FolderShortcutChip extends ConsumerWidget {
         ? getIconDataFromName(folder.iconName)
         : Icons.description_outlined;
     final iconColor =
-        folder.type == _FolderType.task && folder.folderColor != null
+        folder.folderColor != null
         ? Color(folder.folderColor!)
         : colorScheme.primary;
 

@@ -510,7 +510,7 @@ class _NoteFoldersList extends ConsumerWidget {
                       ? (isSelected ? Icons.lock_open : Icons.lock)
                       : Icons.folder_outlined,
                   size: 20,
-                  color: isSelected ? colorScheme.primary : folderColor,
+                  color: folderColor,
                 ),
                 title: Text(
                   folder.name,

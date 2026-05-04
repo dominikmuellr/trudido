@@ -1,0 +1,9 @@
+Version 1.3.5
+
+• Spatial Canvas: new graph/visualization view for notes - explore your notes as an interactive spatial map (Settings → Experimental)
+• Tag bar in note editor: assign and manage tags directly while editing a note
+• Default note editor settings: configure default formatting, text size, and behavior for new notes in one place
+• Search bar is now always active - the option to hide or remove it has been removed
+• Mutual exclusion dialog: a confirmation dialog now appears when toggling between quick input bar and floating navbar
+• Various search bar fixes and stability improvements
+• Several smaller UI fixes and refinements

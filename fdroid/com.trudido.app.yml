@@ -160,9 +160,9 @@ Builds:
       - export PUB_CACHE=$(pwd)/.pub-cache
       - $$flutter$$/bin/flutter build apk --release --flavor fdroid --dart-define=IS_FDROID=true --split-per-abi --target-platform android-arm64
 
-  - versionName: 1.3.4
-    versionCode: 2025
-    commit: v1.3.4
+  - versionName: 1.3.5
+    versionCode: 2026
+    commit: v1.3.5
     output: build/app/outputs/flutter-apk/app-fdroid-arm64-v8a-release.apk
     srclibs:
       - flutter@stable
