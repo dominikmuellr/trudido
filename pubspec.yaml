@@ -76,7 +76,7 @@ dependencies:
   flutter_markdown_plus: ^1.0.7
 
   # Rich text editor (WYSIWYG)
-  flutter_quill: 11.5.0
+  flutter_quill: ^11.5.1
 
   # Open external URLs (e.g., GitHub link in About screen)
   url_launcher: ^6.1.10
@@ -141,10 +141,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
-  # Code generation
-  hive_generator: ^2.0.1
-  # build_runner 2.7.0 incompatible with hive_generator 2.0.1; pin to compatible version
-  build_runner: 2.4.13
+  # Code generation dev dependencies removed temporarily to avoid version solver conflicts with flutter_test
 
   # Icon generation
   flutter_launcher_icons: ^0.14.4

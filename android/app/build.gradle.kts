@@ -42,10 +42,9 @@ android {
 
     signingConfigs {
         create("release") {
-            val home = System.getenv("HOME") ?: System.getenv("USERPROFILE") ?: ""
-            val keystorePath = "$home/Documents/keystores/trudido-release-key.jks"
+            val keystorePath = "D:/keystores/trudido-release-key.jks"
             val keystoreFile = file(keystorePath)
-            
+
             // Only configure signing if keystore exists and env vars are set
             if (keystoreFile.exists() && System.getenv("KEYSTORE_PASSWORD") != null) {
                 storeFile = keystoreFile
