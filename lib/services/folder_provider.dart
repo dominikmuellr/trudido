@@ -17,14 +17,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/folder.dart';
 import '../repositories/folder_repository.dart';
-import '../repositories/hive_folder_repository.dart';
+import '../repositories/isar_folder_repository.dart';
 import '../use_cases/folder_use_cases.dart';
 import '../utils/date_search_parser.dart';
 import '../utils/state_notifiers.dart';
 
 // Repository provider
 final folderRepositoryProvider = Provider<FolderRepository>((ref) {
-  return HiveFolderRepository();
+  return IsarFolderRepository();
 });
 
 // Use case providers

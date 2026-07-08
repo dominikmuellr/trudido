@@ -17,7 +17,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:isar_community/isar.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/todo.dart';
 import '../models/folder.dart';
@@ -27,29 +28,27 @@ import '../models/note_folder.dart';
 import '../models/note_history.dart';
 import '../models/holiday.dart';
 import '../models/event.dart';
-import '../repositories/hive_folder_repository.dart';
-import '../repositories/hive_folder_template_repository.dart';
+import '../repositories/isar_folder_repository.dart';
+import '../repositories/isar_folder_template_repository.dart';
 import '../utils/encryption_helper.dart';
+import '../utils/isar_id.dart';
 
 class StorageService {
-  static const String _todosBoxName = 'todos';
-  static const String _eventsBoxName = 'events';
-  static const String _notesBoxName = 'notes';
-  static const String _noteFoldersBoxName = 'note_folders';
-  static const String _noteHistoryBoxName = 'note_history';
+  static Isar? _isar;
+  static Isar get isar {
+    final instance = _isar;
+    if (instance == null) {
+      throw StateError('StorageService.init() must complete before using Isar');
+    }
+    return instance;
+  }
 
-  // Deferred / lazy boxes
-  static LazyBox<Todo>? _todosLazyBox; // large dataset
-  static LazyBox<Event>? _eventsLazyBox; // events storage
-  static Box<Note>? _notesBox; // notes storage
-  static Box<NoteFolder>? _noteFoldersBox; // note folders storage
-  static Box<NoteHistoryEntry>? _noteHistoryBox; // note edit history storage
   static SharedPreferences? _prefs;
   static Completer<void>? _prefsCompleter; // separate fast prefs init
   // Exposed readiness flag so preference notifiers can avoid redundant async reloads.
   static bool get prefsReady => _prefs != null;
-  static HiveFolderRepository? _folderRepository;
-  static HiveFolderTemplateRepository? _templateRepository;
+  static IsarFolderRepository? _folderRepository;
+  static IsarFolderTemplateRepository? _templateRepository;
   // Toggle for console logging (timings, deferred open). Disable in tests for cleaner output.
   static bool enableLogging = true;
 
@@ -60,213 +59,91 @@ class StorageService {
   /// they call `StorageService.init()` and expect no background timers.
   static bool performDeferredSynchronously = false;
 
-  static bool _initialized = false; // core (prefs + hive init) ready
+  static bool _initialized = false; // core (prefs + isar init) ready
   static Completer<void>?
   _initCompleter; // completion for initial (settings only) init
-  static Completer<void>? _todosCompleter; // completion for todos lazy box open
-  static Completer<void>?
-  _eventsCompleter; // completion for events lazy box open
-  static Completer<void>? _notesCompleter; // completion for notes box open
-  static Completer<void>?
-  _noteFoldersCompleter; // completion for note folders box open
-  static Completer<void>?
-  _noteHistoryCompleter; // completion for note history box open
+  static Completer<void>? _todosCompleter; // completion for Isar init
+  static Completer<void>? _eventsCompleter; // completion for Isar init
+  static Completer<void>? _notesCompleter; // completion for Isar init
+  static Completer<void>? _noteFoldersCompleter; // completion for Isar init
+  static Completer<void>? _noteHistoryCompleter; // completion for Isar init
 
-  // Initialize Hive and boxes
+  // Initialize Isar and preferences
   static Future<void> init() async {
     if (_initialized) return;
     if (_initCompleter != null) return _initCompleter!.future;
     _initCompleter = Completer<void>();
     final start = DateTime.now();
-    await Hive.initFlutter();
-    final afterHive = DateTime.now();
-
-    // Register adapters (cheap)
-    Hive.registerAdapter(TodoAdapter());
-    // CategoryAdapter removed - categories system eliminated
-    Hive.registerAdapter(FolderAdapter());
-    Hive.registerAdapter(NoteAdapter());
-    Hive.registerAdapter(NoteFolderAdapter());
-    // Register holiday adapter
-    if (!Hive.isAdapterRegistered(8)) {
-      Hive.registerAdapter(HolidayAdapter());
-    }
-    // Register note history adapter
-    if (!Hive.isAdapterRegistered(9)) {
-      Hive.registerAdapter(NoteHistoryEntryAdapter());
-    }
-    // Register event adapter
-    if (!Hive.isAdapterRegistered(10)) {
-      Hive.registerAdapter(EventAdapter());
-    }
-    // Register template adapters if they exist
-    try {
-      if (!Hive.isAdapterRegistered(4)) {
-        Hive.registerAdapter(FolderTemplateAdapter());
-      }
-      if (!Hive.isAdapterRegistered(5)) {
-        Hive.registerAdapter(TaskTemplateAdapter());
-      }
-    } catch (e) {
-      // Template adapters not generated yet, will work when they are
-      if (enableLogging) {
-        debugPrint('[StorageService] Template adapters not ready: $e');
-      }
-    }
-    final afterAdapters = DateTime.now();
+    final dir = await getApplicationDocumentsDirectory();
+    _isar = await Isar.open([
+      TodoSchema,
+      EventSchema,
+      NoteSchema,
+      NoteFolderSchema,
+      NoteHistoryEntrySchema,
+      FolderSchema,
+      FolderTemplateSchema,
+      HolidaySchema,
+    ], directory: dir.path);
+    final afterIsar = DateTime.now();
 
     // SharedPreferences (fast)
     await _ensurePrefs();
     final afterPrefs = DateTime.now();
 
-    // Schedule or run deferred opens (todos and notes) without blocking UI.
+    // Schedule or run deferred initialization without blocking UI.
     FutureOr<void> runDeferred() async {
-      // Note folders box MUST open first (needed for note encryption/decryption)
       _noteFoldersCompleter ??= Completer<void>();
       try {
-        _noteFoldersBox = await Hive.openBox<NoteFolder>(_noteFoldersBoxName);
-        // Initialize default vault folder if this is first run
         await _initializeDefaultVaultFolder();
         _noteFoldersCompleter?.complete();
-        if (enableLogging) {
-          debugPrint('[StorageService] Note folders box opened successfully');
-        }
-      } catch (e) {
-        if (enableLogging) {
-          debugPrint(
-            '[StorageService] Failed to initialize note folders box: $e',
-          );
-        }
-        // Attempt recovery by deleting and recreating the box
-        try {
-          await Hive.deleteBoxFromDisk(_noteFoldersBoxName);
-          _noteFoldersBox = await Hive.openBox<NoteFolder>(_noteFoldersBoxName);
-          await _initializeDefaultVaultFolder();
-          _noteFoldersCompleter?.complete();
-          if (enableLogging) {
-            debugPrint(
-              '[StorageService] Successfully recovered note folders box',
-            );
-          }
-        } catch (recoveryError) {
-          _noteFoldersCompleter?.completeError(recoveryError);
-          if (enableLogging) {
-            debugPrint(
-              '[StorageService] Failed to recover note folders box: $recoveryError',
-            );
-          }
-        }
+      } catch (e, st) {
+        _noteFoldersCompleter?.completeError(e, st);
       }
 
-      // Notes box (small to medium) - opened AFTER folders
       _notesCompleter ??= Completer<void>();
       try {
-        _notesBox = await Hive.openBox<Note>(_notesBoxName);
-        if (_notesBox!.isNotEmpty) {
+        if (await isar.notes.count() > 0) {
           await _migrateWelcomeNote();
         }
         _notesCompleter?.complete();
-      } catch (e) {
-        if (enableLogging) {
-          debugPrint('[StorageService] Failed to initialize notes box: $e');
-          debugPrint(
-            '[StorageService] Attempting to recover by clearing corrupted data...',
-          );
-        }
-
-        // Try to recover by deleting the corrupted box
-        try {
-          await Hive.deleteBoxFromDisk(_notesBoxName);
-          _notesBox = await Hive.openBox<Note>(_notesBoxName);
-          _notesCompleter?.complete();
-          if (enableLogging) {
-            debugPrint('[StorageService] Successfully recovered notes box');
-          }
-        } catch (recoveryError, recoverySt) {
-          _notesCompleter?.completeError(recoveryError, recoverySt);
-          if (enableLogging) {
-            debugPrint(
-              '[StorageService] Failed to recover notes box: $recoveryError',
-            );
-          }
-        }
+      } catch (e, st) {
+        _notesCompleter?.completeError(e, st);
       }
 
-      // Todos lazy box (potentially large)
       _todosCompleter ??= Completer<void>();
       final todosStart = DateTime.now();
       try {
-        _todosLazyBox = await Hive.openLazyBox<Todo>(_todosBoxName);
         _todosCompleter?.complete();
         final dur = DateTime.now().difference(todosStart).inMilliseconds;
         if (enableLogging) {
-          // ignore: avoid_debugPrint
-          debugPrint(
-            '[StorageService.deferred] opened todos lazy box in ${dur}ms',
-          );
+          debugPrint('[StorageService.deferred] todos ready in ${dur}ms');
         }
       } catch (e, st) {
         _todosCompleter?.completeError(e, st);
       }
 
-      // Events lazy box (potentially large, like todos)
       _eventsCompleter ??= Completer<void>();
       try {
-        _eventsLazyBox = await Hive.openLazyBox<Event>(_eventsBoxName);
         _eventsCompleter?.complete();
-        if (enableLogging) {
-          debugPrint('[StorageService] Events lazy box opened successfully');
-        }
       } catch (e, st) {
         _eventsCompleter?.completeError(e, st);
       }
 
-      // Note history box (for undo/redo and edit history)
       _noteHistoryCompleter ??= Completer<void>();
       try {
-        _noteHistoryBox = await Hive.openBox<NoteHistoryEntry>(
-          _noteHistoryBoxName,
-        );
         _noteHistoryCompleter?.complete();
-        if (enableLogging) {
-          debugPrint('[StorageService] Note history box opened successfully');
-        }
-      } catch (e) {
-        if (enableLogging) {
-          debugPrint(
-            '[StorageService] Failed to initialize note history box: $e',
-          );
-        }
-        // Attempt recovery by deleting and recreating the box
-        try {
-          await Hive.deleteBoxFromDisk(_noteHistoryBoxName);
-          _noteHistoryBox = await Hive.openBox<NoteHistoryEntry>(
-            _noteHistoryBoxName,
-          );
-          _noteHistoryCompleter?.complete();
-          if (enableLogging) {
-            debugPrint(
-              '[StorageService] Successfully recovered note history box',
-            );
-          }
-        } catch (recoveryError) {
-          _noteHistoryCompleter?.completeError(recoveryError);
-          if (enableLogging) {
-            debugPrint(
-              '[StorageService] Failed to recover note history box: $recoveryError',
-            );
-          }
-        }
+      } catch (e, st) {
+        _noteHistoryCompleter?.completeError(e, st);
       }
 
-      // Folder repo + defaults for folders (after both; not critical to initial tasks list)
       final repoStart = DateTime.now();
       try {
-        _folderRepository = HiveFolderRepository();
+        _folderRepository = IsarFolderRepository();
         await _folderRepository!.init();
 
         // Initialize template repository
-        _templateRepository = HiveFolderTemplateRepository();
+        _templateRepository = IsarFolderTemplateRepository();
         await _templateRepository!.init();
 
         final repoDur = DateTime.now().difference(repoStart).inMilliseconds;
@@ -295,7 +172,7 @@ class StorageService {
     if (enableLogging) {
       // ignore: avoid_debugPrint
       debugPrint(
-        '[StorageService.init] hive=${afterHive.difference(start).inMilliseconds}ms adapters=${afterAdapters.difference(afterHive).inMilliseconds}ms prefs=${afterPrefs.difference(afterAdapters).inMilliseconds}ms deferredScheduled=${afterRepo.difference(afterPrefs).inMilliseconds}ms totalCritical=${afterRepo.difference(start).inMilliseconds}ms (categories,todos,repo deferred)',
+        '[StorageService.init] isar=${afterIsar.difference(start).inMilliseconds}ms prefs=${afterPrefs.difference(afterIsar).inMilliseconds}ms deferredScheduled=${afterRepo.difference(afterPrefs).inMilliseconds}ms totalCritical=${afterRepo.difference(start).inMilliseconds}ms',
       );
     }
     _initialized = true;
@@ -304,7 +181,7 @@ class StorageService {
 
   static Future<void> ensureReady() => init();
 
-  // Lightweight prefs-only init usable before full init (Hive) occurs.
+  // Lightweight prefs-only init usable before full init (Isar) occurs.
   static Future<void> _ensurePrefs() async {
     if (_prefs != null) return;
     if (_prefsCompleter != null) return _prefsCompleter!.future;
@@ -327,7 +204,7 @@ class StorageService {
   static Future<void> ensurePrefs() => _ensurePrefs();
 
   static Future<void> waitTodosReady() async {
-    if (_todosLazyBox != null) return;
+    if (_isar != null) return;
     await ensureReady();
     _todosCompleter ??= Completer<void>();
     return _todosCompleter!.future.timeout(
@@ -337,7 +214,7 @@ class StorageService {
   }
 
   static Future<void> waitEventsReady() async {
-    if (_eventsLazyBox != null) return;
+    if (_isar != null) return;
     await ensureReady();
     _eventsCompleter ??= Completer<void>();
     return _eventsCompleter!.future.timeout(
@@ -347,7 +224,7 @@ class StorageService {
   }
 
   static Future<void> waitNotesReady() async {
-    if (_notesBox != null) return;
+    if (_isar != null) return;
     await ensureReady();
     _notesCompleter ??= Completer<void>();
     return _notesCompleter!.future.timeout(
@@ -357,7 +234,7 @@ class StorageService {
   }
 
   // Getter for folder repository
-  static HiveFolderRepository? get folderRepository => _folderRepository;
+  static IsarFolderRepository? get folderRepository => _folderRepository;
 
   /// Finds and replaces the welcome note if it hasn't been updated yet.
   /// Uses a SharedPreferences key to ensure the migration only runs once.
@@ -367,15 +244,12 @@ class StorageService {
     final storedVersion = _prefs?.getInt(versionKey) ?? 0;
     if (storedVersion >= currentVersion) return;
 
-    // Find the welcome note by its old or current title
-    final box = _notesBox!;
-    Note? target;
-    for (final note in box.values) {
-      if (note.title == 'Welcome' || note.title == 'Welcome to Trudido') {
-        target = note;
-        break;
-      }
-    }
+    final target = await isar.notes
+        .filter()
+        .titleEqualTo('Welcome')
+        .or()
+        .titleEqualTo('Welcome to Trudido')
+        .findFirst();
 
     if (target != null) {
       final updated = target.copyWith(
@@ -451,19 +325,17 @@ Type **/** to open the insert menu:
 - `</>` **Code block**
 ''',
       );
-      await box.put(target.id, updated);
+      await isar.writeTxn(() => isar.notes.put(updated));
     }
 
     await _prefs?.setInt(versionKey, currentVersion);
   }
 
   static Future<void> _initializeDefaultVaultFolder() async {
-    if (_noteFoldersBox == null) return;
+    await ensureReady();
 
-    // Check if we already have folders
-    if (_noteFoldersBox!.isNotEmpty) return;
+    if (await isar.noteFolders.count() > 0) return;
 
-    // Create the default Vault folder
     final vaultFolder = NoteFolder(
       name: 'Vault',
       description: 'Secure encrypted folder for private notes',
@@ -473,7 +345,7 @@ Type **/** to open the insert menu:
       sortOrder: 0,
       color: 0xFFFFC107,
     );
-    await _noteFoldersBox!.put(vaultFolder.id, vaultFolder);
+    await isar.writeTxn(() => isar.noteFolders.put(vaultFolder));
 
     if (enableLogging) {
       debugPrint('[StorageService] Created default Vault folder');
@@ -484,12 +356,7 @@ Type **/** to open the insert menu:
   static Future<void> saveTodo(Todo todo) async {
     await waitTodosReady();
     try {
-      _todosLazyBox ??= await Hive.openLazyBox<Todo>(_todosBoxName);
-      if (_todosLazyBox != null) {
-        await _todosLazyBox!.put(todo.id, todo);
-        return;
-      }
-      throw Exception('Todos lazy box is not available');
+      await isar.writeTxn(() => isar.todos.put(todo));
     } catch (e, st) {
       debugPrint('[StorageService] saveTodo failed: $e\n$st');
       rethrow;
@@ -499,17 +366,14 @@ Type **/** to open the insert menu:
   static Future<void> deleteTodo(String id) async {
     await waitTodosReady();
     try {
-      _todosLazyBox ??= await Hive.openLazyBox<Todo>(_todosBoxName);
-      if (_todosLazyBox != null) {
-        final todo = await _todosLazyBox!.get(id);
+      await isar.writeTxn(() async {
+        final todo = await isar.todos.get(fastHash(id));
         if (todo != null) {
           todo.isDeleted = true;
           todo.deletedAt = DateTime.now();
-          await _todosLazyBox!.put(id, todo);
+          await isar.todos.put(todo);
         }
-        return;
-      }
-      throw Exception('Todos lazy box is not available');
+      });
     } catch (e, st) {
       debugPrint('[StorageService] deleteTodo failed: $e\n$st');
       rethrow;
@@ -518,31 +382,24 @@ Type **/** to open the insert menu:
 
   static Future<void> permanentlyDeleteTodo(String id) async {
     await waitTodosReady();
-    if (_todosLazyBox != null) {
-      await _todosLazyBox!.delete(id);
-    }
+    await isar.writeTxn(() => isar.todos.delete(fastHash(id)));
   }
 
   static Future<void> restoreTodo(String id) async {
     await waitTodosReady();
-    if (_todosLazyBox != null) {
-      final todo = await _todosLazyBox!.get(id);
+    await isar.writeTxn(() async {
+      final todo = await isar.todos.get(fastHash(id));
       if (todo != null) {
         todo.isDeleted = false;
-        await _todosLazyBox!.put(id, todo);
+        await isar.todos.put(todo);
       }
-    }
+    });
   }
 
   static Future<void> updateTodo(Todo todo) async {
     await waitTodosReady();
     try {
-      _todosLazyBox ??= await Hive.openLazyBox<Todo>(_todosBoxName);
-      if (_todosLazyBox != null) {
-        await _todosLazyBox!.put(todo.id, todo);
-        return;
-      }
-      throw Exception('Todos lazy box is not available');
+      await isar.writeTxn(() => isar.todos.put(todo));
     } catch (e, st) {
       debugPrint('[StorageService] updateTodo failed: $e\n$st');
       rethrow;
@@ -550,88 +407,52 @@ Type **/** to open the insert menu:
   }
 
   static List<Todo> getAllTodos() {
-    // Only usable after full eager open (legacy); with lazy box this will often be empty early.
-    if (_todosLazyBox != null) {
-      return const [];
-    }
     return const [];
   }
 
   static Future<List<Todo>> getAllTodosAsync() async {
     await waitTodosReady();
-    if (_todosLazyBox != null) {
-      final keys = _todosLazyBox!.keys.cast<dynamic>().toList();
-      final List<Todo> list = [];
-      for (final k in keys) {
-        final t = await _todosLazyBox!.get(k);
-        if (t != null && !t.isDeleted) list.add(t);
-      }
-      return list;
-    }
-    return const [];
+    return isar.todos.filter().isDeletedEqualTo(false).findAll();
   }
 
   static Future<List<Todo>> getDeletedTodos() async {
     await waitTodosReady();
-    if (_todosLazyBox != null) {
-      final keys = _todosLazyBox!.keys.cast<dynamic>().toList();
-      final List<Todo> list = [];
-      for (final k in keys) {
-        final t = await _todosLazyBox!.get(k);
-        if (t != null && t.isDeleted) list.add(t);
-      }
-      return list;
-    }
-    return const [];
+    return isar.todos.filter().isDeletedEqualTo(true).findAll();
   }
 
   static Future<Todo?> getTodoAsync(String id) async {
     await waitTodosReady();
-    if (_todosLazyBox != null) return _todosLazyBox!.get(id);
-    return null;
+    return isar.todos.get(fastHash(id));
   }
 
   static Future<void> clearAllTodos() async {
     await waitTodosReady();
-    if (_todosLazyBox != null) {
-      await _todosLazyBox!.clear();
-      return;
-    }
+    await isar.writeTxn(() => isar.todos.clear());
   }
 
   static Future<void> saveTodosOrder(List<Todo> todos) async {
     // Clear todos and save in new order
     await waitTodosReady();
-    if (_todosLazyBox != null) {
-      await _todosLazyBox!.clear();
-      for (final t in todos) {
-        await _todosLazyBox!.put(t.id, t);
-      }
-      return;
-    }
+    await isar.writeTxn(() async {
+      await isar.todos.clear();
+      await isar.todos.putAll(todos);
+    });
   }
 
   /// Persists all notes in the given order (clear + re-insert).
   static Future<void> saveNotesOrder(List<Note> notes) async {
     await waitNotesReady();
-    if (_notesBox != null) {
-      await _notesBox!.clear();
-      for (final n in notes) {
-        await _notesBox!.put(n.id, n);
-      }
-    }
+    await isar.writeTxn(() async {
+      await isar.notes.clear();
+      await isar.notes.putAll(notes);
+    });
   }
 
   // Event operations
   static Future<void> saveEvent(Event event) async {
     await waitEventsReady();
     try {
-      _eventsLazyBox ??= await Hive.openLazyBox<Event>(_eventsBoxName);
-      if (_eventsLazyBox != null) {
-        await _eventsLazyBox!.put(event.id, event);
-        return;
-      }
-      throw Exception('Events lazy box is not available');
+      await isar.writeTxn(() => isar.events.put(event));
     } catch (e, st) {
       debugPrint('[StorageService] saveEvent failed: $e\n$st');
       rethrow;
@@ -641,17 +462,14 @@ Type **/** to open the insert menu:
   static Future<void> deleteEvent(String id) async {
     await waitEventsReady();
     try {
-      _eventsLazyBox ??= await Hive.openLazyBox<Event>(_eventsBoxName);
-      if (_eventsLazyBox != null) {
-        final event = await _eventsLazyBox!.get(id);
+      await isar.writeTxn(() async {
+        final event = await isar.events.get(fastHash(id));
         if (event != null) {
           event.isDeleted = true;
           event.deletedAt = DateTime.now();
-          await _eventsLazyBox!.put(id, event);
+          await isar.events.put(event);
         }
-        return;
-      }
-      throw Exception('Events lazy box is not available');
+      });
     } catch (e, st) {
       debugPrint('[StorageService] deleteEvent failed: $e\n$st');
       rethrow;
@@ -660,31 +478,24 @@ Type **/** to open the insert menu:
 
   static Future<void> permanentlyDeleteEvent(String id) async {
     await waitEventsReady();
-    if (_eventsLazyBox != null) {
-      await _eventsLazyBox!.delete(id);
-    }
+    await isar.writeTxn(() => isar.events.delete(fastHash(id)));
   }
 
   static Future<void> restoreEvent(String id) async {
     await waitEventsReady();
-    if (_eventsLazyBox != null) {
-      final event = await _eventsLazyBox!.get(id);
+    await isar.writeTxn(() async {
+      final event = await isar.events.get(fastHash(id));
       if (event != null) {
         event.isDeleted = false;
-        await _eventsLazyBox!.put(id, event);
+        await isar.events.put(event);
       }
-    }
+    });
   }
 
   static Future<void> updateEvent(Event event) async {
     await waitEventsReady();
     try {
-      _eventsLazyBox ??= await Hive.openLazyBox<Event>(_eventsBoxName);
-      if (_eventsLazyBox != null) {
-        await _eventsLazyBox!.put(event.id, event);
-        return;
-      }
-      throw Exception('Events lazy box is not available');
+      await isar.writeTxn(() => isar.events.put(event));
     } catch (e, st) {
       debugPrint('[StorageService] updateEvent failed: $e\n$st');
       rethrow;
@@ -693,78 +504,53 @@ Type **/** to open the insert menu:
 
   static Future<List<Event>> getAllEventsAsync() async {
     await waitEventsReady();
-    if (_eventsLazyBox != null) {
-      final keys = _eventsLazyBox!.keys.cast<dynamic>().toList();
-      final List<Event> list = [];
-      for (final k in keys) {
-        final e = await _eventsLazyBox!.get(k);
-        if (e != null && !e.isDeleted) list.add(e);
-      }
-      return list;
-    }
-    return const [];
+    return isar.events.filter().isDeletedEqualTo(false).findAll();
   }
 
   static Future<List<Event>> getDeletedEvents() async {
     await waitEventsReady();
-    if (_eventsLazyBox != null) {
-      final keys = _eventsLazyBox!.keys.cast<dynamic>().toList();
-      final List<Event> list = [];
-      for (final k in keys) {
-        final e = await _eventsLazyBox!.get(k);
-        if (e != null && e.isDeleted) list.add(e);
-      }
-      return list;
-    }
-    return const [];
+    return isar.events.filter().isDeletedEqualTo(true).findAll();
   }
 
   static Future<Event?> getEventAsync(String id) async {
     await waitEventsReady();
-    if (_eventsLazyBox != null) return _eventsLazyBox!.get(id);
-    return null;
+    return isar.events.get(fastHash(id));
   }
 
   static Future<void> clearAllEvents() async {
     await waitEventsReady();
-    if (_eventsLazyBox != null) {
-      await _eventsLazyBox!.clear();
-      return;
-    }
+    await isar.writeTxn(() => isar.events.clear());
   }
 
   static Future<void> saveEventsOrder(List<Event> events) async {
     await waitEventsReady();
-    if (_eventsLazyBox != null) {
-      await _eventsLazyBox!.clear();
-      for (final e in events) {
-        await _eventsLazyBox!.put(e.id, e);
-      }
-      return;
-    }
+    await isar.writeTxn(() async {
+      await isar.events.clear();
+      await isar.events.putAll(events);
+    });
   }
 
   // Notes operations
   static Future<void> saveNote(Note note) async {
-    if (_notesBox == null) {
-      throw Exception('Notes storage not initialized. Cannot save note.');
-    }
-    await _notesBox!.put(note.id, note);
+    await waitNotesReady();
+    await isar.writeTxn(() => isar.notes.put(note));
   }
 
   static Future<void> deleteNote(String id) async {
-    if (_notesBox == null) return;
-    final note = _notesBox!.get(id);
-    if (note != null) {
-      note.isDeleted = true;
-      note.deletedAt = DateTime.now();
-      await _notesBox!.put(id, note);
-    }
+    await waitNotesReady();
+    await isar.writeTxn(() async {
+      final note = await isar.notes.get(fastHash(id));
+      if (note != null) {
+        note.isDeleted = true;
+        note.deletedAt = DateTime.now();
+        await isar.notes.put(note);
+      }
+    });
   }
 
   static Future<void> permanentlyDeleteNote(String id) async {
-    if (_notesBox == null) return;
-    await _notesBox!.delete(id);
+    await waitNotesReady();
+    await isar.writeTxn(() => isar.notes.delete(fastHash(id)));
   }
 
   /// Purges bin items older than [daysInBin] days from both notes and todos.
@@ -773,117 +559,101 @@ Type **/** to open the insert menu:
     if (daysInBin <= 0) return;
     final cutoff = DateTime.now().subtract(Duration(days: daysInBin));
 
-    // Purge expired notes
-    if (_notesBox != null) {
-      final expiredNoteIds = _notesBox!.values
-          .where(
-            (n) =>
-                n.isDeleted &&
-                n.deletedAt != null &&
-                n.deletedAt!.isBefore(cutoff),
-          )
-          .map((n) => n.id)
-          .toList();
-      for (final id in expiredNoteIds) {
-        await _notesBox!.delete(id);
-      }
-    }
+    await waitNotesReady();
+    await isar.writeTxn(() async {
+      await isar.notes
+          .filter()
+          .isDeletedEqualTo(true)
+          .deletedAtLessThan(cutoff)
+          .deleteAll();
+    });
 
-    // Purge expired todos
     await waitTodosReady();
-    if (_todosLazyBox != null) {
-      final keys = _todosLazyBox!.keys.cast<dynamic>().toList();
-      for (final k in keys) {
-        final todo = await _todosLazyBox!.get(k);
-        if (todo != null &&
-            todo.isDeleted &&
-            todo.deletedAt != null &&
-            todo.deletedAt!.isBefore(cutoff)) {
-          await _todosLazyBox!.delete(k);
-        }
-      }
-    }
+    await isar.writeTxn(() async {
+      await isar.todos
+          .filter()
+          .isDeletedEqualTo(true)
+          .deletedAtLessThan(cutoff)
+          .deleteAll();
+    });
 
-    // Purge expired events
     await waitEventsReady();
-    if (_eventsLazyBox != null) {
-      final keys = _eventsLazyBox!.keys.cast<dynamic>().toList();
-      for (final k in keys) {
-        final event = await _eventsLazyBox!.get(k);
-        if (event != null &&
-            event.isDeleted &&
-            event.deletedAt != null &&
-            event.deletedAt!.isBefore(cutoff)) {
-          await _eventsLazyBox!.delete(k);
-        }
-      }
-    }
+    await isar.writeTxn(() async {
+      await isar.events
+          .filter()
+          .isDeletedEqualTo(true)
+          .deletedAtLessThan(cutoff)
+          .deleteAll();
+    });
   }
 
   static Future<void> restoreNote(String id) async {
-    if (_notesBox == null) return;
-    final note = _notesBox!.get(id);
-    if (note != null) {
-      note.isDeleted = false;
-      await _notesBox!.put(id, note);
-    }
+    await waitNotesReady();
+    await isar.writeTxn(() async {
+      final note = await isar.notes.get(fastHash(id));
+      if (note != null) {
+        note.isDeleted = false;
+        await isar.notes.put(note);
+      }
+    });
   }
 
   static List<Note> getAllNotes() {
-    if (_notesBox == null) return const [];
-    return _notesBox!.values.where((n) => !n.isDeleted).toList();
+    if (_isar == null) return const [];
+    return isar.notes.filter().isDeletedEqualTo(false).findAllSync();
   }
 
   static List<Note> getDeletedNotes() {
-    if (_notesBox == null) return const [];
-    return _notesBox!.values.where((n) => n.isDeleted).toList();
+    if (_isar == null) return const [];
+    return isar.notes.filter().isDeletedEqualTo(true).findAllSync();
   }
 
   static Note? getNote(String id) {
-    if (_notesBox == null) return null;
-    return _notesBox!.get(id);
+    if (_isar == null) return null;
+    return isar.notes.getSync(fastHash(id));
   }
 
   static Future<void> clearAllNotes() async {
-    if (_notesBox == null) return;
-    await _notesBox!.clear();
+    await waitNotesReady();
+    await isar.writeTxn(() => isar.notes.clear());
   }
 
   // Note folders operations
   static Future<void> saveNoteFolder(NoteFolder folder) async {
-    if (_noteFoldersBox == null) return;
-    await _noteFoldersBox!.put(folder.id, folder);
+    await waitNoteFoldersReady();
+    await isar.writeTxn(() => isar.noteFolders.put(folder));
   }
 
   static Future<void> deleteNoteFolder(String id) async {
-    if (_noteFoldersBox == null) return;
-    await _noteFoldersBox!.delete(id);
+    await waitNoteFoldersReady();
+    await isar.writeTxn(() => isar.noteFolders.delete(fastHash(id)));
   }
 
   static List<NoteFolder> getAllNoteFolders() {
-    if (_noteFoldersBox == null) return const [];
-    return _noteFoldersBox!.values.toList();
+    if (_isar == null) return const [];
+    return isar.noteFolders.where().findAllSync();
   }
 
   static NoteFolder? getNoteFolder(String id) {
-    if (_noteFoldersBox == null) return null;
-    return _noteFoldersBox!.get(id);
+    if (_isar == null) return null;
+    return isar.noteFolders.getSync(fastHash(id));
   }
 
   static Future<void> waitNoteFoldersReady() async {
-    // Wait specifically for note folders completer
+    if (_isar != null) return;
+    await ensureReady();
     _noteFoldersCompleter ??= Completer<void>();
     return _noteFoldersCompleter!.future.timeout(
       const Duration(seconds: 30),
       onTimeout: () {
-        throw TimeoutException('Note folders box failed to open in time');
+        throw TimeoutException('Note folders storage failed to open in time');
       },
     );
   }
 
   static Future<void> clearAllNoteFolders() async {
-    if (_noteFoldersBox == null) return;
-    await _noteFoldersBox!.clear();
+    await waitNoteFoldersReady();
+    await isar.writeTxn(() => isar.noteFolders.clear());
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -892,7 +662,7 @@ Type **/** to open the insert menu:
 
   /// Wait for note history box to be ready.
   static Future<void> waitNoteHistoryReady() async {
-    if (_noteHistoryBox != null) return;
+    if (_isar != null) return;
     await ensureReady();
     _noteHistoryCompleter ??= Completer<void>();
     return _noteHistoryCompleter!.future.timeout(
@@ -904,8 +674,7 @@ Type **/** to open the insert menu:
   /// Save a note history entry.
   static Future<void> saveNoteHistoryEntry(NoteHistoryEntry entry) async {
     await waitNoteHistoryReady();
-    if (_noteHistoryBox == null) return;
-    await _noteHistoryBox!.put(entry.id, entry);
+    await isar.writeTxn(() => isar.noteHistoryEntrys.put(entry));
   }
 
   /// Get all note history entries for a specific note, sorted newest first.
@@ -913,48 +682,37 @@ Type **/** to open the insert menu:
     String noteId,
   ) async {
     await waitNoteHistoryReady();
-    if (_noteHistoryBox == null) return const [];
-    final entries = _noteHistoryBox!.values
-        .where((e) => e.noteId == noteId)
-        .toList();
-    entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    return entries;
+    return isar.noteHistoryEntrys
+        .filter()
+        .noteIdEqualTo(noteId)
+        .sortByTimestampDesc()
+        .findAll();
   }
 
   /// Get all note history entries, sorted newest first.
   static Future<List<NoteHistoryEntry>> getAllNoteHistory() async {
     await waitNoteHistoryReady();
-    if (_noteHistoryBox == null) return const [];
-    final entries = _noteHistoryBox!.values.toList();
-    entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    return entries;
+    return isar.noteHistoryEntrys.where().sortByTimestampDesc().findAll();
   }
 
   /// Delete a single note history entry by ID.
   static Future<void> deleteNoteHistoryEntry(String id) async {
     await waitNoteHistoryReady();
-    if (_noteHistoryBox == null) return;
-    await _noteHistoryBox!.delete(id);
+    await isar.writeTxn(() => isar.noteHistoryEntrys.delete(fastHash(id)));
   }
 
   /// Delete all note history entries for a specific note.
   static Future<void> deleteNoteHistoryForNote(String noteId) async {
     await waitNoteHistoryReady();
-    if (_noteHistoryBox == null) return;
-    final keysToDelete = _noteHistoryBox!.keys.where((key) {
-      final entry = _noteHistoryBox!.get(key);
-      return entry != null && entry.noteId == noteId;
-    }).toList();
-    for (final key in keysToDelete) {
-      await _noteHistoryBox!.delete(key);
-    }
+    await isar.writeTxn(() {
+      return isar.noteHistoryEntrys.filter().noteIdEqualTo(noteId).deleteAll();
+    });
   }
 
   /// Clear all note history entries.
   static Future<void> clearAllNoteHistory() async {
     await waitNoteHistoryReady();
-    if (_noteHistoryBox == null) return;
-    await _noteHistoryBox!.clear();
+    await isar.writeTxn(() => isar.noteHistoryEntrys.clear());
   }
 
   // Theme and preferences operations
@@ -1671,8 +1429,9 @@ Type **/** to open the insert menu:
 
   // Cleanup and close
   static Future<void> dispose() async {
-    await _todosLazyBox?.close();
-    await _eventsLazyBox?.close();
+    await _isar?.close();
+    _isar = null;
+    _initialized = false;
   }
 
   // ============================================================================
