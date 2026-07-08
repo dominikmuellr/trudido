@@ -475,7 +475,7 @@ class _TodoAppState extends ConsumerState<TodoApp> with WidgetsBindingObserver {
 }
 
 /// Lightweight first-frame widget that shows a minimal splash while heavy
-/// async initialization (Hive boxes, notifications) completes.
+/// async initialization (Isar storage, notifications) completes.
 class AppBootstrap extends ConsumerStatefulWidget {
   const AppBootstrap({super.key});
   @override

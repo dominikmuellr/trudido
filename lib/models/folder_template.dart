@@ -14,59 +14,52 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:hive/hive.dart';
+import 'package:isar_community/isar.dart';
 import 'package:uuid/uuid.dart';
+import '../utils/isar_id.dart';
 
 part 'folder_template.g.dart';
 
-@HiveType(typeId: 4)
-class FolderTemplate extends HiveObject {
-  @HiveField(0)
+@collection
+class FolderTemplate {
+  Id get isarId => fastHash(id);
+
+  @Index(unique: true, replace: true)
   String id;
 
-  @HiveField(1)
   String name;
 
-  @HiveField(2)
   String? description;
 
-  @HiveField(3)
   List<String> keywords; // For auto-suggestion matching
 
-  @HiveField(4)
   List<TaskTemplate> taskTemplates;
 
-  @HiveField(5)
-  DateTime createdAt;
+  DateTime? createdAt;
 
-  @HiveField(6)
-  DateTime updatedAt;
+  DateTime? updatedAt;
 
-  @HiveField(7)
   bool isBuiltIn; // Built-in vs user-created
 
-  @HiveField(8)
   bool isCustomized; // Built-in template that user modified
 
-  @HiveField(9)
   String? originalTemplateId; // For tracking customized built-ins
 
-  @HiveField(10)
   int useCount; // Track how often template is used
 
   FolderTemplate({
-    String? id,
+    String id = '',
     required this.name,
     this.description,
     required this.keywords,
-    required this.taskTemplates,
+    this.taskTemplates = const [],
     DateTime? createdAt,
     DateTime? updatedAt,
     this.isBuiltIn = false,
     this.isCustomized = false,
     this.originalTemplateId,
     this.useCount = 0,
-  }) : id = id ?? const Uuid().v4(),
+  }) : id = id.isEmpty ? const Uuid().v4() : id,
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
@@ -111,8 +104,8 @@ class FolderTemplate extends HiveObject {
       'description': description,
       'keywords': keywords,
       'taskTemplates': taskTemplates.map((t) => t.toJson()).toList(),
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': (createdAt ?? DateTime.now()).toIso8601String(),
+      'updatedAt': (updatedAt ?? DateTime.now()).toIso8601String(),
       'isBuiltIn': isBuiltIn,
       'isCustomized': isCustomized,
       'originalTemplateId': originalTemplateId,
@@ -123,7 +116,7 @@ class FolderTemplate extends HiveObject {
   /// Create from JSON for import
   static FolderTemplate fromJson(Map<String, dynamic> json) {
     return FolderTemplate(
-      id: json['id'],
+      id: json['id'] ?? '',
       name: json['name'],
       description: json['description'],
       keywords: List<String>.from(json['keywords'] ?? []),
@@ -142,34 +135,26 @@ class FolderTemplate extends HiveObject {
   }
 }
 
-@HiveType(typeId: 5)
-class TaskTemplate extends HiveObject {
-  @HiveField(0)
+@embedded
+class TaskTemplate {
   String text;
 
-  @HiveField(1)
   String priority; // high, medium, low
 
-  @HiveField(3)
   List<String> tags;
 
-  @HiveField(4)
   String? notes;
 
-  @HiveField(5)
   int sortOrder; // Order within template
 
-  @HiveField(6)
   int? dueDateOffset; // Days from folder creation
 
-  @HiveField(7)
   List<int> reminderOffsets; // Reminder times in minutes
 
-  @HiveField(8)
   int? estimatedMinutes; // Time estimation
 
   TaskTemplate({
-    required this.text,
+    this.text = '',
     this.priority = 'medium',
     this.tags = const [],
     this.notes,

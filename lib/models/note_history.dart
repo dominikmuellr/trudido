@@ -14,38 +14,38 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:hive/hive.dart';
+import 'package:isar_community/isar.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:convert';
+import '../utils/isar_id.dart';
 
 part 'note_history.g.dart';
 
 /// Represents a single edit history entry for a note's content field.
 /// Used for undo/redo functionality and browsing full edit history.
-@HiveType(typeId: 9)
-class NoteHistoryEntry extends HiveObject {
-  @HiveField(0)
+@collection
+class NoteHistoryEntry {
+  Id get isarId => fastHash(id);
+
+  @Index(unique: true, replace: true)
   String id;
 
-  @HiveField(1)
+  @Index()
   String noteId;
 
-  @HiveField(2)
   String? contentBefore;
 
-  @HiveField(3)
   String? contentAfter;
 
-  @HiveField(4)
-  DateTime timestamp;
+  DateTime? timestamp;
 
   NoteHistoryEntry({
-    String? id,
+    String id = '',
     required this.noteId,
     this.contentBefore,
     this.contentAfter,
     DateTime? timestamp,
-  }) : id = id ?? const Uuid().v4(),
+  }) : id = id.isEmpty ? const Uuid().v4() : id,
        timestamp = timestamp ?? DateTime.now();
 
   /// Creates a copy with optional field overrides.
@@ -66,11 +66,12 @@ class NoteHistoryEntry extends HiveObject {
   }
 
   /// Formats the timestamp as DD.MM.YYYY HH:mm (European 24h format).
+  @ignore
   String get formattedTimestamp => formatTimestamp();
 
   /// Formats the timestamp, respecting the user's 12h/24h preference.
   String formatTimestamp({bool use24Hour = true}) {
-    final d = timestamp;
+    final d = timestamp ?? DateTime.now();
     final day = d.day.toString().padLeft(2, '0');
     final month = d.month.toString().padLeft(2, '0');
     final year = d.year.toString();
@@ -89,6 +90,7 @@ class NoteHistoryEntry extends HiveObject {
   }
 
   /// Returns a brief human-readable summary of the change.
+  @ignore
   String get changeSummary {
     if (contentBefore == null && contentAfter != null) {
       return 'Content added';
@@ -133,6 +135,7 @@ class NoteHistoryEntry extends HiveObject {
   }
 
   /// Returns a preview of the content before this change.
+  @ignore
   String get contentBeforePreview {
     if (contentBefore == null) return '(empty)';
     final text = _extractPlainText(contentBefore!);
@@ -147,13 +150,13 @@ class NoteHistoryEntry extends HiveObject {
       'noteId': noteId,
       'contentBefore': contentBefore,
       'contentAfter': contentAfter,
-      'timestamp': timestamp.toIso8601String(),
+      'timestamp': (timestamp ?? DateTime.now()).toIso8601String(),
     };
   }
 
   static NoteHistoryEntry fromJson(Map<String, dynamic> json) {
     return NoteHistoryEntry(
-      id: json['id'],
+      id: json['id'] ?? '',
       noteId: json['noteId'],
       contentBefore: json['contentBefore'],
       contentAfter: json['contentAfter'],

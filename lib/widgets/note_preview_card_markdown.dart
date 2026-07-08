@@ -1074,7 +1074,7 @@ class NotePreviewCard extends ConsumerWidget {
                 ));
 
     final formattedDate = _formatCompactDate(
-      note.updatedAt,
+      note.updatedAt ?? DateTime.now(),
       preferences.resolveUse24Hour(
         MediaQuery.of(context).alwaysUse24HourFormat,
       ),

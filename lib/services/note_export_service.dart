@@ -145,8 +145,8 @@ class NoteExportService {
     );
 
     final title = note.title.isNotEmpty ? note.title : 'Untitled';
-    final created = note.createdAt.toLocal();
-    final updated = note.updatedAt.toLocal();
+    final created = (note.createdAt ?? DateTime.now()).toLocal();
+    final updated = (note.updatedAt ?? DateTime.now()).toLocal();
 
     // Build content widgets, handling Quill JSON with media embeds
     List<pw.Widget> contentWidgets = [];

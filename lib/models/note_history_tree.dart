@@ -16,6 +16,9 @@
 
 import 'note_history.dart';
 
+DateTime _historyTimestamp(NoteHistoryEntry entry) =>
+    entry.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
+
 /// Represents a node in the history tree with its children (branches).
 class HistoryTreeNode {
   final NoteHistoryEntry entry;
@@ -56,7 +59,7 @@ class HistoryTree {
     if (entries.isEmpty) return;
 
     final sortedEntries = List<NoteHistoryEntry>.from(entries)
-      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      ..sort((a, b) => _historyTimestamp(a).compareTo(_historyTimestamp(b)));
 
     for (final entry in sortedEntries) {
       _nodeMap[entry.id] = HistoryTreeNode(entry: entry);
@@ -78,7 +81,8 @@ class HistoryTree {
 
     for (final node in _nodeMap.values) {
       node.children.sort(
-        (a, b) => a.entry.timestamp.compareTo(b.entry.timestamp),
+        (a, b) =>
+            _historyTimestamp(a.entry).compareTo(_historyTimestamp(b.entry)),
       );
     }
   }
@@ -111,13 +115,13 @@ class HistoryTree {
   NoteHistoryEntry? get latestEntry {
     if (_nodeMap.isEmpty) return null;
     final entries = _nodeMap.values.map((n) => n.entry).toList();
-    entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    entries.sort((a, b) => _historyTimestamp(b).compareTo(_historyTimestamp(a)));
     return entries.first;
   }
 
   List<NoteHistoryEntry> get allEntries {
     final entries = _nodeMap.values.map((n) => n.entry).toList();
-    entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    entries.sort((a, b) => _historyTimestamp(b).compareTo(_historyTimestamp(a)));
     return entries;
   }
 

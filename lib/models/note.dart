@@ -14,60 +14,49 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:hive/hive.dart';
+import 'package:isar_community/isar.dart';
 import 'package:uuid/uuid.dart';
+import '../utils/isar_id.dart';
 
 part 'note.g.dart';
 
-@HiveType(typeId: 6)
-class Note extends HiveObject {
-  @HiveField(0)
+@collection
+class Note {
+  Id get isarId => fastHash(id);
+
+  @Index(unique: true, replace: true)
   String id;
 
-  @HiveField(1)
   String title;
 
-  @HiveField(2)
   String content;
 
-  @HiveField(3)
-  DateTime createdAt;
+  DateTime? createdAt;
 
-  @HiveField(4)
-  DateTime updatedAt;
+  DateTime? updatedAt;
 
-  @HiveField(5, defaultValue: false)
   bool isPinned;
 
-  @HiveField(6)
   String? folderId; // Reference to folder (including vault folders)
 
-  @HiveField(7)
   String? todoTxtContent; // Optional todo.txt format representation
 
-  @HiveField(8, defaultValue: false)
   bool isDeleted;
 
-  @HiveField(9, defaultValue: 1.5)
   double lineHeightMultiplier;
 
-  @HiveField(10, defaultValue: 8.0)
   double paragraphSpacing;
 
-  @HiveField(11, defaultValue: false)
   bool lastReadMode;
 
-  @HiveField(12)
   DateTime? deletedAt;
 
-  @HiveField(13)
   int? colorValue; // ARGB color value for card background, null = default theme color
 
-  @HiveField(14)
   List<String> tags;
 
   Note({
-    String? id,
+    String id = '',
     required this.title,
     required this.content,
     DateTime? createdAt,
@@ -81,11 +70,10 @@ class Note extends HiveObject {
     this.lastReadMode = false,
     this.deletedAt,
     this.colorValue,
-    List<String>? tags,
-  }) : id = id ?? const Uuid().v4(),
+    this.tags = const [],
+  }) : id = id.isEmpty ? const Uuid().v4() : id,
        createdAt = createdAt ?? DateTime.now(),
-       updatedAt = updatedAt ?? DateTime.now(),
-       tags = tags ?? [];
+       updatedAt = updatedAt ?? DateTime.now();
 
   Note copyWith({
     String? id,
@@ -145,8 +133,8 @@ class Note extends HiveObject {
       'id': id,
       'title': title,
       'content': content,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': (createdAt ?? DateTime.now()).toIso8601String(),
+      'updatedAt': (updatedAt ?? DateTime.now()).toIso8601String(),
       'isPinned': isPinned,
       'folderId': folderId,
       'todoTxtContent': todoTxtContent,

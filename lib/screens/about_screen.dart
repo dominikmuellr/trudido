@@ -146,8 +146,12 @@ class _AboutScreenState extends State<AboutScreen> {
           // Packages Section
           _buildSectionHeader(context, 'Core Packages'),
           _buildPackageTile('State Management', 'flutter_riverpod', '^3.2.1'),
-          _buildPackageTile('Local Database', 'hive', '^2.2.3'),
-          _buildPackageTile('Hive Flutter', 'hive_flutter', '^1.1.0'),
+          _buildPackageTile('Local Database', 'isar_community', '^3.3.2'),
+          _buildPackageTile(
+            'Isar Flutter Libs',
+            'isar_community_flutter_libs',
+            '^3.3.2',
+          ),
           _buildPackageTile(
             'Shared Preferences',
             'shared_preferences',

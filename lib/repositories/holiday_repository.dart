@@ -14,48 +14,52 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:hive/hive.dart';
 import 'package:flutter/foundation.dart';
+import 'package:isar_community/isar.dart';
 import '../models/holiday.dart';
+import '../services/storage_service.dart';
+import '../utils/isar_id.dart';
 
 /// Repository for managing imported holiday calendars
 class HolidayRepository {
-  static const String _holidaysBoxName = 'holidays';
-  Box<Holiday>? _holidaysBox;
+  bool _initialized = false;
 
-  /// Initialize the repository with Hive box
+  /// Initialize the repository with Isar storage.
   Future<void> init() async {
-    if (_holidaysBox != null && _holidaysBox!.isOpen) return;
-    _holidaysBox = await Hive.openBox<Holiday>(_holidaysBoxName);
+    if (_initialized) return;
+    await StorageService.ensureReady();
+    _initialized = true;
     debugPrint(
-      '[HolidayRepository] Initialized with ${_holidaysBox!.length} holidays',
+      '[HolidayRepository] Initialized with ${await StorageService.isar.holidays.count()} holidays',
     );
   }
 
-  /// Ensure box is initialized
+  /// Ensure storage is initialized.
   Future<void> _ensureInit() async {
-    if (_holidaysBox == null || !_holidaysBox!.isOpen) {
-      await init();
-    }
+    if (!_initialized) await init();
   }
 
   /// Get all holidays
   Future<List<Holiday>> getAllHolidays() async {
     await _ensureInit();
-    return _holidaysBox!.values.toList();
+    return StorageService.isar.holidays.where().findAll();
   }
 
   /// Get visible holidays only (not hidden)
   Future<List<Holiday>> getVisibleHolidays() async {
     await _ensureInit();
-    return _holidaysBox!.values.where((h) => !h.isHidden).toList();
+    return StorageService.isar.holidays
+        .filter()
+        .isHiddenEqualTo(false)
+        .findAll();
   }
 
   /// Get holidays for a specific date
   Future<List<Holiday>> getHolidaysForDate(DateTime date) async {
     await _ensureInit();
-    return _holidaysBox!.values
-        .where((h) => !h.isHidden && h.occursOn(date))
+    final holidays = await getVisibleHolidays();
+    return holidays
+        .where((h) => h.occursOn(date))
         .toList();
   }
 
@@ -65,7 +69,8 @@ class HolidayRepository {
     final startDate = DateTime(start.year, start.month, start.day);
     final endDate = DateTime(end.year, end.month, end.day);
 
-    return _holidaysBox!.values.where((h) {
+    final holidays = await getVisibleHolidays();
+    return holidays.where((h) {
       if (h.isHidden) return false;
       final holidayDate = DateTime(h.date.year, h.date.month, h.date.day);
       return !holidayDate.isBefore(startDate) && !holidayDate.isAfter(endDate);
@@ -75,7 +80,7 @@ class HolidayRepository {
   /// Get list of all imported calendar sources
   Future<List<String>> getCalendarSources() async {
     await _ensureInit();
-    final sources = _holidaysBox!.values
+    final sources = (await getAllHolidays())
         .map((h) => h.sourceCalendar)
         .toSet()
         .toList();
@@ -86,9 +91,10 @@ class HolidayRepository {
   /// Get holidays from a specific source calendar
   Future<List<Holiday>> getHolidaysBySource(String sourceCalendar) async {
     await _ensureInit();
-    return _holidaysBox!.values
-        .where((h) => h.sourceCalendar == sourceCalendar)
-        .toList();
+    return StorageService.isar.holidays
+        .filter()
+        .sourceCalendarEqualTo(sourceCalendar)
+        .findAll();
   }
 
   /// Add multiple holidays (from import)
@@ -98,7 +104,7 @@ class HolidayRepository {
 
     for (final holiday in holidays) {
       // Check for duplicates by UID within same source
-      final existingByUid = _holidaysBox!.values
+      final existingByUid = (await getAllHolidays())
           .where(
             (h) =>
                 h.uid.isNotEmpty &&
@@ -108,7 +114,9 @@ class HolidayRepository {
           .toList();
 
       if (existingByUid.isEmpty) {
-        await _holidaysBox!.put(holiday.id, holiday);
+        await StorageService.isar.writeTxn(() {
+          return StorageService.isar.holidays.put(holiday);
+        });
         addedCount++;
       } else {
         // Update existing holiday
@@ -117,7 +125,9 @@ class HolidayRepository {
           id: existing.id,
           isHidden: existing.isHidden, // Preserve hidden status
         );
-        await _holidaysBox!.put(existing.id, updated);
+        await StorageService.isar.writeTxn(() {
+          return StorageService.isar.holidays.put(updated);
+        });
       }
     }
 
@@ -128,33 +138,39 @@ class HolidayRepository {
   /// Toggle hidden status of a holiday
   Future<void> toggleHidden(String holidayId) async {
     await _ensureInit();
-    final holiday = _holidaysBox!.get(holidayId);
+    final holiday = await StorageService.isar.holidays.get(fastHash(holidayId));
     if (holiday != null) {
       final updated = holiday.copyWith(isHidden: !holiday.isHidden);
-      await _holidaysBox!.put(holidayId, updated);
+      await StorageService.isar.writeTxn(() {
+        return StorageService.isar.holidays.put(updated);
+      });
     }
   }
 
   /// Set hidden status of a holiday
   Future<void> setHidden(String holidayId, bool hidden) async {
     await _ensureInit();
-    final holiday = _holidaysBox!.get(holidayId);
+    final holiday = await StorageService.isar.holidays.get(fastHash(holidayId));
     if (holiday != null) {
       final updated = holiday.copyWith(isHidden: hidden);
-      await _holidaysBox!.put(holidayId, updated);
+      await StorageService.isar.writeTxn(() {
+        return StorageService.isar.holidays.put(updated);
+      });
     }
   }
 
   /// Delete all holidays from a specific source calendar
   Future<int> deleteBySource(String sourceCalendar) async {
     await _ensureInit();
-    final toDelete = _holidaysBox!.values
+    final toDelete = (await getAllHolidays())
         .where((h) => h.sourceCalendar == sourceCalendar)
         .map((h) => h.id)
         .toList();
 
     for (final id in toDelete) {
-      await _holidaysBox!.delete(id);
+      await StorageService.isar.writeTxn(() {
+        return StorageService.isar.holidays.delete(fastHash(id));
+      });
     }
 
     debugPrint(
@@ -166,19 +182,23 @@ class HolidayRepository {
   /// Delete a single holiday
   Future<void> deleteHoliday(String holidayId) async {
     await _ensureInit();
-    await _holidaysBox!.delete(holidayId);
+    await StorageService.isar.writeTxn(() {
+      return StorageService.isar.holidays.delete(fastHash(holidayId));
+    });
   }
 
   /// Update an existing holiday
   Future<void> updateHoliday(Holiday holiday) async {
     await _ensureInit();
-    await _holidaysBox!.put(holiday.id, holiday);
+    await StorageService.isar.writeTxn(() {
+      return StorageService.isar.holidays.put(holiday);
+    });
   }
 
   /// Clear all holidays
   Future<void> clearAll() async {
     await _ensureInit();
-    await _holidaysBox!.clear();
+    await StorageService.isar.writeTxn(() => StorageService.isar.holidays.clear());
     debugPrint('[HolidayRepository] Cleared all holidays');
   }
 
@@ -186,7 +206,7 @@ class HolidayRepository {
   Future<Map<String, int>> getHolidayCountBySource() async {
     await _ensureInit();
     final counts = <String, int>{};
-    for (final holiday in _holidaysBox!.values) {
+    for (final holiday in await getAllHolidays()) {
       counts[holiday.sourceCalendar] =
           (counts[holiday.sourceCalendar] ?? 0) + 1;
     }
@@ -196,7 +216,7 @@ class HolidayRepository {
   /// Find duplicate holidays (same name and date from different sources)
   Future<List<List<Holiday>>> findDuplicates() async {
     await _ensureInit();
-    final holidays = _holidaysBox!.values.toList();
+    final holidays = await getAllHolidays();
     final duplicateGroups = <String, List<Holiday>>{};
 
     for (final holiday in holidays) {

@@ -140,7 +140,7 @@ class _FolderShortcut {
     name: f.name,
     iconName: f.icon,
     folderColor: f.color,
-    updatedAt: f.updatedAt,
+    updatedAt: f.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
     type: _FolderType.task,
   );
 
@@ -148,7 +148,7 @@ class _FolderShortcut {
     id: f.id,
     name: f.name,
     folderColor: f.color,
-    updatedAt: f.updatedAt,
+    updatedAt: f.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
     type: _FolderType.notes,
   );
 }

@@ -14,48 +14,41 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:hive/hive.dart';
+import 'package:isar_community/isar.dart';
 import 'package:uuid/uuid.dart';
+import '../utils/isar_id.dart';
 
 part 'folder.g.dart';
 
-@HiveType(typeId: 2)
-class Folder extends HiveObject {
-  @HiveField(0)
+@collection
+class Folder {
+  Id get isarId => fastHash(id);
+
+  @Index(unique: true, replace: true)
   String id;
 
-  @HiveField(1)
   String name;
 
-  @HiveField(2)
   String? description;
 
-  @HiveField(3)
   int color; // Color value as int
 
-  @HiveField(4)
   String? icon; // Icon name as string
 
-  @HiveField(5)
-  DateTime createdAt;
+  DateTime? createdAt;
 
-  @HiveField(6)
-  DateTime updatedAt;
+  DateTime? updatedAt;
 
-  @HiveField(7)
   int sortOrder; // For custom ordering
 
-  @HiveField(8)
   bool isDefault; // Mark system default folders
 
-  @HiveField(9)
   String? parentId; // For nested folders (optional feature)
 
-  @HiveField(10, defaultValue: false)
   bool isVault; // Mark as encrypted vault folder
 
   Folder({
-    String? id,
+    String id = '',
     required this.name,
     this.description,
     required this.color,
@@ -66,7 +59,7 @@ class Folder extends HiveObject {
     this.isDefault = false,
     this.parentId,
     this.isVault = false,
-  }) : id = id ?? const Uuid().v4(),
+  }) : id = id.isEmpty ? const Uuid().v4() : id,
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
@@ -113,8 +106,8 @@ class Folder extends HiveObject {
       'description': description,
       'color': color,
       'icon': icon,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': (createdAt ?? DateTime.now()).toIso8601String(),
+      'updatedAt': (updatedAt ?? DateTime.now()).toIso8601String(),
       'sortOrder': sortOrder,
       'isDefault': isDefault,
       'parentId': parentId,
@@ -125,7 +118,7 @@ class Folder extends HiveObject {
   /// Create from JSON for import
   static Folder fromJson(Map<String, dynamic> json) {
     return Folder(
-      id: json['id'],
+      id: json['id'] ?? '',
       name: json['name'],
       description: json['description'],
       color: json['color'],
@@ -148,7 +141,7 @@ class Folder extends HiveObject {
         other.description == description &&
         other.color == color &&
         other.icon == icon &&
-        other.createdAt == createdAt &&
+            other.createdAt == createdAt &&
         other.updatedAt == updatedAt &&
         other.sortOrder == sortOrder &&
         other.isDefault == isDefault &&

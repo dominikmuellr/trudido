@@ -394,7 +394,9 @@ final filteredTasksProvider = Provider<List<Todo>>((ref) {
       }
 
       // Final stable tie-breaker: createdAt descending
-      return b.createdAt.compareTo(a.createdAt);
+      final aCreated = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bCreated = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bCreated.compareTo(aCreated);
     });
 
     if (kDebugMode) {
@@ -411,7 +413,9 @@ int _compareBySortKey(Todo a, Todo b, String key) {
   int result;
   switch (key) {
     case 'date_created':
-      result = b.createdAt.compareTo(a.createdAt);
+      final aCreated = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bCreated = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      result = bCreated.compareTo(aCreated);
       break;
     case 'date_due':
       if (a.dueDate == null && b.dueDate == null) {
@@ -559,7 +563,13 @@ final overdueTasksProvider = Provider<List<Todo>>((ref) {
   return ref.watch(tasksProvider).where((t) {
     return !t.isCompleted && t.isOverdueAt(now);
   }).toList()..sort(
-    (a, b) => (a.dueDate ?? a.createdAt).compareTo(b.dueDate ?? b.createdAt),
+    (a, b) {
+      final aDate =
+          a.dueDate ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bDate =
+          b.dueDate ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return aDate.compareTo(bDate);
+    },
   );
 });
 

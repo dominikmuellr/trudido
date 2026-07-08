@@ -24,7 +24,7 @@ import '../repositories/note_folder_repository.dart';
 
 const Object _sentinel = Object();
 
-/// Repository for managing note data persistence using Hive storage
+/// Repository for managing note data persistence using local Isar storage.
 class NotesRepository {
   final NoteFolderRepository _folderRepository;
 
@@ -58,9 +58,9 @@ class NotesRepository {
 
         debugPrint('Successfully encrypted note ${note.id}');
         // Store encrypted values in the note fields (temporarily hijacking them)
-        // Note: This relies on the fact that we're saving to Hive which stores dynamic types or strings
+        // Note: This relies on the fact that local storage keeps dynamic types or strings.
         // But since our model defines them as double, we can't store strings in double fields.
-        // Wait, Hive stores what we give it, but the model enforces types.
+        // The model enforces persisted field types.
         // Actually, for numeric fields, we usually don't encrypt them unless they are sensitive.
         // Line height and paragraph spacing are hardly sensitive data.
         // Let's ONLY encrypt title and content as before.
@@ -121,7 +121,9 @@ class NotesRepository {
         return a.isPinned ? -1 : 1;
       }
       // Then sort by updatedAt (most recent first)
-      return b.updatedAt.compareTo(a.updatedAt);
+      final aUpdated = a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bUpdated = b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bUpdated.compareTo(aUpdated);
     });
     return sortedNotes;
   }
@@ -152,7 +154,7 @@ class NotesRepository {
       todoTxtContent: todoTxtContent,
       lineHeightMultiplier: lineHeightMultiplier ?? 1.5,
       paragraphSpacing: paragraphSpacing ?? 8.0,
-      tags: tags,
+      tags: tags ?? const [],
     );
 
     // Encrypt if vault folder
@@ -252,7 +254,9 @@ class NotesRepository {
         return a.isPinned ? -1 : 1;
       }
       // Then sort by updatedAt (most recent first)
-      return b.updatedAt.compareTo(a.updatedAt);
+      final aUpdated = a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bUpdated = b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bUpdated.compareTo(aUpdated);
     });
     return sortedNotes;
   }

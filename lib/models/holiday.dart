@@ -14,40 +14,36 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:hive/hive.dart';
+import 'package:isar_community/isar.dart';
 import 'package:uuid/uuid.dart';
+import '../utils/isar_id.dart';
 
 part 'holiday.g.dart';
 
 /// Represents a holiday event imported from an ICS calendar file
-@HiveType(typeId: 8)
-class Holiday extends HiveObject {
-  @HiveField(0)
+@collection
+class Holiday {
+  Id get isarId => fastHash(id);
+
+  @Index(unique: true, replace: true)
   String id;
 
-  @HiveField(1)
   String name;
 
-  @HiveField(2)
   DateTime date;
 
-  @HiveField(3, defaultValue: '')
   String description;
 
-  @HiveField(4)
   String sourceCalendar; // Name of the imported calendar
 
-  @HiveField(5, defaultValue: false)
   bool isHidden; // Allow users to hide duplicate/unwanted holidays
 
-  @HiveField(6)
   DateTime? endDate; // For multi-day holidays
 
-  @HiveField(7, defaultValue: '')
   String uid; // Original UID from ICS file for deduplication
 
   Holiday({
-    String? id,
+    String id = '',
     required this.name,
     required this.date,
     this.description = '',
@@ -55,7 +51,7 @@ class Holiday extends HiveObject {
     this.isHidden = false,
     this.endDate,
     this.uid = '',
-  }) : id = id ?? const Uuid().v4();
+  }) : id = id.isEmpty ? const Uuid().v4() : id;
 
   /// Creates a copy of this holiday with updated fields
   Holiday copyWith({

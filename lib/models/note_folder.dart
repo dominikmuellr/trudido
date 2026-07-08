@@ -14,49 +14,42 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:hive/hive.dart';
+import 'package:isar_community/isar.dart';
 import 'package:uuid/uuid.dart';
+import '../utils/isar_id.dart';
 
 part 'note_folder.g.dart';
 
 /// Folder model specifically for organizing notes (separate from todo folders)
-@HiveType(typeId: 7) // Using typeId 7 for note folders
-class NoteFolder extends HiveObject {
-  @HiveField(0)
+@collection
+class NoteFolder {
+  Id get isarId => fastHash(id);
+
+  @Index(unique: true, replace: true)
   String id;
 
-  @HiveField(1)
   String name;
 
-  @HiveField(2)
   String? description;
 
-  @HiveField(3)
-  DateTime createdAt;
+  DateTime? createdAt;
 
-  @HiveField(4)
-  DateTime updatedAt;
+  DateTime? updatedAt;
 
-  @HiveField(5, defaultValue: false)
   bool isVault; // Encrypted vault folder flag
 
-  @HiveField(6)
   int sortOrder; // For custom ordering
 
-  @HiveField(7, defaultValue: false)
   bool hasPassword; // Whether vault has a password/PIN set
 
-  @HiveField(8, defaultValue: true)
   bool useBiometric; // Whether to use biometric shortcut (if available)
 
-  @HiveField(9, defaultValue: 'markdown')
   String noteFormat; // 'markdown' or 'todotxt' - format for all notes in this folder
 
-  @HiveField(10, defaultValue: 0xFF2196F3)
   int color; // Color value used for folder tinting in notes UI
 
   NoteFolder({
-    String? id,
+    String id = '',
     required this.name,
     this.description,
     DateTime? createdAt,
@@ -67,7 +60,7 @@ class NoteFolder extends HiveObject {
     this.useBiometric = true,
     this.noteFormat = 'markdown',
     this.color = 0xFF2196F3,
-  }) : id = id ?? const Uuid().v4(),
+  }) : id = id.isEmpty ? const Uuid().v4() : id,
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
@@ -118,8 +111,8 @@ class NoteFolder extends HiveObject {
       'id': id,
       'name': name,
       'description': description,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': (createdAt ?? DateTime.now()).toIso8601String(),
+      'updatedAt': (updatedAt ?? DateTime.now()).toIso8601String(),
       'isVault': isVault,
       'sortOrder': sortOrder,
       'hasPassword': hasPassword,

@@ -525,7 +525,13 @@ final filteredNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
       // First sort by the selected criteria
       switch (sortBy) {
         case 'date_created':
-          filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          filtered.sort((a, b) {
+            final aCreated =
+                a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            final bCreated =
+                b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            return bCreated.compareTo(aCreated);
+          });
           break;
         case 'alphabetical':
           filtered.sort(
@@ -533,10 +539,16 @@ final filteredNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
           );
           break;
         case 'manual':
-          break; // preserve storage (Hive insertion) order
+          break; // preserve storage insertion order
         case 'date_modified':
         default:
-          filtered.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+          filtered.sort((a, b) {
+            final aUpdated =
+                a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            final bUpdated =
+                b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            return bUpdated.compareTo(aUpdated);
+          });
           break;
       }
 

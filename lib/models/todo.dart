@@ -14,92 +14,74 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:hive/hive.dart';
+import 'package:isar_community/isar.dart';
 import 'package:uuid/uuid.dart';
+import '../utils/isar_id.dart';
 
 part 'todo.g.dart';
 
-@HiveType(typeId: 0)
-class Todo extends HiveObject {
-  @HiveField(0)
+@collection
+class Todo {
+  Id get isarId => fastHash(id);
+
+  @Index(unique: true, replace: true)
   String id;
 
-  @HiveField(1)
   String text;
 
-  @HiveField(2)
   bool isCompleted;
 
-  @HiveField(3)
-  DateTime createdAt;
+  DateTime? createdAt;
 
-  @HiveField(4)
   DateTime? dueDate;
 
-  @HiveField(5)
   String priority;
 
-  @HiveField(7)
   List<String> tags;
 
-  @HiveField(8)
   DateTime? completedAt;
 
-  @HiveField(9)
   String? notes;
 
-  @HiveField(10)
   String? folderId; // Reference to folder
 
-  @HiveField(11)
   List<int> reminderOffsetsMinutes; // A list of offsets in minutes
 
-  @HiveField(12)
   DateTime? startDate; // Optional start for multi-day span (end = dueDate)
 
-  @HiveField(13, defaultValue: 'none')
   String repeatType; // 'none', 'daily', 'weekly', 'monthly', 'yearly', 'custom'
 
-  @HiveField(14)
   int? repeatInterval; // e.g., every 2 days/weeks/months (for custom)
 
-  @HiveField(15)
   List<int>? repeatDays; // e.g., [1, 3, 5] for Mon/Wed/Fri (1=Mon, 7=Sun)
 
-  @HiveField(16)
   DateTime? repeatEndDate; // Optional: when recurrence stops
 
-  @HiveField(17)
   String? parentRecurringTaskId; // Reference to the original recurring task
 
-  @HiveField(18)
   int? sourceCalendarColor; // Color of the calendar this task was imported from
 
-  @HiveField(20)
   String? sourceCalendarName; // Name of the imported calendar source
 
-  @HiveField(19, defaultValue: false)
   bool isDeleted;
 
-  @HiveField(21)
   int? durationMinutes; // Duration of the task in minutes
 
-  @HiveField(22)
   DateTime? deletedAt;
 
   Todo({
-    String? id,
+    String id = '',
     required this.text,
     this.isCompleted = false,
     DateTime? createdAt,
     this.dueDate,
     this.startDate,
     this.priority = 'none',
-    List<String>? tags,
+    this.tags = const [],
     this.completedAt,
     this.notes,
     this.folderId,
-    List<int>? reminderOffsetsMinutes,
+    this.reminderOffsetsMinutes = const [0],
     this.repeatType = 'none',
     this.repeatInterval,
     this.repeatDays,
@@ -110,10 +92,8 @@ class Todo extends HiveObject {
     this.isDeleted = false,
     this.durationMinutes,
     this.deletedAt,
-  }) : id = id ?? const Uuid().v4(),
-       createdAt = createdAt ?? DateTime.now(),
-       tags = tags ?? [],
-       reminderOffsetsMinutes = reminderOffsetsMinutes ?? [0];
+  }) : id = id.isEmpty ? const Uuid().v4() : id,
+       createdAt = createdAt ?? DateTime.now();
 
   // Copy with method for immutable updates
   Todo copyWith({
@@ -174,7 +154,7 @@ class Todo extends HiveObject {
       'id': id,
       'text': text,
       'isCompleted': isCompleted,
-      'createdAt': createdAt.toIso8601String(),
+      'createdAt': (createdAt ?? DateTime.now()).toIso8601String(),
       'dueDate': dueDate?.toIso8601String(),
       'startDate': startDate?.toIso8601String(),
       'priority': priority,
@@ -197,10 +177,12 @@ class Todo extends HiveObject {
 
   static Todo fromJson(Map<String, dynamic> json) {
     return Todo(
-      id: json['id'],
+      id: json['id'] ?? '',
       text: json['text'],
       isCompleted: json['isCompleted'] ?? false,
-      createdAt: DateTime.parse(json['createdAt']),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : null,
       dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
       startDate: json['startDate'] != null
           ? DateTime.parse(json['startDate'])
@@ -243,8 +225,10 @@ class Todo extends HiveObject {
   }
 
   /// Legacy getter for backward compatibility. Prefer isOverdueAt() for testability.
+  @ignore
   bool get isOverdue => isOverdueAt();
 
+  @ignore
   bool get isSpan =>
       startDate != null && dueDate != null && !dueDate!.isBefore(startDate!);
 
@@ -276,6 +260,7 @@ class Todo extends HiveObject {
   }
 
   /// Legacy getter for backward compatibility. Prefer isDueTodayAt() for testability.
+  @ignore
   bool get isDueToday => isDueTodayAt();
 
   /// Checks if the task is due soon (within 3 days) based on the provided time.
@@ -289,9 +274,11 @@ class Todo extends HiveObject {
   }
 
   /// Legacy getter for backward compatibility. Prefer isDueSoonAt() for testability.
+  @ignore
   bool get isDueSoon => isDueSoonAt();
 
   // Check if this task is recurring
+  @ignore
   bool get isRecurring => repeatType != 'none';
 
   @override

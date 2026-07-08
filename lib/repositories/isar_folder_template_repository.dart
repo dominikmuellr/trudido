@@ -14,27 +14,31 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:hive/hive.dart';
+import 'package:isar_community/isar.dart';
 import '../models/folder_template.dart';
 import '../repositories/folder_template_repository.dart';
 import '../services/storage_service.dart';
+import '../utils/isar_id.dart';
 
-/// Concrete implementation of FolderTemplateRepository using Hive
-class HiveFolderTemplateRepository implements FolderTemplateRepository {
-  static const String _templatesBoxName = 'folder_templates';
-  Box<FolderTemplate>? _templatesBox;
+/// Concrete implementation of FolderTemplateRepository using Isar.
+class IsarFolderTemplateRepository implements FolderTemplateRepository {
+  bool _initialized = false;
 
-  /// Initialize the repository with Hive box
+  /// Initialize the repository and create built-in templates.
   Future<void> init() async {
-    _templatesBox = await Hive.openBox<FolderTemplate>(_templatesBoxName);
+    if (_initialized) return;
+    await StorageService.ensureReady();
+    _initialized = true;
     // Create built-in templates if none exist
     await _createBuiltInTemplatesIfNeeded();
   }
 
   @override
   Future<List<FolderTemplate>> getAllTemplates() async {
-    if (_templatesBox == null) await init();
-    final templates = _templatesBox!.values.toList();
+    if (!_initialized) await init();
+    final templates = await StorageService.isar.folderTemplates
+        .where()
+        .findAll();
     // Sort: built-in first, then by usage count, then by name
     templates.sort((a, b) {
       if (a.isBuiltIn && !b.isBuiltIn) return -1;
@@ -50,31 +54,37 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
 
   @override
   Future<FolderTemplate?> getTemplateById(String id) async {
-    if (_templatesBox == null) await init();
-    return _templatesBox!.get(id);
+    if (!_initialized) await init();
+    return StorageService.isar.folderTemplates.get(fastHash(id));
   }
 
   @override
   Future<void> createTemplate(FolderTemplate template) async {
-    if (_templatesBox == null) await init();
-    await _templatesBox!.put(template.id, template);
+    if (!_initialized) await init();
+    await StorageService.isar.writeTxn(() {
+      return StorageService.isar.folderTemplates.put(template);
+    });
   }
 
   @override
   Future<void> updateTemplate(FolderTemplate template) async {
-    if (_templatesBox == null) await init();
+    if (!_initialized) await init();
     final updatedTemplate = template.copyWith(updatedAt: DateTime.now());
-    await _templatesBox!.put(template.id, updatedTemplate);
+    await StorageService.isar.writeTxn(() {
+      return StorageService.isar.folderTemplates.put(updatedTemplate);
+    });
   }
 
   @override
   Future<bool> deleteTemplate(String id) async {
-    if (_templatesBox == null) await init();
+    if (!_initialized) await init();
     final template = await getTemplateById(id);
 
     // Only allow deletion of custom templates
     if (template != null && !template.isBuiltIn) {
-      await _templatesBox!.delete(id);
+      await StorageService.isar.writeTxn(() {
+        return StorageService.isar.folderTemplates.delete(fastHash(id));
+      });
       return true;
     }
     return false;
@@ -152,7 +162,11 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
         .toList();
 
     // Sort todos by creation order or custom order
-    folderTodos.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    folderTodos.sort((a, b) {
+      final aCreated = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bCreated = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return aCreated.compareTo(bCreated);
+    });
 
     // Convert todos to task templates
     final taskTemplates = folderTodos.asMap().entries.map((entry) {
@@ -223,7 +237,7 @@ class HiveFolderTemplateRepository implements FolderTemplateRepository {
 
   /// Create built-in templates if they don't exist
   Future<void> _createBuiltInTemplatesIfNeeded() async {
-    final existingTemplates = _templatesBox!.values.toList();
+    final existingTemplates = await getAllTemplates();
 
     if (existingTemplates.isEmpty ||
         !existingTemplates.any((t) => t.isBuiltIn)) {

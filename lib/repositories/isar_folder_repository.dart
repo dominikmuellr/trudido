@@ -14,18 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:hive/hive.dart';
+import 'package:isar_community/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/folder.dart';
 import '../repositories/folder_repository.dart';
 import '../services/storage_service.dart';
+import '../utils/isar_id.dart';
 
-/// Concrete implementation of FolderRepository using Hive for local storage
-class HiveFolderRepository implements FolderRepository {
-  static const String _foldersBoxName = 'folders';
+/// Concrete implementation of FolderRepository using Isar for local storage.
+class IsarFolderRepository implements FolderRepository {
   static const String _deletedDefaultFolderNamesKey =
       'deleted_default_folder_names';
-  Box<Folder>? _foldersBox;
+  bool _initialized = false;
 
   /// Returns the set of default-folder names the user has intentionally deleted
   /// or renamed, so they are not auto-recreated on next app start.
@@ -43,52 +43,58 @@ class HiveFolderRepository implements FolderRepository {
     await prefs.setStringList(_deletedDefaultFolderNamesKey, existing.toList());
   }
 
-  /// Initialize the repository with Hive boxes
+  /// Initialize the repository and create default folders.
   Future<void> init() async {
-    _foldersBox = await Hive.openBox<Folder>(_foldersBoxName);
+    if (_initialized) return;
+    await StorageService.ensureReady();
+    _initialized = true;
     // Create default folders if none exist
     await _createDefaultFoldersIfNeeded();
   }
 
   @override
   Future<List<Folder>> getAllFolders() async {
-    if (_foldersBox == null) await init();
-    return _foldersBox!.values.toList();
+    if (!_initialized) await init();
+    return StorageService.isar.folders.where().findAll();
   }
 
   @override
   Future<Folder?> getFolderById(String id) async {
-    if (_foldersBox == null) await init();
-    return _foldersBox!.get(id);
+    if (!_initialized) await init();
+    return StorageService.isar.folders.get(fastHash(id));
   }
 
   @override
   Future<void> createFolder(Folder folder) async {
-    if (_foldersBox == null) await init();
-    await _foldersBox!.put(folder.id, folder);
+    if (!_initialized) await init();
+    await StorageService.isar.writeTxn(() {
+      return StorageService.isar.folders.put(folder);
+    });
   }
 
   @override
   Future<void> updateFolder(Folder folder) async {
-    if (_foldersBox == null) await init();
+    if (!_initialized) await init();
     // If a default folder is being renamed, mark the old name so it won't
     // be auto-recreated on the next app start.
-    final existing = _foldersBox!.get(folder.id);
+    final existing = await getFolderById(folder.id);
     if (existing != null &&
         existing.isDefault &&
         existing.name.toLowerCase() != folder.name.trim().toLowerCase()) {
       await _markDefaultFolderAsDeleted(existing.name);
     }
     final updatedFolder = folder.copyWith(updatedAt: DateTime.now());
-    await _foldersBox!.put(folder.id, updatedFolder);
+    await StorageService.isar.writeTxn(() {
+      return StorageService.isar.folders.put(updatedFolder);
+    });
   }
 
   @override
   Future<void> deleteFolder(String id) async {
-    if (_foldersBox == null) await init();
+    if (!_initialized) await init();
     // If deleting a default folder, remember its name so it won't be
     // auto-recreated the next time the app starts.
-    final folder = _foldersBox!.get(id);
+    final folder = await getFolderById(id);
     if (folder != null && folder.isDefault) {
       await _markDefaultFolderAsDeleted(folder.name);
     }
@@ -103,7 +109,9 @@ class HiveFolderRepository implements FolderRepository {
         await StorageService.updateTodo(updatedTodo);
       }
     }
-    await _foldersBox!.delete(id);
+    await StorageService.isar.writeTxn(() {
+      return StorageService.isar.folders.delete(fastHash(id));
+    });
   }
 
   @override
@@ -126,7 +134,9 @@ class HiveFolderRepository implements FolderRepository {
     }
     if (dups.isNotEmpty) {
       for (final d in dups) {
-        await _foldersBox!.delete(d.id);
+        await StorageService.isar.writeTxn(() {
+          return StorageService.isar.folders.delete(fastHash(d.id));
+        });
       }
       folders.removeWhere((f) => dups.any((d) => d.id == f.id));
     }
@@ -145,7 +155,7 @@ class HiveFolderRepository implements FolderRepository {
 
   @override
   Future<void> updateFolderOrder(List<String> folderIds) async {
-    if (_foldersBox == null) await init();
+    if (!_initialized) await init();
 
     for (int i = 0; i < folderIds.length; i++) {
       final folder = await getFolderById(folderIds[i]);
@@ -154,7 +164,9 @@ class HiveFolderRepository implements FolderRepository {
           sortOrder: i,
           updatedAt: DateTime.now(),
         );
-        await _foldersBox!.put(folder.id, updatedFolder);
+        await StorageService.isar.writeTxn(() {
+          return StorageService.isar.folders.put(updatedFolder);
+        });
       }
     }
   }
@@ -216,7 +228,7 @@ class HiveFolderRepository implements FolderRepository {
   /// Create default folders if none exist
   Future<void> _createDefaultFoldersIfNeeded() async {
     final deletedNames = await _getDeletedDefaultFolderNames();
-    final existing = _foldersBox!.values.toList();
+    final existing = await getAllFolders();
     final existingNames = existing.map((f) => f.name.toLowerCase()).toSet();
     Future<void> ensure(
       String name,
@@ -229,7 +241,7 @@ class HiveFolderRepository implements FolderRepository {
       if (deletedNames.contains(name.toLowerCase())) return;
       if (existingNames.contains(name.toLowerCase())) return;
       // Recheck after potential race
-      final latestNames = _foldersBox!.values
+      final latestNames = (await getAllFolders())
           .map((f) => f.name.toLowerCase())
           .toSet();
       if (latestNames.contains(name.toLowerCase())) return;
@@ -272,13 +284,15 @@ class HiveFolderRepository implements FolderRepository {
     // Prefer default, then earlier createdAt, then lower id lexicographically
     if (a.isDefault != b.isDefault) return a.isDefault ? a : b;
     if (a.createdAt != b.createdAt) {
-      return a.createdAt.isBefore(b.createdAt) ? a : b;
+      final aCreated = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bCreated = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return aCreated.isBefore(bCreated) ? a : b;
     }
     return a.id.compareTo(b.id) <= 0 ? a : b;
   }
 
   /// Clean up resources
   Future<void> dispose() async {
-    await _foldersBox?.close();
+    _initialized = false;
   }
 }

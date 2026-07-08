@@ -445,8 +445,8 @@ class PdfExportService {
       pw.Padding(
         padding: const pw.EdgeInsets.only(bottom: 20),
         child: pw.Text(
-          'Created: ${dateFormat.format(note.createdAt)}\n'
-          'Updated: ${dateFormat.format(note.updatedAt)}',
+          'Created: ${dateFormat.format(note.createdAt ?? DateTime.now())}\n'
+          'Updated: ${dateFormat.format(note.updatedAt ?? DateTime.now())}',
           style: pw.TextStyle(
             font: font,
             fontSize: 10,

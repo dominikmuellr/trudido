@@ -56,7 +56,9 @@ class IcsExportService {
     final buf = StringBuffer();
     buf.writeln('BEGIN:VEVENT');
     buf.writeln('UID:${event.uid.isNotEmpty ? event.uid : event.id}@trudido');
-    buf.writeln('DTSTAMP:${_formatDateTimeUtc(event.createdAt)}');
+    buf.writeln(
+      'DTSTAMP:${_formatDateTimeUtc(event.createdAt ?? DateTime.now())}',
+    );
 
     if (event.isAllDay) {
       buf.writeln('DTSTART;VALUE=DATE:${_formatDateOnly(event.startDateTime)}');
@@ -131,7 +133,9 @@ class IcsExportService {
     final buf = StringBuffer();
     buf.writeln('BEGIN:VEVENT');
     buf.writeln('UID:${task.id}@trudido');
-    buf.writeln('DTSTAMP:${_formatDateTimeUtc(task.createdAt)}');
+    buf.writeln(
+      'DTSTAMP:${_formatDateTimeUtc(task.createdAt ?? DateTime.now())}',
+    );
 
     final isAllDay =
         task.dueDate!.hour == 0 &&

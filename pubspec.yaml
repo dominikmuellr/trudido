@@ -54,8 +54,8 @@ dependencies:
 
   # Local storage
   shared_preferences: ^2.3.2
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
+  isar_community: ^3.3.2
+  isar_community_flutter_libs: ^3.3.2
   path_provider: ^2.1.4
 
   # UI and utilities
@@ -145,6 +145,8 @@ dev_dependencies:
 
   # Icon generation
   flutter_launcher_icons: ^0.14.4
+  build_runner: ^2.4.13
+  isar_community_generator: ^3.3.2
 
 # Override dependencies to fix compatibility issues
 dependency_overrides:

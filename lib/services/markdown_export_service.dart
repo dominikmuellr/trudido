@@ -164,7 +164,7 @@ class MarkdownExportService {
   /// Generate a safe filename from note title and date
   static String _generateSafeFileName(Note note) {
     // Use creation date for consistent naming
-    final datePrefix = note.createdAt.toIso8601String().substring(
+    final datePrefix = (note.createdAt ?? DateTime.now()).toIso8601String().substring(
       0,
       10,
     ); // YYYY-MM-DD
@@ -193,8 +193,12 @@ class MarkdownExportService {
     buffer.writeln('---');
     buffer.writeln('id: "${note.id}"');
     buffer.writeln('title: "${note.title.replaceAll('"', '\\"')}"');
-    buffer.writeln('created: ${note.createdAt.toIso8601String()}');
-    buffer.writeln('modified: ${note.updatedAt.toIso8601String()}');
+    buffer.writeln(
+      'created: ${(note.createdAt ?? DateTime.now()).toIso8601String()}',
+    );
+    buffer.writeln(
+      'modified: ${(note.updatedAt ?? DateTime.now()).toIso8601String()}',
+    );
     buffer.writeln('exported_from: "Trudido Todo App"');
     buffer.writeln('export_date: ${DateTime.now().toIso8601String()}');
     buffer.writeln('---');
@@ -496,7 +500,7 @@ class MarkdownExportService {
       final now = DateTime.now();
 
       return Note(
-        id: noteId, // Will generate new UUID if null
+        id: noteId ?? '', // Empty value generates a new UUID.
         title: title,
         content: noteContent,
         createdAt: createdAt ?? now,
@@ -536,7 +540,7 @@ class MarkdownExportService {
       final now = DateTime.now();
 
       return Note(
-        id: noteId,
+        id: noteId ?? '',
         title: title,
         content: noteContent,
         createdAt: createdAt ?? now,

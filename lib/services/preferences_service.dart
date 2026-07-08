@@ -21,7 +21,7 @@ import '../models/app_error.dart';
 import '../models/preferences_state.dart';
 import 'storage_service.dart';
 
-/// Centralized preferences wrapper (cached & typed) independent of Hive boxes.
+/// Centralized preferences wrapper (cached & typed), independent of Isar.
 /// Wraps SharedPreferences keys already used inside StorageService so legacy
 /// code continues to function while new UI reads from [PreferencesState].
 class PreferencesService {

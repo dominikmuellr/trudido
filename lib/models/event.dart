@@ -14,101 +14,81 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:hive/hive.dart';
+import 'package:isar_community/isar.dart';
 import 'package:uuid/uuid.dart';
+import '../utils/isar_id.dart';
 
 part 'event.g.dart';
 
 /// Represents a calendar event, separate from tasks.
 /// Events have full datetime support (start/end times) and can span
 /// single or multiple days.
-@HiveType(typeId: 10)
-class Event extends HiveObject {
-  @HiveField(0)
+@collection
+class Event {
+  Id get isarId => fastHash(id);
+
+  @Index(unique: true, replace: true)
   String id;
 
-  @HiveField(1)
   String text;
 
-  @HiveField(2)
   bool isCompleted;
 
-  @HiveField(3)
-  DateTime createdAt;
+  DateTime? createdAt;
 
-  @HiveField(4)
   DateTime startDateTime;
 
-  @HiveField(5)
   DateTime endDateTime;
 
-  @HiveField(6)
   String priority;
 
-  @HiveField(7)
   List<String> tags;
 
-  @HiveField(8)
   DateTime? completedAt;
 
-  @HiveField(9)
   String? notes;
 
-  @HiveField(10)
   String? folderId;
 
-  @HiveField(11)
   List<int> reminderOffsetsMinutes;
 
-  @HiveField(12, defaultValue: 'none')
   String repeatType; // 'none', 'daily', 'weekly', 'monthly', 'yearly', 'custom'
 
-  @HiveField(13)
   int? repeatInterval;
 
-  @HiveField(14)
   List<int>? repeatDays; // e.g., [1, 3, 5] for Mon/Wed/Fri (1=Mon, 7=Sun)
 
-  @HiveField(15)
   DateTime? repeatEndDate;
 
-  @HiveField(16)
   String? parentRecurringEventId;
 
-  @HiveField(17)
   int? sourceCalendarColor;
 
-  @HiveField(18)
   String? sourceCalendarName;
 
-  @HiveField(19, defaultValue: false)
   bool isDeleted;
 
-  @HiveField(20)
   DateTime? deletedAt;
 
-  @HiveField(21)
   int? color; // Custom event color
 
-  @HiveField(22, defaultValue: '')
   String uid; // For ICS / calendar sync deduplication
 
-  @HiveField(23)
   String? location;
 
   Event({
-    String? id,
+    String id = '',
     required this.text,
     this.isCompleted = false,
     DateTime? createdAt,
     required this.startDateTime,
     required this.endDateTime,
     this.priority = 'none',
-    List<String>? tags,
+    this.tags = const [],
     this.completedAt,
     this.notes,
     this.folderId,
-    List<int>? reminderOffsetsMinutes,
+    this.reminderOffsetsMinutes = const [0],
     this.repeatType = 'none',
     this.repeatInterval,
     this.repeatDays,
@@ -121,10 +101,8 @@ class Event extends HiveObject {
     this.color,
     this.uid = '',
     this.location,
-  }) : id = id ?? const Uuid().v4(),
-       createdAt = createdAt ?? DateTime.now(),
-       tags = tags ?? [],
-       reminderOffsetsMinutes = reminderOffsetsMinutes ?? [0];
+  }) : id = id.isEmpty ? const Uuid().v4() : id,
+       createdAt = createdAt ?? DateTime.now();
 
   Event copyWith({
     String? id,
@@ -187,7 +165,7 @@ class Event extends HiveObject {
       'id': id,
       'text': text,
       'isCompleted': isCompleted,
-      'createdAt': createdAt.toIso8601String(),
+      'createdAt': (createdAt ?? DateTime.now()).toIso8601String(),
       'startDateTime': startDateTime.toIso8601String(),
       'endDateTime': endDateTime.toIso8601String(),
       'priority': priority,
@@ -213,10 +191,12 @@ class Event extends HiveObject {
 
   static Event fromJson(Map<String, dynamic> json) {
     return Event(
-      id: json['id'],
+      id: json['id'] ?? '',
       text: json['text'],
       isCompleted: json['isCompleted'] ?? false,
-      createdAt: DateTime.parse(json['createdAt']),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : null,
       startDateTime: DateTime.parse(json['startDateTime']),
       endDateTime: DateTime.parse(json['endDateTime']),
       priority: json['priority'] ?? 'none',
@@ -253,6 +233,7 @@ class Event extends HiveObject {
   // Helper methods
 
   /// Whether this event spans multiple days.
+  @ignore
   bool get isMultiDay {
     final s = DateTime(
       startDateTime.year,
@@ -264,6 +245,7 @@ class Event extends HiveObject {
   }
 
   /// Whether this event is an all-day event (starts at midnight and ends at midnight).
+  @ignore
   bool get isAllDay {
     return startDateTime.hour == 0 &&
         startDateTime.minute == 0 &&
@@ -290,12 +272,15 @@ class Event extends HiveObject {
     return currentTime.isAfter(endDateTime);
   }
 
+  @ignore
   bool get hasEnded => hasEndedAt();
 
   /// Check if this event is recurring.
+  @ignore
   bool get isRecurring => repeatType != 'none';
 
   /// Duration of the event.
+  @ignore
   Duration get duration => endDateTime.difference(startDateTime);
 
   @override

@@ -386,7 +386,7 @@ class _TemplateEditorDialogState extends State<TemplateEditorDialog> {
       final validTasks = _tasks.where((t) => t.text.trim().isNotEmpty).toList();
 
       final template = FolderTemplate(
-        id: widget.template?.id,
+        id: widget.template?.id ?? '',
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim().isEmpty
             ? null
